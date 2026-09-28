@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { columns, detailColumns, display, filterEvents, initialFilters, prices, statuses } from '../../lib/catalog.js';
 import {useEvents} from '../../lib/use-events.js';
+import EventMap from './event-map.jsx';
 const pageSize=50;
 export default function EventCatalog() {
  const {data,loading,error,refresh}=useEvents();
@@ -26,7 +27,8 @@ export default function EventCatalog() {
  const selectedEvent=rows.find(e=>e.id===selected);
  return <>
   <div className="catalog-toolbar"><div><strong>{data?`${rows.length} pasākumi`:'Ielādējam pasākumus…'}</strong><p className="sync-text">{data?`Dati pārlasīti ${new Date(data.fetchedAt).toLocaleString('lv-LV',{timeZone:'Europe/Riga'})}`:'Savienojamies ar datu avotu'} · automātiski ik minūti</p></div><button className="button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Pārlasīt datus'}</button></div>
-  <p className="data-note">Sarakstā redzami publicētie pasākumi. Informācija tiek pārlasīta no datubāzes; pirms došanās pārbaudi norises informāciju avotā.</p>
+  <p className="data-note"><strong>Iekšējais datu apskates režīms.</strong> Redzami publicētie un vēl nepārbaudītie pasākumi. Dati paredzēti MEETS attīstības izvērtēšanai; pirms publiskošanas tie jāpārbauda avotā.</p>
+  {data&&<EventMap events={filtered} onSelect={e=>setSelected(e.id)}/>} 
   {error&&<div className="error-message" role="alert">{error} {data&&'Zemāk saglabāti pēdējie veiksmīgi ielādētie dati.'}</div>}
   <div className="filters" aria-label="Pasākumu filtri">
    <label className="search-label">Meklēt pasākumu<input type="search" placeholder="Nosaukums, vieta, adrese…" value={filters.search} onChange={e=>change('search',e.target.value)}/></label>
@@ -34,7 +36,7 @@ export default function EventCatalog() {
    <label>Kategorija<select value={filters.category} onChange={e=>change('category',e.target.value)}><option value="">Visas kategorijas</option>{options.categories.map(v=><option key={v}>{v}</option>)}</select></label>
    <label>Datums no<input type="date" value={filters.from} onChange={e=>change('from',e.target.value)}/></label>
    <label>Datums līdz<input type="date" value={filters.to} onChange={e=>change('to',e.target.value)}/></label>
-   <label>Statuss<select value={filters.status} onChange={e=>change('status',e.target.value)}><option value="">Visi publicētie</option>{Object.entries(statuses).filter(([v])=>v==='published').map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
+   <label>Statuss<select value={filters.status} onChange={e=>change('status',e.target.value)}><option value="">Visi statusi</option>{Object.entries(statuses).filter(([v])=>['published','pending_review'].includes(v)).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
    <label>Dalības maksa<select value={filters.price} onChange={e=>change('price',e.target.value)}><option value="">Visi veidi</option>{Object.entries(prices).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
   </div>
   {invalid&&<p role="alert" className="error-message">Datums “No” nedrīkst būt pēc datuma “Līdz”.</p>}
