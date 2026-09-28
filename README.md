@@ -1,37 +1,28 @@
 # meets 2
 
-New, separate customer-facing Next.js project. Technical project/repository name: `meets-2`; display name: `meets 2`.
+Customer-facing Next.js App Router application, deployed from GitHub `main` to Vercel `meets-2`.
 
-## Current scope
+## Implemented
 
-- Next.js App Router, React, responsive Latvian interface.
-- Home page plus `/karte` and `/pasakumi` route foundations.
-- Honest preparation states: map, event loading, filters and Excel export are **not yet implemented**.
-- `/api/health` checks the application only, not database connectivity.
-- Existing admin/demo application is separate and unchanged.
+- Latvian responsive event list at `/pasakumi`: only status = published, per the updated production brief. Historical published events remain available in the list.
+- Search, municipality/category/date/status/price filters, sorting, 50-row pagination, mobile cards, event details.
+- `.xlsx` export of the complete filtered result, with 33 event fields, native date cells and an information sheet. Values are stored as strings, never formulas.
+- `/api/events` reads the existing Supabase project on every request, without persistent event caching. The visible client refreshes every 60 seconds and offers manual refresh. This reads the database; it does not crawl source websites.
+- `/api/health` checks the actual database feed.
+- The map remains a preparation page. Existing admin/demo app is separate.
 
-## Existing database
+## Data boundary
 
-Use the existing Supabase **MEETS 2** project. Do not create a second database. No database mutations were made for this scaffold.
+`database/catalog-api.sql` documents the provisioned, token-gated read function. It returns only explicitly selected event information. The server applies a second allowlist. The database function and server both filter status = published. No anonymous table grants or write permissions were added. RLS and existing admin functions are unchanged. Internal comments, import payloads, notes and change history are not in the public feed.
 
-`.env.example` documents future server-side configuration. The app does not yet query Supabase. No keys or admin integration tokens are included. Before enabling public data, define approved-event access and return only public event fields; exclude comments, import payloads and internal review data. Do not reuse the unrestricted admin feed for public clients.
+`MEETS_CATALOG_TOKEN` is a dedicated server-only credential, stored as a SHA-256 verifier in a private-schema function. Never prefix it with `NEXT_PUBLIC_`, commit it, or expose it in responses. The SQL template needs a securely generated token hash when provisioning a new installation; it is not a command to rerun without securely supplying the existing verifier.
 
-## Setup and deployment
+## Run
 
-1. GitHub repository: `girtspolis1-sudo/meets-2`, branch `main`. The repository is public; never commit credentials, event snapshots or internal admin data.
-2. Import it into Vercel as `meets-2`, framework **Next.js**, Node.js **24.x**.
-3. Build: `npm ci` then `npm run build` (configured in `vercel.json`).
-4. Link the local/cloud checkout to that Vercel project before starting a dev server; verify environment configuration before database integration.
-5. Production start: `npm start`; development: `npm run dev`.
+Node 24.x. Install with `npm ci`. Copy `.env.example` to `.env.local` and provision the three values through Vercel project settings. Production values are scoped to Production. `npm run build`, then `npm start`. `npm run dev` for development after configuration. Never commit runtime credentials or event snapshots.
 
-Next.js is the application framework, so no separate Next.js account or cloud project is required.
+Tests: `node --conditions=react-server --env-file=.env.local --test tests/catalog.test.js`. The live integration test checks that all returned rows are published. It also verifies filters, projection, native Excel dates, formula-like text, full exports and rejection of invalid credentials/direct anonymous table access.
 
-Search-engine indexing is disabled during this setup phase. Enable it deliberately after public launch. Custom domain, billing upgrades and public database access are not configured by this starter.
+## Remaining
 
-## Next implementation stage
-
-1. Public, read-only Supabase integration for approved events.
-2. Map, honest location precision and shared date/category/municipality filters.
-3. Event list with all-filtered-results `.xlsx` export.
-4. Mobile/tablet/desktop verification and deployment checks.
-5. Later: iframe views with client-specific stored filters.
+Interactive map, richer location filtering, client-specific iframe views, custom domain and search indexing. Indexing remains disabled while the broader platform is in development.
