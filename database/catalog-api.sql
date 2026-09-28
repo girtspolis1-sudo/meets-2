@@ -13,7 +13,7 @@ begin
  from (
  select v.id,v.title,v.description,v.date_from,v.date_to,v.time_from,v.time_to,v.timezone,
  v.schedule_type,v.time_type,v.attendance_mode,v.record_type,v.event_type,v.primary_category,
- v.status,v.review_status,v.price_status,v.price_text,v.price_min,v.price_max,v.currency,v.terms,
+ v.status,v.price_status,v.price_text,v.price_min,v.price_max,v.currency,v.terms,
  v.venue_name,v.address_raw,v.alternative_address,v.location_precision,v.location_note,
  v.municipality,v.settlement,v.latitude,v.longitude,v.updated_at,
  (select coalesce(jsonb_agg(c.name order by c.name),'[]'::jsonb) from public.event_categories ec join public.categories c on c.id=ec.category_id where ec.event_id=v.id) as tags,

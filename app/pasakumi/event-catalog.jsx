@@ -34,7 +34,7 @@ export default function EventCatalog() {
    <label>Kategorija<select value={filters.category} onChange={e=>change('category',e.target.value)}><option value="">Visas kategorijas</option>{options.categories.map(v=><option key={v}>{v}</option>)}</select></label>
    <label>Datums no<input type="date" value={filters.from} onChange={e=>change('from',e.target.value)}/></label>
    <label>Datums līdz<input type="date" value={filters.to} onChange={e=>change('to',e.target.value)}/></label>
-   <label>Statuss<select value={filters.status} onChange={e=>change('status',e.target.value)}><option value="">Visi statusi</option>{Object.entries(statuses).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
+   <label>Statuss<select value={filters.status} onChange={e=>change('status',e.target.value)}><option value="">Visi publicētie</option>{Object.entries(statuses).filter(([v])=>v==='published').map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
    <label>Dalības maksa<select value={filters.price} onChange={e=>change('price',e.target.value)}><option value="">Visi veidi</option>{Object.entries(prices).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
   </div>
   {invalid&&<p role="alert" className="error-message">Datums “No” nedrīkst būt pēc datuma “Līdz”.</p>}
