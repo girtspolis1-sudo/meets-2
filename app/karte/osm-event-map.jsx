@@ -7,6 +7,35 @@ const JS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 const CSS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+function sourceType(e){
+ const sources=(e.sources||[]).map(s=>String(s.source||'').toLowerCase());
+ if(sources.includes('lff.lv'))return 'lff';
+ if(sources.includes('athletics.lv'))return 'athletics';
+ return 'general';
+}
+function markerStyle(e){
+ const type=sourceType(e),pending=e.status==='pending_review';
+ if(type==='lff')return {color:'#174a7e',fillColor:'#3f8ed8',radius:8,weight:3,dashArray:pending?'4 3':null};
+ if(type==='athletics')return {color:'#63328d',fillColor:'#a66bd1',radius:8,weight:3,dashArray:pending?'4 3':null};
+ return {color:pending?'#a66b00':'#315c1d',fillColor:pending?'#f0b84b':'#78a85a',radius:7,weight:2,dashArray:pending?'4 3':null};
+}
+function sourceLabel(e){
+ const type=sourceType(e);
+ if(type==='lff')return 'LFF · Futbols';
+ if(type==='athletics')return 'Athletics.lv · Vieglatlētika';
+ return (e.sources||[]).map(s=>s.source).filter(Boolean).join(', ')||'MEETS';
+}
+function displayPosition(e,indexByKey){
+ let lat=Number(e.latitude),lon=Number(e.longitude);
+ const key=lat.toFixed(5)+','+lon.toFixed(5);
+ const i=indexByKey.get(key)||0;indexByKey.set(key,i+1);
+ if(i>0){
+  const angle=(i*137.5)*Math.PI/180;
+  lat+=Math.sin(angle)*0.0045;
+  lon+=Math.cos(angle)*0.0075;
+ }
+ return [lat,lon];
+}
 function loadLeaflet(){
  return new Promise((resolve,reject)=>{
   if(window.L)return resolve(window.L);
@@ -37,6 +66,8 @@ export default function OsmEventMap(){
   (!to||e.date_from<=to)
  ),[events,category,municipality,from,to]);
  const points=filtered.filter(e=>Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude)));
+ const lffCount=points.filter(e=>sourceType(e)==='lff').length;
+ const athleticsCount=points.filter(e=>sourceType(e)==='athletics').length;
 
  useEffect(()=>{
   let cancelled=false;
@@ -48,11 +79,18 @@ export default function OsmEventMap(){
    }
    if(layerRef.current)layerRef.current.remove();
    const group=L.layerGroup().addTo(mapRef.current);layerRef.current=group;
-   const bounds=[];
+   const bounds=[],indexByKey=new Map();
    for(const e of points){
-    const lat=Number(e.latitude),lon=Number(e.longitude),pending=e.status==='pending_review';
-    const marker=L.circleMarker([lat,lon],{radius:7,weight:2,color:pending?'#a66b00':'#315c1d',fillColor:pending?'#f0b84b':'#78a85a',fillOpacity:.9});
-    marker.bindPopup('<strong>'+esc(e.title)+'</strong><br>'+esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'<br>'+esc(e.venue_name||e.municipality||'')+'<br><small>'+(pending?'Jāpārbauda':'Publicēts')+'</small>');
+    const [lat,lon]=displayPosition(e,indexByKey);
+    const pending=e.status==='pending_review',type=sourceType(e),style=markerStyle(e);
+    const approximate=['settlement_center','municipality_center'].includes(e.location_precision);
+    const marker=L.circleMarker([lat,lon],{...style,fillOpacity:.9});
+    marker.bindPopup(
+      '<strong>'+esc(e.title)+'</strong><br>'+
+      esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'<br>'+
+      esc(e.venue_name||e.municipality||'')+'<br>'+
+      '<small>'+esc(sourceLabel(e))+' · '+(pending?'Jāpārbauda':'Publicēts')+(approximate?' · aptuvena lokācija':'')+'</small>'
+    );
     marker.addTo(group);bounds.push([lat,lon]);
    }
    if(bounds.length)mapRef.current.fitBounds(bounds,{padding:[24,24],maxZoom:11});
@@ -73,8 +111,14 @@ export default function OsmEventMap(){
    <label>Datums no<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label>
    <label>Datums līdz<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label>
   </div>
+  <div className="map-legend" aria-label="Kartes leģenda">
+   <span><i className="legend-dot published"/>Publicēts</span>
+   <span><i className="legend-dot pending"/>Pending review</span>
+   <span><i className="legend-dot lff"/>LFF futbols ({lffCount})</span>
+   <span><i className="legend-dot athletics"/>Vieglatlētika ({athleticsCount})</span>
+  </div>
   <div className="map-summary"><strong>{points.length}</strong> punkti kartē · {filtered.length} atlasīti ieraksti · {filtered.length-points.length} bez koordinātām <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button></div>
-  {includePending&&<p className="data-note"><strong>Iekšējais apskates režīms:</strong> dzeltenie punkti ir <code>pending_review</code> un vēl nav publiski apstiprināti.</p>}
+  {includePending&&<p className="data-note"><strong>Iekšējais apskates režīms:</strong> pārtrauktā apmale nozīmē <code>pending_review</code>. LFF un vieglatlētikas ierakstiem, kuriem precīzs stadiona punkts vēl nav verificēts, kartē izmantots aptuvens pilsētas centrs. Vienā koordinātā sakritušie punkti ir nedaudz nobīdīti tikai vizuālai atšķiršanai.</p>}
   {error&&<div className="error-message">{error}</div>}
   <div ref={mapEl} className="osm-map" aria-label="Pasākumu karte"/>
  </>;
