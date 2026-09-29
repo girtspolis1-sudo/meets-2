@@ -108,8 +108,9 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  async function saveLocation(event,values,publish){
   setLoading(true);
   try{
-   await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_event',{
+   await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_event_v2',{
     p_session_token:token,p_event_id:event.id,p_status:publish?'published':null,p_venue_name:values.venueName,
+    p_address_text:values.addressText||null,p_location_source:values.locationSource||null,
     p_latitude:Number(values.latitude),p_longitude:Number(values.longitude)
    });
    setEditing(null);await loadEvents();
@@ -209,15 +210,22 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   </div>
   <p className="sync-text"><strong>{filtered.length}</strong> no {events.length} ierakstiem.</p>
 
-  {editing&&<LocationEditor event={editing} close={()=>setEditing(null)} save={(values,publish)=>saveLocation(editing,values,publish)}/>}
+  {editing&&<LocationEditor event={editing} token={token} close={()=>setEditing(null)} save={(values,publish)=>saveLocation(editing,values,publish)}/>} 
  </>;
 }
 
-function LocationEditor({event,close,save}){
+function LocationEditor({event,token,close,save}){
  const dialog=useRef(null),mapEl=useRef(null),mapRef=useRef(null),markerRef=useRef(null);
  const [venueName,setVenueName]=useState(event.venue_name||event.address_raw||'');
+ const initialSearch=[event.venue_name,event.address_raw,event.municipality||event.settlement].filter(Boolean).join(', ');
+ const [searchQuery,setSearchQuery]=useState(initialSearch);
+ const [addressText,setAddressText]=useState(event.address_raw||event.venue_name||'');
  const [latitude,setLatitude]=useState(event.latitude??56.95);
  const [longitude,setLongitude]=useState(event.longitude??24.1);
+ const [searchResults,setSearchResults]=useState([]);
+ const [searching,setSearching]=useState(false);
+ const [searchError,setSearchError]=useState('');
+ const [selectedPlace,setSelectedPlace]=useState(null);
 
  useEffect(()=>{
   dialog.current?.showModal();
@@ -227,7 +235,11 @@ function LocationEditor({event,close,save}){
    const map=L.map(mapEl.current,{minZoom:5,maxBounds:[[53.5,16],[60.8,31.5]],maxBoundsViscosity:1}).setView([Number(latitude),Number(longitude)],event.latitude!=null?13:7);
    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
    const marker=L.marker([Number(latitude),Number(longitude)],{draggable:true}).addTo(map);
-   function apply(latlng){setLatitude(latlng.lat.toFixed(6));setLongitude(latlng.lng.toFixed(6));marker.setLatLng(latlng);}
+   function apply(latlng){
+    setLatitude(latlng.lat.toFixed(6));setLongitude(latlng.lng.toFixed(6));
+    setSelectedPlace(null);
+    marker.setLatLng(latlng);
+   }
    map.on('click',e=>apply(e.latlng));marker.on('dragend',()=>apply(marker.getLatLng()));
    mapRef.current=map;markerRef.current=marker;
   });
@@ -236,28 +248,110 @@ function LocationEditor({event,close,save}){
 
  function syncMarker(){
   const lat=Number(latitude),lon=Number(longitude);
-  if(Number.isFinite(lat)&&Number.isFinite(lon)&&markerRef.current&&mapRef.current){markerRef.current.setLatLng([lat,lon]);mapRef.current.panTo([lat,lon]);}
+  setSelectedPlace(null);
+  if(Number.isFinite(lat)&&Number.isFinite(lon)&&markerRef.current&&mapRef.current){
+   markerRef.current.setLatLng([lat,lon]);mapRef.current.panTo([lat,lon]);
+  }
  }
+
+ async function searchLocation(eventSubmit){
+  eventSubmit?.preventDefault();
+  const query=searchQuery.trim();
+  if(query.length<3){setSearchError('Ievadi vismaz 3 rakstzīmes.');return;}
+  setSearching(true);setSearchError('');setSearchResults([]);
+  try{
+   const response=await fetch('/api/admin/geocode',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({query})
+   });
+   const data=await response.json();
+   if(!response.ok)throw new Error(data?.error||'Meklēšana neizdevās.');
+   setSearchResults(Array.isArray(data.results)?data.results:[]);
+   if(!data.results?.length)setSearchError('Latvijā netika atrasts neviens atbilstošs variants. Pamēģini saīsināt vai precizēt adresi.');
+  }catch(error){
+   setSearchError(error?.message||'Vietu meklēšana neizdevās.');
+  }finally{setSearching(false);}
+ }
+
+ function choosePlace(place){
+  setSelectedPlace(place);
+  setAddressText(place.displayName||place.label||'');
+  setLatitude(Number(place.latitude).toFixed(6));
+  setLongitude(Number(place.longitude).toFixed(6));
+  setSearchQuery(place.displayName||place.label||searchQuery);
+  setSearchResults([]);
+  if(markerRef.current&&mapRef.current){
+   markerRef.current.setLatLng([place.latitude,place.longitude]);
+   mapRef.current.setView([place.latitude,place.longitude],16);
+  }
+ }
+
  const meta=qualityMeta(event.location_quality);
+ const canSave=Number.isFinite(Number(latitude))&&Number.isFinite(Number(longitude))&&Boolean(venueName.trim());
+ const locationSource=selectedPlace?.sourceUrl||'admin map correction';
 
  return <dialog ref={dialog} className="event-dialog location-dialog" onCancel={close} onClose={close}>
   <div className="detail-header"><div><p className="eyebrow">Lokācijas pārbaude</p><h2>{event.title}</h2></div><button className="button" onClick={close}>Aizvērt ✕</button></div>
+
   <div className={'location-issue-panel '+meta.tone}>
    <strong>{meta.label}</strong>
    <p>{event.location_review_reason||'Lokācija pašlaik ir verificēta.'}</p>
    {event.address_raw&&<p><b>Nolasītā adrese:</b> {event.address_raw}</p>}
    {sourceLinks(event).map((s,i)=><a key={(s.url||'')+i} href={s.url} target="_blank" rel="noreferrer">Atvērt {s.source||'avotu'} ↗</a>)}
   </div>
-  <div className="location-form">
-   <label>Norises vietas nosaukums<input value={venueName} onChange={e=>setVenueName(e.target.value)}/></label>
-   <label>Latitude<input type="number" step="0.000001" value={latitude} onChange={e=>setLatitude(e.target.value)} onBlur={syncMarker}/></label>
-   <label>Longitude<input type="number" step="0.000001" value={longitude} onChange={e=>setLongitude(e.target.value)} onBlur={syncMarker}/></label>
+
+  <div className="location-edit-fields">
+   <label>Norises vietas nosaukums
+    <input value={venueName} onChange={e=>setVenueName(e.target.value)} placeholder="Piem., Daugavas stadions"/>
+   </label>
+
+   <form className="geocode-search" onSubmit={searchLocation}>
+    <label>Adrese vai vieta, ko atrast kartē
+     <div className="geocode-search-row">
+      <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Piem., Daugavas stadions, Liepāja"/>
+      <button className="button primary" type="submit" disabled={searching}>{searching?'Meklē…':'Atrast vietu'}</button>
+     </div>
+    </label>
+   </form>
+
+   {searchError&&<p className="error-message compact-message">{searchError}</p>}
+
+   {searchResults.length>0&&<div className="geocode-results" role="listbox" aria-label="Atrastas vietas">
+    {searchResults.map(place=><button type="button" className="geocode-result" key={place.id} onClick={()=>choosePlace(place)}>
+     <strong>{place.label}</strong>
+     <span>{place.displayName}</span>
+     <small>{place.type||place.category||'Vieta'} · {Number(place.latitude).toFixed(5)}, {Number(place.longitude).toFixed(5)}</small>
+    </button>)}
+   </div>}
+
+   {selectedPlace&&<div className="selected-place">
+    <span className="quality-badge ok">Izvēlēta vieta</span>
+    <strong>{selectedPlace.label}</strong>
+    <span>{selectedPlace.displayName}</span>
+    {selectedPlace.sourceUrl&&<a href={selectedPlace.sourceUrl} target="_blank" rel="noreferrer">Atvērt OpenStreetMap ↗</a>}
+   </div>}
+
+   <label>Adrese, ko saglabāt
+    <input value={addressText} onChange={e=>setAddressText(e.target.value)} placeholder="Izvēloties vietu, adrese aizpildīsies automātiski"/>
+   </label>
   </div>
-  <p className="sync-text">Pārbaudi avotu, tad klikšķini kartē vai pārvelc marķieri uz precīzu norises vietu. Saglabāšana šo punktu atzīmēs kā manuāli verificētu.</p>
+
   <div ref={mapEl} className="admin-location-map"/>
+
+  <details className="manual-coordinates">
+   <summary>Koordinātas — manuāls rezerves variants</summary>
+   <div className="location-form">
+    <label>Latitude<input type="number" step="0.000001" value={latitude} onChange={e=>setLatitude(e.target.value)} onBlur={syncMarker}/></label>
+    <label>Longitude<input type="number" step="0.000001" value={longitude} onChange={e=>setLongitude(e.target.value)} onBlur={syncMarker}/></label>
+   </div>
+  </details>
+
+  <p className="sync-text">Ieteicamais variants: atrodi vietu pēc nosaukuma vai adreses, izvēlies konkrēto rezultātu un pārbaudi marķieri kartē. Vietu meklēšana: © OpenStreetMap contributors.</p>
+
   <div className="actions">
-   <button className="button" onClick={()=>save({venueName,latitude,longitude},false)}>Saglabāt verificētu lokāciju</button>
-   <button className="button primary" onClick={()=>save({venueName,latitude,longitude},true)}>Saglabāt un publicēt</button>
+   <button className="button" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},false)}>Saglabāt verificētu lokāciju</button>
+   <button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},true)}>Saglabāt un publicēt</button>
    <button className="button" onClick={close}>Atcelt</button>
   </div>
  </dialog>;
