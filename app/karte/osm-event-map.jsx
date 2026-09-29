@@ -140,11 +140,27 @@ export default function OsmEventMap(){
   const counts=new Map();
   for(const e of typedEvents){
    if(!e.competition_key||!e.competition_name)continue;
-   const current=counts.get(e.competition_key)||{key:e.competition_key,name:e.competition_name,count:0};
-   current.count++;counts.set(e.competition_key,current);
+   counts.set(e.competition_key,(counts.get(e.competition_key)||0)+1);
   }
-  return [...counts.values()].sort((a,b)=>a.name.localeCompare(b.name,'lv'));
- },[typedEvents]);
+  const registry=Array.isArray(data?.competitions)?data.competitions:[];
+  const relevantRegistry=registry.filter(c=>
+   eventType==='basketball'
+    ? String(c.sport_format||'').toLowerCase()==='basketball'
+    : eventType==='lff'
+      ? String(c.governing_body||'').toUpperCase()==='LFF'
+      : false
+  );
+  const options=new Map();
+  for(const c of relevantRegistry){
+   if(!c.competition_key||!c.name)continue;
+   options.set(c.competition_key,{key:c.competition_key,name:c.name,count:counts.get(c.competition_key)||0});
+  }
+  for(const e of typedEvents){
+   if(!e.competition_key||!e.competition_name)continue;
+   if(!options.has(e.competition_key))options.set(e.competition_key,{key:e.competition_key,name:e.competition_name,count:counts.get(e.competition_key)||0});
+  }
+  return [...options.values()].sort((a,b)=>a.name.localeCompare(b.name,'lv'));
+ },[typedEvents,data?.competitions,eventType]);
  const scopedEvents=useMemo(()=>competition?typedEvents.filter(e=>e.competition_key===competition):typedEvents,[typedEvents,competition]);
  const categories=useMemo(()=>[...new Set(scopedEvents.flatMap(e=>[e.primary_category,...(e.tags||[])].filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
  const municipalities=useMemo(()=>[...new Set(scopedEvents.filter(e=>!country||e.country_code===country).map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents,country]);
