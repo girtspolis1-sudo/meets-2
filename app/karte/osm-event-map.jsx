@@ -66,6 +66,18 @@ function groupType(events){
  const types=[...new Set(events.map(sourceType))];
  return types.length===1?types[0]:'municipality';
 }
+function groupPosition(group,indexByCoordinate){
+ let lat=group.lat,lon=group.lon;
+ const key=lat.toFixed(5)+','+lon.toFixed(5);
+ const i=indexByCoordinate.get(key)||0;
+ indexByCoordinate.set(key,i+1);
+ if(i>0){
+  const angle=(i*137.5)*Math.PI/180;
+  lat+=Math.sin(angle)*0.0025;
+  lon+=Math.cos(angle)*0.004;
+ }
+ return [lat,lon];
+}
 function popupHtml(group,activeIds){
  const sorted=closestFirst(group.events).sort((a,b)=>(activeIds.has(b.id)?1:0)-(activeIds.has(a.id)?1:0));
  const rows=sorted.map(e=>{
@@ -227,7 +239,9 @@ export default function OsmEventMap(){
   const bg=L.layerGroup().addTo(map),active=L.layerGroup().addTo(map);
   backgroundLayerRef.current=bg;activeLayerRef.current=active;
 
+  const indexByCoordinate=new Map();
   for(const group of locationGroups){
+   const [displayLat,displayLon]=groupPosition(group,indexByCoordinate);
    const activeInGroup=group.events.filter(e=>activeIds.has(e.id));
    const isActive=activeInGroup.length>0;
    const chosenEvents=isActive?activeInGroup:group.events;
@@ -243,7 +257,7 @@ export default function OsmEventMap(){
     html='<span class="event-symbol-marker '+type+(dimmed?' dimmed':'')+'" title="'+esc(typeLabel)+'"><span aria-hidden="true">'+glyph+'</span></span>';
    }
    const icon=L.divIcon({className:grouped?'event-count-marker-wrap':'event-symbol-marker-wrap',html,iconSize:[size,size],iconAnchor:[size/2,size/2]});
-   const marker=L.marker([group.lat,group.lon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
+   const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
    marker.bindPopup(popupHtml(group,activeIds),{maxWidth:390,maxHeight:360});
    marker.addTo(isActive?active:bg);
   }
@@ -325,7 +339,7 @@ export default function OsmEventMap(){
       <button type="button" className="map-icon-button" onClick={searchLocation} disabled={locationSearching} title="Meklēt vietu">{locationSearching?'…':'⌕'}</button>
       <button type="button" className="map-icon-button locate" onClick={useCurrentLocation} title="Izmantot manu atrašanās vietu">◎</button>
      </div>
-     <datalist id="meets-location-options">{locationChoices.slice(0,250).map(x=><option key={x.id} value={x.label}/>)}</datalist>
+     <datalist id="meets-location-options">{locationChoices.map(x=><option key={x.id} value={x.label}/>)}</datalist>
     </div>
 
     <label className="map-filter-radius"><span>Radiuss</span><select value={radiusKm} onChange={e=>setRadiusKm(Number(e.target.value))}>
