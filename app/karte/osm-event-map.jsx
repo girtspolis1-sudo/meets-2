@@ -3,8 +3,9 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel} from '../../lib/catalog.js';
 
-const JS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-const CSS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+const LEAFLET_CSS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+const MAPLIBRE_CSS='https://unpkg.com/maplibre-gl@5.17.0/dist/maplibre-gl.css';
+const OPENFREEMAP_STYLE='https://tiles.openfreemap.org/styles/positron';
 const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
 const RADIUS_OPTIONS=[5,10,20,30,50,100,0];
 
@@ -88,16 +89,20 @@ function popupHtml(group,activeIds){
  const activeCount=group.events.filter(e=>activeIds.has(e.id)).length;
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div><ol>'+rows+'</ol></div>';
 }
-function loadLeaflet(){
- return new Promise((resolve,reject)=>{
-  if(window.L)return resolve(window.L);
-  if(!document.querySelector('link[data-leaflet]')){
-   const l=document.createElement('link');l.rel='stylesheet';l.href=CSS;l.dataset.leaflet='1';document.head.appendChild(l);
-  }
-  const old=document.querySelector('script[data-leaflet]');
-  if(old){old.addEventListener('load',()=>resolve(window.L),{once:true});old.addEventListener('error',reject,{once:true});return;}
-  const s=document.createElement('script');s.src=JS;s.async=true;s.dataset.leaflet='1';s.onload=()=>resolve(window.L);s.onerror=reject;document.head.appendChild(s);
- });
+async function loadMapStack(){
+ if(!document.querySelector('link[data-leaflet-css]')){
+  const l=document.createElement('link');l.rel='stylesheet';l.href=LEAFLET_CSS;l.dataset.leafletCss='1';document.head.appendChild(l);
+ }
+ if(!document.querySelector('link[data-maplibre-css]')){
+  const l=document.createElement('link');l.rel='stylesheet';l.href=MAPLIBRE_CSS;l.dataset.maplibreCss='1';document.head.appendChild(l);
+ }
+ const [leaflet,adapter]=await Promise.all([
+  import('leaflet'),
+  import('@maplibre/maplibre-gl-leaflet')
+ ]);
+ const L=leaflet.default||leaflet;
+ window.L=L;
+ return {L,maplibreGL:adapter.maplibreGL};
 }
 function distanceKm(aLat,aLon,bLat,bLon){
  const r=6371,toRad=v=>v*Math.PI/180;
@@ -219,16 +224,17 @@ export default function OsmEventMap(){
 
  useEffect(()=>{
   let cancelled=false;
-  loadLeaflet().then(L=>{
+  loadMapStack().then(({L,maplibreGL})=>{
    if(cancelled||!mapEl.current||mapRef.current)return;
    const fixedBounds=L.latLngBounds([BALTIC_VIEW.south,BALTIC_VIEW.west],[BALTIC_VIEW.north,BALTIC_VIEW.east]);
    const map=L.map(mapEl.current,{maxBounds:fixedBounds,maxBoundsViscosity:1,minZoom:5}).fitBounds(fixedBounds,{padding:[20,20]});
    map.createPane('backgroundMarkers');map.getPane('backgroundMarkers').style.zIndex='410';
    map.createPane('activeMarkers');map.getPane('activeMarkers').style.zIndex='460';
    map.createPane('userLocation');map.getPane('userLocation').style.zIndex='520';
-   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+   maplibreGL({style:OPENFREEMAP_STYLE}).addTo(map);
+   map.attributionControl.addAttribution('<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> © OpenMapTiles · Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>');
    mapRef.current=map;setMapReady(true);
-  }).catch(()=>{});
+  }).catch(error=>{console.error('map_stack_failed',error);});
   return()=>{cancelled=true;};
  },[]);
 
