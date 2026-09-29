@@ -8,10 +8,11 @@ export default function Home() {
       <div className="actions"><Link className="button primary" href="/karte">Atvērt karti <span aria-hidden="true">↗</span></Link><Link className="button" href="/pasakumi">Pasākumu saraksts</Link></div>
     </section>
     <PublishedEvents/>
-    <section className="cards" aria-label="Atrodi savu pasākumu">
-      <Link className="card" href="/karte"><span className="number">01 / ATKLĀJ</span><h2>Kas notiek tuvumā?</h2><p>Pasākumu karte — top vietu un tuvumā notiekošo pasākumu atlase.</p><span className="card-link">Karte ↗</span></Link>
-      <Link className="card" href="/pasakumi"><span className="number">02 / PLĀNO</span><h2>Izvēlies savu notikumu.</h2><p>Publicētie pasākumi, datumu filtri un atlasīto rezultātu Excel eksports.</p><span className="card-link">Pasākumi ↗</span></Link>
+    <section className="cards" aria-label="MEETS 2 sadaļas">
+      <Link className="card" href="/karte"><span className="number">01 / PUBLISKAIS</span><h2>Pasākumu karte</h2><p>Tikai apstiprinātie pasākumi no viena Supabase datu avota.</p><span className="card-link">Karte ↗</span></Link>
+      <Link className="card" href="/pasakumi"><span className="number">02 / PUBLISKAIS</span><h2>Tabula un Excel</h2><p>Tie paši publicētie pasākumi ar filtriem un Excel eksportu.</p><span className="card-link">Pasākumi ↗</span></Link>
+      <Link className="card" href="/admin"><span className="number">03 / ADMIN</span><h2>Pārbaude un publicēšana</h2><p>Statusi, apstiprināšana un nepareizu lokāciju labošana.</p><span className="card-link">Admin ↗</span></Link>
     </section>
-    <p className="notice">Pasākumu sarakstā pieejami aktuālie datubāzes ieraksti. Interaktīvā karte vēl tiek veidota.</p>
+    <p className="notice">Publiskā karte un tabula izmanto vienu un to pašu <code>published</code> datu kopu. Admin sadaļā apstiprinātās izmaiņas automātiski nonāk abos publiskajos skatos.</p>
   </>;
 }
