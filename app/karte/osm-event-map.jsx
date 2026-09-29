@@ -147,7 +147,7 @@ export default function OsmEventMap(){
  },[typedEvents]);
  const scopedEvents=useMemo(()=>competition?typedEvents.filter(e=>e.competition_key===competition):typedEvents,[typedEvents,competition]);
  const categories=useMemo(()=>[...new Set(scopedEvents.flatMap(e=>[e.primary_category,...(e.tags||[])].filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
- const municipalities=useMemo(()=>[...new Set(scopedEvents.map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
+ const municipalities=useMemo(()=>[...new Set(scopedEvents.filter(e=>!country||e.country_code===country).map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents,country]);
  const countries=useMemo(()=>[...new Set(scopedEvents.map(e=>e.country_code).filter(Boolean))],[scopedEvents]);
  const sourceCounts=useMemo(()=>events.reduce((acc,e)=>{const type=sourceType(e);acc[type]=(acc[type]||0)+1;return acc;},{municipality:0,lff:0,athletics:0,basketball:0}),[events]);
  const filtered=useMemo(()=>events.filter(e=>
@@ -238,7 +238,7 @@ export default function OsmEventMap(){
     </select></label>}
     <label className="map-filter-category"><span>Kategorija</span><select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Visas</option>{categories.map(v=><option key={v}>{v}</option>)}</select></label>
     <label className="map-filter-municipality"><span>Pašvaldība</span><select value={municipality} onChange={e=>setMunicipality(e.target.value)}><option value="">Visas</option>{municipalities.map(v=><option key={v}>{v}</option>)}</select></label>
-    <label className="map-filter-country"><span>Valsts</span><select value={country} onChange={e=>setCountry(e.target.value)}>
+    <label className="map-filter-country"><span>Valsts</span><select value={country} onChange={e=>{setCountry(e.target.value);setMunicipality('');}}>
      <option value="">Visas</option>
      {countries.map(code=><option key={code} value={code}>{countryLabel(code)}</option>)}
     </select></label>
