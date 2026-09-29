@@ -27,15 +27,15 @@ export default function EventCatalog() {
  const selectedEvent=rows.find(e=>e.id===selected);
  return <>
   <div className="catalog-toolbar"><div><strong>{data?`${rows.length} pasākumi`:'Ielādējam pasākumus…'}</strong><p className="sync-text">{data?`Dati pārlasīti ${new Date(data.fetchedAt).toLocaleString('lv-LV',{timeZone:'Europe/Riga'})}`:'Savienojamies ar datu avotu'} · automātiski ik minūti</p></div><button className="button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Pārlasīt datus'}</button></div>
-  <p className="data-note"><strong>Publiskais pasākumu saraksts.</strong> Šeit redzami tikai apstiprinātie <code>published</code> pasākumi; Excel eksports izmanto tieši to pašu datu kopu.</p>
+  <p className="data-note"><strong>Publiskais pasākumu saraksts.</strong> Redzami tikai <code>published</code> pasākumi, kas nav beigušies un sākas ne vēlāk kā 3 mēnešus uz priekšu. Excel eksports izmanto tieši to pašu datu kopu.{data?.window?<> Periods: <strong>{data.window.from}–{data.window.to}</strong>.</>:null}</p>
   {data&&<EventMap events={filtered} onSelect={e=>setSelected(e.id)}/>} 
   {error&&<div className="error-message" role="alert">{error} {data&&'Zemāk saglabāti pēdējie veiksmīgi ielādētie dati.'}</div>}
   <div className="filters" aria-label="Pasākumu filtri">
    <label className="search-label">Meklēt pasākumu<input type="search" placeholder="Nosaukums, vieta, adrese…" value={filters.search} onChange={e=>change('search',e.target.value)}/></label>
    <label>Pašvaldība<select value={filters.municipality} onChange={e=>change('municipality',e.target.value)}><option value="">Visas pašvaldības</option>{options.municipalities.map(v=><option key={v}>{v}</option>)}</select></label>
    <label>Kategorija<select value={filters.category} onChange={e=>change('category',e.target.value)}><option value="">Visas kategorijas</option>{options.categories.map(v=><option key={v}>{v}</option>)}</select></label>
-   <label>Datums no<input type="date" value={filters.from} onChange={e=>change('from',e.target.value)}/></label>
-   <label>Datums līdz<input type="date" value={filters.to} onChange={e=>change('to',e.target.value)}/></label>
+   <label>Datums no<input type="date" min={data?.window?.from||undefined} max={data?.window?.to||undefined} value={filters.from} onChange={e=>change('from',e.target.value)}/></label>
+   <label>Datums līdz<input type="date" min={data?.window?.from||undefined} max={data?.window?.to||undefined} value={filters.to} onChange={e=>change('to',e.target.value)}/></label>
    <label>Statuss<select value={filters.status} onChange={e=>change('status',e.target.value)}><option value="">Publicētie</option>{Object.entries(statuses).filter(([v])=>v==='published').map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
    <label>Dalības maksa<select value={filters.price} onChange={e=>change('price',e.target.value)}><option value="">Visi veidi</option>{Object.entries(prices).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
   </div>
