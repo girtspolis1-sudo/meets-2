@@ -43,6 +43,12 @@ function insideLatvia(lat,lon){
  }
  return inside;
 }
+function isLatvianEvent(e){
+ const municipality=String(e.municipality||'').trim();
+ if(municipality==='Ārpus Latvijas (Igaunija)')return false;
+ if(municipality==='Vairākas pašvaldības'||municipality.endsWith(' novads')||municipality.endsWith(' valstspilsēta'))return true;
+ return insideLatvia(Number(e.latitude),Number(e.longitude));
+}
 function locationKey(e){
  const lat=Number(e.latitude),lon=Number(e.longitude);
  const place=normalisePlace(e.venue_name||e.address_raw||e.settlement||e.municipality||'unknown');
@@ -117,7 +123,7 @@ export default function OsmEventMap(){
   (!to||e.date_from<=to)
  ),[events,category,municipality,from,to]);
  const coordinateEvents=filtered.filter(e=>Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude)));
- const points=coordinateEvents.filter(e=>insideLatvia(Number(e.latitude),Number(e.longitude)));
+ const points=coordinateEvents.filter(isLatvianEvent);
  const hiddenOutside=coordinateEvents.length-points.length;
  const locationGroups=useMemo(()=>groupEvents(points),[points]);
  const lffCount=points.filter(e=>sourceType(e)==='lff').length;
@@ -173,7 +179,7 @@ export default function OsmEventMap(){
    <span><i className="legend-count">3</i>Vairāki pasākumi vienā vietā</span>
   </div>
   <div className="map-summary"><strong>{locationGroups.length}</strong> vietas kartē · {points.length} pasākumi ar punktu Latvijā · {filtered.length-points.length-hiddenOutside} bez koordinātām{hiddenOutside>0?' · '+hiddenOutside+' ārpus Latvijas paslēpti':''} <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button></div>
-  {includePending&&<p className="data-note"><strong>Iekšējais apskates režīms:</strong> pārtrauktā apmale nozīmē <code>pending_review</code>. Vairāki pasākumi vienā norises vietā tiek apvienoti vienā marķierī ar skaitu; popup saraksts ir sakārtots pēc datuma tuvuma šodienai. Punkti ārpus Latvijas robežas kartē netiek rādīti.</p>}
+  {includePending&&<p className="data-note"><strong>Iekšējais apskates režīms:</strong> pārtrauktā apmale nozīmē <code>pending_review</code>. Vairāki pasākumi vienā norises vietā tiek apvienoti vienā marķierī ar skaitu; popup saraksts ir sakārtots pēc datuma tuvuma šodienai. Punkti, kas datu avotā ir klasificēti ārpus Latvijas, kartē netiek rādīti.</p>}
   {error&&<div className="error-message">{error}</div>}
   <div ref={mapEl} className="osm-map" aria-label="Pasākumu karte"/>
  </>;
