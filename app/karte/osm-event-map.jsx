@@ -32,8 +32,8 @@ function sourceLabel(e){
  if(type==='athletics')return 'Athletics.lv · Vieglatlētika';
  return (e.sources||[]).map(s=>s.source).filter(Boolean).join(', ')||'MEETS';
 }
-function firstSourceUrl(e){
- return (e.sources||[]).map(s=>s.url).find(Boolean)||'';
+function firstSource(e){
+ return (e.sources||[]).find(s=>s?.url)||null;
 }
 function competitionMeta(e){
  return [e.competition_season,e.competition_group,e.competition_stage,e.age_group].filter(Boolean).join(' · ');
@@ -98,8 +98,9 @@ function popupHtml(group){
  const sorted=closestFirst(group.events);
  const rows=sorted.map(e=>{
   const approximate=['settlement_center','municipality_center'].includes(e.location_precision);
-  const meta=competitionMeta(e),url=firstSourceUrl(e);
-  return '<li><strong>'+esc(e.title)+'</strong><span>'+esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'</span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+(url?'<a class="popup-source-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Avots: LFF ↗</a>':'')+'</li>';
+  const meta=competitionMeta(e),source=firstSource(e);
+  const sourceName=source?.source?String(source.source):'avots';
+  return '<li><strong>'+esc(e.title)+'</strong><span>'+esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'</span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+(source?.url?'<a class="popup-source-link" href="'+esc(source.url)+'" target="_blank" rel="noopener noreferrer">Avots: '+esc(sourceName)+' ↗</a>':'')+'</li>';
  }).join('');
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+group.events.length+' pasākumi</span></div><ol>'+rows+'</ol></div>';
 }
@@ -117,6 +118,7 @@ function loadLeaflet(){
 
 export default function OsmEventMap(){
  const [eventType,setEventType]=useState('');
+ const [competition,setCompetition]=useState('');
  const [category,setCategory]=useState('');
  const [municipality,setMunicipality]=useState('');
  const [from,setFrom]=useState('');
@@ -127,16 +129,27 @@ export default function OsmEventMap(){
  const publicFrom=data?.window?.from||'';
  const publicTo=data?.window?.to||'';
  const typedEvents=useMemo(()=>eventType?events.filter(e=>sourceType(e)===eventType):events,[events,eventType]);
- const categories=useMemo(()=>[...new Set(typedEvents.flatMap(e=>[e.primary_category,...(e.tags||[])].filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'lv')),[typedEvents]);
- const municipalities=useMemo(()=>[...new Set(typedEvents.map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[typedEvents]);
+ const competitionOptions=useMemo(()=>{
+  const counts=new Map();
+  for(const e of events){
+   if(sourceType(e)!=='lff'||!e.competition_key||!e.competition_name)continue;
+   const current=counts.get(e.competition_key)||{key:e.competition_key,name:e.competition_name,count:0};
+   current.count++;counts.set(e.competition_key,current);
+  }
+  return [...counts.values()].sort((a,b)=>a.name.localeCompare(b.name,'lv'));
+ },[events]);
+ const scopedEvents=useMemo(()=>competition?typedEvents.filter(e=>e.competition_key===competition):typedEvents,[typedEvents,competition]);
+ const categories=useMemo(()=>[...new Set(scopedEvents.flatMap(e=>[e.primary_category,...(e.tags||[])].filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
+ const municipalities=useMemo(()=>[...new Set(scopedEvents.map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
  const sourceCounts=useMemo(()=>events.reduce((acc,e)=>{const type=sourceType(e);acc[type]=(acc[type]||0)+1;return acc;},{municipality:0,lff:0,athletics:0}),[events]);
  const filtered=useMemo(()=>events.filter(e=>
   (!eventType||sourceType(e)===eventType)&&
+  (!competition||e.competition_key===competition)&&
   (!category||e.primary_category===category||e.tags?.includes(category))&&
   (!municipality||e.municipality===municipality)&&
   (!from||(e.date_to||e.date_from)>=from)&&
   (!to||e.date_from<=to)
- ),[events,eventType,category,municipality,from,to]);
+ ),[events,eventType,competition,category,municipality,from,to]);
  const coordinateEvents=filtered.filter(e=>Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude)));
  const latvianEvents=coordinateEvents.filter(isLatvianEvent);
  const points=latvianEvents.filter(e=>insideBalticView(Number(e.latitude),Number(e.longitude)));
@@ -177,18 +190,20 @@ export default function OsmEventMap(){
    if(safeBounds.length)mapRef.current.fitBounds(safeBounds,{padding:[35,35],maxZoom:11});
    else mapRef.current.fitBounds(fixedBounds,{padding:[20,20]});
   }).catch(()=>{});return()=>{cancelled=true;};
- },[data,eventType,category,municipality,from,to,locationGroups]);
+ },[data,eventType,competition,category,municipality,from,to,locationGroups]);
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;},[]);
 
  function changeEventType(value){
   setEventType(value);
+  setCompetition('');
   setCategory('');
   setMunicipality('');
  }
 
  function clearFilters(){
   setEventType('');
+  setCompetition('');
   setCategory('');
   setMunicipality('');
   setFrom('');
@@ -198,16 +213,20 @@ export default function OsmEventMap(){
  return <>
   <div className="map-shell">
    <div className="map-controls map-controls-overlay" aria-label="Kartes filtri">
-    <label><span>Tips</span><select value={eventType} onChange={e=>changeEventType(e.target.value)}>
+    <label className="map-filter-type"><span>Tips</span><select value={eventType} onChange={e=>changeEventType(e.target.value)}>
      <option value="">Visi ({events.length})</option>
      <option value="municipality">Pašvaldības ({sourceCounts.municipality})</option>
      <option value="lff">LFF ({sourceCounts.lff})</option>
      <option value="athletics">Vieglatlētika ({sourceCounts.athletics})</option>
     </select></label>
-    <label><span>Kategorija</span><select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Visas</option>{categories.map(v=><option key={v}>{v}</option>)}</select></label>
-    <label><span>Pašvaldība</span><select value={municipality} onChange={e=>setMunicipality(e.target.value)}><option value="">Visas</option>{municipalities.map(v=><option key={v}>{v}</option>)}</select></label>
-    <label><span>No</span><input aria-label="Datums no" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={from} onChange={e=>setFrom(e.target.value)}/></label>
-    <label><span>Līdz</span><input aria-label="Datums līdz" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/></label>
+    {eventType==='lff'&&<label className="map-filter-competition"><span>Turnīrs</span><select value={competition} onChange={e=>{setCompetition(e.target.value);setCategory('');setMunicipality('');}}>
+     <option value="">Visi LFF turnīri</option>
+     {competitionOptions.map(v=><option key={v.key} value={v.key}>{v.name} ({v.count})</option>)}
+    </select></label>}
+    <label className="map-filter-category"><span>Kategorija</span><select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Visas</option>{categories.map(v=><option key={v}>{v}</option>)}</select></label>
+    <label className="map-filter-municipality"><span>Pašvaldība</span><select value={municipality} onChange={e=>setMunicipality(e.target.value)}><option value="">Visas</option>{municipalities.map(v=><option key={v}>{v}</option>)}</select></label>
+    <label className="map-filter-date"><span>No</span><input aria-label="Datums no" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={from} onChange={e=>setFrom(e.target.value)}/></label>
+    <label className="map-filter-date"><span>Līdz</span><input aria-label="Datums līdz" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/></label>
     <button className="map-clear-button" type="button" onClick={clearFilters}>Notīrīt</button>
    </div>
 
