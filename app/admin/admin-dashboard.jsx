@@ -114,7 +114,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    const redirect=window.location.origin+'/admin';
    const response=await fetch(supabaseUrl+'/auth/v1/otp?redirect_to='+encodeURIComponent(redirect),{
     method:'POST',
-    headers:{apikey:publishableKey,Authorization:'Bearer '+publishableKey,'Content-Type':'application/json'},
+    headers:{apikey:publishableKey,'Content-Type':'application/json'},
     body:JSON.stringify({email:ADMIN_EMAIL,create_user:true})
    });
    if(!response.ok)throw new Error();
