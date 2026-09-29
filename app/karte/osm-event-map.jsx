@@ -14,8 +14,10 @@ const LATVIA_POLYGON=[
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function sourceType(e){
+ if(String(e.sport_format||'').toLowerCase()==='basketball'||String(e.governing_body||'').toUpperCase()==='LBS')return 'basketball';
  if(String(e.governing_body||'').toUpperCase()==='LFF')return 'lff';
  const sources=(e.sources||[]).map(s=>String(s.source||'').toLowerCase());
+ if(sources.includes('estlatbl.com')||sources.includes('basket.lv'))return 'basketball';
  if(sources.includes('lff.lv'))return 'lff';
  if(sources.includes('athletics.lv'))return 'athletics';
  return 'municipality';
@@ -24,17 +26,20 @@ function markerStyle(e){
  const type=sourceType(e),pending=e.status==='pending_review';
  if(type==='lff')return {color:'#174a7e',fillColor:'#3f8ed8',radius:8,weight:3,dashArray:pending?'4 3':null};
  if(type==='athletics')return {color:'#63328d',fillColor:'#a66bd1',radius:8,weight:3,dashArray:pending?'4 3':null};
+ if(type==='basketball')return {color:'#9a4f16',fillColor:'#e58b3a',radius:8,weight:3,dashArray:pending?'4 3':null};
  return {color:pending?'#a66b00':'#315c1d',fillColor:pending?'#f0b84b':'#78a85a',radius:7,weight:2,dashArray:pending?'4 3':null};
 }
 function sourceLabel(e){
  const type=sourceType(e);
  if(type==='lff')return e.competition_name?('LFF · '+e.competition_name):'LFF · Futbols';
  if(type==='athletics')return 'Athletics.lv · Vieglatlētika';
+ if(type==='basketball')return e.competition_name?('Basketbols · '+e.competition_name):'Basketbols';
  return (e.sources||[]).map(s=>s.source).filter(Boolean).join(', ')||'MEETS';
 }
-function firstSource(e){
- return (e.sources||[]).find(s=>s?.url)||null;
+function sourceLinksHtml(e){
+ return (e.sources||[]).filter(s=>s?.url).map(s=>'<a class="popup-source-link" href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer">Avots: '+esc(s.source||'avots')+' ↗</a>').join('');
 }
+function countryLabel(code){return ({LV:'Latvija',EE:'Igaunija',LT:'Lietuva'})[code]||'';}
 function competitionMeta(e){
  return [e.competition_season,e.competition_group,e.competition_stage,e.age_group].filter(Boolean).join(' · ');
 }
@@ -52,9 +57,11 @@ function insideLatvia(lat,lon){
  return inside;
 }
 function insideBalticView(lat,lon){return lat>=BALTIC_VIEW.south&&lat<=BALTIC_VIEW.north&&lon>=BALTIC_VIEW.west&&lon<=BALTIC_VIEW.east;}
-function isLatvianEvent(e){
+function isSupportedMapEvent(e){
+ const code=String(e.country_code||'').toUpperCase();
+ if(['LV','EE','LT'].includes(code))return true;
  const municipality=String(e.municipality||'').trim();
- if(municipality==='Ārpus Latvijas (Igaunija)')return false;
+ if(municipality==='Ārpus Latvijas (Igaunija)')return true;
  if(municipality==='Vairākas pašvaldības'||municipality.endsWith(' novads')||municipality.endsWith(' valstspilsēta'))return true;
  return insideLatvia(Number(e.latitude),Number(e.longitude));
 }
@@ -98,9 +105,8 @@ function popupHtml(group){
  const sorted=closestFirst(group.events);
  const rows=sorted.map(e=>{
   const approximate=['settlement_center','municipality_center'].includes(e.location_precision);
-  const meta=competitionMeta(e),source=firstSource(e);
-  const sourceName=source?.source?String(source.source):'avots';
-  return '<li><strong>'+esc(e.title)+'</strong><span>'+esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'</span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+(source?.url?'<a class="popup-source-link" href="'+esc(source.url)+'" target="_blank" rel="noopener noreferrer">Avots: '+esc(sourceName)+' ↗</a>':'')+'</li>';
+  const meta=competitionMeta(e),country=countryLabel(e.country_code);
+  return '<li><strong>'+esc(e.title)+'</strong><span>'+esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'</span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+'</li>';
  }).join('');
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+group.events.length+' pasākumi</span></div><ol>'+rows+'</ol></div>';
 }
@@ -121,6 +127,7 @@ export default function OsmEventMap(){
  const [competition,setCompetition]=useState('');
  const [category,setCategory]=useState('');
  const [municipality,setMunicipality]=useState('');
+ const [country,setCountry]=useState('');
  const [from,setFrom]=useState('');
  const [to,setTo]=useState('');
  const {data,loading,error,refresh}=useEvents();
@@ -131,34 +138,37 @@ export default function OsmEventMap(){
  const typedEvents=useMemo(()=>eventType?events.filter(e=>sourceType(e)===eventType):events,[events,eventType]);
  const competitionOptions=useMemo(()=>{
   const counts=new Map();
-  for(const e of events){
-   if(sourceType(e)!=='lff'||!e.competition_key||!e.competition_name)continue;
+  for(const e of typedEvents){
+   if(!e.competition_key||!e.competition_name)continue;
    const current=counts.get(e.competition_key)||{key:e.competition_key,name:e.competition_name,count:0};
    current.count++;counts.set(e.competition_key,current);
   }
   return [...counts.values()].sort((a,b)=>a.name.localeCompare(b.name,'lv'));
- },[events]);
+ },[typedEvents]);
  const scopedEvents=useMemo(()=>competition?typedEvents.filter(e=>e.competition_key===competition):typedEvents,[typedEvents,competition]);
  const categories=useMemo(()=>[...new Set(scopedEvents.flatMap(e=>[e.primary_category,...(e.tags||[])].filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
  const municipalities=useMemo(()=>[...new Set(scopedEvents.map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
- const sourceCounts=useMemo(()=>events.reduce((acc,e)=>{const type=sourceType(e);acc[type]=(acc[type]||0)+1;return acc;},{municipality:0,lff:0,athletics:0}),[events]);
+ const countries=useMemo(()=>[...new Set(scopedEvents.map(e=>e.country_code).filter(Boolean))],[scopedEvents]);
+ const sourceCounts=useMemo(()=>events.reduce((acc,e)=>{const type=sourceType(e);acc[type]=(acc[type]||0)+1;return acc;},{municipality:0,lff:0,athletics:0,basketball:0}),[events]);
  const filtered=useMemo(()=>events.filter(e=>
   (!eventType||sourceType(e)===eventType)&&
   (!competition||e.competition_key===competition)&&
   (!category||e.primary_category===category||e.tags?.includes(category))&&
   (!municipality||e.municipality===municipality)&&
+  (!country||e.country_code===country)&&
   (!from||(e.date_to||e.date_from)>=from)&&
   (!to||e.date_from<=to)
- ),[events,eventType,competition,category,municipality,from,to]);
+ ),[events,eventType,competition,category,municipality,country,from,to]);
  const coordinateEvents=filtered.filter(e=>Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude)));
- const latvianEvents=coordinateEvents.filter(isLatvianEvent);
- const points=latvianEvents.filter(e=>insideBalticView(Number(e.latitude),Number(e.longitude)));
- const hiddenOutside=coordinateEvents.length-latvianEvents.length;
- const hiddenInvalid=latvianEvents.length-points.length;
+ const supportedEvents=coordinateEvents.filter(isSupportedMapEvent);
+ const points=supportedEvents.filter(e=>insideBalticView(Number(e.latitude),Number(e.longitude)));
+ const hiddenOutside=coordinateEvents.length-supportedEvents.length;
+ const hiddenInvalid=supportedEvents.length-points.length;
  const locationGroups=useMemo(()=>groupEvents(points),[points]);
  const municipalityCount=points.filter(e=>sourceType(e)==='municipality').length;
  const lffCount=points.filter(e=>sourceType(e)==='lff').length;
  const athleticsCount=points.filter(e=>sourceType(e)==='athletics').length;
+ const basketballCount=points.filter(e=>sourceType(e)==='basketball').length;
 
  useEffect(()=>{
   let cancelled=false;
@@ -190,7 +200,7 @@ export default function OsmEventMap(){
    if(safeBounds.length)mapRef.current.fitBounds(safeBounds,{padding:[35,35],maxZoom:11});
    else mapRef.current.fitBounds(fixedBounds,{padding:[20,20]});
   }).catch(()=>{});return()=>{cancelled=true;};
- },[data,eventType,competition,category,municipality,from,to,locationGroups]);
+ },[data,eventType,competition,category,municipality,country,from,to,locationGroups]);
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;},[]);
 
@@ -199,6 +209,7 @@ export default function OsmEventMap(){
   setCompetition('');
   setCategory('');
   setMunicipality('');
+  setCountry('');
  }
 
  function clearFilters(){
@@ -206,6 +217,7 @@ export default function OsmEventMap(){
   setCompetition('');
   setCategory('');
   setMunicipality('');
+  setCountry('');
   setFrom('');
   setTo('');
  }
@@ -218,13 +230,18 @@ export default function OsmEventMap(){
      <option value="municipality">Pašvaldības ({sourceCounts.municipality})</option>
      <option value="lff">LFF ({sourceCounts.lff})</option>
      <option value="athletics">Vieglatlētika ({sourceCounts.athletics})</option>
+     <option value="basketball">Basketbols ({sourceCounts.basketball})</option>
     </select></label>
-    {eventType==='lff'&&<label className="map-filter-competition"><span>Turnīrs</span><select value={competition} onChange={e=>{setCompetition(e.target.value);setCategory('');setMunicipality('');}}>
-     <option value="">Visi LFF turnīri</option>
+    {(eventType==='lff'||eventType==='basketball')&&<label className="map-filter-competition"><span>Turnīrs</span><select value={competition} onChange={e=>{setCompetition(e.target.value);setCategory('');setMunicipality('');}}>
+     <option value="">{eventType==='lff'?'Visi LFF turnīri':'Visi basketbola turnīri'}</option>
      {competitionOptions.map(v=><option key={v.key} value={v.key}>{v.name} ({v.count})</option>)}
     </select></label>}
     <label className="map-filter-category"><span>Kategorija</span><select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Visas</option>{categories.map(v=><option key={v}>{v}</option>)}</select></label>
     <label className="map-filter-municipality"><span>Pašvaldība</span><select value={municipality} onChange={e=>setMunicipality(e.target.value)}><option value="">Visas</option>{municipalities.map(v=><option key={v}>{v}</option>)}</select></label>
+    <label className="map-filter-country"><span>Valsts</span><select value={country} onChange={e=>setCountry(e.target.value)}>
+     <option value="">Visas</option>
+     {countries.map(code=><option key={code} value={code}>{countryLabel(code)}</option>)}
+    </select></label>
     <label className="map-filter-date"><span>No</span><input aria-label="Datums no" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={from} onChange={e=>setFrom(e.target.value)}/></label>
     <label className="map-filter-date"><span>Līdz</span><input aria-label="Datums līdz" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/></label>
     <button className="map-clear-button" type="button" onClick={clearFilters}>Notīrīt</button>
@@ -236,11 +253,12 @@ export default function OsmEventMap(){
     <span><i className="legend-dot municipality"/>Pašvaldības ({municipalityCount})</span>
     <span><i className="legend-dot lff"/>LFF ({lffCount})</span>
     <span><i className="legend-dot athletics"/>Vieglatlētika ({athleticsCount})</span>
+    <span><i className="legend-dot basketball"/>Basketbols ({basketballCount})</span>
     <span><i className="legend-count">3</i>Vairāki vienā vietā</span>
    </div>
   </div>
 
-  <div className="map-summary"><strong>{locationGroups.length}</strong> vietas kartē · {points.length} pasākumi ar punktu Latvijā · {filtered.length-coordinateEvents.length} bez koordinātām{hiddenOutside>0?' · '+hiddenOutside+' ārpus Latvijas paslēpti':''}{hiddenInvalid>0?' · '+hiddenInvalid+' ar kļūdainām koordinātām paslēpti':''}{publicFrom&&publicTo?' · periods '+publicFrom+'–'+publicTo:''} <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button></div>
+  <div className="map-summary"><strong>{locationGroups.length}</strong> vietas kartē · {points.length} pasākumi ar punktu Baltijā · {filtered.length-coordinateEvents.length} bez koordinātām{hiddenOutside>0?' · '+hiddenOutside+' ārpus atbalstītā reģiona paslēpti':''}{hiddenInvalid>0?' · '+hiddenInvalid+' ar kļūdainām koordinātām paslēpti':''}{publicFrom&&publicTo?' · periods '+publicFrom+'–'+publicTo:''} <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button></div>
   {error&&<div className="error-message">{error}</div>}
  </>;
 }
