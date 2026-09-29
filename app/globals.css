@@ -65,3 +65,9 @@ button,input,select{font:inherit}button{cursor:pointer;color:inherit}button:disa
 .candidate-alt small{font-size:10px;color:var(--muted);line-height:1.35}
 @media(max-width:1200px){.location-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.location-summary{grid-template-columns:1fr 1fr}.queue-head{flex-direction:column}.lff-location-queue{padding:12px}.lff-location-table td:nth-child(4){min-width:290px}}
+
+/* Basketball / Baltic map */
+.legend-dot.basketball{background:#e58b3a;color:#9a4f16}
+.event-count-marker.basketball{background:#e58b3a;outline:2px solid #9a4f16}
+.map-controls-overlay .map-filter-country{width:125px}
+@media(max-width:700px){.map-controls-overlay .map-filter-country{width:118px}}
