@@ -163,3 +163,14 @@ button,input,select{font:inherit}button{cursor:pointer;color:inherit}button:disa
  .map-location-message{top:59px;left:8px;max-width:calc(100% - 16px)}
  .map-shell .leaflet-top.leaflet-left{top:62px}
 }
+
+/* Slightly stronger inactive context markers */
+.event-symbol-marker.dimmed,.event-count-marker.dimmed{
+ opacity:.56;
+ filter:grayscale(.92) brightness(.82);
+ background:#cfd3cf!important;
+ color:#4f5550!important;
+ border-color:#8f9690!important;
+ outline-color:#9da39e!important;
+}
+.legend-muted-example i{opacity:.68;filter:grayscale(1) brightness(.82);background:#d0d3d0;color:#555}
