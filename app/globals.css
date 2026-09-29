@@ -89,3 +89,77 @@ button,input,select{font:inherit}button{cursor:pointer;color:inherit}button:disa
 .legend-symbol.lff{color:#174a7e}
 .legend-symbol.athletics{color:#63328d}
 .legend-symbol.basketball{color:#9a4f16}
+
+/* Location-first map filters */
+.map-controls-overlay{
+ top:0;left:0;right:0;
+ padding:8px 10px 9px;
+ background:rgba(248,250,245,.62);
+ border-color:rgba(255,255,255,.58);
+ border-radius:22px 22px 14px 14px;
+ box-shadow:0 7px 22px rgba(32,46,37,.10);
+ backdrop-filter:blur(12px) saturate(120%);
+ -webkit-backdrop-filter:blur(12px) saturate(120%);
+}
+.map-controls-overlay input,.map-controls-overlay select{
+ background:rgba(255,255,255,.78);
+ border-color:rgba(183,195,178,.82);
+}
+.map-shell .leaflet-top.leaflet-left{top:66px}
+.map-location-control{flex:0 0 260px;display:flex;flex-direction:column;gap:3px}
+.filter-caption{font-size:9px;line-height:1;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.map-location-search{display:grid;grid-template-columns:minmax(0,1fr) 36px 36px;gap:5px}
+.map-location-search input{width:100%;min-width:0}
+.map-icon-button{height:38px;border:1px solid rgba(183,195,178,.82);border-radius:9px;background:rgba(255,255,255,.82);font-size:18px;line-height:1;cursor:pointer}
+.map-icon-button:hover{background:#fff}
+.map-icon-button.locate{font-size:20px;color:#315c1d;font-weight:800}
+.map-controls-overlay .map-filter-radius{width:104px}
+.map-controls-overlay .map-filter-country{width:118px}
+.map-controls-overlay .map-filter-date{width:126px}
+.map-location-results{
+ position:absolute;z-index:790;top:62px;left:10px;width:min(420px,calc(100% - 20px));
+ display:grid;gap:4px;padding:8px;border:1px solid rgba(183,195,178,.9);border-radius:12px;
+ background:rgba(255,255,255,.96);box-shadow:0 10px 28px rgba(31,51,36,.18);backdrop-filter:blur(10px)
+}
+.map-location-results button{display:grid;gap:2px;text-align:left;padding:9px 10px;border:0;border-radius:9px;background:transparent;cursor:pointer}
+.map-location-results button:hover{background:#eef4e9}
+.map-location-results strong{font-size:12px}
+.map-location-results span{font-size:10px;color:var(--muted);line-height:1.3}
+.map-location-message{
+ position:absolute;z-index:720;top:64px;left:10px;max-width:390px;padding:7px 10px;border-radius:9px;
+ background:rgba(255,249,229,.94);border:1px solid #e4d3a5;font-size:11px;color:#6a5520
+}
+.user-location-marker-wrap{background:transparent!important;border:0!important}
+.user-location-marker{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.96);border:2px solid #255fbd;box-shadow:0 0 0 5px rgba(61,126,225,.18),0 2px 9px rgba(20,50,95,.35)}
+.user-location-marker span{width:9px;height:9px;border-radius:50%;background:#3479dc}
+
+.event-symbol-marker.dimmed,.event-count-marker.dimmed{
+ filter:grayscale(1);
+ opacity:.38;
+ box-shadow:0 2px 7px rgba(40,46,42,.15);
+ border-color:#aeb3ae!important;
+ outline-color:#b8bcb8!important;
+ background:#e8eae8!important;
+ color:#676b67!important;
+ transform:scale(.76);
+ transform-origin:center;
+}
+.event-symbol-marker.dimmed{width:34px;height:34px;font-size:17px}
+.event-count-marker.dimmed{width:36px;height:36px}
+.event-count-marker.dimmed .event-group-symbol{font-size:13px}
+.event-count-marker.dimmed strong{font-size:10px}
+.popup-event-muted{opacity:.48;filter:grayscale(.9)}
+.legend-muted-example i{width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;background:#e7e9e7;color:#777;filter:grayscale(1);opacity:.55;font-style:normal;font-size:12px}
+.map-legend-overlay{background:rgba(255,255,255,.66);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+
+@media(max-width:900px){
+ .map-location-control{flex-basis:230px}
+ .map-shell .leaflet-top.leaflet-left{top:64px}
+}
+@media(max-width:700px){
+ .map-controls-overlay{top:0;left:0;right:0;padding:7px 8px;border-radius:16px 16px 12px 12px}
+ .map-location-control{flex-basis:220px}
+ .map-location-results{top:58px;left:8px;width:min(390px,calc(100% - 16px))}
+ .map-location-message{top:59px;left:8px;max-width:calc(100% - 16px)}
+ .map-shell .leaflet-top.leaflet-left{top:62px}
+}
