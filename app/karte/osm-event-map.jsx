@@ -22,12 +22,17 @@ function sourceType(e){
  if(sources.includes('athletics.lv'))return 'athletics';
  return 'municipality';
 }
-function markerStyle(e){
- const type=sourceType(e),pending=e.status==='pending_review';
- if(type==='lff')return {color:'#174a7e',fillColor:'#3f8ed8',radius:8,weight:3,dashArray:pending?'4 3':null};
- if(type==='athletics')return {color:'#63328d',fillColor:'#a66bd1',radius:8,weight:3,dashArray:pending?'4 3':null};
- if(type==='basketball')return {color:'#9a4f16',fillColor:'#e58b3a',radius:8,weight:3,dashArray:pending?'4 3':null};
- return {color:pending?'#a66b00':'#315c1d',fillColor:pending?'#f0b84b':'#78a85a',radius:7,weight:2,dashArray:pending?'4 3':null};
+function markerGlyph(type){
+ if(type==='lff')return '⚽';
+ if(type==='basketball')return '🏀';
+ if(type==='athletics')return '🏃';
+ return '📅';
+}
+function markerTypeLabel(type){
+ if(type==='lff')return 'Futbols';
+ if(type==='basketball')return 'Basketbols';
+ if(type==='athletics')return 'Vieglatlētika';
+ return 'Pasākums';
 }
 function sourceLabel(e){
  const type=sourceType(e);
@@ -202,11 +207,22 @@ export default function OsmEventMap(){
     const [lat,lon]=groupPosition(group,indexByCoordinate);
     const ordered=closestFirst(group.events),first=ordered[0],type=groupType(group.events),hasPending=group.events.some(e=>e.status==='pending_review');
     let marker;
+    const glyph=markerGlyph(type),typeLabel=markerTypeLabel(type);
     if(group.events.length>1){
-      const icon=L.divIcon({className:'event-count-marker-wrap',html:'<span class="event-count-marker '+type+(hasPending?' pending':'')+'">'+group.events.length+'</span>',iconSize:[38,38],iconAnchor:[19,19]});
-      marker=L.marker([lat,lon],{icon});
+      const icon=L.divIcon({
+       className:'event-count-marker-wrap',
+       html:'<span class="event-count-marker '+type+(hasPending?' pending':'')+'" title="'+esc(typeLabel)+' · '+group.events.length+' pasākumi"><span class="event-group-symbol" aria-hidden="true">'+glyph+'</span><strong>'+group.events.length+'</strong></span>',
+       iconSize:[44,44],iconAnchor:[22,22]
+      });
+      marker=L.marker([lat,lon],{icon,keyboard:true,title:typeLabel+' · '+group.events.length+' pasākumi'});
     }else{
-      marker=L.circleMarker([lat,lon],{...markerStyle(first),fillOpacity:.9});
+      const pending=first.status==='pending_review';
+      const icon=L.divIcon({
+       className:'event-symbol-marker-wrap',
+       html:'<span class="event-symbol-marker '+type+(pending?' pending':'')+'" title="'+esc(typeLabel)+'"><span aria-hidden="true">'+glyph+'</span></span>',
+       iconSize:[38,38],iconAnchor:[19,19]
+      });
+      marker=L.marker([lat,lon],{icon,keyboard:true,title:typeLabel});
     }
     marker.bindPopup(popupHtml(group),{maxWidth:390,maxHeight:360});
     marker.addTo(layer);bounds.push([lat,lon]);
@@ -266,10 +282,10 @@ export default function OsmEventMap(){
    <div ref={mapEl} className="osm-map" aria-label="Pasākumu karte"/>
 
    <div className="map-legend map-legend-overlay" aria-label="Kartes leģenda">
-    <span><i className="legend-dot municipality"/>Pašvaldības ({municipalityCount})</span>
-    <span><i className="legend-dot lff"/>LFF ({lffCount})</span>
-    <span><i className="legend-dot athletics"/>Vieglatlētika ({athleticsCount})</span>
-    <span><i className="legend-dot basketball"/>Basketbols ({basketballCount})</span>
+    <span><i className="legend-symbol municipality" aria-hidden="true">📅</i>Pašvaldības ({municipalityCount})</span>
+    <span><i className="legend-symbol lff" aria-hidden="true">⚽</i>LFF ({lffCount})</span>
+    <span><i className="legend-symbol athletics" aria-hidden="true">🏃</i>Vieglatlētika ({athleticsCount})</span>
+    <span><i className="legend-symbol basketball" aria-hidden="true">🏀</i>Basketbols ({basketballCount})</span>
     <span><i className="legend-count">3</i>Vairāki vienā vietā</span>
    </div>
   </div>
