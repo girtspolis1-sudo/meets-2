@@ -71,3 +71,21 @@ button,input,select{font:inherit}button{cursor:pointer;color:inherit}button:disa
 .event-count-marker.basketball{background:#e58b3a;outline:2px solid #9a4f16}
 .map-controls-overlay .map-filter-country{width:125px}
 @media(max-width:700px){.map-controls-overlay .map-filter-country{width:118px}}
+
+/* Event-specific map icons */
+.event-symbol-marker-wrap{background:transparent!important;border:0!important}
+.event-symbol-marker{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#fff;border:3px solid #315c1d;box-shadow:0 3px 12px rgba(31,51,36,.28);font-size:20px;line-height:1}
+.event-symbol-marker.lff{border-color:#174a7e}
+.event-symbol-marker.basketball{border-color:#9a4f16}
+.event-symbol-marker.athletics{border-color:#63328d}
+.event-symbol-marker.municipality{border-color:#315c1d}
+.event-symbol-marker.pending{border-style:dashed}
+
+.event-count-marker{width:44px;height:44px;display:flex;align-items:center;justify-content:center;gap:2px;font-size:11px}
+.event-count-marker .event-group-symbol{font-size:16px;line-height:1}
+.event-count-marker strong{font-size:11px;line-height:1;margin:0}
+.legend-symbol{width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;background:#fff;border:2px solid currentColor;font-style:normal;font-size:13px;line-height:1}
+.legend-symbol.municipality{color:#315c1d}
+.legend-symbol.lff{color:#174a7e}
+.legend-symbol.athletics{color:#63328d}
+.legend-symbol.basketball{color:#9a4f16}
