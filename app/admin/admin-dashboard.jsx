@@ -52,7 +52,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [events,setEvents]=useState([]);
  const [loading,setLoading]=useState(false);
  const [search,setSearch]=useState('');
- const [status,setStatus]=useState('pending_review');
+ const [status,setStatus]=useState('');
  const [quality,setQuality]=useState('');
  const [editing,setEditing]=useState(null);
 
@@ -154,7 +154,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
  return <>
   <div className="admin-summary location-summary">
-   <article><strong>{counts.byStatus.published||0}</strong><span>Publicēti ar verificētu vietu</span></article>
+   <article><strong>{counts.byStatus.published||0}</strong><span>Publicēti kopā</span></article>
    <article><strong>{counts.byStatus.pending_review||0}</strong><span>Gaida pārbaudi</span></article>
    <article><strong>{counts.byQuality.fallback_center||0}</strong><span>Tikai centra fallback</span></article>
    <article><strong>{counts.byQuality.missing_point||0}</strong><span>Nav koordinātu</span></article>
@@ -175,7 +175,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <button className="text-button" onClick={logout}>Iziet</button>
   </div>
 
-  <p className="admin-rule"><strong>Publicēšanas noteikums:</strong> publiskajā kartē drīkst nonākt tikai <code>verified_exact</code>. Pārējos ierakstos redzams iemesls, kas jānovērš.</p>
+  <p className="admin-rule"><strong>Lokācijas kvalitāte:</strong> visi esošie ieraksti ir apstiprināti, bet kvalitātes atzīmes un problēmu iemesli paliek redzami. Jauniem <code>pending_review</code> ierakstiem pirms publicēšanas ieteicams vispirms verificēt lokāciju.</p>
   {message&&<p className="sync-text" role="status">{message}</p>}
 
   <div className="table-scroll" role="region" aria-label="Admin pasākumu tabula" tabIndex={0}>
