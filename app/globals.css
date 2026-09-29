@@ -29,3 +29,17 @@ button,input,select{font:inherit}button{cursor:pointer;color:inherit}button:disa
 .header nav a{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:10px;transition:background .15s ease,border-color .15s ease}.header nav a.active,.header nav a[aria-current="page"]{background:var(--accent);font-weight:800;box-shadow:inset 0 0 0 1px rgba(72,117,39,.14)}.header nav a.active:hover,.header nav a[aria-current="page"]:hover{text-decoration:none;background:#bfe27b}.map-page{padding:0}.map-page .map-shell{margin-top:0}.map-page .map-summary{margin-bottom:10px}@media(max-width:640px){.header nav{width:100%;order:3;margin-left:0;overflow-x:auto}.header nav a{flex:0 0 auto}.map-page .map-shell{margin-top:0}}
 
 .popup-source-link{display:inline-block;margin-top:5px;font-size:11px;font-weight:700;color:#47662e;text-decoration:underline;text-underline-offset:3px}.popup-source-link:hover{color:#2f5220}
+
+/* LFF competition filter in compact map toolbar */
+.map-controls-overlay .map-filter-type{width:150px}
+.map-controls-overlay .map-filter-competition{width:210px}
+.map-controls-overlay .map-filter-category{width:155px}
+.map-controls-overlay .map-filter-municipality{width:175px}
+.map-controls-overlay .map-filter-date{width:128px}
+@media(max-width:700px){
+ .map-controls-overlay .map-filter-type{width:140px}
+ .map-controls-overlay .map-filter-competition{width:190px}
+ .map-controls-overlay .map-filter-category{width:145px}
+ .map-controls-overlay .map-filter-municipality{width:155px}
+ .map-controls-overlay .map-filter-date{width:122px}
+}
