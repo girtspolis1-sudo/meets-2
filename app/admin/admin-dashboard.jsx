@@ -2,7 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState} from 'react';
 
-const ADMIN_EMAIL='gp@gp.lv';
+const ADMIN_EMAIL='girts.polis@icloud.com';
 const SESSION_KEY='meets_admin_access_token';
 const LEAFLET_JS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 const LEAFLET_CSS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
