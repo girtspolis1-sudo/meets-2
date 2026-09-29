@@ -14,6 +14,7 @@ const LATVIA_POLYGON=[
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function sourceType(e){
+ if(String(e.governing_body||'').toUpperCase()==='LFF')return 'lff';
  const sources=(e.sources||[]).map(s=>String(s.source||'').toLowerCase());
  if(sources.includes('lff.lv'))return 'lff';
  if(sources.includes('athletics.lv'))return 'athletics';
@@ -27,9 +28,15 @@ function markerStyle(e){
 }
 function sourceLabel(e){
  const type=sourceType(e);
- if(type==='lff')return 'LFF · Futbols';
+ if(type==='lff')return e.competition_name?('LFF · '+e.competition_name):'LFF · Futbols';
  if(type==='athletics')return 'Athletics.lv · Vieglatlētika';
  return (e.sources||[]).map(s=>s.source).filter(Boolean).join(', ')||'MEETS';
+}
+function firstSourceUrl(e){
+ return (e.sources||[]).map(s=>s.url).find(Boolean)||'';
+}
+function competitionMeta(e){
+ return [e.competition_season,e.competition_group,e.competition_stage,e.age_group].filter(Boolean).join(' · ');
 }
 function normalisePlace(v=''){
  return String(v).toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[“”"']/g,'').replace(/[^a-z0-9]+/g,' ').trim();
@@ -91,7 +98,8 @@ function popupHtml(group){
  const sorted=closestFirst(group.events);
  const rows=sorted.map(e=>{
   const approximate=['settlement_center','municipality_center'].includes(e.location_precision);
-  return '<li><strong>'+esc(e.title)+'</strong><span>'+esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'</span><small>'+esc(sourceLabel(e))+' · '+(e.status==='pending_review'?'Jāpārbauda':'Publicēts')+(approximate?' · aptuvena lokācija':'')+'</small></li>';
+  const meta=competitionMeta(e),url=firstSourceUrl(e);
+  return '<li><strong>'+esc(e.title)+'</strong><span>'+esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'</span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+(url?'<a class="popup-source-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Avots: LFF ↗</a>':'')+'</li>';
  }).join('');
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+group.events.length+' pasākumi</span></div><ol>'+rows+'</ol></div>';
 }
