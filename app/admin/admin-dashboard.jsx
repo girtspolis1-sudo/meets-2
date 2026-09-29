@@ -36,6 +36,35 @@ function dateText(v){
 }
 function sourceText(event){return (event.sources||[]).map(s=>s.source).filter(Boolean).join(', ')||'—';}
 function sourceLinks(event){return (event.sources||[]).filter(s=>s?.url);}
+function groupMissingLff(events){
+ const groups=new Map();
+ for(const event of events){
+  if(String(event.governing_body||'').toUpperCase()!=='LFF')continue;
+  if(event.latitude!=null&&event.longitude!=null)continue;
+  const venue=String(event.venue_name||event.address_raw||'').trim();
+  if(!venue)continue;
+  const current=groups.get(venue)||{
+   venueName:venue,
+   settlement:event.settlement||'',
+   municipality:event.municipality||'',
+   events:[],
+   competitions:new Set(),
+   candidates:Array.isArray(event.geocode_candidates)?event.geocode_candidates:[],
+   suggestedAt:event.geocode_suggested_at||null,
+   query:event.geocode_query||''
+  };
+  current.events.push(event);
+  if(event.competition_name)current.competitions.add(event.competition_name);
+  if((!current.candidates||!current.candidates.length)&&Array.isArray(event.geocode_candidates)&&event.geocode_candidates.length){
+   current.candidates=event.geocode_candidates;
+  }
+  if(!current.suggestedAt&&event.geocode_suggested_at)current.suggestedAt=event.geocode_suggested_at;
+  groups.set(venue,current);
+ }
+ return [...groups.values()]
+  .map(g=>({...g,competitions:[...g.competitions].sort((a,b)=>a.localeCompare(b,'lv'))}))
+  .sort((a,b)=>b.events.length-a.events.length||a.venueName.localeCompare(b.venueName,'lv'));
+}
 async function apiFetch(url,key,path,body){
  const response=await fetch(url+'/rest/v1/rpc/'+path,{method:'POST',headers:{apikey:key,'Content-Type':'application/json'},body:JSON.stringify(body||{}),cache:'no-store'});
  const text=await response.text();
@@ -55,6 +84,10 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [status,setStatus]=useState('');
  const [quality,setQuality]=useState('');
  const [editing,setEditing]=useState(null);
+ const [geocodeRunning,setGeocodeRunning]=useState(false);
+ const [geocodeProgress,setGeocodeProgress]=useState('');
+ const [autoGeocodeStarted,setAutoGeocodeStarted]=useState(false);
+ const [applyingVenue,setApplyingVenue]=useState('');
 
  async function checkAdmin(activeToken){
   if(!activeToken){setAuthChecked(true);return;}
@@ -123,6 +156,68 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   sessionStorage.removeItem(SESSION_KEY);setToken('');setIsAdmin(false);setEvents([]);setAuthChecked(true);
  }
 
+ const lffMissingGroups=useMemo(()=>groupMissingLff(events),[events]);
+ const lffMissingEvents=useMemo(()=>lffMissingGroups.reduce((sum,g)=>sum+g.events.length,0),[lffMissingGroups]);
+
+ async function findMissingLffSuggestions(groups=lffMissingGroups){
+  const pending=groups.filter(g=>!g.suggestedAt);
+  if(!pending.length){setGeocodeProgress('Visiem LFF stadioniem kandidāti jau ir meklēti.');return;}
+  setGeocodeRunning(true);
+  let done=0;
+  let found=0;
+  for(const group of pending){
+   const query=[group.venueName,group.settlement||group.municipality].filter(Boolean).join(', ');
+   setGeocodeProgress(`Meklējam ${done+1}/${pending.length}: ${group.venueName}`);
+   try{
+    const response=await fetch('/api/admin/geocode',{
+     method:'POST',
+     headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+     body:JSON.stringify({
+      query,
+      venueName:group.venueName,
+      settlement:group.settlement,
+      municipality:group.municipality
+     })
+    });
+    const data=await response.json();
+    if(!response.ok)throw new Error(data?.error||'Meklēšana neizdevās.');
+    const candidates=(Array.isArray(data.results)?data.results:[]).slice(0,5);
+    if(candidates.length)found++;
+    await apiFetch(supabaseUrl,publishableKey,'meets_admin_store_location_candidates',{
+     p_session_token:token,
+     p_venue_name:group.venueName,
+     p_query:query,
+     p_candidates:candidates
+    });
+   }catch(error){
+    console.error('lff_geocode_candidate_failed',{venue:group.venueName,message:error?.message||'Error'});
+   }
+   done++;
+   if(done<pending.length)await new Promise(resolve=>setTimeout(resolve,1200));
+  }
+  await loadEvents();
+  setGeocodeProgress(`Pabeigts: apstrādāti ${done} stadioni, kandidāti atrasti ${found}.`);
+  setGeocodeRunning(false);
+ }
+
+ async function applyLffCandidate(group,candidate){
+  if(!candidate)return;
+  setApplyingVenue(group.venueName);
+  try{
+   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_apply_location_candidate',{
+    p_session_token:token,
+    p_venue_name:group.venueName,
+    p_candidate:candidate
+   });
+   await loadEvents();
+   setMessage(`${group.venueName}: lokācija apstiprināta ${result?.updated||group.events.length} spēlēm.`);
+  }catch{
+   setMessage(group.venueName+': kandidātu neizdevās apstiprināt.');
+  }finally{
+   setApplyingVenue('');
+  }
+ }
+
  const counts=useMemo(()=>{
   const byStatus={},byQuality={};
   for(const e of events){byStatus[e.status]=(byStatus[e.status]||0)+1;byQuality[e.location_quality]=(byQuality[e.location_quality]||0)+1;}
@@ -142,6 +237,14 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   });
  },[events,search,status,quality]);
 
+ useEffect(()=>{
+  if(!isAdmin||!token||autoGeocodeStarted||geocodeRunning||!lffMissingGroups.length)return;
+  const unprocessed=lffMissingGroups.filter(g=>!g.suggestedAt);
+  if(!unprocessed.length)return;
+  setAutoGeocodeStarted(true);
+  findMissingLffSuggestions(unprocessed);
+ },[isAdmin,token,lffMissingGroups,autoGeocodeStarted,geocodeRunning]);
+
  if(!authChecked)return <div className="admin-login"><p>Pārbaudām admin piekļuvi…</p></div>;
  if(!token||!isAdmin){
   return <form className="admin-login" onSubmit={login}>
@@ -160,6 +263,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <article><strong>{counts.byQuality.fallback_center||0}</strong><span>Tikai centra fallback</span></article>
    <article><strong>{counts.byQuality.missing_point||0}</strong><span>Nav koordinātu</span></article>
    <article><strong>{counts.byQuality.source_exact||0}</strong><span>Precīzi pēc avota, jāverificē</span></article>
+   <article className={lffMissingEvents?'attention-card':''}><strong>{lffMissingEvents}</strong><span>LFF spēles bez kartes punkta · {lffMissingGroups.length} stadioni</span></article>
   </div>
 
   <div className="admin-toolbar admin-toolbar-wide">
@@ -178,6 +282,54 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
   <p className="admin-rule"><strong>Lokācijas kvalitāte:</strong> visi esošie ieraksti ir apstiprināti, bet kvalitātes atzīmes un problēmu iemesli paliek redzami. Jauniem <code>pending_review</code> ierakstiem pirms publicēšanas ieteicams vispirms verificēt lokāciju.</p>
   {message&&<p className="sync-text" role="status">{message}</p>}
+
+  {lffMissingGroups.length>0&&<section className="lff-location-queue">
+   <div className="queue-head">
+    <div>
+     <p className="eyebrow">LFF · lokācijas</p>
+     <h2>LFF — nav kartes punkta</h2>
+     <p>{lffMissingEvents} spēles · {lffMissingGroups.length} unikāli stadioni. Automātiskais meklētājs sagatavo kandidātus, bet kartes punkts mainās tikai pēc apstiprināšanas.</p>
+    </div>
+    <button className="button" disabled={geocodeRunning} onClick={()=>findMissingLffSuggestions(lffMissingGroups)}>
+     {geocodeRunning?'Meklē kandidātus…':'Atkārtoti atrast kandidātus'}
+    </button>
+   </div>
+   {geocodeProgress&&<p className="sync-text" role="status">{geocodeProgress}</p>}
+   <div className="table-scroll" role="region" aria-label="LFF stadioni bez kartes punkta" tabIndex={0}>
+    <table className="events-table lff-location-table">
+     <thead><tr><th>Stadions</th><th>Spēles</th><th>Turnīri</th><th>Automātiski atrastā vieta</th><th>Darbības</th></tr></thead>
+     <tbody>{lffMissingGroups.map(group=>{
+      const best=group.candidates?.[0]||null;
+      return <tr key={group.venueName}>
+       <td><strong>{group.venueName}</strong><small className="table-subline">{[group.settlement,group.municipality].filter(Boolean).join(' · ')||'Pilsēta nav noteikta'}</small></td>
+       <td><strong>{group.events.length}</strong></td>
+       <td>{group.competitions.join(', ')||'LFF'}</td>
+       <td>
+        {best?<>
+         <strong>{best.label||best.displayName}</strong>
+         <small className="table-subline">{best.displayName}</small>
+         <small className="table-subline">{Number(best.latitude).toFixed(5)}, {Number(best.longitude).toFixed(5)}{Number.isFinite(Number(best.score))?' · atbilstība '+Number(best.score).toFixed(1):''}</small>
+         {best.sourceUrl&&<a className="queue-source-link" href={best.sourceUrl} target="_blank" rel="noreferrer">OpenStreetMap ↗</a>}
+         {group.candidates.length>1&&<details className="candidate-alternatives">
+          <summary>Citi varianti ({group.candidates.length-1})</summary>
+          {group.candidates.slice(1).map(candidate=><div className="candidate-alt" key={candidate.id||candidate.sourceUrl||candidate.displayName}>
+           <span><strong>{candidate.label||'Vieta'}</strong><small>{candidate.displayName}</small></span>
+           <button className="text-button" disabled={applyingVenue===group.venueName} onClick={()=>applyLffCandidate(group,candidate)}>Apstiprināt šo</button>
+          </div>)}
+         </details>}
+        </>:<span className="quality-badge bad">{group.suggestedAt?'Kandidāts nav atrasts':'Vēl nav meklēts'}</span>}
+       </td>
+       <td><div className="admin-actions">
+        {best&&<button className="button primary compact" disabled={applyingVenue===group.venueName} onClick={()=>applyLffCandidate(group,best)}>
+         {applyingVenue===group.venueName?'Saglabā…':'Apstiprināt'}
+        </button>}
+        <button className="button compact" onClick={()=>setEditing(group.events[0])}>Atvērt redaktoru</button>
+       </div></td>
+      </tr>;
+     })}</tbody>
+    </table>
+   </div>
+  </section>}
 
   <div className="table-scroll" role="region" aria-label="Admin pasākumu tabula" tabIndex={0}>
    <table className="events-table admin-events-table location-review-table">
