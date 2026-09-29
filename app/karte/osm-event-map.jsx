@@ -115,6 +115,8 @@ export default function OsmEventMap(){
  const {data,loading,error,refresh}=useEvents();
  const mapEl=useRef(null),mapRef=useRef(null),layerRef=useRef(null);
  const events=data?.events||[];
+ const publicFrom=data?.window?.from||'';
+ const publicTo=data?.window?.to||'';
  const categories=useMemo(()=>[...new Set(events.flatMap(e=>[e.primary_category,...(e.tags||[])].filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'lv')),[events]);
  const municipalities=useMemo(()=>[...new Set(events.map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[events]);
  const filtered=useMemo(()=>events.filter(e=>
@@ -170,8 +172,8 @@ export default function OsmEventMap(){
   <div className="map-controls">
    <label>Kategorija<select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Visas</option>{categories.map(v=><option key={v}>{v}</option>)}</select></label>
    <label>Pašvaldība<select value={municipality} onChange={e=>setMunicipality(e.target.value)}><option value="">Visas</option>{municipalities.map(v=><option key={v}>{v}</option>)}</select></label>
-   <label>Datums no<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label>
-   <label>Datums līdz<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label>
+   <label>Datums no<input type="date" min={publicFrom||undefined} max={publicTo||undefined} value={from} onChange={e=>setFrom(e.target.value)}/></label>
+   <label>Datums līdz<input type="date" min={publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/></label>
   </div>
   <div className="map-legend" aria-label="Kartes leģenda">
    <span><i className="legend-dot published"/>Publicēts</span>
@@ -179,7 +181,7 @@ export default function OsmEventMap(){
    <span><i className="legend-dot athletics"/>Vieglatlētika ({athleticsCount})</span>
    <span><i className="legend-count">3</i>Vairāki pasākumi vienā vietā</span>
   </div>
-  <div className="map-summary"><strong>{locationGroups.length}</strong> vietas kartē · {points.length} publicēti pasākumi ar punktu Latvijā · {filtered.length-coordinateEvents.length} bez koordinātām{hiddenOutside>0?' · '+hiddenOutside+' ārpus Latvijas paslēpti':''}{hiddenInvalid>0?' · '+hiddenInvalid+' ar kļūdainām koordinātām paslēpti':''} <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button></div>
+  <div className="map-summary"><strong>{locationGroups.length}</strong> vietas kartē · {points.length} publicēti pasākumi ar punktu Latvijā · {filtered.length-coordinateEvents.length} bez koordinātām{hiddenOutside>0?' · '+hiddenOutside+' ārpus Latvijas paslēpti':''}{hiddenInvalid>0?' · '+hiddenInvalid+' ar kļūdainām koordinātām paslēpti':''}{publicFrom&&publicTo?' · periods '+publicFrom+'–'+publicTo:''} <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button></div>
   {error&&<div className="error-message">{error}</div>}
   <div ref={mapEl} className="osm-map" aria-label="Pasākumu karte"/>
  </>;
