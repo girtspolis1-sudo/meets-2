@@ -17,7 +17,7 @@ function sourceType(e){
  const sources=(e.sources||[]).map(s=>String(s.source||'').toLowerCase());
  if(sources.includes('lff.lv'))return 'lff';
  if(sources.includes('athletics.lv'))return 'athletics';
- return 'general';
+ return 'municipality';
 }
 function markerStyle(e){
  const type=sourceType(e),pending=e.status==='pending_review';
@@ -74,7 +74,7 @@ function closestFirst(events){
 }
 function groupType(events){
  const types=[...new Set(events.map(sourceType))];
- return types.length===1?types[0]:'general';
+ return types.length===1?types[0]:'municipality';
 }
 function groupPosition(group,indexByCoordinate){
  let lat=group.lat,lon=group.lon;
@@ -108,7 +108,8 @@ function loadLeaflet(){
 }
 
 export default function OsmEventMap(){
-  const [category,setCategory]=useState('');
+ const [eventType,setEventType]=useState('');
+ const [category,setCategory]=useState('');
  const [municipality,setMunicipality]=useState('');
  const [from,setFrom]=useState('');
  const [to,setTo]=useState('');
@@ -117,20 +118,24 @@ export default function OsmEventMap(){
  const events=data?.events||[];
  const publicFrom=data?.window?.from||'';
  const publicTo=data?.window?.to||'';
- const categories=useMemo(()=>[...new Set(events.flatMap(e=>[e.primary_category,...(e.tags||[])].filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'lv')),[events]);
- const municipalities=useMemo(()=>[...new Set(events.map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[events]);
+ const typedEvents=useMemo(()=>eventType?events.filter(e=>sourceType(e)===eventType):events,[events,eventType]);
+ const categories=useMemo(()=>[...new Set(typedEvents.flatMap(e=>[e.primary_category,...(e.tags||[])].filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'lv')),[typedEvents]);
+ const municipalities=useMemo(()=>[...new Set(typedEvents.map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[typedEvents]);
+ const sourceCounts=useMemo(()=>events.reduce((acc,e)=>{const type=sourceType(e);acc[type]=(acc[type]||0)+1;return acc;},{municipality:0,lff:0,athletics:0}),[events]);
  const filtered=useMemo(()=>events.filter(e=>
+  (!eventType||sourceType(e)===eventType)&&
   (!category||e.primary_category===category||e.tags?.includes(category))&&
   (!municipality||e.municipality===municipality)&&
   (!from||(e.date_to||e.date_from)>=from)&&
   (!to||e.date_from<=to)
- ),[events,category,municipality,from,to]);
+ ),[events,eventType,category,municipality,from,to]);
  const coordinateEvents=filtered.filter(e=>Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude)));
  const latvianEvents=coordinateEvents.filter(isLatvianEvent);
  const points=latvianEvents.filter(e=>insideBalticView(Number(e.latitude),Number(e.longitude)));
  const hiddenOutside=coordinateEvents.length-latvianEvents.length;
  const hiddenInvalid=latvianEvents.length-points.length;
  const locationGroups=useMemo(()=>groupEvents(points),[points]);
+ const municipalityCount=points.filter(e=>sourceType(e)==='municipality').length;
  const lffCount=points.filter(e=>sourceType(e)==='lff').length;
  const athleticsCount=points.filter(e=>sourceType(e)==='athletics').length;
 
@@ -164,25 +169,51 @@ export default function OsmEventMap(){
    if(safeBounds.length)mapRef.current.fitBounds(safeBounds,{padding:[35,35],maxZoom:11});
    else mapRef.current.fitBounds(fixedBounds,{padding:[20,20]});
   }).catch(()=>{});return()=>{cancelled=true;};
- },[data,category,municipality,from,to,locationGroups]);
+ },[data,eventType,category,municipality,from,to,locationGroups]);
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;},[]);
 
+ function changeEventType(value){
+  setEventType(value);
+  setCategory('');
+  setMunicipality('');
+ }
+
+ function clearFilters(){
+  setEventType('');
+  setCategory('');
+  setMunicipality('');
+  setFrom('');
+  setTo('');
+ }
+
  return <>
-  <div className="map-controls">
-   <label>Kategorija<select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Visas</option>{categories.map(v=><option key={v}>{v}</option>)}</select></label>
-   <label>Pašvaldība<select value={municipality} onChange={e=>setMunicipality(e.target.value)}><option value="">Visas</option>{municipalities.map(v=><option key={v}>{v}</option>)}</select></label>
-   <label>Datums no<input type="date" min={publicFrom||undefined} max={publicTo||undefined} value={from} onChange={e=>setFrom(e.target.value)}/></label>
-   <label>Datums līdz<input type="date" min={publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/></label>
+  <div className="map-shell">
+   <div className="map-controls map-controls-overlay" aria-label="Kartes filtri">
+    <label><span>Tips</span><select value={eventType} onChange={e=>changeEventType(e.target.value)}>
+     <option value="">Visi ({events.length})</option>
+     <option value="municipality">Pašvaldības ({sourceCounts.municipality})</option>
+     <option value="lff">LFF ({sourceCounts.lff})</option>
+     <option value="athletics">Vieglatlētika ({sourceCounts.athletics})</option>
+    </select></label>
+    <label><span>Kategorija</span><select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Visas</option>{categories.map(v=><option key={v}>{v}</option>)}</select></label>
+    <label><span>Pašvaldība</span><select value={municipality} onChange={e=>setMunicipality(e.target.value)}><option value="">Visas</option>{municipalities.map(v=><option key={v}>{v}</option>)}</select></label>
+    <label><span>No</span><input aria-label="Datums no" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={from} onChange={e=>setFrom(e.target.value)}/></label>
+    <label><span>Līdz</span><input aria-label="Datums līdz" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/></label>
+    <button className="map-clear-button" type="button" onClick={clearFilters}>Notīrīt</button>
+   </div>
+
+   <div ref={mapEl} className="osm-map" aria-label="Pasākumu karte"/>
+
+   <div className="map-legend map-legend-overlay" aria-label="Kartes leģenda">
+    <span><i className="legend-dot municipality"/>Pašvaldības ({municipalityCount})</span>
+    <span><i className="legend-dot lff"/>LFF ({lffCount})</span>
+    <span><i className="legend-dot athletics"/>Vieglatlētika ({athleticsCount})</span>
+    <span><i className="legend-count">3</i>Vairāki vienā vietā</span>
+   </div>
   </div>
-  <div className="map-legend" aria-label="Kartes leģenda">
-   <span><i className="legend-dot published"/>Publicēts</span>
-   <span><i className="legend-dot lff"/>LFF futbols ({lffCount})</span>
-   <span><i className="legend-dot athletics"/>Vieglatlētika ({athleticsCount})</span>
-   <span><i className="legend-count">3</i>Vairāki pasākumi vienā vietā</span>
-  </div>
-  <div className="map-summary"><strong>{locationGroups.length}</strong> vietas kartē · {points.length} publicēti pasākumi ar punktu Latvijā · {filtered.length-coordinateEvents.length} bez koordinātām{hiddenOutside>0?' · '+hiddenOutside+' ārpus Latvijas paslēpti':''}{hiddenInvalid>0?' · '+hiddenInvalid+' ar kļūdainām koordinātām paslēpti':''}{publicFrom&&publicTo?' · periods '+publicFrom+'–'+publicTo:''} <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button></div>
+
+  <div className="map-summary"><strong>{locationGroups.length}</strong> vietas kartē · {points.length} pasākumi ar punktu Latvijā · {filtered.length-coordinateEvents.length} bez koordinātām{hiddenOutside>0?' · '+hiddenOutside+' ārpus Latvijas paslēpti':''}{hiddenInvalid>0?' · '+hiddenInvalid+' ar kļūdainām koordinātām paslēpti':''}{publicFrom&&publicTo?' · periods '+publicFrom+'–'+publicTo:''} <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button></div>
   {error&&<div className="error-message">{error}</div>}
-  <div ref={mapEl} className="osm-map" aria-label="Pasākumu karte"/>
  </>;
 }
