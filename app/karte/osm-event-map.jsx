@@ -5,6 +5,7 @@ import {dateLabel,timeLabel} from '../../lib/catalog.js';
 
 const JS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 const CSS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
 
 // Natural Earth 1:50m Latvia boundary (public domain), [longitude, latitude].
 const LATVIA_POLYGON=[
@@ -43,6 +44,7 @@ function insideLatvia(lat,lon){
  }
  return inside;
 }
+function insideBalticView(lat,lon){return lat>=BALTIC_VIEW.south&&lat<=BALTIC_VIEW.north&&lon>=BALTIC_VIEW.west&&lon<=BALTIC_VIEW.east;}
 function isLatvianEvent(e){
  const municipality=String(e.municipality||'').trim();
  if(municipality==='Ārpus Latvijas (Igaunija)')return false;
@@ -106,12 +108,11 @@ function loadLeaflet(){
 }
 
 export default function OsmEventMap(){
- const [includePending,setIncludePending]=useState(false);
- const [category,setCategory]=useState('');
+  const [category,setCategory]=useState('');
  const [municipality,setMunicipality]=useState('');
  const [from,setFrom]=useState('');
  const [to,setTo]=useState('');
- const {data,loading,error,refresh}=useEvents({includePending});
+ const {data,loading,error,refresh}=useEvents();
  const mapEl=useRef(null),mapRef=useRef(null),layerRef=useRef(null);
  const events=data?.events||[];
  const categories=useMemo(()=>[...new Set(events.flatMap(e=>[e.primary_category,...(e.tags||[])].filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'lv')),[events]);
@@ -123,8 +124,10 @@ export default function OsmEventMap(){
   (!to||e.date_from<=to)
  ),[events,category,municipality,from,to]);
  const coordinateEvents=filtered.filter(e=>Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude)));
- const points=coordinateEvents.filter(isLatvianEvent);
- const hiddenOutside=coordinateEvents.length-points.length;
+ const latvianEvents=coordinateEvents.filter(isLatvianEvent);
+ const points=latvianEvents.filter(e=>insideBalticView(Number(e.latitude),Number(e.longitude)));
+ const hiddenOutside=coordinateEvents.length-latvianEvents.length;
+ const hiddenInvalid=latvianEvents.length-points.length;
  const locationGroups=useMemo(()=>groupEvents(points),[points]);
  const lffCount=points.filter(e=>sourceType(e)==='lff').length;
  const athleticsCount=points.filter(e=>sourceType(e)==='athletics').length;
@@ -134,7 +137,8 @@ export default function OsmEventMap(){
   loadLeaflet().then(L=>{
    if(cancelled||!mapEl.current)return;
    if(!mapRef.current){
-    mapRef.current=L.map(mapEl.current).setView([56.95,24.6],7);
+    const fixedBounds=L.latLngBounds([BALTIC_VIEW.south,BALTIC_VIEW.west],[BALTIC_VIEW.north,BALTIC_VIEW.east]);
+    mapRef.current=L.map(mapEl.current,{maxBounds:fixedBounds,maxBoundsViscosity:1,minZoom:5}).fitBounds(fixedBounds,{padding:[20,20]});
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(mapRef.current);
    }
    if(layerRef.current)layerRef.current.remove();
@@ -153,19 +157,17 @@ export default function OsmEventMap(){
     marker.bindPopup(popupHtml(group),{maxWidth:390,maxHeight:360});
     marker.addTo(layer);bounds.push([lat,lon]);
    }
-   if(bounds.length)mapRef.current.fitBounds(bounds,{padding:[24,24],maxZoom:11});
-   else mapRef.current.setView([56.95,24.6],7);
+   const safeBounds=bounds.filter(([lat,lon])=>insideBalticView(lat,lon));
+   const fixedBounds=L.latLngBounds([BALTIC_VIEW.south,BALTIC_VIEW.west],[BALTIC_VIEW.north,BALTIC_VIEW.east]);
+   if(safeBounds.length)mapRef.current.fitBounds(safeBounds,{padding:[35,35],maxZoom:11});
+   else mapRef.current.fitBounds(fixedBounds,{padding:[20,20]});
   }).catch(()=>{});return()=>{cancelled=true;};
- },[data,category,municipality,from,to,includePending,locationGroups]);
+ },[data,category,municipality,from,to,locationGroups]);
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;},[]);
 
  return <>
   <div className="map-controls">
-   <div className="status-toggle" role="group" aria-label="Pasākumu statuss">
-    <button className={!includePending?'active':''} onClick={()=>setIncludePending(false)}>Tikai published</button>
-    <button className={includePending?'active':''} onClick={()=>setIncludePending(true)}>Rādīt arī pending_review</button>
-   </div>
    <label>Kategorija<select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Visas</option>{categories.map(v=><option key={v}>{v}</option>)}</select></label>
    <label>Pašvaldība<select value={municipality} onChange={e=>setMunicipality(e.target.value)}><option value="">Visas</option>{municipalities.map(v=><option key={v}>{v}</option>)}</select></label>
    <label>Datums no<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label>
@@ -173,13 +175,11 @@ export default function OsmEventMap(){
   </div>
   <div className="map-legend" aria-label="Kartes leģenda">
    <span><i className="legend-dot published"/>Publicēts</span>
-   <span><i className="legend-dot pending"/>Pending review</span>
    <span><i className="legend-dot lff"/>LFF futbols ({lffCount})</span>
    <span><i className="legend-dot athletics"/>Vieglatlētika ({athleticsCount})</span>
    <span><i className="legend-count">3</i>Vairāki pasākumi vienā vietā</span>
   </div>
-  <div className="map-summary"><strong>{locationGroups.length}</strong> vietas kartē · {points.length} pasākumi ar punktu Latvijā · {filtered.length-points.length-hiddenOutside} bez koordinātām{hiddenOutside>0?' · '+hiddenOutside+' ārpus Latvijas paslēpti':''} <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button></div>
-  {includePending&&<p className="data-note"><strong>Iekšējais apskates režīms:</strong> pārtrauktā apmale nozīmē <code>pending_review</code>. Vairāki pasākumi vienā norises vietā tiek apvienoti vienā marķierī ar skaitu; popup saraksts ir sakārtots pēc datuma tuvuma šodienai. Punkti, kas datu avotā ir klasificēti ārpus Latvijas, kartē netiek rādīti.</p>}
+  <div className="map-summary"><strong>{locationGroups.length}</strong> vietas kartē · {points.length} publicēti pasākumi ar punktu Latvijā · {filtered.length-coordinateEvents.length} bez koordinātām{hiddenOutside>0?' · '+hiddenOutside+' ārpus Latvijas paslēpti':''}{hiddenInvalid>0?' · '+hiddenInvalid+' ar kļūdainām koordinātām paslēpti':''} <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button></div>
   {error&&<div className="error-message">{error}</div>}
   <div ref={mapEl} className="osm-map" aria-label="Pasākumu karte"/>
  </>;
