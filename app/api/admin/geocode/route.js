@@ -22,6 +22,21 @@ function osmUrl(item){
  if(!id||!['node','way','relation'].includes(type))return null;
  return `https://www.openstreetmap.org/${type}/${id}`;
 }
+function norm(value=''){
+ return String(value).toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+}
+function scorePlace(item,{venueName,settlement,municipality}){
+ const display=norm(item.display_name||'');
+ const label=norm(item.name||'');
+ const venueTokens=norm(venueName).split(' ').filter(v=>v.length>2);
+ let score=0;
+ for(const token of venueTokens)if(label.includes(token)||display.includes(token))score+=2;
+ if(settlement&&display.includes(norm(settlement)))score+=5;
+ if(municipality&&display.includes(norm(municipality).replace(' valstspilseta','').replace(' novads','')))score+=2;
+ if(['stadium','sports_centre','pitch','sports_hall'].includes(String(item.type||'')))score+=4;
+ score+=Math.min(3,Number(item.importance||0)*3);
+ return score;
+}
 
 export async function POST(request){
  try{
@@ -33,6 +48,11 @@ export async function POST(request){
 
   const body=await request.json();
   const query=String(body?.query||'').trim();
+  const context={
+   venueName:String(body?.venueName||query).trim(),
+   settlement:String(body?.settlement||'').trim(),
+   municipality:String(body?.municipality||'').trim()
+  };
   if(query.length<3){
    return Response.json({error:'Ievadi vismaz 3 rakstzīmes.'},{status:400});
   }
@@ -83,9 +103,11 @@ export async function POST(request){
     longitude:lon,
     type:item.type||null,
     category:item.category||null,
-    sourceUrl:osmUrl(item)
+    sourceUrl:osmUrl(item),
+    score:scorePlace(item,context)
    });
   }
+  results.sort((a,b)=>b.score-a.score||String(a.displayName).localeCompare(String(b.displayName),'lv'));
 
   return Response.json(
    {results,query,attribution:'© OpenStreetMap contributors'},
