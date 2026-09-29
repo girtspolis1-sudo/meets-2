@@ -38,10 +38,10 @@ function sourceText(event){
  return (event.sources||[]).map(s=>s.source).filter(Boolean).join(', ')||'—';
 }
 
-async function apiFetch(url,key,token,path,body){
+async function apiFetch(url,key,path,body){
  const response=await fetch(url+'/rest/v1/rpc/'+path,{
   method:'POST',
-  headers:{apikey:key,Authorization:'Bearer '+token,'Content-Type':'application/json'},
+  headers:{apikey:key,'Content-Type':'application/json'},
   body:JSON.stringify(body||{}),
   cache:'no-store'
  });
@@ -50,20 +50,9 @@ async function apiFetch(url,key,token,path,body){
  return text?JSON.parse(text):null;
 }
 
-function parseAuthHash(){
- const hash=window.location.hash.replace(/^#/,'');
- if(!hash)return null;
- const p=new URLSearchParams(hash);
- const token=p.get('access_token');
- if(token){
-  sessionStorage.setItem(SESSION_KEY,token);
-  history.replaceState(null,'',window.location.pathname+window.location.search);
- }
- return token;
-}
-
 export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [token,setToken]=useState('');
+ const [password,setPassword]=useState('');
  const [authChecked,setAuthChecked]=useState(false);
  const [isAdmin,setIsAdmin]=useState(false);
  const [message,setMessage]=useState('');
@@ -76,10 +65,13 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  async function checkAdmin(activeToken){
   if(!activeToken){setAuthChecked(true);return;}
   try{
-   const ok=await apiFetch(supabaseUrl,publishableKey,activeToken,'meets_is_admin',{});
+   const ok=await apiFetch(supabaseUrl,publishableKey,'meets_admin_session_valid',{p_session_token:activeToken});
    setIsAdmin(ok===true);
    if(ok===true)await loadEvents(activeToken);
-   else setMessage('Šim kontam nav MEETS admin tiesību.');
+   else{
+    sessionStorage.removeItem(SESSION_KEY);
+    setToken('');setIsAdmin(false);
+   }
   }catch{
    sessionStorage.removeItem(SESSION_KEY);
    setToken('');setIsAdmin(false);
@@ -92,7 +84,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!activeToken)return;
   setLoading(true);
   try{
-   const data=await apiFetch(supabaseUrl,publishableKey,activeToken,'meets_admin_catalog',{});
+   const data=await apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken});
    setEvents(Array.isArray(data?.events)?data.events:[]);
    setMessage('');
   }catch{
@@ -103,32 +95,31 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  }
 
  useEffect(()=>{
-  const active=parseAuthHash()||sessionStorage.getItem(SESSION_KEY)||'';
+  const active=sessionStorage.getItem(SESSION_KEY)||'';
   setToken(active);
   checkAdmin(active);
  },[]);
 
- async function sendMagicLink(){
-  setMessage('Sūtām pieslēgšanās saiti…');
+ async function login(event){
+  event.preventDefault();
+  if(!password){setMessage('Ievadi paroli.');return;}
+  setLoading(true);setMessage('');
   try{
-   const redirect=window.location.origin+'/admin';
-   const response=await fetch(supabaseUrl+'/auth/v1/otp?redirect_to='+encodeURIComponent(redirect),{
-    method:'POST',
-    headers:{apikey:publishableKey,'Content-Type':'application/json'},
-    body:JSON.stringify({email:ADMIN_EMAIL,create_user:true})
-   });
-   if(!response.ok)throw new Error();
-   setMessage('Pieslēgšanās saite nosūtīta uz '+ADMIN_EMAIL+'. Atver to šajā pārlūkā.');
+   const sessionToken=await apiFetch(supabaseUrl,publishableKey,'meets_admin_login',{p_password:password});
+   if(!sessionToken||typeof sessionToken!=='string')throw new Error();
+   sessionStorage.setItem(SESSION_KEY,sessionToken);
+   setToken(sessionToken);setPassword('');setIsAdmin(true);
+   await loadEvents(sessionToken);
   }catch{
-   setMessage('Pieslēgšanās saiti neizdevās nosūtīt.');
-  }
+   setMessage('Nepareiza parole.');
+  }finally{setLoading(false);setAuthChecked(true);}
  }
 
  async function changeStatus(event,newStatus){
   setLoading(true);
   try{
-   await apiFetch(supabaseUrl,publishableKey,token,'meets_admin_update_event',{
-    p_event_id:event.id,p_status:newStatus,p_venue_name:null,p_latitude:null,p_longitude:null
+   await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_event',{
+    p_session_token:token,p_event_id:event.id,p_status:newStatus,p_venue_name:null,p_latitude:null,p_longitude:null
    });
    await loadEvents();
    setMessage(newStatus==='published'?'Pasākums publicēts.':'Pasākuma statuss atjaunots.');
@@ -137,7 +128,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }finally{setLoading(false);}
  }
 
- function logout(){
+ async function logout(){
+  try{if(token)await apiFetch(supabaseUrl,publishableKey,'meets_admin_logout',{p_session_token:token});}catch{}
   sessionStorage.removeItem(SESSION_KEY);
   setToken('');setIsAdmin(false);setEvents([]);setAuthChecked(true);
  }
@@ -155,12 +147,13 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  if(!authChecked)return <div className="admin-login"><p>Pārbaudām admin piekļuvi…</p></div>;
 
  if(!token||!isAdmin){
-  return <div className="admin-login">
+  return <form className="admin-login" onSubmit={login}>
    <h2>Admin pieslēgšanās</h2>
-   <p>Piekļuve paredzēta tikai <strong>{ADMIN_EMAIL}</strong>.</p>
-   <button className="button primary" onClick={sendMagicLink}>Nosūtīt magic link</button>
+   <p>Pagaidu paroles režīms. Admins: <strong>{ADMIN_EMAIL}</strong>.</p>
+   <label>Parole<input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" autoFocus/></label>
+   <div className="actions"><button className="button primary" type="submit" disabled={loading}>{loading?'Pārbaudām…':'Ieiet'}</button></div>
    {message&&<p className="sync-text" role="status">{message}</p>}
-  </div>;
+  </form>;
  }
 
  return <>
@@ -218,8 +211,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    save={async values=>{
     setLoading(true);
     try{
-     await apiFetch(supabaseUrl,publishableKey,token,'meets_admin_update_event',{
-      p_event_id:editing.id,p_status:null,p_venue_name:values.venueName,
+     await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_event',{
+      p_session_token:token,p_event_id:editing.id,p_status:null,p_venue_name:values.venueName,
       p_latitude:Number(values.latitude),p_longitude:Number(values.longitude)
      });
      setEditing(null);
