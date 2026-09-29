@@ -43,3 +43,25 @@ button,input,select{font:inherit}button{cursor:pointer;color:inherit}button:disa
  .map-controls-overlay .map-filter-municipality{width:155px}
  .map-controls-overlay .map-filter-date{width:122px}
 }
+
+/* LFF missing-location admin queue */
+.location-summary{grid-template-columns:repeat(6,minmax(0,1fr))}
+.attention-card{border-color:#e3b45d!important;background:#fff8e7!important}
+.lff-location-queue{margin:24px 0 30px;padding:18px;border:1px solid var(--border);border-radius:18px;background:#fff}
+.queue-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:12px}
+.queue-head h2{margin:2px 0 6px;font-size:24px}
+.queue-head p{margin:0;max-width:820px;color:var(--muted);font-size:13px;line-height:1.45}
+.lff-location-table td{vertical-align:top}
+.lff-location-table td:nth-child(1){min-width:230px}
+.lff-location-table td:nth-child(3){min-width:190px}
+.lff-location-table td:nth-child(4){min-width:340px;white-space:normal}
+.queue-source-link{display:inline-block;margin-top:5px;font-size:11px;font-weight:700}
+.candidate-alternatives{margin-top:8px;border-top:1px solid var(--border);padding-top:7px}
+.candidate-alternatives summary{cursor:pointer;font-size:11px;font-weight:700;color:var(--muted)}
+.candidate-alt{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--border)}
+.candidate-alt span{display:block;min-width:0}
+.candidate-alt strong,.candidate-alt small{display:block}
+.candidate-alt strong{font-size:11px}
+.candidate-alt small{font-size:10px;color:var(--muted);line-height:1.35}
+@media(max-width:1200px){.location-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.location-summary{grid-template-columns:1fr 1fr}.queue-head{flex-direction:column}.lff-location-queue{padding:12px}.lff-location-table td:nth-child(4){min-width:290px}}
