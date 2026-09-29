@@ -159,8 +159,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const lffMissingGroups=useMemo(()=>groupMissingLff(events),[events]);
  const lffMissingEvents=useMemo(()=>lffMissingGroups.reduce((sum,g)=>sum+g.events.length,0),[lffMissingGroups]);
 
- async function findMissingLffSuggestions(groups=lffMissingGroups){
-  const pending=groups.filter(g=>!g.suggestedAt);
+ async function findMissingLffSuggestions(groups=lffMissingGroups,force=false){
+  const pending=force?groups:groups.filter(g=>!g.suggestedAt);
   if(!pending.length){setGeocodeProgress('Visiem LFF stadioniem kandidāti jau ir meklēti.');return;}
   setGeocodeRunning(true);
   let done=0;
@@ -290,7 +290,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
      <h2>LFF — nav kartes punkta</h2>
      <p>{lffMissingEvents} spēles · {lffMissingGroups.length} unikāli stadioni. Automātiskais meklētājs sagatavo kandidātus, bet kartes punkts mainās tikai pēc apstiprināšanas.</p>
     </div>
-    <button className="button" disabled={geocodeRunning} onClick={()=>findMissingLffSuggestions(lffMissingGroups)}>
+    <button className="button" disabled={geocodeRunning} onClick={()=>findMissingLffSuggestions(lffMissingGroups,true)}>
      {geocodeRunning?'Meklē kandidātus…':'Atkārtoti atrast kandidātus'}
     </button>
    </div>
