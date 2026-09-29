@@ -3,8 +3,11 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel} from '../../lib/catalog.js';
 
+const LEAFLET_JS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 const LEAFLET_CSS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-const MAPLIBRE_CSS='https://unpkg.com/maplibre-gl@5.17.0/dist/maplibre-gl.css';
+const MAPLIBRE_JS='https://unpkg.com/maplibre-gl@2.2.1/dist/maplibre-gl.js';
+const MAPLIBRE_CSS='https://unpkg.com/maplibre-gl@2.2.1/dist/maplibre-gl.css';
+const MAPLIBRE_LEAFLET_JS='https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js';
 const OPENFREEMAP_STYLE='https://tiles.openfreemap.org/styles/positron';
 const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
 const RADIUS_OPTIONS=[5,10,20,30,50,100,0];
@@ -89,20 +92,34 @@ function popupHtml(group,activeIds){
  const activeCount=group.events.filter(e=>activeIds.has(e.id)).length;
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div><ol>'+rows+'</ol></div>';
 }
+function ensureCss(href,key){
+ if(document.querySelector('link[data-map-style="'+key+'"]'))return;
+ const l=document.createElement('link');l.rel='stylesheet';l.href=href;l.dataset.mapStyle=key;document.head.appendChild(l);
+}
+function ensureScript(src,key){
+ return new Promise((resolve,reject)=>{
+  const existing=document.querySelector('script[data-map-script="'+key+'"]');
+  if(existing){
+   if(existing.dataset.loaded==='1')return resolve();
+   existing.addEventListener('load',resolve,{once:true});
+   existing.addEventListener('error',reject,{once:true});
+   return;
+  }
+  const s=document.createElement('script');
+  s.src=src;s.async=true;s.dataset.mapScript=key;
+  s.onload=()=>{s.dataset.loaded='1';resolve();};
+  s.onerror=reject;
+  document.head.appendChild(s);
+ });
+}
 async function loadMapStack(){
- if(!document.querySelector('link[data-leaflet-css]')){
-  const l=document.createElement('link');l.rel='stylesheet';l.href=LEAFLET_CSS;l.dataset.leafletCss='1';document.head.appendChild(l);
- }
- if(!document.querySelector('link[data-maplibre-css]')){
-  const l=document.createElement('link');l.rel='stylesheet';l.href=MAPLIBRE_CSS;l.dataset.maplibreCss='1';document.head.appendChild(l);
- }
- const [leaflet,adapter]=await Promise.all([
-  import('leaflet'),
-  import('@maplibre/maplibre-gl-leaflet')
- ]);
- const L=leaflet.default||leaflet;
- window.L=L;
- return {L,maplibreGL:adapter.maplibreGL};
+ ensureCss(LEAFLET_CSS,'leaflet');
+ ensureCss(MAPLIBRE_CSS,'maplibre');
+ if(!window.L)await ensureScript(LEAFLET_JS,'leaflet');
+ if(!window.maplibregl)await ensureScript(MAPLIBRE_JS,'maplibre');
+ if(!window.L?.maplibreGL)await ensureScript(MAPLIBRE_LEAFLET_JS,'maplibre-leaflet');
+ if(!window.L?.maplibreGL)throw new Error('MapLibre Leaflet adapter failed to load');
+ return {L:window.L,maplibreGL:window.L.maplibreGL};
 }
 function distanceKm(aLat,aLon,bLat,bLon){
  const r=6371,toRad=v=>v*Math.PI/180;
