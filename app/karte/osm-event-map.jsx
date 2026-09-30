@@ -140,6 +140,28 @@ function weekEndIso(iso){
  d.setUTCDate(d.getUTCDate()+((7-day)%7));
  return d.toISOString().slice(0,10);
 }
+function addDaysIso(iso,days){
+ if(!iso)return '';
+ const d=new Date(iso+'T12:00:00Z');
+ d.setUTCDate(d.getUTCDate()+days);
+ return d.toISOString().slice(0,10);
+}
+function monthEndIso(iso){
+ if(!iso)return '';
+ const d=new Date(iso+'T12:00:00Z');
+ return new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0,12)).toISOString().slice(0,10);
+}
+function minIso(a,b){return !a?b:!b?a:(a<b?a:b);}
+function periodDates(mode,today,windowTo,currentFrom,currentTo){
+ if(!today)return {from:currentFrom,to:currentTo};
+ if(mode==='3days')return {from:today,to:minIso(addDaysIso(today,2),windowTo)};
+ if(mode==='month')return {from:today,to:minIso(monthEndIso(today),windowTo)};
+ if(mode==='week')return {from:today,to:minIso(weekEndIso(today),windowTo)};
+ return {
+  from:currentFrom&&currentFrom>=today?currentFrom:today,
+  to:currentTo&&currentTo>=today&&(!windowTo||currentTo<=windowTo)?currentTo:minIso(weekEndIso(today),windowTo)
+ };
+}
 
 export default function OsmEventMap(){
  const [eventType,setEventType]=useState('');
@@ -150,6 +172,8 @@ export default function OsmEventMap(){
  const [from,setFrom]=useState('');
  const [to,setTo]=useState('');
  const [radiusKm,setRadiusKm]=useState(30);
+ const [periodMode,setPeriodMode]=useState('week');
+ const [filtersOpen,setFiltersOpen]=useState(false);
  const [mapStyle,setMapStyle]=useState('positron');
  const [userLocation,setUserLocation]=useState(null);
  const [locationQuery,setLocationQuery]=useState('');
@@ -168,9 +192,8 @@ export default function OsmEventMap(){
  useEffect(()=>{
   if(defaultsSetRef.current||!publicFrom)return;
   defaultsSetRef.current=true;
-  setFrom(publicFrom);
-  const end=weekEndIso(publicFrom);
-  setTo(end&&end<=publicTo?end:publicTo);
+  const next=periodDates('week',publicFrom,publicTo,'','');
+  setFrom(next.from);setTo(next.to);
  },[publicFrom,publicTo]);
 
  useEffect(()=>{
@@ -337,12 +360,20 @@ export default function OsmEventMap(){
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;},[]);
 
+ const advancedFilterCount=[eventType,competition,category,country,municipality,mapStyle!=='positron'?'map-style':''].filter(Boolean).length;
+
  function changeEventType(value){
   setEventType(value);setCompetition('');setCategory('');setMunicipality('');setCountry('');
  }
+ function changePeriod(value){
+  setPeriodMode(value);
+  if(value==='manual')return;
+  const next=periodDates(value,publicFrom,publicTo,from,to);
+  setFrom(next.from);setTo(next.to);
+ }
  function resetFilters(){
-  setEventType('');setCompetition('');setCategory('');setMunicipality('');setCountry('');setRadiusKm(30);
-  if(publicFrom){setFrom(publicFrom);setTo(weekEndIso(publicFrom)<=publicTo?weekEndIso(publicFrom):publicTo);}
+  setEventType('');setCompetition('');setCategory('');setMunicipality('');setCountry('');setRadiusKm(30);setMapStyle('positron');setPeriodMode('week');
+  if(publicFrom){const next=periodDates('week',publicFrom,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
   setLocationMessage('Nosakām atrašanās vietu…');
@@ -387,44 +418,83 @@ export default function OsmEventMap(){
  return <>
   <div className="map-shell">
    <div className="map-controls map-controls-overlay" aria-label="Kartes filtri">
-    <div className="map-location-control">
-     <span className="filter-caption">Atrašanās vieta</span>
-     <div className="map-location-search">
-      <input list="meets-location-options" value={locationQuery} onChange={e=>setLocationQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();searchLocation();}}} placeholder="Mana vieta vai meklēt…"/>
-      <button type="button" className="map-icon-button" onClick={searchLocation} disabled={locationSearching} title="Meklēt vietu">{locationSearching?'…':'⌕'}</button>
-      <button type="button" className="map-icon-button locate" onClick={useCurrentLocation} title="Izmantot manu atrašanās vietu">◎</button>
+    <div className="map-primary-controls">
+     <button type="button" className="map-control-button locate-primary" onClick={useCurrentLocation} title="Mana atrašanās vieta" aria-label="Izmantot manu atrašanās vietu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+     </button>
+
+     <div className="map-location-control">
+      <input
+       list="meets-location-options"
+       value={locationQuery}
+       onChange={e=>setLocationQuery(e.target.value)}
+       onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();searchLocation();}}}
+       placeholder="Meklēt vietu…"
+       aria-label="Meklēt atrašanās vietu"
+      />
+      <button type="button" className="map-search-button" onClick={searchLocation} disabled={locationSearching} title="Meklēt vietu" aria-label="Meklēt vietu">
+       {locationSearching?'…':<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>}
+      </button>
+      <datalist id="meets-location-options">{locationChoices.map(x=><option key={x.id} value={x.label}/>)}</datalist>
      </div>
-     <datalist id="meets-location-options">{locationChoices.map(x=><option key={x.id} value={x.label}/>)}</datalist>
+
+     <select className="map-compact-select radius-select" value={radiusKm} onChange={e=>setRadiusKm(Number(e.target.value))} aria-label="Meklēšanas radiuss" title="Radiuss">
+      {RADIUS_OPTIONS.map(v=><option key={v} value={v}>{v===0?'Visa karte':v+' km'}</option>)}
+     </select>
+
+     <select className="map-compact-select period-select" value={periodMode} onChange={e=>changePeriod(e.target.value)} aria-label="Laika periods" title="Laika periods">
+      <option value="3days">3 dienas</option>
+      <option value="week">Šonedēļ</option>
+      <option value="month">Šomēnes</option>
+      <option value="manual">Manuāli</option>
+     </select>
+
+     <button type="button" className={'map-control-button filters-button'+(filtersOpen?' active':'')} onClick={()=>setFiltersOpen(v=>!v)} aria-expanded={filtersOpen} aria-label="Paplašinātie filtri" title="Paplašinātie filtri">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h6M14 18h6"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg>
+      {advancedFilterCount>0&&<span className="filter-count">{advancedFilterCount}</span>}
+     </button>
     </div>
 
-    <label className="map-filter-radius"><span>Radiuss</span><select value={radiusKm} onChange={e=>setRadiusKm(Number(e.target.value))}>
-     {RADIUS_OPTIONS.map(v=><option key={v} value={v}>{v===0?'Visa karte':v+' km'}</option>)}
-    </select></label>
+    {periodMode==='manual'&&<div className="map-manual-period">
+     <input aria-label="Datums no" title="Datums no" type="date" min={publicFrom||undefined} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setFrom(value);if(to&&value>to)setTo(value);}}/>
+     <span aria-hidden="true">–</span>
+     <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/>
+    </div>}
 
-    <label className="map-filter-style"><span>Kartes stils</span><select value={mapStyle} onChange={e=>setMapStyle(e.target.value)}>
-     {Object.entries(MAP_STYLES).map(([key,style])=><option key={key} value={key}>{style.label}</option>)}
-    </select></label>
+    {filtersOpen&&<div className="map-advanced-panel">
+     <select value={eventType} onChange={e=>changeEventType(e.target.value)} aria-label="Pasākuma tips" title="Tips">
+      <option value="">Visi tipi ({events.length})</option>
+      <option value="municipality">Pašvaldības ({sourceCounts.municipality})</option>
+      <option value="lff">LFF ({sourceCounts.lff})</option>
+      <option value="athletics">Vieglatlētika ({sourceCounts.athletics})</option>
+      <option value="basketball">Basketbols ({sourceCounts.basketball})</option>
+     </select>
 
-    <label className="map-filter-date"><span>No</span><input aria-label="Datums no" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={from} onChange={e=>setFrom(e.target.value)}/></label>
-    <label className="map-filter-date"><span>Līdz</span><input aria-label="Datums līdz" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/></label>
+     {(eventType==='lff'||eventType==='basketball')&&<select value={competition} onChange={e=>{setCompetition(e.target.value);setCategory('');setMunicipality('');}} aria-label="Turnīrs" title="Turnīrs">
+      <option value="">{eventType==='lff'?'Visi LFF turnīri':'Visi basketbola turnīri'}</option>
+      {competitionOptions.map(v=><option key={v.key} value={v.key}>{v.name} ({v.count})</option>)}
+     </select>}
 
-    <label className="map-filter-type"><span>Tips</span><select value={eventType} onChange={e=>changeEventType(e.target.value)}>
-     <option value="">Visi ({events.length})</option>
-     <option value="municipality">Pašvaldības ({sourceCounts.municipality})</option>
-     <option value="lff">LFF ({sourceCounts.lff})</option>
-     <option value="athletics">Vieglatlētika ({sourceCounts.athletics})</option>
-     <option value="basketball">Basketbols ({sourceCounts.basketball})</option>
-    </select></label>
+     <select value={category} onChange={e=>setCategory(e.target.value)} aria-label="Kategorija" title="Kategorija">
+      <option value="">Visas kategorijas</option>{categories.map(v=><option key={v}>{v}</option>)}
+     </select>
 
-    {(eventType==='lff'||eventType==='basketball')&&<label className="map-filter-competition"><span>Turnīrs</span><select value={competition} onChange={e=>{setCompetition(e.target.value);setCategory('');setMunicipality('');}}>
-     <option value="">{eventType==='lff'?'Visi LFF turnīri':'Visi basketbola turnīri'}</option>
-     {competitionOptions.map(v=><option key={v.key} value={v.key}>{v.name} ({v.count})</option>)}
-    </select></label>}
+     <select value={country} onChange={e=>{setCountry(e.target.value);setMunicipality('');}} aria-label="Valsts" title="Valsts">
+      <option value="">Visas valstis</option>{countries.map(code=><option key={code} value={code}>{countryLabel(code)}</option>)}
+     </select>
 
-    <label className="map-filter-category"><span>Kategorija</span><select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Visas</option>{categories.map(v=><option key={v}>{v}</option>)}</select></label>
-    <label className="map-filter-country"><span>Valsts</span><select value={country} onChange={e=>{setCountry(e.target.value);setMunicipality('');}}><option value="">Visas</option>{countries.map(code=><option key={code} value={code}>{countryLabel(code)}</option>)}</select></label>
-    <label className="map-filter-municipality"><span>Pašvaldība</span><select value={municipality} onChange={e=>setMunicipality(e.target.value)}><option value="">Visas</option>{municipalities.map(v=><option key={v}>{v}</option>)}</select></label>
-    <button className="map-clear-button" type="button" onClick={resetFilters}>Atiestatīt</button>
+     <select value={municipality} onChange={e=>setMunicipality(e.target.value)} aria-label="Pašvaldība" title="Pašvaldība">
+      <option value="">Visas pašvaldības</option>{municipalities.map(v=><option key={v}>{v}</option>)}
+     </select>
+
+     <select value={mapStyle} onChange={e=>setMapStyle(e.target.value)} aria-label="Kartes stils" title="Kartes stils">
+      {Object.entries(MAP_STYLES).map(([key,style])=><option key={key} value={key}>{style.label}</option>)}
+     </select>
+
+     <button className="map-reset-icon" type="button" onClick={resetFilters} aria-label="Atiestatīt filtrus" title="Atiestatīt filtrus">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6"/><path d="M5.5 15a8 8 0 1 0 1-8.5L4 10"/></svg>
+     </button>
+    </div>}
    </div>
 
    {locationResults.length>0&&<div className="map-location-results" role="listbox" aria-label="Atrastas vietas">
