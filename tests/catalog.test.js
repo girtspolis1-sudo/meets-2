@@ -46,7 +46,8 @@ test('each shared filter matches, excludes, combines and resets',()=>{
 test('server enforces published, excludes internal fields and tolerates optional blanks',async()=>{
  const original=globalThis.fetch;
  try {
-  globalThis.fetch=async()=>Response.json({fetchedAt:'2026-09-28T10:00:00Z',events:['published','draft','pending_review','cancelled','archived'].map(status=>({id:status,title:'Test',date_from:'2026-09-29',status,review_status:'needs_review',notes:'private',sources:[]}))});
+  const futureDate=new Date(Date.now()+86400000).toISOString().slice(0,10);
+  globalThis.fetch=async()=>Response.json({fetchedAt:new Date().toISOString(),events:['published','draft','pending_review','cancelled','archived'].map(status=>({id:status,title:'Test',date_from:futureDate,status,review_status:'needs_review',notes:'private',sources:[]}))});
   const data=await readEvents();assert.equal(data.total,1);assert.equal(data.events[0].status,'published');assert(!('review_status' in data.events[0]));assert(!('notes' in data.events[0]));assert.equal(data.events[0].address_raw,null);
   const wb=new ExcelJS.Workbook();await wb.xlsx.load(await createWorkbook(data.events,data.fetchedAt));assert.equal(wb.getWorksheet('Pasākumi').rowCount,2);assert(!JSON.stringify(wb.model).includes('needs_review'));
   globalThis.fetch=async()=>Response.json({events:[],fetchedAt:'2026-09-28T10:00:00Z'});assert.equal((await readEvents()).total,0);
