@@ -70,3 +70,37 @@ test('API sanitizes unavailable upstream, query errors and invalid payloads',asy
 test('dates and optional times preserve local event meaning',()=>{
  assert.equal(dateLabel('2026-09-29'),'29.09.2026');assert.equal(timeLabel({time_from:'18:30:00',time_to:'19:45:00'}),'18:30–19:45');assert.equal(timeLabel({time_type:'end_only',time_to:'19:45:00'}),'Līdz 19:45');assert.equal(timeLabel({}),'Nav norādīts');
 });
+
+test('client error reporting accepts only small same-site JSON payloads',async()=>{
+ const {POST}=await import('../app/api/client-error/route.js');
+ const originalError=console.error;
+ const logs=[];
+ console.error=(...args)=>logs.push(args.join(' '));
+ try {
+  const ok=await POST(new Request('http://localhost/api/client-error',{
+   method:'POST',
+   headers:{'Content-Type':'application/json','Sec-Fetch-Site':'same-origin'},
+   body:JSON.stringify({message:'Render failed\nwith detail',digest:'abc123',path:'/karte'})
+  }));
+  assert.equal(ok.status,204);
+  assert(logs.some(line=>line.includes('client_render_error')));
+  assert(logs.every(line=>!line.includes('\nwith detail')));
+
+  const crossSite=await POST(new Request('http://localhost/api/client-error',{
+   method:'POST',
+   headers:{'Content-Type':'application/json','Sec-Fetch-Site':'cross-site'},
+   body:'{}'
+  }));
+  assert.equal(crossSite.status,403);
+
+  const invalid=await POST(new Request('http://localhost/api/client-error',{
+   method:'POST',
+   headers:{'Content-Type':'application/json','Sec-Fetch-Site':'same-origin'},
+   body:'not-json'
+  }));
+  assert.equal(invalid.status,400);
+ } finally {
+  console.error=originalError;
+ }
+});
+
