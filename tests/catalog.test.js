@@ -4,6 +4,9 @@ import {filterEvents,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} fro
 import {createWorkbook} from '../lib/excel.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
+const hasLiveSupabase=Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_PUBLISHABLE_KEY);
+process.env.SUPABASE_URL ||= 'https://ci.invalid';
+process.env.SUPABASE_PUBLISHABLE_KEY ||= 'ci-test';
 test('all dates and statuses included; intervals overlap; Latvian search; invalid date range',()=>{
  const rows=[{id:'1',title:'Mārupes koncerts',date_from:'2020-01-01',date_to:'2020-01-05',status:'pending_review'},{id:'2',title:'Nākamais',date_from:'2030-01-01',status:'cancelled'}];
  assert.equal(filterEvents(rows,initialFilters).length,2);
@@ -15,7 +18,7 @@ test('public projection excludes administrative data and unsafe URLs',()=>{
  const e=publicEvent({title:'A',comment:'private',notes:'private',import_key:'x',last_change_summary:'private',sources:[{url:'javascript:alert(1)',token:'secret'}]});
  assert(!('comment' in e));assert(!('notes' in e));assert(!('import_key' in e));assert(!('last_change_summary' in e));assert(!('token' in e.sources[0]));assert.equal(e.sources[0].url,'');assert.equal(safeUrl('https://example.com'),'https://example.com/');
 });
-test('live Supabase data and Excel round trip include every row; no formulas',async()=>{
+test('live Supabase data and Excel round trip include every row; no formulas',{skip:!hasLiveSupabase},async()=>{
  const data=await readEvents(); assert(data.events.every(e=>e.status==='published'));assert.equal(new Set(data.events.map(e=>e.id)).size,data.total);
  const buf=await createWorkbook([...data.events,{id:'test',title:'=HYPERLINK("https://example.com")',sources:[],tags:[],date_from:'2026-09-28'}],data.fetchedAt);
  const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);const sheet=wb.getWorksheet('Pasākumi');
