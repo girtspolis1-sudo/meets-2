@@ -266,3 +266,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
  .leaflet-popup-content{margin:14px 15px;min-width:240px}
  .leaflet-popup-content-wrapper{max-width:calc(100vw - 28px)}
 }
+
+/* OpenFreeMap style selector */
+.map-controls-overlay .map-filter-style{width:128px}
+@media(max-width:700px){.map-controls-overlay .map-filter-style{width:120px}}
