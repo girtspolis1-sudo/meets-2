@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel} from '../../lib/catalog.js';
+import {eventDateState,groupDateTone} from '../../lib/event-date.js';
 
 const MAP_STYLES={
  positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
@@ -89,7 +90,8 @@ function popupHtml(group,activeIds){
  const rows=sorted.map(e=>{
   const approximate=['settlement_center','municipality_center'].includes(e.location_precision);
   const meta=competitionMeta(e),country=countryLabel(e.country_code),active=activeIds.has(e.id);
-  return '<li class="'+(active?'':'popup-event-muted')+'"><strong>'+esc(e.title)+'</strong><span>'+esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'</span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+'</li>';
+  const dateState=eventDateState(e);
+  return '<li class="'+(active?'':'popup-event-muted')+'"><strong>'+esc(e.title)+'</strong><span class="popup-date-row"><button type="button" class="event-date-indicator '+esc(dateState.tone)+'" data-date-label="'+esc(dateState.label)+'" aria-label="'+esc(dateState.label)+'" title="'+esc(dateState.label)+'">●</button><span>'+esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'</span></span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+'</li>';
  }).join('');
  const activeCount=group.events.filter(e=>activeIds.has(e.id)).length;
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div><ol>'+rows+'</ol></div>';
@@ -270,15 +272,17 @@ export default function OsmEventMap(){
    const isActive=activeInGroup.length>0;
    const chosenEvents=isActive?activeInGroup:group.events;
    const type=groupType(chosenEvents),glyph=markerGlyph(type),typeLabel=markerTypeLabel(type);
+   const dateTone=groupDateTone(chosenEvents);
+   const dateClass=dateTone?' date-'+dateTone:'';
    const shownCount=isActive?activeInGroup.length:group.events.length;
    const grouped=shownCount>1;
    const dimmed=!isActive;
    const size=dimmed?(grouped?32:28):(grouped?44:38);
    let html;
    if(grouped){
-    html='<span class="event-count-marker '+type+(dimmed?' dimmed':'')+'" title="'+esc(typeLabel)+' · '+shownCount+' pasākumi"><span class="event-group-symbol" aria-hidden="true">'+glyph+'</span><strong>'+shownCount+'</strong></span>';
+    html='<span class="event-count-marker '+type+dateClass+(dimmed?' dimmed':'')+'" title="'+esc(typeLabel)+' · '+shownCount+' pasākumi"><span class="event-group-symbol" aria-hidden="true">'+glyph+'</span><strong>'+shownCount+'</strong></span>';
    }else{
-    html='<span class="event-symbol-marker '+type+(dimmed?' dimmed':'')+'" title="'+esc(typeLabel)+'"><span aria-hidden="true">'+glyph+'</span></span>';
+    html='<span class="event-symbol-marker '+type+dateClass+(dimmed?' dimmed':'')+'" title="'+esc(typeLabel)+'"><span aria-hidden="true">'+glyph+'</span></span>';
    }
    const icon=L.divIcon({className:grouped?'event-count-marker-wrap':'event-symbol-marker-wrap',html,iconSize:[size,size],iconAnchor:[size/2,size/2]});
    const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
@@ -296,10 +300,17 @@ export default function OsmEventMap(){
     setLocationResults([]);
     setLocationMessage('');
    });
-   marker.on('popupopen',()=>{
+   marker.on('popupopen',event=>{
     window.setTimeout(()=>{
      const popup=marker.getPopup();
      if(!popup?.isOpen?.())return;
+     const root=event.popup.getElement();
+     root?.querySelectorAll('.event-date-indicator').forEach(button=>{
+      button.onclick=()=>{
+       root.querySelectorAll('.event-date-indicator.active').forEach(other=>{if(other!==button)other.classList.remove('active');});
+       button.classList.toggle('active');
+      };
+     });
      popup.update();
     },0);
    });
@@ -317,7 +328,7 @@ export default function OsmEventMap(){
   const icon=L.divIcon({className:'user-location-marker-wrap',html:'<span class="user-location-marker"><span></span></span>',iconSize:[24,24],iconAnchor:[12,12]});
   L.marker(center,{icon,pane:'userLocation',interactive:false}).addTo(focus);
   if(radiusKm>0){
-   const circle=L.circle(center,{radius:radiusKm*1000,color:'#7f00ff',weight:2,dashArray:'6 5',fillColor:'#b56cff',fillOpacity:.055,interactive:false}).addTo(focus);
+   const circle=L.circle(center,{radius:radiusKm*1000,color:'#7f00ff',weight:1.25,opacity:.88,fillColor:'#b56cff',fillOpacity:.025,interactive:false}).addTo(focus);
    map.fitBounds(circle.getBounds(),{padding:[45,45],maxZoom:13});
   }else{
    map.setView(center,11);

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {filterEvents,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
+import {filterEvents,filterEventsByColumns,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
+import {eventDateState,groupDateTone} from '../lib/event-date.js';
 import {createWorkbook} from '../lib/excel.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
@@ -102,5 +103,26 @@ test('client error reporting accepts only small same-site JSON payloads',async()
  } finally {
   console.error=originalError;
  }
+});
+
+test('map date emphasis distinguishes today, tomorrow and future events',()=>{
+ const today='2026-09-30';
+ assert.deepEqual(eventDateState({date_from:'2026-09-30'},today),{tone:'today',label:'Šodien',days:0});
+ assert.deepEqual(eventDateState({date_from:'2026-10-01'},today),{tone:'tomorrow',label:'Rīt',days:1});
+ assert.deepEqual(eventDateState({date_from:'2026-10-05'},today),{tone:'future',label:'5 dienas līdz pasākumam',days:5});
+ assert.equal(groupDateTone([{date_from:'2026-10-04'},{date_from:'2026-10-01'}],today),'tomorrow');
+ assert.equal(groupDateTone([{date_from:'2026-09-29'}],today),'');
+});
+
+test('column filters apply only to their own catalogue column',()=>{
+ const rows=[
+  publicEvent({id:'1',title:'Rudens koncerts',date_from:'2026-10-02',status:'published',municipality:'Mārupes novads',country_code:'LV',price_status:'free',venue_name:'Mārupes kultūras nams'}),
+  publicEvent({id:'2',title:'Basketbola spēle',date_from:'2026-10-03',status:'published',municipality:'Rīgas valstspilsēta',country_code:'LV',price_status:'paid',venue_name:'Arēna'})
+ ];
+ assert.equal(filterEventsByColumns(rows,{title:'rudens'}).length,1);
+ assert.equal(filterEventsByColumns(rows,{municipality:'Mārupes novads'}).length,1);
+ assert.equal(filterEventsByColumns(rows,{date_from:'2026-10-03'}).length,1);
+ assert.equal(filterEventsByColumns(rows,{venue_name:'arēna',price_status:'paid'}).length,1);
+ assert.equal(filterEventsByColumns(rows,{title:'arēna'}).length,0);
 });
 
