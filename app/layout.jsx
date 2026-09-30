@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import SiteNav from './site-nav.jsx';
+import 'leaflet/dist/leaflet.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import './globals.css';
 
 export const metadata = {
   title: { default: 'MEETS — Pasākumi Latvijā', template: '%s | MEETS' },
   description: 'Atrodi pasākumus Latvijā un Baltijā kartē un pasākumu sarakstā.',
   icons: {
-    icon: [{ url: '/meets-logo-purple.png', type: 'image/png' }],
-    shortcut: '/meets-logo-purple.png',
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    shortcut: '/icon.svg',
     apple: '/meets-logo-purple.png'
   },
   robots: { index: false, follow: false }
@@ -26,7 +28,7 @@ export default function RootLayout({ children }) {
     <main id="saturs">{children}</main>
     <footer>
       <img className="footer-logo" src="/meets-logo-purple.png" alt="MEETS"/>
-      <p>Pasākumi, kas saved kopā.</p>
+      <p>Pasākumi, kas saved cilvēkus kopā.</p>
       <span>Latvija</span>
     </footer>
   </body></html>;

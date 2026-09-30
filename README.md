@@ -1,67 +1,144 @@
 # MEETS 2
 
-Customer-facing Next.js App Router application deployed from GitHub `main` to Vercel.
+Public event discovery application built with Next.js App Router, Supabase and Vercel.
 
-## Implemented
+## Current production architecture
 
-- Public event catalogue and interactive Baltic map.
-- Only `status = published` events are exposed publicly.
-- Server enforces a rolling window from today through three months ahead and excludes ended events.
-- Map filters: location, 5/10/25/50 km or full map, 3 days / this week / this month / manual dates, event type, competition, category, country and municipality.
-- Location defaults to Mārupe (Mārupes municipal administration area); browser geolocation is requested only after the user explicitly presses the location button.
-- Search, list filters, sorting, pagination, event details and XLSX export.
-- Admin review, publication and location-quality workflows, including LFF venues without a confirmed map point.
-- `/api/health` verifies the live catalogue feed.
+- **Frontend:** Next.js 16 / React 19.
+- **Hosting:** Vercel, deployed from GitHub `main`.
+- **Data:** Supabase through a server-side public catalogue boundary.
+- **Map:** Leaflet + MapLibre GL + OpenFreeMap.
+- **Exports:** ExcelJS.
+- **Runtime:** Node 24.x.
+
+The public application exposes only `status = published` events, excludes ended events and limits the catalogue to a rolling window from today through three months ahead.
+
+## Public experience
+
+Implemented:
+
+- interactive Baltic event map;
+- location search and explicit browser geolocation;
+- default location around Mārupe;
+- 5 / 10 / 25 / 50 km or full-map radius;
+- 3 days / this week / this month / manual date period;
+- filters for event type, competition, category, country and municipality;
+- event list with search, sorting, pagination and details;
+- XLSX export;
+- LFF, athletics, basketball and municipality events;
+- Latvia, Estonia and Lithuania map support where source data is available;
+- dedicated admin review and location-quality workflows.
+
+The map has one implementation under `/karte`. The list page `/pasakumi` does not maintain a second map renderer.
 
 ## Public data boundary
 
-The public web app reads through one intentionally public, read-only RPC: `public.meets_public_catalog()`.
+The web app reads through the intentionally public read-only RPC:
 
-The RPC is a narrowly scoped `SECURITY DEFINER` endpoint that returns only explicitly selected public event fields and only `published` events. Anonymous users have no direct `SELECT` access to the underlying event tables/views. The Next.js server applies a second explicit field allowlist and repeats the published/date-window checks before returning data to the browser.
+`public.meets_public_catalog()`
 
-Internal comments, review data, import payloads, admin sessions and change history are not returned by the public RPC.
+The RPC returns only explicitly selected public fields. Anonymous users do not have direct `SELECT` access to the underlying event tables/views.
 
-The legacy private token-gated catalogue helper is not part of the public application contract and must not be executable by `anon` or `authenticated`.
+The Next.js server additionally:
 
-## Run
+1. keeps only `published` events;
+2. applies the active three-month window;
+3. projects every event through the public field allowlist before returning it to the browser.
 
-Node 24.x.
+Internal comments, review fields, import payloads, admin sessions and change history are not exposed through the public catalogue.
 
-```bash
-npm ci
-npm run build
-npm start
-```
+Required environment variables:
 
-Required environment values:
-
-```
+```text
 SUPABASE_URL=
 SUPABASE_PUBLISHABLE_KEY=
 ```
 
-No `service_role`/secret database key belongs in browser code.
+Never expose a Supabase `service_role` key in browser code.
 
-## Tests
+## Map runtime dependencies
 
-Live integration tests verify:
+Leaflet, MapLibre GL and the Leaflet/MapLibre adapter are installed as pinned npm dependencies and bundled by Next.js.
 
-- only published rows reach the public application;
-- public field projection excludes internal data;
-- filters and date overlap behavior;
-- Excel export and formula-injection safety;
-- public RPC availability;
-- direct anonymous table access remains denied.
+The application no longer downloads these JavaScript/CSS libraries from `unpkg.com` at runtime.
 
-Run:
+OpenFreeMap styles/tiles and OpenStreetMap-derived map data remain external map services by design; only the application libraries are localized into the build.
 
-```bash
-node --conditions=react-server --env-file=.env.local --test tests/catalog.test.js
+## Error monitoring
+
+MEETS uses the built-in Next.js instrumentation hook and Vercel runtime logs:
+
+- `instrumentation.js` records unhandled server request/render errors as structured JSON;
+- `app/error.jsx` handles route-level render failures;
+- `app/global-error.jsx` handles root-layout failures;
+- `/api/client-error` forwards sanitized client render failures to server logs;
+- `/api/health` logs degraded catalogue checks without leaking upstream responses or credentials.
+
+Search Vercel production logs for:
+
+```text
+next_request_error
+client_render_error
+health_check_failed
 ```
 
-## Before public launch
+Only sanitized message, route/digest and deployment metadata are recorded. Request headers, tokens and stack payloads are intentionally not forwarded by the custom logger.
 
-- complete and verify 390 px mobile checks;
-- keep search indexing disabled until final production sign-off;
-- add CI so tests/build gate production deploys;
-- complete final data-quality review and custom domain/SEO work.
+## Data quality
+
+Repeatable production checks are stored in:
+
+`database/data-quality-audit.sql`
+
+The audit covers:
+
+- missing coordinates;
+- unresolved LFF venues;
+- suspicious location text;
+- exact duplicate candidates;
+- municipality spelling/coverage;
+- Baltic basketball location precision.
+
+Latvian imported sports events also use a durable locality → municipality normalization rule stored in:
+
+`database/location-municipality-normalization.sql`
+
+## Local development
+
+```bash
+npm ci
+npm run dev
+```
+
+Production build:
+
+```bash
+npm run build
+npm start
+```
+
+## Tests and CI
+
+Run deterministic tests:
+
+```bash
+npm test
+```
+
+To include the live Supabase integration checks locally, provide the production-compatible public environment variables before running the tests.
+
+GitHub Actions runs on pull requests and `main`:
+
+1. `npm ci`
+2. `npm test`
+3. `npm run build`
+
+A change should be merged only after the `test-and-build` job is green.
+
+## Production notes
+
+- Search indexing is intentionally disabled until public launch sign-off.
+- Browser favicon uses the compact MEETS `ee` mark; the full wordmark remains in the header/footer.
+- Public pages use the same published catalogue source.
+- Runtime map JS/CSS is bundled locally; map tiles remain external.
+- The next launch checks are final 390 px visual verification, custom domain/SEO activation and final source/data review.
