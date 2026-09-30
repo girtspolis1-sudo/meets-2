@@ -115,16 +115,16 @@ export default function AdminEventMap({events,onEdit}){
    marker.on('popupopen',event=>{
     const root=event.popup.getElement();
     root?.querySelectorAll('.event-date-indicator').forEach(button=>{
-     button.addEventListener('click',()=>{
+     button.onclick=()=>{
       root.querySelectorAll('.event-date-indicator.active').forEach(other=>{if(other!==button)other.classList.remove('active');});
       button.classList.toggle('active');
-     });
+     };
     });
     root?.querySelectorAll('[data-admin-edit]').forEach(button=>{
-     button.addEventListener('click',()=>{
+     button.onclick=()=>{
       const selected=eventById.get(button.dataset.adminEdit);
       if(selected){map.closePopup();onEdit(selected);}
-     });
+     };
     });
    });
    markerBounds.push([group.lat,group.lon]);
