@@ -388,6 +388,7 @@ export default function OsmEventMap(){
  async function searchLocation(){
   const q=locationQuery.trim();
   if(q.length<2){setLocationMessage('Ievadi vismaz 2 rakstzīmes.');return;}
+  setFiltersOpen(false);
   const local=locationChoices.filter(x=>norm(x.label).includes(norm(q))).slice(0,6);
   if(local.length===1&&norm(local[0].label)===norm(q)){selectLocation(local[0]);return;}
   setLocationSearching(true);setLocationMessage('');
@@ -420,6 +421,7 @@ export default function OsmEventMap(){
       <input
        list="meets-location-options"
        value={locationQuery}
+       onFocus={()=>setFiltersOpen(false)}
        onChange={e=>setLocationQuery(e.target.value)}
        onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();searchLocation();}}}
        placeholder="Meklēt vietu…"
