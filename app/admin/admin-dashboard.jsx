@@ -1,11 +1,10 @@
 'use client';
 
 import {useEffect,useMemo,useRef,useState} from 'react';
+import AdminEventMap from './admin-event-map.jsx';
 
 const ADMIN_EMAIL='girts.polis@icloud.com';
 const SESSION_KEY='meets_admin_access_token';
-const LEAFLET_JS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-const LEAFLET_CSS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 
 const QUALITY={
  verified_exact:{label:'Precīzi verificēta',tone:'ok',priority:6},
@@ -17,17 +16,9 @@ const QUALITY={
 };
 
 function qualityMeta(value){return QUALITY[value]||{label:value||'Nav novērtēts',tone:'bad',priority:0};}
-function loadLeaflet(){
- return new Promise((resolve,reject)=>{
-  if(window.L)return resolve(window.L);
-  if(!document.querySelector('link[data-leaflet]')){
-   const link=document.createElement('link');link.rel='stylesheet';link.href=LEAFLET_CSS;link.dataset.leaflet='1';document.head.appendChild(link);
-  }
-  const existing=document.querySelector('script[data-leaflet]');
-  if(existing){existing.addEventListener('load',()=>resolve(window.L),{once:true});existing.addEventListener('error',reject,{once:true});return;}
-  const script=document.createElement('script');script.src=LEAFLET_JS;script.async=true;script.dataset.leaflet='1';
-  script.onload=()=>resolve(window.L);script.onerror=reject;document.head.appendChild(script);
- });
+async function loadLeaflet(){
+ const leafletModule=await import('leaflet');
+ return leafletModule.default||leafletModule;
 }
 function dateText(v){
  if(!v)return '—';
@@ -253,6 +244,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <label>Parole<input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" autoFocus/></label>
    <div className="actions"><button className="button primary" type="submit" disabled={loading}>{loading?'Pārbaudām…':'Ieiet'}</button></div>
    {message&&<p className="sync-text" role="status">{message}</p>}
+
+  <AdminEventMap events={filtered} onEdit={setEditing}/>
   </form>;
  }
 
