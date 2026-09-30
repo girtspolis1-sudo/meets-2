@@ -174,3 +174,76 @@ button,input,select{font:inherit}button{cursor:pointer;color:inherit}button:disa
  outline-color:#9da39e!important;
 }
 .legend-muted-example i{opacity:.68;filter:grayscale(1) brightness(.82);background:#d0d3d0;color:#555}
+
+/* MEETS purple brand theme */
+:root{
+ --bg:#fbf9fd;
+ --text:#211627;
+ --muted:#716878;
+ --accent:#7f00ff;
+ --accent-dark:#5b00bd;
+ --accent-soft:#f3e8ff;
+ --accent-soft-2:#e7d0ff;
+ --border:#e7deec;
+}
+body{background:var(--bg);color:var(--text)}
+a:focus-visible,
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline-color:var(--accent)}
+.header{background:rgba(251,249,253,.94);border-bottom-color:var(--border)}
+.brand{display:inline-flex;align-items:center;flex-shrink:0;line-height:0}
+.brand-logo{display:block;width:112px;height:auto}
+.footer-logo{display:block;width:76px;height:auto}
+.preview{border-color:#dfd0e9;background:#fff;color:#6e6177}
+
+.header nav a{color:#302437}
+.header nav a:hover{background:var(--accent-soft);text-decoration:none}
+.header nav a.active,.header nav a[aria-current="page"]{
+ background:var(--accent);
+ color:#fff;
+ box-shadow:0 6px 18px rgba(127,0,255,.18),inset 0 0 0 1px rgba(91,0,189,.14)
+}
+.header nav a.active:hover,.header nav a[aria-current="page"]:hover{background:var(--accent-dark);color:#fff}
+
+h1 em,.symbol{color:var(--accent)}
+.button:hover{background:var(--accent-soft);border-color:#d9bfff}
+.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.primary:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+.skip{background:var(--accent);color:#fff}
+.card:hover{border-color:#b788dd}
+.card:nth-child(2),.empty,.data-note{background:#f6effc}
+.data-note strong{color:#6600cc}
+
+input,select{border-color:#d8cadf}
+input:hover,select:hover{border-color:#c6a6dc}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(127,0,255,.08)}
+
+.events-table th{background:#f0e6fa}
+.events-table tbody tr:hover{background:#faf5ff}
+.event-title{text-decoration-color:#c9a6ea}
+.source-link,.source-link-row a,.popup-source-link,.queue-source-link{color:#6f00d9}
+.badge{background:#f2eafa}
+.badge.published{background:#eee0ff;color:#5e00b8}
+.published-card{border-color:#e3d4eb}
+.event-art{background:#efe2fb;color:#7f00ff}
+
+.status-toggle button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.map-clear-button:hover{background:#f0e4fa}
+.map-icon-button.locate{color:var(--accent)}
+.map-location-results button:hover{background:#f4eaff}
+.user-location-marker{border-color:#7f00ff;box-shadow:0 0 0 5px rgba(127,0,255,.16),0 2px 9px rgba(72,0,120,.28)}
+.user-location-marker span{background:#7f00ff}
+.legend-symbol.municipality{color:#7f00ff}
+.event-symbol-marker.municipality{border-color:#7f00ff}
+.event-count-marker.municipality{background:#9b38ff;outline-color:#6500c9}
+.legend-dot.municipality{background:#9b38ff;color:#6500c9}
+
+.admin-summary article,.admin-login,.filters,.lff-location-queue{box-shadow:0 8px 24px rgba(67,25,91,.04)}
+.admin-rule{background:#f8f2fc}
+.geocode-result:hover,.geocode-result:focus-visible{border-color:#b889d8;background:#faf5ff}
+.selected-place{border-color:#d7b5ef;background:#f6edfc}
+.quality-badge.ok{background:#eee0ff;color:#6100bd}
+
+@media(max-width:640px){
+ .brand-logo{width:100px}
+ .footer-logo{width:70px}
+}
