@@ -191,8 +191,8 @@ a:focus-visible,
 button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline-color:var(--accent)}
 .header{background:rgba(251,249,253,.94);border-bottom-color:var(--border)}
 .brand{display:inline-flex;align-items:center;flex-shrink:0;line-height:0}
-.brand-logo{display:block;width:112px;height:auto}
-.footer-logo{display:block;width:76px;height:auto}
+.brand-logo{display:block;width:150px;height:auto}
+.footer-logo{display:block;width:100px;height:auto}
 .preview{border-color:#dfd0e9;background:#fff;color:#6e6177}
 
 .header nav a{color:#302437}
@@ -244,8 +244,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
 .quality-badge.ok{background:#eee0ff;color:#6100bd}
 
 @media(max-width:640px){
- .brand-logo{width:100px}
- .footer-logo{width:70px}
+ .brand-logo{width:126px}
+ .footer-logo{width:86px}
 }
 
 /* Ensure map popups stay readable above floating filters */
