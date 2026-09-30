@@ -5,6 +5,11 @@ import './globals.css';
 export const metadata = {
   title: { default: 'MEETS — Pasākumi Latvijā', template: '%s | MEETS' },
   description: 'Atrodi pasākumus Latvijā un Baltijā kartē un pasākumu sarakstā.',
+  icons: {
+    icon: [{ url: '/meets-logo-purple.png', type: 'image/png' }],
+    shortcut: '/meets-logo-purple.png',
+    apple: '/meets-logo-purple.png'
+  },
   robots: { index: false, follow: false }
 };
 
