@@ -3,11 +3,6 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel} from '../../lib/catalog.js';
 
-const LEAFLET_JS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-const LEAFLET_CSS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-const MAPLIBRE_JS='https://unpkg.com/maplibre-gl@2.2.1/dist/maplibre-gl.js';
-const MAPLIBRE_CSS='https://unpkg.com/maplibre-gl@2.2.1/dist/maplibre-gl.css';
-const MAPLIBRE_LEAFLET_JS='https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js';
 const MAP_STYLES={
  positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
  liberty:{label:'Liberty',url:'https://tiles.openfreemap.org/styles/liberty'},
@@ -99,34 +94,12 @@ function popupHtml(group,activeIds){
  const activeCount=group.events.filter(e=>activeIds.has(e.id)).length;
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div><ol>'+rows+'</ol></div>';
 }
-function ensureCss(href,key){
- if(document.querySelector('link[data-map-style="'+key+'"]'))return;
- const l=document.createElement('link');l.rel='stylesheet';l.href=href;l.dataset.mapStyle=key;document.head.appendChild(l);
-}
-function ensureScript(src,key){
- return new Promise((resolve,reject)=>{
-  const existing=document.querySelector('script[data-map-script="'+key+'"]');
-  if(existing){
-   if(existing.dataset.loaded==='1')return resolve();
-   existing.addEventListener('load',resolve,{once:true});
-   existing.addEventListener('error',reject,{once:true});
-   return;
-  }
-  const s=document.createElement('script');
-  s.src=src;s.async=true;s.dataset.mapScript=key;
-  s.onload=()=>{s.dataset.loaded='1';resolve();};
-  s.onerror=reject;
-  document.head.appendChild(s);
- });
-}
 async function loadMapStack(){
- ensureCss(LEAFLET_CSS,'leaflet');
- ensureCss(MAPLIBRE_CSS,'maplibre');
- if(!window.L)await ensureScript(LEAFLET_JS,'leaflet');
- if(!window.maplibregl)await ensureScript(MAPLIBRE_JS,'maplibre');
- if(!window.L?.maplibreGL)await ensureScript(MAPLIBRE_LEAFLET_JS,'maplibre-leaflet');
- if(!window.L?.maplibreGL)throw new Error('MapLibre Leaflet adapter failed to load');
- return {L:window.L,maplibreGL:window.L.maplibreGL};
+ const leafletModule=await import('leaflet');
+ const L=leafletModule.default||leafletModule;
+ await import('@maplibre/maplibre-gl-leaflet');
+ if(!L?.maplibreGL)throw new Error('MapLibre Leaflet adapter failed to load');
+ return {L,maplibreGL:L.maplibreGL};
 }
 function distanceKm(aLat,aLon,bLat,bLon){
  const r=6371,toRad=v=>v*Math.PI/180;
@@ -183,7 +156,7 @@ export default function OsmEventMap(){
  const [locationSearching,setLocationSearching]=useState(false);
  const [mapReady,setMapReady]=useState(false);
  const {data,loading,error,refresh}=useEvents();
- const mapEl=useRef(null),mapRef=useRef(null),baseMapLayerRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
+ const mapEl=useRef(null),mapRef=useRef(null),leafletRef=useRef(null),baseMapLayerRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
  const defaultsSetRef=useRef(false);
 
  const events=data?.events||[];
@@ -268,23 +241,24 @@ export default function OsmEventMap(){
    if(map.getPane('popupPane'))map.getPane('popupPane').style.zIndex='920';
    baseMapLayerRef.current=maplibreGL({style:MAP_STYLES.positron.url}).addTo(map);
    map.attributionControl.addAttribution('<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> © OpenMapTiles · Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>');
-   mapRef.current=map;setMapReady(true);
+   leafletRef.current=L;mapRef.current=map;setMapReady(true);
   }).catch(error=>{console.error('map_stack_failed',error);});
   return()=>{cancelled=true;};
  },[]);
 
  useEffect(()=>{
-  if(!mapReady||!mapRef.current||!window.L?.maplibreGL)return;
+  if(!mapReady||!mapRef.current||!leafletRef.current?.maplibreGL)return;
+  const L=leafletRef.current;
   const style=MAP_STYLES[mapStyle]||MAP_STYLES.positron;
   if(baseMapLayerRef.current){
    try{baseMapLayerRef.current.remove();}catch{}
   }
-  baseMapLayerRef.current=window.L.maplibreGL({style:style.url}).addTo(mapRef.current);
+  baseMapLayerRef.current=L.maplibreGL({style:style.url}).addTo(mapRef.current);
  },[mapReady,mapStyle]);
 
  useEffect(()=>{
   if(!mapReady||!mapRef.current)return;
-  const L=window.L,map=mapRef.current;
+  const L=leafletRef.current,map=mapRef.current;
   backgroundLayerRef.current?.remove();activeLayerRef.current?.remove();
   const bg=L.layerGroup().addTo(map),active=L.layerGroup().addTo(map);
   backgroundLayerRef.current=bg;activeLayerRef.current=active;
@@ -335,7 +309,7 @@ export default function OsmEventMap(){
 
  useEffect(()=>{
   if(!mapReady||!mapRef.current)return;
-  const L=window.L,map=mapRef.current;
+  const L=leafletRef.current,map=mapRef.current;
   focusLayerRef.current?.remove();
   const focus=L.layerGroup().addTo(map);focusLayerRef.current=focus;
   if(!userLocation)return;
@@ -350,7 +324,7 @@ export default function OsmEventMap(){
   }
  },[mapReady,userLocation,radiusKm]);
 
- useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;},[]);
+ useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;leafletRef.current=null;},[]);
 
  const advancedFilterCount=[eventType,competition,category,country,municipality,mapStyle!=='positron'?'map-style':''].filter(Boolean).length;
 
