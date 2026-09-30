@@ -306,10 +306,10 @@ export default function OsmEventMap(){
      if(!popup?.isOpen?.())return;
      const root=event.popup.getElement();
      root?.querySelectorAll('.event-date-indicator').forEach(button=>{
-      button.addEventListener('click',()=>{
+      button.onclick=()=>{
        root.querySelectorAll('.event-date-indicator.active').forEach(other=>{if(other!==button)other.classList.remove('active');});
        button.classList.toggle('active');
-      });
+      };
      });
      popup.update();
     },0);
