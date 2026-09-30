@@ -8,7 +8,13 @@ const LEAFLET_CSS='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const MAPLIBRE_JS='https://unpkg.com/maplibre-gl@2.2.1/dist/maplibre-gl.js';
 const MAPLIBRE_CSS='https://unpkg.com/maplibre-gl@2.2.1/dist/maplibre-gl.css';
 const MAPLIBRE_LEAFLET_JS='https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js';
-const OPENFREEMAP_STYLE='https://tiles.openfreemap.org/styles/positron';
+const MAP_STYLES={
+ positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
+ liberty:{label:'Liberty',url:'https://tiles.openfreemap.org/styles/liberty'},
+ bright:{label:'Bright',url:'https://tiles.openfreemap.org/styles/bright'},
+ dark:{label:'Dark',url:'https://tiles.openfreemap.org/styles/dark'},
+ fiord:{label:'Fiord',url:'https://tiles.openfreemap.org/styles/fiord'}
+};
 const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
 const RADIUS_OPTIONS=[5,10,20,30,50,100,0];
 
@@ -144,6 +150,7 @@ export default function OsmEventMap(){
  const [from,setFrom]=useState('');
  const [to,setTo]=useState('');
  const [radiusKm,setRadiusKm]=useState(30);
+ const [mapStyle,setMapStyle]=useState('positron');
  const [userLocation,setUserLocation]=useState(null);
  const [locationQuery,setLocationQuery]=useState('');
  const [locationResults,setLocationResults]=useState([]);
@@ -151,7 +158,7 @@ export default function OsmEventMap(){
  const [locationSearching,setLocationSearching]=useState(false);
  const [mapReady,setMapReady]=useState(false);
  const {data,loading,error,refresh}=useEvents();
- const mapEl=useRef(null),mapRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
+ const mapEl=useRef(null),mapRef=useRef(null),baseMapLayerRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
  const defaultsSetRef=useRef(false);
 
  const events=data?.events||[];
@@ -249,12 +256,21 @@ export default function OsmEventMap(){
    map.createPane('activeMarkers');map.getPane('activeMarkers').style.zIndex='460';
    map.createPane('userLocation');map.getPane('userLocation').style.zIndex='520';
    if(map.getPane('popupPane'))map.getPane('popupPane').style.zIndex='920';
-   maplibreGL({style:OPENFREEMAP_STYLE}).addTo(map);
+   baseMapLayerRef.current=maplibreGL({style:MAP_STYLES.positron.url}).addTo(map);
    map.attributionControl.addAttribution('<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> © OpenMapTiles · Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>');
    mapRef.current=map;setMapReady(true);
   }).catch(error=>{console.error('map_stack_failed',error);});
   return()=>{cancelled=true;};
  },[]);
+
+ useEffect(()=>{
+  if(!mapReady||!mapRef.current||!window.L?.maplibreGL)return;
+  const style=MAP_STYLES[mapStyle]||MAP_STYLES.positron;
+  if(baseMapLayerRef.current){
+   try{baseMapLayerRef.current.remove();}catch{}
+  }
+  baseMapLayerRef.current=window.L.maplibreGL({style:style.url}).addTo(mapRef.current);
+ },[mapReady,mapStyle]);
 
  useEffect(()=>{
   if(!mapReady||!mapRef.current)return;
@@ -383,6 +399,10 @@ export default function OsmEventMap(){
 
     <label className="map-filter-radius"><span>Radiuss</span><select value={radiusKm} onChange={e=>setRadiusKm(Number(e.target.value))}>
      {RADIUS_OPTIONS.map(v=><option key={v} value={v}>{v===0?'Visa karte':v+' km'}</option>)}
+    </select></label>
+
+    <label className="map-filter-style"><span>Kartes stils</span><select value={mapStyle} onChange={e=>setMapStyle(e.target.value)}>
+     {Object.entries(MAP_STYLES).map(([key,style])=><option key={key} value={key}>{style.label}</option>)}
     </select></label>
 
     <label className="map-filter-date"><span>No</span><input aria-label="Datums no" type="date" min={publicFrom||undefined} max={publicTo||undefined} value={from} onChange={e=>setFrom(e.target.value)}/></label>
