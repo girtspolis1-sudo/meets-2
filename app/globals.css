@@ -21,7 +21,7 @@ button,input,select{font:inherit}button{cursor:pointer;color:inherit}button:disa
 
 /* LFF missing-location admin queue */
 .location-summary{grid-template-columns:repeat(6,minmax(0,1fr))}
-.attention-card{border-color:#e3b45d!important;background:#fff8e7!important}
+.admin-summary article.attention-card{border-color:#e3b45d;background:#fff8e7}
 .lff-location-queue{margin:24px 0 30px;padding:18px;border:1px solid var(--border);border-radius:18px;background:#fff}
 .queue-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:12px}
 .queue-head h2{margin:2px 0 6px;font-size:24px}
