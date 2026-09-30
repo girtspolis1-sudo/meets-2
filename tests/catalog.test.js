@@ -20,9 +20,10 @@ test('live Supabase data and Excel round trip include every row; no formulas',as
  const buf=await createWorkbook([...data.events,{id:'test',title:'=HYPERLINK("https://example.com")',sources:[],tags:[],date_from:'2026-09-28'}],data.fetchedAt);
  const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);const sheet=wb.getWorksheet('Pasākumi');
  assert.equal(sheet.rowCount,data.total+2);assert.equal(sheet.getCell(`D${data.total+2}`).value,'=HYPERLINK("https://example.com")');assert.equal(sheet.getCell(`D${data.total+2}`).type,ExcelJS.ValueType.String);assert(sheet.getCell(`A${data.total+2}`).value instanceof Date);
- const denied=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_public_catalog',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_token:'invalid'})});assert.equal(denied.status,401);
+ const publicRpc=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_public_catalog',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({})});assert(publicRpc.ok);
+ const publicPayload=await publicRpc.json();assert(Array.isArray(publicPayload.events));assert(publicPayload.events.every(e=>e.status==='published'));
  const table=await fetch(process.env.SUPABASE_URL+'/rest/v1/events?select=id&limit=1',{headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY}});assert(!table.ok);
- console.log(`Verified ${data.total} live rows, full XLSX export, invalid-token rejection and no direct anonymous table access.`);
+ console.log(`Verified ${data.total} live rows, public published-only RPC, full XLSX export and no direct anonymous table access.`);
 });
 
 test('each shared filter matches, excludes, combines and resets',()=>{

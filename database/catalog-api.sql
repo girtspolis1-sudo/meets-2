@@ -1,32 +1,129 @@
--- Token-gated, read-only catalogue for the Vercel server.
--- Replace __TOKEN_SHA256__ during provisioning; never commit the token.
--- Existing table grants, RLS, admin functions and event records are unchanged.
+-- Canonical public catalogue RPC for MEETS 2.
+-- Public events are intentionally readable through this narrow RPC only.
+-- Underlying tables/views remain unavailable to anon/authenticated roles.
+-- The Next.js server applies a second field allowlist and date/status checks.
+
 begin;
-create or replace function meets_private.read_public_catalog(p_token text) returns jsonb
-language plpgsql security definer set search_path = '' as $$
-begin
- if p_token is null or encode(extensions.digest(p_token,'sha256'),'hex') <> '__TOKEN_SHA256__' then
-   raise exception 'Unauthorized' using errcode='42501';
- end if;
- return jsonb_build_object('fetchedAt',now(),'events',(
- select coalesce(jsonb_agg(to_jsonb(catalog) order by catalog.date_from,catalog.id),'[]'::jsonb)
- from (
- select v.id,v.title,v.description,v.date_from,v.date_to,v.time_from,v.time_to,v.timezone,
- v.schedule_type,v.time_type,v.attendance_mode,v.record_type,v.event_type,v.primary_category,
- v.status,v.price_status,v.price_text,v.price_min,v.price_max,v.currency,v.terms,
- v.venue_name,v.address_raw,v.alternative_address,v.location_precision,v.location_note,
- v.municipality,v.settlement,v.latitude,v.longitude,v.updated_at,
- (select coalesce(jsonb_agg(c.name order by c.name),'[]'::jsonb) from public.event_categories ec join public.categories c on c.id=ec.category_id where ec.event_id=v.id) as tags,
- (select coalesce(jsonb_agg(jsonb_build_object('source',s.domain,'url',es.source_url) order by es.id),'[]'::jsonb) from public.event_sources es join public.sources s on s.id=es.source_id where es.event_id=v.id) as sources
- from public.event_overview v
- where v.status = 'published'
- ) catalog));
-end $$;
-revoke all on function meets_private.read_public_catalog(text) from public,anon,authenticated;
-grant execute on function meets_private.read_public_catalog(text) to anon;
-create or replace function public.meets_public_catalog(p_token text) returns jsonb
-language sql security invoker set search_path = '' as $$ select meets_private.read_public_catalog(p_token) $$;
-revoke all on function public.meets_public_catalog(text) from public,anon,authenticated;
-grant execute on function public.meets_public_catalog(text) to anon;
+
+-- Legacy helper is private and must never be callable by public roles.
+revoke execute on function meets_private.read_public_catalog(text)
+from public, anon, authenticated;
+
+-- Remove the obsolete token-shaped public API before creating the stable no-arg RPC.
+drop function if exists public.meets_public_catalog(text);
+
+create function public.meets_public_catalog()
+returns jsonb
+language sql
+security definer
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'fetchedAt', now(),
+    'competitions', (
+      select coalesce(jsonb_agg(
+        jsonb_build_object(
+          'competition_key', sc.competition_key,
+          'name', sc.name,
+          'season', sc.season,
+          'governing_body', sc.governing_body,
+          'sport_format', sc.sport_format,
+          'competition_type', sc.competition_type,
+          'source_url', sc.source_url
+        ) order by sc.name
+      ), '[]'::jsonb)
+      from public.sports_competitions sc
+      where sc.active = true
+    ),
+    'events', (
+      select coalesce(
+        jsonb_agg(to_jsonb(catalog) order by catalog.date_from, catalog.id),
+        '[]'::jsonb
+      )
+      from (
+        select
+          v.id,
+          v.title,
+          v.description,
+          v.date_from,
+          v.date_to,
+          v.time_from,
+          v.time_to,
+          v.timezone,
+          v.schedule_type,
+          v.time_type,
+          v.attendance_mode,
+          v.record_type,
+          v.event_type,
+          v.primary_category,
+          v.status,
+          v.price_status,
+          v.price_text,
+          v.price_min,
+          v.price_max,
+          v.currency,
+          v.terms,
+          v.venue_name,
+          v.address_raw,
+          v.alternative_address,
+          v.location_precision,
+          v.location_note,
+          v.municipality,
+          v.settlement,
+          v.country_code,
+          v.latitude,
+          v.longitude,
+          v.updated_at,
+          sc.governing_body,
+          sc.competition_key,
+          sc.name as competition_name,
+          sc.season as competition_season,
+          sc.competition_type,
+          coalesce(sm.sport_format, sc.sport_format) as sport_format,
+          sm.stage as competition_stage,
+          sm.group_name as competition_group,
+          coalesce(sm.age_group, sc.default_age_group) as age_group,
+          sm.home_team,
+          sm.away_team,
+          sm.source_match_id,
+          (
+            select coalesce(jsonb_agg(c.name order by c.name), '[]'::jsonb)
+            from public.event_categories ec
+            join public.categories c on c.id = ec.category_id
+            where ec.event_id = v.id
+          ) as tags,
+          (
+            select coalesce(
+              jsonb_agg(
+                jsonb_build_object('source', s.domain, 'url', es.source_url)
+                order by es.id
+              ),
+              '[]'::jsonb
+            )
+            from public.event_sources es
+            join public.sources s on s.id = es.source_id
+            where es.event_id = v.id
+          ) as sources
+        from public.event_overview v
+        left join public.event_sports_metadata sm on sm.event_id = v.id
+        left join public.sports_competitions sc on sc.id = sm.competition_id
+        where v.status = 'published'
+      ) catalog
+    )
+  )
+$$;
+
+-- PostgreSQL grants EXECUTE to PUBLIC by default for new functions.
+-- Keep this API surface explicit: anonymous website reads + server/service diagnostics only.
+revoke all on function public.meets_public_catalog()
+from public, anon, authenticated, service_role;
+
+grant execute on function public.meets_public_catalog()
+to anon, service_role;
+
+comment on function public.meets_public_catalog() is
+'MEETS 2 public read-only catalogue. Returns explicitly selected published event data only.';
+
 notify pgrst, 'reload schema';
+
 commit;

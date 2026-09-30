@@ -1,28 +1,67 @@
-# meets 2
+# MEETS 2
 
-Customer-facing Next.js App Router application, deployed from GitHub `main` to Vercel `meets-2`.
+Customer-facing Next.js App Router application deployed from GitHub `main` to Vercel.
 
 ## Implemented
 
-- Latvian responsive event list at `/pasakumi`: only status = published, per the updated production brief. Historical published events remain available in the list.
-- Search, municipality/category/date/status/price filters, sorting, 50-row pagination, mobile cards, event details.
-- `.xlsx` export of the complete filtered result, with 32 public event fields, native date cells and an information sheet. Values are stored as strings, never formulas.
-- `/api/events` reads the existing Supabase project on every request, without persistent event caching. The visible client refreshes every 60 seconds and offers manual refresh. This reads the database; it does not crawl source websites.
-- `/api/health` checks the actual database feed.
-- The map remains a preparation page. Existing admin/demo app is separate.
+- Public event catalogue and interactive Baltic map.
+- Only `status = published` events are exposed publicly.
+- Server enforces a rolling window from today through three months ahead and excludes ended events.
+- Map filters: location, 5/10/25/50 km or full map, 3 days / this week / this month / manual dates, event type, competition, category, country and municipality.
+- Location defaults to Mārupe (Mārupes municipal administration area); browser geolocation is requested only after the user explicitly presses the location button.
+- Search, list filters, sorting, pagination, event details and XLSX export.
+- Admin review, publication and location-quality workflows, including LFF venues without a confirmed map point.
+- `/api/health` verifies the live catalogue feed.
 
-## Data boundary
+## Public data boundary
 
-`database/catalog-api.sql` documents the provisioned, token-gated read function. It returns only explicitly selected event information. The server applies a second allowlist. The database function and server both filter status = published. No anonymous table grants or write permissions were added. RLS and existing admin functions are unchanged. Internal review status, comments, import payloads, notes and change history are not in the public feed.
+The public web app reads through one intentionally public, read-only RPC: `public.meets_public_catalog()`.
 
-`MEETS_CATALOG_TOKEN` is a dedicated server-only credential, stored as a SHA-256 verifier in a private-schema function. Never prefix it with `NEXT_PUBLIC_`, commit it, or expose it in responses. The SQL template needs a securely generated token hash when provisioning a new installation; it is not a command to rerun without securely supplying the existing verifier.
+The RPC is a narrowly scoped `SECURITY DEFINER` endpoint that returns only explicitly selected public event fields and only `published` events. Anonymous users have no direct `SELECT` access to the underlying event tables/views. The Next.js server applies a second explicit field allowlist and repeats the published/date-window checks before returning data to the browser.
+
+Internal comments, review data, import payloads, admin sessions and change history are not returned by the public RPC.
+
+The legacy private token-gated catalogue helper is not part of the public application contract and must not be executable by `anon` or `authenticated`.
 
 ## Run
 
-Node 24.x. Install with `npm ci`. Copy `.env.example` to `.env.local` and provision the three values through Vercel project settings. Production values are scoped to Production. `npm run build`, then `npm start`. `npm run dev` for development after configuration. Never commit runtime credentials or event snapshots.
+Node 24.x.
 
-Tests: `node --conditions=react-server --env-file=.env.local --test tests/catalog.test.js`. The live integration test checks that all returned rows are published. It also verifies filters, projection, native Excel dates, formula-like text, full exports and rejection of invalid credentials/direct anonymous table access.
+```bash
+npm ci
+npm run build
+npm start
+```
 
-## Remaining
+Required environment values:
 
-Interactive map, richer location filtering, client-specific iframe views, custom domain and search indexing. Indexing remains disabled while the broader platform is in development.
+```
+SUPABASE_URL=
+SUPABASE_PUBLISHABLE_KEY=
+```
+
+No `service_role`/secret database key belongs in browser code.
+
+## Tests
+
+Live integration tests verify:
+
+- only published rows reach the public application;
+- public field projection excludes internal data;
+- filters and date overlap behavior;
+- Excel export and formula-injection safety;
+- public RPC availability;
+- direct anonymous table access remains denied.
+
+Run:
+
+```bash
+node --conditions=react-server --env-file=.env.local --test tests/catalog.test.js
+```
+
+## Before public launch
+
+- complete and verify 390 px mobile checks;
+- keep search indexing disabled until final production sign-off;
+- add CI so tests/build gate production deploys;
+- complete final data-quality review and custom domain/SEO work.
