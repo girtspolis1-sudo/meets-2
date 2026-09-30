@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "node --conditions=react-server --test tests/catalog.test.js"
   },
   "dependencies": {
     "exceljs": "4.4.0",
