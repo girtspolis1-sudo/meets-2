@@ -296,7 +296,7 @@ export default function OsmEventMap(){
   const icon=L.divIcon({className:'user-location-marker-wrap',html:'<span class="user-location-marker"><span></span></span>',iconSize:[24,24],iconAnchor:[12,12]});
   L.marker(center,{icon,pane:'userLocation',interactive:false}).addTo(focus);
   if(radiusKm>0){
-   const circle=L.circle(center,{radius:radiusKm*1000,color:'#355f37',weight:2,dashArray:'6 5',fillColor:'#7fbf72',fillOpacity:.06,interactive:false}).addTo(focus);
+   const circle=L.circle(center,{radius:radiusKm*1000,color:'#7f00ff',weight:2,dashArray:'6 5',fillColor:'#b56cff',fillOpacity:.055,interactive:false}).addTo(focus);
    map.fitBounds(circle.getBounds(),{padding:[45,45],maxZoom:13});
   }else{
    map.setView(center,11);
