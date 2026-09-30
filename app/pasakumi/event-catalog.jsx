@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { columns, detailColumns, display, filterEvents, initialFilters, prices, statuses } from '../../lib/catalog.js';
 import {useEvents} from '../../lib/use-events.js';
-import EventMap from './event-map.jsx';
 const pageSize=50;
 export default function EventCatalog() {
  const {data,loading,error,refresh}=useEvents();
@@ -28,7 +27,6 @@ export default function EventCatalog() {
  return <>
   <div className="catalog-toolbar"><div><strong>{data?`${rows.length} pasākumi`:'Ielādējam pasākumus…'}</strong><p className="sync-text">{data?`Dati pārlasīti ${new Date(data.fetchedAt).toLocaleString('lv-LV',{timeZone:'Europe/Riga'})}`:'Savienojamies ar datu avotu'} · automātiski ik minūti</p></div><button className="button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Pārlasīt datus'}</button></div>
   <p className="data-note"><strong>Publiskais pasākumu saraksts.</strong> Redzami tikai <code>published</code> pasākumi, kas nav beigušies un sākas ne vēlāk kā 3 mēnešus uz priekšu. Excel eksports izmanto tieši to pašu datu kopu.{data?.window?<> Periods: <strong>{data.window.from}–{data.window.to}</strong>.</>:null}</p>
-  {data&&<EventMap events={filtered} onSelect={e=>setSelected(e.id)}/>} 
   {error&&<div className="error-message" role="alert">{error} {data&&'Zemāk saglabāti pēdējie veiksmīgi ielādētie dati.'}</div>}
   <div className="filters" aria-label="Pasākumu filtri">
    <label className="search-label">Meklēt pasākumu<input type="search" placeholder="Nosaukums, vieta, adrese…" value={filters.search} onChange={e=>change('search',e.target.value)}/></label>
