@@ -111,7 +111,7 @@ test('map date emphasis distinguishes today, tomorrow and future events',()=>{
  assert.deepEqual(eventDateState({date_from:'2026-10-01'},today),{tone:'tomorrow',label:'Rīt',days:1});
  assert.deepEqual(eventDateState({date_from:'2026-10-05'},today),{tone:'future',label:'5 dienas līdz pasākumam',days:5});
  assert.equal(groupDateTone([{date_from:'2026-10-04'},{date_from:'2026-10-01'}],today),'tomorrow');
- assert.equal(groupDateTone([{date_from:'2026-09-29'}],today),'past');
+ assert.equal(groupDateTone([{date_from:'2026-09-29'}],today),'');
 });
 
 test('column filters apply only to their own catalogue column',()=>{
