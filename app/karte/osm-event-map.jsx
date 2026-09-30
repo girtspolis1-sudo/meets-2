@@ -16,7 +16,7 @@ const MAP_STYLES={
  fiord:{label:'Fiord',url:'https://tiles.openfreemap.org/styles/fiord'}
 };
 const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
-const DEFAULT_LOCATION={lat:56.9053,lon:24.0556,label:'Mārupe',source:'fallback'};
+const DEFAULT_LOCATION={lat:56.9053,lon:24.0556,label:'Mārupes dome',source:'fallback'};
 const RADIUS_OPTIONS=[5,10,25,50,0];
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
@@ -316,6 +316,11 @@ export default function OsmEventMap(){
     keepInView:true,
     autoPanPaddingTopLeft:[28,118],
     autoPanPaddingBottomRight:[28,32]
+   });
+   marker.on('click',()=>{
+    setFiltersOpen(false);
+    setLocationResults([]);
+    setLocationMessage('');
    });
    marker.on('popupopen',()=>{
     window.setTimeout(()=>{
