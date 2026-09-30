@@ -16,7 +16,8 @@ const MAP_STYLES={
  fiord:{label:'Fiord',url:'https://tiles.openfreemap.org/styles/fiord'}
 };
 const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
-const RADIUS_OPTIONS=[5,10,20,30,50,100,0];
+const DEFAULT_LOCATION={lat:56.9053,lon:24.0556,label:'Mārupe',source:'fallback'};
+const RADIUS_OPTIONS=[5,10,25,50,0];
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function norm(v=''){return String(v).toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
@@ -171,14 +172,14 @@ export default function OsmEventMap(){
  const [country,setCountry]=useState('');
  const [from,setFrom]=useState('');
  const [to,setTo]=useState('');
- const [radiusKm,setRadiusKm]=useState(30);
+ const [radiusKm,setRadiusKm]=useState(50);
  const [periodMode,setPeriodMode]=useState('week');
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [mapStyle,setMapStyle]=useState('positron');
- const [userLocation,setUserLocation]=useState(null);
- const [locationQuery,setLocationQuery]=useState('');
+ const [userLocation,setUserLocation]=useState(DEFAULT_LOCATION);
+ const [locationQuery,setLocationQuery]=useState(DEFAULT_LOCATION.label);
  const [locationResults,setLocationResults]=useState([]);
- const [locationMessage,setLocationMessage]=useState('Nosakām atrašanās vietu…');
+ const [locationMessage,setLocationMessage]=useState('');
  const [locationSearching,setLocationSearching]=useState(false);
  const [mapReady,setMapReady]=useState(false);
  const {data,loading,error,refresh}=useEvents();
@@ -195,20 +196,6 @@ export default function OsmEventMap(){
   const next=periodDates('week',publicFrom,publicTo,'','');
   setFrom(next.from);setTo(next.to);
  },[publicFrom,publicTo]);
-
- useEffect(()=>{
-  if(!navigator.geolocation){setLocationMessage('Pārlūks neatbalsta atrašanās vietas noteikšanu.');return;}
-  navigator.geolocation.getCurrentPosition(
-   pos=>{
-    const lat=pos.coords.latitude,lon=pos.coords.longitude;
-    if(!insideBalticView(lat,lon)){setLocationMessage('Atrašanās vieta ir ārpus Baltijas kartes. Norādi vietu meklētājā.');return;}
-    const next={lat,lon,label:'Mana atrašanās vieta',source:'browser'};
-    setUserLocation(next);setLocationQuery('Mana atrašanās vieta');setLocationMessage('');
-   },
-   ()=>setLocationMessage('Atrašanās vieta nav pieejama. Norādi pilsētu vai vietu meklētājā.'),
-   {enableHighAccuracy:true,timeout:8000,maximumAge:300000}
-  );
- },[]);
 
  const typedEvents=useMemo(()=>eventType?events.filter(e=>sourceType(e)===eventType):events,[events,eventType]);
  const competitionOptions=useMemo(()=>{
@@ -372,12 +359,13 @@ export default function OsmEventMap(){
   setFrom(next.from);setTo(next.to);
  }
  function resetFilters(){
-  setEventType('');setCompetition('');setCategory('');setMunicipality('');setCountry('');setRadiusKm(30);setMapStyle('positron');setPeriodMode('week');
+  setEventType('');setCompetition('');setCategory('');setMunicipality('');setCountry('');setRadiusKm(50);setMapStyle('positron');setPeriodMode('week');
   if(publicFrom){const next=periodDates('week',publicFrom,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
+  if(!navigator.geolocation){setLocationMessage('Pārlūks neatbalsta atrašanās vietas noteikšanu.');return;}
   setLocationMessage('Nosakām atrašanās vietu…');
-  navigator.geolocation?.getCurrentPosition(
+  navigator.geolocation.getCurrentPosition(
    pos=>{
     const lat=pos.coords.latitude,lon=pos.coords.longitude;
     if(!insideBalticView(lat,lon)){setLocationMessage('Atrašanās vieta ir ārpus Baltijas kartes.');return;}
