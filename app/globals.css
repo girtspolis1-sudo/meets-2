@@ -434,8 +434,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
  }
  .map-advanced-panel select{height:42px!important;min-height:42px!important;font-size:12px!important}
  .map-reset-icon{width:42px;height:42px}
- .map-location-results{top:55px!important;left:7px!important;width:calc(100% - 14px)!important}
- .map-location-message{top:55px!important;left:7px!important;max-width:calc(100% - 14px)!important}
+ .map-location-results{top:104px!important;left:7px!important;width:calc(100% - 14px)!important}
+ .map-location-message{top:104px!important;left:7px!important;max-width:calc(100% - 14px)!important}
  .map-shell .leaflet-top.leaflet-left{top:104px!important}
 }
 
@@ -446,6 +446,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
  .map-search-button{width:38px}
  .map-location-control input{font-size:12px!important;padding:0 9px!important}
  .map-compact-select{font-size:12px!important;padding-left:9px!important}
- .map-advanced-panel{grid-template-columns:1fr}
+ .map-advanced-panel{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
  .map-reset-icon{justify-self:end}
 }
