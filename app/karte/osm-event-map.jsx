@@ -248,6 +248,7 @@ export default function OsmEventMap(){
    map.createPane('backgroundMarkers');map.getPane('backgroundMarkers').style.zIndex='410';
    map.createPane('activeMarkers');map.getPane('activeMarkers').style.zIndex='460';
    map.createPane('userLocation');map.getPane('userLocation').style.zIndex='520';
+   if(map.getPane('popupPane'))map.getPane('popupPane').style.zIndex='920';
    maplibreGL({style:OPENFREEMAP_STYLE}).addTo(map);
    map.attributionControl.addAttribution('<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> © OpenMapTiles · Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>');
    mapRef.current=map;setMapReady(true);
@@ -281,7 +282,22 @@ export default function OsmEventMap(){
    }
    const icon=L.divIcon({className:grouped?'event-count-marker-wrap':'event-symbol-marker-wrap',html,iconSize:[size,size],iconAnchor:[size/2,size/2]});
    const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
-   marker.bindPopup(popupHtml(group,activeIds),{maxWidth:390,maxHeight:360});
+   const popupMaxHeight=Math.max(260,Math.min(560,map.getSize().y-150));
+   marker.bindPopup(popupHtml(group,activeIds),{
+    maxWidth:430,
+    maxHeight:popupMaxHeight,
+    autoPan:true,
+    keepInView:true,
+    autoPanPaddingTopLeft:[28,118],
+    autoPanPaddingBottomRight:[28,32]
+   });
+   marker.on('popupopen',()=>{
+    window.setTimeout(()=>{
+     const popup=marker.getPopup();
+     if(!popup?.isOpen?.())return;
+     popup.update();
+    },0);
+   });
    marker.addTo(isActive?active:bg);
   }
  },[mapReady,locationGroups,activeIds]);
