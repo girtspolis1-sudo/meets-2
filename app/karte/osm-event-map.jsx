@@ -169,11 +169,28 @@ export default function OsmEventMap(){
  const events=useMemo(()=>((data?.events)||[]).filter(event=>!hasEventEnded(event)),[data]);
 
  useEffect(()=>{
-  const syncAdminSession=()=>setIsAdminSession(Boolean(sessionStorage.getItem('meets_admin_access_token')));
+  let cancelled=false;
+  const syncAdminSession=async()=>{
+   const token=sessionStorage.getItem('meets_admin_access_token')||'';
+   if(!token){if(!cancelled)setIsAdminSession(false);return;}
+   try{
+    const response=await fetch('/api/admin/session',{method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store'});
+    const data=await response.json();
+    if(cancelled)return;
+    if(data?.valid===true)setIsAdminSession(true);
+    else{
+     sessionStorage.removeItem('meets_admin_access_token');
+     setIsAdminSession(false);
+    }
+   }catch{
+    if(!cancelled)setIsAdminSession(false);
+   }
+  };
   syncAdminSession();
   window.addEventListener('storage',syncAdminSession);
   window.addEventListener('meets-admin-session-change',syncAdminSession);
   return()=>{
+   cancelled=true;
    window.removeEventListener('storage',syncAdminSession);
    window.removeEventListener('meets-admin-session-change',syncAdminSession);
   };
