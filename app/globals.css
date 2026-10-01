@@ -226,8 +226,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
 .admin-event-map{height:clamp(480px,62vh,680px);border:1px solid var(--border);border-radius:16px;overflow:hidden;background:#e8efea}
 .admin-event-map .event-symbol-marker-wrap,.admin-event-map .event-count-marker-wrap{background:transparent;border:0}
 .admin-event-map .leaflet-popup-pane{z-index:920}
-.admin-map-popup .admin-popup-edit{margin-top:7px;min-height:30px;padding:5px 9px;border:1px solid #cdb5df;border-radius:8px;background:#f8f0ff;color:#6500c9;font-size:11px;font-weight:800}
-.admin-map-popup .admin-popup-edit:hover{background:#eee0fb}
+.location-popup .admin-popup-edit{margin-top:7px;min-height:30px;padding:5px 9px;border:1px solid #cdb5df;border-radius:8px;background:#f8f0ff;color:#6500c9;font-size:11px;font-weight:800}
+.location-popup .admin-popup-edit:hover{background:#eee0fb}
 
 /* Public catalogue: filtering lives in the table header */
 .catalog-events-table thead .column-title-row th{top:0;height:44px;z-index:4}
