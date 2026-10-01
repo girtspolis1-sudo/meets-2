@@ -47,6 +47,17 @@ The Next.js server additionally:
 
 Internal comments, review fields, import payloads, admin sessions and change history are not exposed through the public catalogue.
 
+
+## Admin authentication
+
+The admin account uses Supabase Auth email/password authentication. The authenticated user must also exist in `public.admin_users`.
+
+After a successful Supabase Auth login, the app calls `public.meets_admin_exchange_auth()`. That authenticated-only RPC issues the existing short-lived MEETS admin session token used by the admin catalogue and edit RPCs.
+
+The admin login screen includes a password recovery flow. Recovery emails return to the site and are redirected to `/admin/password`, where the new password is saved through Supabase Auth.
+
+The legacy temporary `meets_admin_login(p_password)` path is deprecated and should not be exposed after the Auth rollout is confirmed.
+
 Required environment variables:
 
 ```text
