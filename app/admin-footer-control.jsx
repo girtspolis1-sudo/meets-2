@@ -10,11 +10,28 @@ export default function AdminFooterControl(){
  const [loggingOut,setLoggingOut]=useState(false);
 
  useEffect(()=>{
-  const sync=()=>setLoggedIn(Boolean(sessionStorage.getItem(SESSION_KEY)));
+  let cancelled=false;
+  const sync=async()=>{
+   const token=sessionStorage.getItem(SESSION_KEY)||'';
+   if(!token){if(!cancelled)setLoggedIn(false);return;}
+   try{
+    const response=await fetch('/api/admin/session',{method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store'});
+    const data=await response.json();
+    if(cancelled)return;
+    if(data?.valid===true)setLoggedIn(true);
+    else{
+     sessionStorage.removeItem(SESSION_KEY);
+     setLoggedIn(false);
+    }
+   }catch{
+    if(!cancelled)setLoggedIn(Boolean(token));
+   }
+  };
   sync();
   window.addEventListener('storage',sync);
   window.addEventListener('meets-admin-session-change',sync);
   return()=>{
+   cancelled=true;
    window.removeEventListener('storage',sync);
    window.removeEventListener('meets-admin-session-change',sync);
   };
