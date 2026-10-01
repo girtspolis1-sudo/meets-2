@@ -121,7 +121,7 @@ test('map date badges distinguish today, tomorrow, future, ranges and ended even
  );
  assert.deepEqual(
   eventDateState({date_from:'2026-09-28',date_to:'2026-09-30'},today),
-  {tone:'past',label:'Pasākums beidzās pirms 3 dienām',badge:'-3d',days:-5,isOpenToday:false}
+  {tone:'past',label:'Pasākums beidzās pirms 3 dienām',badge:'-3d',days:-3,isOpenToday:false}
  );
  assert.equal(eventDateState({date_from:'2026-10-01',date_to:'2026-10-05'},today).tone,'today');
  assert.equal(eventDateRangeLabel({date_from:'2026-10-01',date_to:'2026-10-05'},value=>value),'2026-10-01–2026-10-05');
