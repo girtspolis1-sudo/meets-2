@@ -54,7 +54,7 @@ export default function HomeMapPreview({events=[]}){
    );
    const map=L.map(mapEl.current,{
     zoomControl:false,
-    attributionControl:true,
+    attributionControl:false,
     dragging:false,
     scrollWheelZoom:false,
     doubleClickZoom:false,
@@ -84,8 +84,6 @@ export default function HomeMapPreview({events=[]}){
     }).addTo(map);
    }
 
-   map.attributionControl.setPrefix(false);
-   map.attributionControl.addAttribution('<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> · © OpenStreetMap');
    mapRef.current=map;
   }).catch(error=>console.error('home_map_preview_failed',error));
 
@@ -96,12 +94,18 @@ export default function HomeMapPreview({events=[]}){
   };
  },[groups]);
 
- return <Link className="home-map-card" href="/karte" aria-label="Atvērt pilno pasākumu karti">
+ return <div className="home-map-card">
   <div ref={mapEl} className="home-map-preview" aria-hidden="true"/>
   <div className="home-map-shade" aria-hidden="true"/>
-  <div className="home-map-caption">
+  <Link className="home-map-hit" href="/karte" aria-label="Atvērt pilno pasākumu karti"/>
+  <div className="home-map-caption" aria-hidden="true">
    <span>Pasākumi kartē</span>
    <strong>Atvērt pilno karti ↗</strong>
   </div>
- </Link>;
+  <div className="home-map-attribution">
+   <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>
+   <span> · </span>
+   <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a>
+  </div>
+ </div>;
 }
