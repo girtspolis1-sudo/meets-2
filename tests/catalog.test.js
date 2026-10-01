@@ -150,3 +150,10 @@ test('admin logout endpoint is safe without a session token',async()=>{
  assert.equal(response.headers.get('cache-control'),'no-store');
 });
 
+test('admin session endpoint rejects missing tokens without upstream access',async()=>{
+ const {POST}=await import('../app/api/admin/session/route.js');
+ const response=await POST(new Request('http://localhost/api/admin/session',{method:'POST'}));
+ assert.equal(response.status,200);
+ assert.deepEqual(await response.json(),{valid:false});
+});
+
