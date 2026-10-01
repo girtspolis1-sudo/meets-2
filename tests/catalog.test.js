@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterEvents,filterEventsByColumns,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded} from '../lib/event-date.js';
-import {adminRecoveryRedirect} from '../lib/auth-redirect.js';
+import {isValidAdminOtp,normalizeAdminOtp} from '../lib/admin-otp.js';
 import {createWorkbook} from '../lib/excel.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
@@ -159,15 +159,11 @@ test('admin session endpoint rejects missing tokens without upstream access',asy
  assert.deepEqual(await response.json(),{valid:false});
 });
 
-test('admin password recovery redirects to the MEETS password page',()=>{
- assert.equal(
-  adminRecoveryRedirect('https://meets-2.vercel.app'),
-  'https://meets-2.vercel.app/admin/password'
- );
- assert.equal(
-  adminRecoveryRedirect('https://events.example.lv/some/path'),
-  'https://events.example.lv/admin/password'
- );
- assert.throws(()=>adminRecoveryRedirect('javascript:alert(1)'));
+test('admin OTP accepts exactly six digits and normalizes pasted codes',()=>{
+ assert.equal(normalizeAdminOtp('12 34-56'),'123456');
+ assert.equal(normalizeAdminOtp('123456789'),'123456');
+ assert.equal(normalizeAdminOtp('abc'),'');
+ assert.equal(isValidAdminOtp('123456'),true);
+ assert.equal(isValidAdminOtp('12345'),false);
 });
 

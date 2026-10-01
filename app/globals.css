@@ -267,8 +267,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
  .footer-side{width:100%;justify-content:space-between}
 }
 
-.admin-password-reset{max-width:560px}
-.admin-password-reset .actions{align-items:center}
 
 /* Compact one-screen home */
 .home-landing{
@@ -362,4 +360,15 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
  .home-map-card{height:350px;border-radius:18px}
  .home-map-caption{right:12px;bottom:12px;padding:9px 11px}
 }
+
+.admin-otp-login{max-width:520px}
+.admin-otp-login .otp-code-input{
+ max-width:220px;
+ font-size:28px;
+ font-weight:800;
+ letter-spacing:8px;
+ text-align:center;
+ font-variant-numeric:tabular-nums
+}
+.admin-otp-login .actions{align-items:center}
 
