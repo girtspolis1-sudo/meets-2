@@ -6,7 +6,18 @@ export default async function Home(){
  let events=[];
  try{
   const data=await readEvents();
-  events=data.events;
+  events=data.events
+   .filter(event=>event.country_code==='LV'&&Number.isFinite(Number(event.latitude))&&Number.isFinite(Number(event.longitude)))
+   .map(event=>({
+    id:event.id,
+    date_from:event.date_from,
+    date_to:event.date_to,
+    latitude:event.latitude,
+    longitude:event.longitude,
+    country_code:event.country_code,
+    sport_format:event.sport_format,
+    governing_body:event.governing_body
+   }));
  }catch(error){
   console.error(JSON.stringify({
    event:'home_map_catalog_failed',
