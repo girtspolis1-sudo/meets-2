@@ -2,7 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel} from '../../lib/catalog.js';
-import {eventDateState,groupDateTone} from '../../lib/event-date.js';
+import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded} from '../../lib/event-date.js';
 
 const MAP_STYLES={
  positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
@@ -85,13 +85,15 @@ function groupPosition(group,indexByCoordinate){
  }
  return [lat,lon];
 }
-function popupHtml(group,activeIds){
+function popupHtml(group,activeIds,isAdminSession){
  const sorted=closestFirst(group.events).sort((a,b)=>(activeIds.has(b.id)?1:0)-(activeIds.has(a.id)?1:0));
  const rows=sorted.map(e=>{
   const approximate=['settlement_center','municipality_center'].includes(e.location_precision);
   const meta=competitionMeta(e),country=countryLabel(e.country_code),active=activeIds.has(e.id);
   const dateState=eventDateState(e);
-  return '<li class="'+(active?'':'popup-event-muted')+'"><strong>'+esc(e.title)+'</strong><span class="popup-date-row"><button type="button" class="event-date-indicator '+esc(dateState.tone)+'" data-date-label="'+esc(dateState.label)+'" aria-label="'+esc(dateState.label)+'" title="'+esc(dateState.label)+'">●</button><span>'+esc(dateLabel(e.date_from))+' · '+esc(timeLabel(e))+'</span></span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+'</li>';
+  const rangeLabel=eventDateRangeLabel(e,dateLabel);
+  const editLink=isAdminSession&&active?'<a class="admin-popup-edit" href="/admin?edit='+encodeURIComponent(e.id)+'">Labot</a>':'';
+  return '<li class="'+(active?'':'popup-event-muted')+'"><strong>'+esc(e.title)+'</strong><span class="popup-date-row"><span class="event-date-indicator '+esc(dateState.tone)+'" aria-hidden="true">●</span><span class="event-date-badge '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(dateState.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span></span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+editLink+'</li>';
  }).join('');
  const activeCount=group.events.filter(e=>activeIds.has(e.id)).length;
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div><ol>'+rows+'</ol></div>';
@@ -157,13 +159,25 @@ export default function OsmEventMap(){
  const [locationMessage,setLocationMessage]=useState('');
  const [locationSearching,setLocationSearching]=useState(false);
  const [mapReady,setMapReady]=useState(false);
+ const [isAdminSession,setIsAdminSession]=useState(false);
  const {data,loading,error,refresh}=useEvents();
  const mapEl=useRef(null),mapRef=useRef(null),leafletRef=useRef(null),baseMapLayerRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
  const defaultsSetRef=useRef(false);
 
- const events=data?.events||[];
  const publicFrom=data?.window?.from||'';
  const publicTo=data?.window?.to||'';
+ const events=useMemo(()=>((data?.events)||[]).filter(event=>!hasEventEnded(event)),[data]);
+
+ useEffect(()=>{
+  const syncAdminSession=()=>setIsAdminSession(Boolean(sessionStorage.getItem('meets_admin_access_token')));
+  syncAdminSession();
+  window.addEventListener('storage',syncAdminSession);
+  window.addEventListener('meets-admin-session-change',syncAdminSession);
+  return()=>{
+   window.removeEventListener('storage',syncAdminSession);
+   window.removeEventListener('meets-admin-session-change',syncAdminSession);
+  };
+ },[]);
 
  useEffect(()=>{
   if(defaultsSetRef.current||!publicFrom)return;
@@ -287,7 +301,7 @@ export default function OsmEventMap(){
    const icon=L.divIcon({className:grouped?'event-count-marker-wrap':'event-symbol-marker-wrap',html,iconSize:[size,size],iconAnchor:[size/2,size/2]});
    const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
    const popupMaxHeight=Math.max(260,Math.min(560,map.getSize().y-150));
-   marker.bindPopup(popupHtml(group,activeIds),{
+   marker.bindPopup(popupHtml(group,activeIds,isAdminSession),{
     maxWidth:430,
     maxHeight:popupMaxHeight,
     autoPan:true,
@@ -300,23 +314,16 @@ export default function OsmEventMap(){
     setLocationResults([]);
     setLocationMessage('');
    });
-   marker.on('popupopen',event=>{
+   marker.on('popupopen',()=>{
     window.setTimeout(()=>{
      const popup=marker.getPopup();
      if(!popup?.isOpen?.())return;
-     const root=event.popup.getElement();
-     root?.querySelectorAll('.event-date-indicator').forEach(button=>{
-      button.onclick=()=>{
-       root.querySelectorAll('.event-date-indicator.active').forEach(other=>{if(other!==button)other.classList.remove('active');});
-       button.classList.toggle('active');
-      };
-     });
      popup.update();
     },0);
    });
    marker.addTo(isActive?active:bg);
   }
- },[mapReady,locationGroups,activeIds]);
+ },[mapReady,locationGroups,activeIds,isAdminSession]);
 
  useEffect(()=>{
   if(!mapReady||!mapRef.current)return;
