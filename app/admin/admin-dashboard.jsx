@@ -109,12 +109,49 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!password){setMessage('Ievadi paroli.');return;}
   setLoading(true);setMessage('');
   try{
-   const sessionToken=await apiFetch(supabaseUrl,publishableKey,'meets_admin_login',{p_password:password});
-   if(!sessionToken||typeof sessionToken!=='string')throw new Error();
+   const authResponse=await fetch(supabaseUrl+'/auth/v1/token?grant_type=password',{
+    method:'POST',
+    headers:{apikey:publishableKey,'Content-Type':'application/json'},
+    body:JSON.stringify({email:ADMIN_EMAIL,password}),
+    cache:'no-store'
+   });
+   if(!authResponse.ok)throw new Error('Invalid login');
+   const authData=await authResponse.json();
+   const accessToken=authData?.access_token;
+   if(!accessToken)throw new Error('Missing access token');
+
+   const exchangeResponse=await fetch(supabaseUrl+'/rest/v1/rpc/meets_admin_exchange_auth',{
+    method:'POST',
+    headers:{apikey:publishableKey,Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+    body:'{}',
+    cache:'no-store'
+   });
+   if(!exchangeResponse.ok)throw new Error('Admin exchange failed');
+   const sessionToken=await exchangeResponse.json();
+   if(!sessionToken||typeof sessionToken!=='string')throw new Error('Missing admin session');
+
    sessionStorage.setItem(SESSION_KEY,sessionToken);notifyAdminSession();
    setToken(sessionToken);setPassword('');setIsAdmin(true);await loadEvents(sessionToken);
-  }catch{setMessage('Nepareiza parole.');}
+  }catch{setMessage('Neizdevās ielogoties. Pārbaudi paroli vai izmanto “Aizmirsu paroli”.');}
   finally{setLoading(false);setAuthChecked(true);}
+ }
+
+ async function requestPasswordReset(){
+  setLoading(true);setMessage('');
+  try{
+   const response=await fetch(supabaseUrl+'/auth/v1/recover',{
+    method:'POST',
+    headers:{apikey:publishableKey,'Content-Type':'application/json'},
+    body:JSON.stringify({email:ADMIN_EMAIL}),
+    cache:'no-store'
+   });
+   if(!response.ok)throw new Error('Reset failed');
+   setMessage('Paroles maiņas saite nosūtīta uz '+ADMIN_EMAIL+'. Atver e-pastu un seko saitei.');
+  }catch{
+   setMessage('Paroles maiņas e-pastu neizdevās nosūtīt. Mēģini vēlreiz pēc brīža.');
+  }finally{
+   setLoading(false);
+  }
  }
  async function changeStatus(event,newStatus){
   if(newStatus==='published'&&event.location_quality!=='verified_exact'){
@@ -246,9 +283,12 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  if(!token||!isAdmin){
   return <form className="admin-login" onSubmit={login}>
    <h2>Admin pieslēgšanās</h2>
-   <p>Pagaidu paroles režīms. Admins: <strong>{ADMIN_EMAIL}</strong>.</p>
+   <p>Ielogojies ar Supabase Auth admin kontu: <strong>{ADMIN_EMAIL}</strong>.</p>
    <label>Parole<input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" autoFocus/></label>
-   <div className="actions"><button className="button primary" type="submit" disabled={loading}>{loading?'Pārbaudām…':'Ieiet'}</button></div>
+   <div className="actions">
+    <button className="button primary" type="submit" disabled={loading}>{loading?'Pārbaudām…':'Ieiet'}</button>
+    <button className="text-button" type="button" onClick={requestPasswordReset} disabled={loading}>Aizmirsu paroli</button>
+   </div>
    {message&&<p className="sync-text" role="status">{message}</p>}
   </form>;
  }
