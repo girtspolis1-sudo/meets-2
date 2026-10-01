@@ -50,13 +50,19 @@ Internal comments, review fields, import payloads, admin sessions and change his
 
 ## Admin authentication
 
-The admin account uses Supabase Auth email/password authentication. The authenticated user must also exist in `public.admin_users`.
+The admin account uses **Supabase Auth email OTP**. No password or recovery link is required.
 
-After a successful Supabase Auth login, the app calls `public.meets_admin_exchange_auth()`. That authenticated-only RPC issues the existing short-lived MEETS admin session token used by the admin catalogue and edit RPCs.
+Flow:
 
-The admin login screen includes a password recovery flow. Recovery emails return to the site and are redirected to `/admin/password`, where the new password is saved through Supabase Auth.
+1. the admin requests a one-time code for the existing admin email;
+2. Supabase sends a six-digit OTP email with `shouldCreateUser/create_user = false`;
+3. the code is verified through Supabase Auth;
+4. the authenticated identity calls `public.meets_admin_exchange_auth()`;
+5. that RPC verifies the user exists in `public.admin_users` and issues the short-lived MEETS admin session token used by the admin catalogue/edit RPCs.
 
-The legacy temporary `meets_admin_login(p_password)` path is deprecated and should not be exposed after the Auth rollout is confirmed.
+The Supabase **Magic Link email template must contain `{{ .Token }}`** so that the email shows the six-digit OTP rather than a clickable link.
+
+The legacy temporary password login and password-recovery pages are not used.
 
 Required environment variables:
 
