@@ -2,6 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState} from 'react';
 import AdminEventMap from './admin-event-map.jsx';
+import {adminRecoveryRedirect} from '../../lib/auth-redirect.js';
 
 const ADMIN_EMAIL='girts.polis@icloud.com';
 const SESSION_KEY='meets_admin_access_token';
@@ -80,6 +81,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [geocodeProgress,setGeocodeProgress]=useState('');
  const [autoGeocodeStarted,setAutoGeocodeStarted]=useState(false);
  const [applyingVenue,setApplyingVenue]=useState('');
+ const [resetCooldown,setResetCooldown]=useState(0);
 
  async function checkAdmin(activeToken){
   if(!activeToken){setAuthChecked(true);return;}
@@ -137,16 +139,31 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  }
 
  async function requestPasswordReset(){
+  if(resetCooldown>0)return;
   setLoading(true);setMessage('');
   try{
-   const response=await fetch(supabaseUrl+'/auth/v1/recover',{
+   const redirectTo=adminRecoveryRedirect(window.location.origin);
+   const response=await fetch(supabaseUrl+'/auth/v1/recover?redirect_to='+encodeURIComponent(redirectTo),{
     method:'POST',
     headers:{apikey:publishableKey,'Content-Type':'application/json'},
     body:JSON.stringify({email:ADMIN_EMAIL}),
     cache:'no-store'
    });
-   if(!response.ok)throw new Error('Reset failed');
-   setMessage('Paroles maiņas saite nosūtīta uz '+ADMIN_EMAIL+'. Atver e-pastu un seko saitei.');
+   if(!response.ok){
+    let code='';
+    try{code=(await response.json())?.error_code||'';}catch{}
+    if(response.status===429||code==='over_email_send_rate_limit'){
+     setMessage('Paroles maiņas e-pasts jau nesen nosūtīts. Pagaidi dažas sekundes un mēģini vēlreiz.');
+     return;
+    }
+    throw new Error('Reset failed');
+   }
+   setResetCooldown(10);
+   setMessage('Paroles maiņas saite nosūtīta uz '+ADMIN_EMAIL+'. Jaunā saite atgriezīs tieši uz MEETS paroles maiņas lapu.');
+   const timer=window.setInterval(()=>setResetCooldown(value=>{
+    if(value<=1){window.clearInterval(timer);return 0;}
+    return value-1;
+   }),1000);
   }catch{
    setMessage('Paroles maiņas e-pastu neizdevās nosūtīt. Mēģini vēlreiz pēc brīža.');
   }finally{
@@ -287,7 +304,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <label>Parole<input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" autoFocus/></label>
    <div className="actions">
     <button className="button primary" type="submit" disabled={loading}>{loading?'Pārbaudām…':'Ieiet'}</button>
-    <button className="text-button" type="button" onClick={requestPasswordReset} disabled={loading}>Aizmirsu paroli</button>
+    <button className="text-button" type="button" onClick={requestPasswordReset} disabled={loading||resetCooldown>0}>{resetCooldown>0?`Sūtīt vēlreiz pēc ${resetCooldown}s`:'Aizmirsu paroli'}</button>
    </div>
    {message&&<p className="sync-text" role="status">{message}</p>}
   </form>;

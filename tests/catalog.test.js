@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterEvents,filterEventsByColumns,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded} from '../lib/event-date.js';
+import {adminRecoveryRedirect} from '../lib/auth-redirect.js';
 import {createWorkbook} from '../lib/excel.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
@@ -156,5 +157,17 @@ test('admin session endpoint rejects missing tokens without upstream access',asy
  const response=await POST(new Request('http://localhost/api/admin/session',{method:'POST'}));
  assert.equal(response.status,200);
  assert.deepEqual(await response.json(),{valid:false});
+});
+
+test('admin password recovery redirects to the MEETS password page',()=>{
+ assert.equal(
+  adminRecoveryRedirect('https://meets-2.vercel.app'),
+  'https://meets-2.vercel.app/admin/password'
+ );
+ assert.equal(
+  adminRecoveryRedirect('https://events.example.lv/some/path'),
+  'https://events.example.lv/admin/password'
+ );
+ assert.throws(()=>adminRecoveryRedirect('javascript:alert(1)'));
 });
 
