@@ -5,8 +5,7 @@ import {usePathname} from 'next/navigation';
 
 const items=[
  {href:'/karte',label:'Karte'},
- {href:'/pasakumi',label:'Pasākumi'},
- {href:'/admin',label:'Admin'}
+ {href:'/pasakumi',label:'Pasākumi'}
 ];
 
 export default function SiteNav(){
