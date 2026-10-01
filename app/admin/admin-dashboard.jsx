@@ -2,6 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState} from 'react';
 import AdminEventMap from './admin-event-map.jsx';
+import {isValidAdminOtp,normalizeAdminOtp} from '../../lib/admin-otp.js';
 
 const ADMIN_EMAIL='girts.polis@icloud.com';
 const SESSION_KEY='meets_admin_access_token';
@@ -142,8 +143,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
  async function verifyOtp(event){
   event.preventDefault();
-  const code=otp.replace(/\D/g,'').slice(0,6);
-  if(code.length!==6){setMessage('Ievadi 6 ciparu kodu no e-pasta.');return;}
+  const code=normalizeAdminOtp(otp);
+  if(!isValidAdminOtp(code)){setMessage('Ievadi 6 ciparu kodu no e-pasta.');return;}
   setLoading(true);setMessage('');
   try{
    const verifyResponse=await fetch(supabaseUrl+'/auth/v1/verify',{
@@ -321,13 +322,13 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
       autoComplete="one-time-code"
       maxLength={6}
       value={otp}
-      onChange={event=>setOtp(event.target.value.replace(/\D/g,'').slice(0,6))}
+      onChange={event=>setOtp(normalizeAdminOtp(event.target.value))}
       placeholder="000000"
       autoFocus
      />
     </label>
     <div className="actions">
-     <button className="button primary" type="submit" disabled={loading||otp.length!==6}>{loading?'Pārbaudām…':'Ielogoties'}</button>
+     <button className="button primary" type="submit" disabled={loading||!isValidAdminOtp(otp)}>{loading?'Pārbaudām…':'Ielogoties'}</button>
      <button className="text-button" type="button" onClick={sendOtp} disabled={loading||otpCooldown>0}>
       {otpCooldown>0?`Jauns kods pēc ${otpCooldown}s`:'Nosūtīt jaunu kodu'}
      </button>
