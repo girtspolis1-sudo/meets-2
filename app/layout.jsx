@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import SiteNav from './site-nav.jsx';
 import AdminFooterControl from './admin-footer-control.jsx';
-import AuthRecoveryRedirect from './auth-recovery-redirect.jsx';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './globals.css';
@@ -19,7 +18,6 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return <html lang="lv"><body>
-    <AuthRecoveryRedirect/>
     <a className="skip" href="#saturs">Pāriet uz saturu</a>
     <header className="header">
       <Link className="brand" href="/" aria-label="MEETS sākumlapa">
