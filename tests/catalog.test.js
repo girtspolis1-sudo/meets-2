@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterEvents,filterEventsByColumns,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
-import {eventDateState,groupDateTone} from '../lib/event-date.js';
+import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded} from '../lib/event-date.js';
 import {createWorkbook} from '../lib/excel.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
@@ -105,13 +105,30 @@ test('client error reporting accepts only small same-site JSON payloads',async()
  }
 });
 
-test('map date emphasis distinguishes today, tomorrow and future events',()=>{
- const today='2026-09-30';
- assert.deepEqual(eventDateState({date_from:'2026-09-30'},today),{tone:'today',label:'Šodien',days:0});
- assert.deepEqual(eventDateState({date_from:'2026-10-01'},today),{tone:'tomorrow',label:'Rīt',days:1});
- assert.deepEqual(eventDateState({date_from:'2026-10-05'},today),{tone:'future',label:'5 dienas līdz pasākumam',days:5});
- assert.equal(groupDateTone([{date_from:'2026-10-04'},{date_from:'2026-10-01'}],today),'tomorrow');
+test('map date badges distinguish today, tomorrow, future, ranges and ended events',()=>{
+ const today='2026-10-03';
+ assert.deepEqual(
+  eventDateState({date_from:'2026-10-03'},today),
+  {tone:'today',label:'Šodien',badge:'Šodien',days:0,isOpenToday:true}
+ );
+ assert.deepEqual(
+  eventDateState({date_from:'2026-10-04'},today),
+  {tone:'tomorrow',label:'Rīt',badge:'Rīt',days:1,isOpenToday:false}
+ );
+ assert.deepEqual(
+  eventDateState({date_from:'2026-10-08'},today),
+  {tone:'future',label:'5 dienas līdz pasākumam',badge:'5d',days:5,isOpenToday:false}
+ );
+ assert.deepEqual(
+  eventDateState({date_from:'2026-09-28',date_to:'2026-09-30'},today),
+  {tone:'past',label:'Pasākums beidzās pirms 3 dienām',badge:'-3d',days:-3,isOpenToday:false}
+ );
+ assert.equal(eventDateState({date_from:'2026-10-01',date_to:'2026-10-05'},today).tone,'today');
+ assert.equal(eventDateRangeLabel({date_from:'2026-10-01',date_to:'2026-10-05'},value=>value),'2026-10-01–2026-10-05');
+ assert.equal(groupDateTone([{date_from:'2026-10-08'},{date_from:'2026-10-04'}],today),'tomorrow');
  assert.equal(groupDateTone([{date_from:'2026-09-29'}],today),'');
+ assert.equal(hasEventEnded({date_from:'2026-09-28',date_to:'2026-09-30'},today),true);
+ assert.equal(hasEventEnded({date_from:'2026-10-01',date_to:'2026-10-05'},today),false);
 });
 
 test('column filters apply only to their own catalogue column',()=>{
@@ -124,5 +141,19 @@ test('column filters apply only to their own catalogue column',()=>{
  assert.equal(filterEventsByColumns(rows,{date_from:'2026-10-03'}).length,1);
  assert.equal(filterEventsByColumns(rows,{venue_name:'arēna',price_status:'paid'}).length,1);
  assert.equal(filterEventsByColumns(rows,{title:'arēna'}).length,0);
+});
+
+test('admin logout endpoint is safe without a session token',async()=>{
+ const {POST}=await import('../app/api/admin/logout/route.js');
+ const response=await POST(new Request('http://localhost/api/admin/logout',{method:'POST'}));
+ assert.equal(response.status,204);
+ assert.equal(response.headers.get('cache-control'),'no-store');
+});
+
+test('admin session endpoint rejects missing tokens without upstream access',async()=>{
+ const {POST}=await import('../app/api/admin/session/route.js');
+ const response=await POST(new Request('http://localhost/api/admin/session',{method:'POST'}));
+ assert.equal(response.status,200);
+ assert.deepEqual(await response.json(),{valid:false});
 });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {eventDateState,groupDateTone} from '../../lib/event-date.js';
+import {eventDateRangeLabel,eventDateState,groupDateTone} from '../../lib/event-date.js';
 
 const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
 const STYLE_URL='https://tiles.openfreemap.org/styles/positron';
@@ -52,8 +52,9 @@ function popupHtml(group){
   const state=eventDateState(event);
   const quality=event.location_quality||'nav kvalitātes atzīmes';
   const status=event.status||'';
+  const rangeLabel=eventDateRangeLabel(event,dateText);
   return '<li><strong>'+esc(event.title)+'</strong>'+
-   '<span class="popup-date-row"><button type="button" class="event-date-indicator '+esc(state.tone)+'" data-date-label="'+esc(state.label)+'" aria-label="'+esc(state.label)+'" title="'+esc(state.label)+'">●</button><span>'+esc(dateText(event.date_from))+' · '+esc(timeText(event))+'</span></span>'+
+   '<span class="popup-date-row"><span class="event-date-indicator '+esc(state.tone)+'" aria-hidden="true">●</span><span class="event-date-badge '+esc(state.tone)+'" title="'+esc(state.label)+'">'+esc(state.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeText(event))+'</span></span>'+
    '<small>'+esc([status,quality].filter(Boolean).join(' · '))+'</small>'+
    '<button type="button" class="admin-popup-edit" data-admin-edit="'+esc(event.id)+'">Labot</button></li>';
  }).join('');
@@ -114,12 +115,6 @@ export default function AdminEventMap({events,onEdit}){
 
    marker.on('popupopen',event=>{
     const root=event.popup.getElement();
-    root?.querySelectorAll('.event-date-indicator').forEach(button=>{
-     button.onclick=()=>{
-      root.querySelectorAll('.event-date-indicator.active').forEach(other=>{if(other!==button)other.classList.remove('active');});
-      button.classList.toggle('active');
-     };
-    });
     root?.querySelectorAll('[data-admin-edit]').forEach(button=>{
      button.onclick=()=>{
       const selected=eventById.get(button.dataset.adminEdit);

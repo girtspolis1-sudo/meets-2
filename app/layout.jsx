@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import SiteNav from './site-nav.jsx';
+import AdminFooterControl from './admin-footer-control.jsx';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './globals.css';
@@ -29,7 +30,10 @@ export default function RootLayout({ children }) {
     <footer>
       <img className="footer-logo" src="/meets-logo-purple.png" alt="MEETS"/>
       <p>Pasākumi, kas saved cilvēkus kopā.</p>
-      <span>Latvija</span>
+      <div className="footer-side">
+        <span>Latvija</span>
+        <AdminFooterControl/>
+      </div>
     </footer>
   </body></html>;
 }

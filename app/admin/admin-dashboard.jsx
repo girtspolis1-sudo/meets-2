@@ -5,6 +5,7 @@ import AdminEventMap from './admin-event-map.jsx';
 
 const ADMIN_EMAIL='girts.polis@icloud.com';
 const SESSION_KEY='meets_admin_access_token';
+function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
 
 const QUALITY={
  verified_exact:{label:'Precīzi verificēta',tone:'ok',priority:6},
@@ -86,8 +87,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    const ok=await apiFetch(supabaseUrl,publishableKey,'meets_admin_session_valid',{p_session_token:activeToken});
    setIsAdmin(ok===true);
    if(ok===true)await loadEvents(activeToken);
-   else{sessionStorage.removeItem(SESSION_KEY);setToken('');setIsAdmin(false);}
-  }catch{sessionStorage.removeItem(SESSION_KEY);setToken('');setIsAdmin(false);}
+   else{sessionStorage.removeItem(SESSION_KEY);notifyAdminSession();setToken('');setIsAdmin(false);}
+  }catch{sessionStorage.removeItem(SESSION_KEY);notifyAdminSession();setToken('');setIsAdmin(false);}
   finally{setAuthChecked(true);}
  }
  async function loadEvents(activeToken=token){
@@ -110,7 +111,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   try{
    const sessionToken=await apiFetch(supabaseUrl,publishableKey,'meets_admin_login',{p_password:password});
    if(!sessionToken||typeof sessionToken!=='string')throw new Error();
-   sessionStorage.setItem(SESSION_KEY,sessionToken);
+   sessionStorage.setItem(SESSION_KEY,sessionToken);notifyAdminSession();
    setToken(sessionToken);setPassword('');setIsAdmin(true);await loadEvents(sessionToken);
   }catch{setMessage('Nepareiza parole.');}
   finally{setLoading(false);setAuthChecked(true);}
@@ -142,11 +143,6 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }catch{setMessage('Lokāciju neizdevās saglabāt.');}
   finally{setLoading(false);}
  }
- async function logout(){
-  try{if(token)await apiFetch(supabaseUrl,publishableKey,'meets_admin_logout',{p_session_token:token});}catch{}
-  sessionStorage.removeItem(SESSION_KEY);setToken('');setIsAdmin(false);setEvents([]);setAuthChecked(true);
- }
-
  const lffMissingGroups=useMemo(()=>groupMissingLff(events),[events]);
  const lffMissingEvents=useMemo(()=>lffMissingGroups.reduce((sum,g)=>sum+g.events.length,0),[lffMissingGroups]);
 
@@ -229,6 +225,16 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  },[events,search,status,quality]);
 
  useEffect(()=>{
+  if(!isAdmin||!events.length||editing)return;
+  const editId=new URLSearchParams(window.location.search).get('edit');
+  if(!editId)return;
+  const event=events.find(item=>item.id===editId);
+  if(!event)return;
+  setEditing(event);
+  window.history.replaceState(null,'','/admin');
+ },[isAdmin,events,editing]);
+
+ useEffect(()=>{
   if(!isAdmin||!token||autoGeocodeStarted||geocodeRunning||!lffMissingGroups.length)return;
   const unprocessed=lffMissingGroups.filter(g=>!g.suggestedAt);
   if(!unprocessed.length)return;
@@ -244,8 +250,6 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <label>Parole<input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" autoFocus/></label>
    <div className="actions"><button className="button primary" type="submit" disabled={loading}>{loading?'Pārbaudām…':'Ieiet'}</button></div>
    {message&&<p className="sync-text" role="status">{message}</p>}
-
-  <AdminEventMap events={filtered} onEdit={setEditing}/>
   </form>;
  }
 
@@ -270,11 +274,12 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     {Object.entries(QUALITY).map(([value,meta])=><option key={value} value={value}>{meta.label}</option>)}
    </select></label>
    <button className="button" onClick={()=>loadEvents()} disabled={loading}>{loading?'Ielādē…':'Pārlasīt'}</button>
-   <button className="text-button" onClick={logout}>Iziet</button>
   </div>
 
   <p className="admin-rule"><strong>Lokācijas kvalitāte:</strong> visi esošie ieraksti ir apstiprināti, bet kvalitātes atzīmes un problēmu iemesli paliek redzami. Jauniem <code>pending_review</code> ierakstiem pirms publicēšanas ieteicams vispirms verificēt lokāciju.</p>
   {message&&<p className="sync-text" role="status">{message}</p>}
+
+  <AdminEventMap events={filtered} onEdit={setEditing}/>
 
   {lffMissingGroups.length>0&&<section className="lff-location-queue">
    <div className="queue-head">
