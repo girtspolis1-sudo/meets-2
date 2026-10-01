@@ -14,11 +14,14 @@ export default function PasswordResetForm({supabaseUrl,publishableKey}){
   const params=new URLSearchParams(window.location.hash.slice(1));
   const token=params.get('access_token')||'';
   const type=params.get('type')||'';
+  const errorDescription=params.get('error_description')||'';
   if(type==='recovery'&&token){
    setAccessToken(token);
    setReady(true);
+  }else if(errorDescription){
+   setMessage('Paroles atiestatīšanas saite nav derīga: '+decodeURIComponent(errorDescription.replace(/\+/g,' ')));
   }else{
-   setMessage('Paroles atiestatīšanas saite nav derīga vai tai beidzies termiņš.');
+   setMessage('Paroles atiestatīšanas saite nav derīga vai tai beidzies termiņš. Pieprasi jaunu saiti admin pieslēgšanās lapā.');
   }
  },[]);
 
