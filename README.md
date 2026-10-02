@@ -52,6 +52,8 @@ Internal comments, review fields, import payloads, admin sessions and change his
 
 MEETS start-stage admin access uses a single **email + password** login.
 
+On first activation, `/admin` shows a one-time setup form that requires the approved admin email, the previously issued emergency recovery code and the new password. The server stores only the bcrypt password hash and consumes the recovery code. After activation, the setup form disappears and only the normal email/password login remains.
+
 - only one approved admin email is accepted;
 - the database stores the email only as a SHA-256 hash;
 - the password is stored only as a bcrypt hash;
