@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterEvents,filterEventsByColumns,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded} from '../lib/event-date.js';
-import {isValidAdminOtp,normalizeAdminOtp} from '../lib/admin-otp.js';
+import {formatRecoveryCode,isValidAdminOtp,isValidRecoveryCode,normalizeAdminOtp,normalizeRecoveryCode} from '../lib/admin-otp.js';
 import {createWorkbook} from '../lib/excel.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
@@ -29,7 +29,9 @@ test('live Supabase data and Excel round trip include every row; no formulas',{s
  const publicPayload=await publicRpc.json();assert(Array.isArray(publicPayload.events));assert(publicPayload.events.every(e=>e.status==='published'));
  const table=await fetch(process.env.SUPABASE_URL+'/rest/v1/events?select=id&limit=1',{headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY}});assert(!table.ok);
  const invalidOtp=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_verify_otp',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_challenge_id:'00000000-0000-0000-0000-000000000000',p_code:'000000'})});assert(!invalidOtp.ok);
- console.log(`Verified ${data.total} live rows, public published-only RPC, no anonymous table access and invalid admin OTP rejection.`);
+ const invalidRecovery=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_recovery_login',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_code:'NOT-A-VALID-RECOVERY-CODE'})});assert(!invalidRecovery.ok);
+ const anonGoogle=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_google_exchange',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:'{}'});assert(!anonGoogle.ok);
+ console.log(`Verified ${data.total} live rows, public published-only RPC, invalid OTP/recovery rejection and authenticated-only Google exchange.`);
 });
 
 test('each shared filter matches, excludes, combines and resets',()=>{
@@ -165,5 +167,13 @@ test('admin OTP accepts exactly six digits and normalizes pasted codes',()=>{
  assert.equal(normalizeAdminOtp('abc'),'');
  assert.equal(isValidAdminOtp('123456'),true);
  assert.equal(isValidAdminOtp('12345'),false);
+});
+
+test('admin recovery code normalization keeps 24 safe characters',()=>{
+ const raw='q6ha9w ykx2uj-ral7pd-d3ch2b';
+ assert.equal(normalizeRecoveryCode(raw),'Q6HA9WYKX2UJRAL7PDD3CH2B');
+ assert.equal(formatRecoveryCode(raw),'Q6HA9W-YKX2UJ-RAL7PD-D3CH2B');
+ assert.equal(isValidRecoveryCode(raw),true);
+ assert.equal(isValidRecoveryCode('TOO-SHORT'),false);
 });
 
