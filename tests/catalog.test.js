@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterEvents,filterEventsByColumns,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded} from '../lib/event-date.js';
-import {formatRecoveryCode,isValidAdminOtp,isValidRecoveryCode,normalizeAdminOtp,normalizeRecoveryCode} from '../lib/admin-otp.js';
 import {createWorkbook} from '../lib/excel.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
@@ -28,10 +27,8 @@ test('live Supabase data and Excel round trip include every row; no formulas',{s
  const publicRpc=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_public_catalog',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({})});assert(publicRpc.ok);
  const publicPayload=await publicRpc.json();assert(Array.isArray(publicPayload.events));assert(publicPayload.events.every(e=>e.status==='published'));
  const table=await fetch(process.env.SUPABASE_URL+'/rest/v1/events?select=id&limit=1',{headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY}});assert(!table.ok);
- const invalidOtp=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_verify_otp',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_challenge_id:'00000000-0000-0000-0000-000000000000',p_code:'000000'})});assert(!invalidOtp.ok);
- const invalidRecovery=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_recovery_login',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_code:'NOT-A-VALID-RECOVERY-CODE'})});assert(!invalidRecovery.ok);
- const anonGoogle=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_google_exchange',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:'{}'});assert(!anonGoogle.ok);
- console.log(`Verified ${data.total} live rows, public published-only RPC, invalid OTP/recovery rejection and authenticated-only Google exchange.`);
+ const passwordReady=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_password_ready',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:'{}'});assert(passwordReady.ok);assert.equal(typeof await passwordReady.json(),'boolean');
+ console.log(`Verified ${data.total} live rows, public published-only RPC, no direct anonymous table access and admin password readiness endpoint.`);
 });
 
 test('each shared filter matches, excludes, combines and resets',()=>{
@@ -161,19 +158,5 @@ test('admin session endpoint rejects missing tokens without upstream access',asy
  assert.deepEqual(await response.json(),{valid:false});
 });
 
-test('admin OTP accepts exactly six digits and normalizes pasted codes',()=>{
- assert.equal(normalizeAdminOtp('12 34-56'),'123456');
- assert.equal(normalizeAdminOtp('123456789'),'123456');
- assert.equal(normalizeAdminOtp('abc'),'');
- assert.equal(isValidAdminOtp('123456'),true);
- assert.equal(isValidAdminOtp('12345'),false);
-});
 
-test('admin recovery code normalization keeps 24 safe characters',()=>{
- const raw='abcdef ghjklm-npqrst-uvwxyz';
- assert.equal(normalizeRecoveryCode(raw),'ABCDEFGHJKLMNPQRSTUVWXYZ');
- assert.equal(formatRecoveryCode(raw),'ABCDEF-GHJKLM-NPQRST-UVWXYZ');
- assert.equal(isValidRecoveryCode(raw),true);
- assert.equal(isValidRecoveryCode('TOO-SHORT'),false);
-});
 
