@@ -2,7 +2,6 @@
 
 import {useEffect,useMemo,useRef,useState} from 'react';
 import AdminEventMap from './admin-event-map.jsx';
-import {formatRecoveryCode,isValidAdminOtp,isValidRecoveryCode,normalizeAdminOtp,normalizeRecoveryCode} from '../../lib/admin-otp.js';
 
 const SESSION_KEY='meets_admin_access_token';
 function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
@@ -69,12 +68,7 @@ async function apiFetch(url,key,path,body,authorization=''){
 export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [token,setToken]=useState('');
  const [email,setEmail]=useState('');
- const [otp,setOtp]=useState('');
- const [recoveryCode,setRecoveryCode]=useState('');
- const [googleReady,setGoogleReady]=useState(null);
- const [challengeId,setChallengeId]=useState('');
- const [recipientHint,setRecipientHint]=useState('');
- const [otpSent,setOtpSent]=useState(false);
+ const [password,setPassword]=useState('');
  const [authChecked,setAuthChecked]=useState(false);
  const [isAdmin,setIsAdmin]=useState(false);
  const [message,setMessage]=useState('');
@@ -88,7 +82,6 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [geocodeProgress,setGeocodeProgress]=useState('');
  const [autoGeocodeStarted,setAutoGeocodeStarted]=useState(false);
  const [applyingVenue,setApplyingVenue]=useState('');
- const [otpCooldown,setOtpCooldown]=useState(0);
 
  async function checkAdmin(activeToken){
   if(!activeToken){setAuthChecked(true);return;}
@@ -110,95 +103,22 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   finally{setLoading(false);}
  }
  useEffect(()=>{
-  let cancelled=false;
-
-  async function bootstrapAuth(){
-   const active=sessionStorage.getItem(SESSION_KEY)||'';
-   setEmail(localStorage.getItem('meets_admin_email')||'');
-
-   try{
-    const settingsResponse=await fetch(supabaseUrl+'/auth/v1/settings',{
-     headers:{apikey:publishableKey},
-     cache:'no-store'
-    });
-    const settings=settingsResponse.ok?await settingsResponse.json():null;
-    if(!cancelled)setGoogleReady(settings?.external?.google===true);
-   }catch{
-    if(!cancelled)setGoogleReady(false);
-   }
-
-   if(active){
-    setToken(active);
-    await checkAdmin(active);
-    return;
-   }
-
-   const hash=new URLSearchParams(window.location.hash.slice(1));
-   const oauthError=hash.get('error_description')||hash.get('error');
-   const accessToken=hash.get('access_token')||'';
-
-   if(oauthError){
-    window.history.replaceState(null,'',window.location.pathname+window.location.search);
-    if(!cancelled){
-     setMessage('Google pieslēgšanās neizdevās. Pārbaudi Google kontu vai izmanto rezerves piekļuvi.');
-     setAuthChecked(true);
-    }
-    return;
-   }
-
-   if(accessToken){
-    setLoading(true);
-    try{
-     const sessionToken=await apiFetch(
-      supabaseUrl,
-      publishableKey,
-      'meets_admin_google_exchange',
-      {},
-      accessToken
-     );
-     if(!sessionToken||typeof sessionToken!=='string')throw new Error('Missing admin session');
-
-     window.history.replaceState(null,'',window.location.pathname+window.location.search);
-     sessionStorage.setItem(SESSION_KEY,sessionToken);
-     notifyAdminSession();
-
-     if(cancelled)return;
-     setToken(sessionToken);
-     setIsAdmin(true);
-     setAuthChecked(true);
-     await loadEvents(sessionToken);
-    }catch{
-     window.history.replaceState(null,'',window.location.pathname+window.location.search);
-     if(!cancelled){
-      setMessage('Šis Google konts nav atļauts MEETS admin videi.');
-      setAuthChecked(true);
-     }
-    }finally{
-     if(!cancelled)setLoading(false);
-    }
-    return;
-   }
-
-   if(!cancelled)setAuthChecked(true);
-  }
-
-  bootstrapAuth();
-  return()=>{cancelled=true;};
+  const active=sessionStorage.getItem(SESSION_KEY)||'';
+  setEmail(localStorage.getItem('meets_admin_email')||'');
+  setToken(active);
+  checkAdmin(active);
  },[]);
- function startGoogleLogin(){
-  setMessage('');
-  const redirectTo=window.location.origin+'/admin';
-  const url=new URL(supabaseUrl+'/auth/v1/authorize');
-  url.searchParams.set('provider','google');
-  url.searchParams.set('redirect_to',redirectTo);
-  window.location.assign(url.toString());
- }
 
- async function loginWithRecovery(event){
+ async function login(event){
   event.preventDefault();
-  const normalized=normalizeRecoveryCode(recoveryCode);
-  if(!isValidRecoveryCode(normalized)){
-   setMessage('Ievadi pilnu emergency recovery kodu.');
+  const normalizedEmail=String(email||'').trim().toLowerCase();
+
+  if(!normalizedEmail||!normalizedEmail.includes('@')){
+   setMessage('Ievadi admin e-pastu.');
+   return;
+  }
+  if(password.length<8){
+   setMessage('Ievadi admin paroli.');
    return;
   }
 
@@ -207,8 +127,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    const sessionToken=await apiFetch(
     supabaseUrl,
     publishableKey,
-    'meets_admin_recovery_login',
-    {p_code:normalized}
+    'meets_admin_password_login',
+    {p_email:normalizedEmail,p_password:password}
    );
 
    if(!sessionToken||typeof sessionToken!=='string'){
@@ -216,100 +136,19 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    }
 
    sessionStorage.setItem(SESSION_KEY,sessionToken);
+   localStorage.setItem('meets_admin_email',normalizedEmail);
    notifyAdminSession();
+
    setToken(sessionToken);
-   setRecoveryCode('');
+   setPassword('');
    setIsAdmin(true);
    setAuthChecked(true);
    await loadEvents(sessionToken);
   }catch{
-   setMessage('Recovery kods nav derīgs vai jau ir izmantots.');
+   setMessage('Nepareizs e-pasts vai parole.');
   }finally{
    setLoading(false);
-  }
- }
-
- async function sendOtp(){
-  if(loading||otpCooldown>0)return;
-  const normalizedEmail=String(email||'').trim().toLowerCase();
-  if(!normalizedEmail||!normalizedEmail.includes('@')){
-   setMessage('Ievadi admin Gmail adresi.');
-   return;
-  }
-
-  setLoading(true);setMessage('');
-  try{
-   const result=await apiFetch(
-    supabaseUrl,
-    publishableKey,
-    'meets_admin_request_otp',
-    {p_email:normalizedEmail}
-   );
-
-   if(result?.ok===false&&result?.reason==='rate_limited'){
-    const retry=Math.max(1,Number(result.retry_after)||60);
-    setOtpCooldown(retry);
-    setMessage('Kods jau nesen nosūtīts. Pagaidi un mēģini vēlreiz.');
-    return;
-   }
-
-   const nextChallenge=String(result?.challenge_id||'');
-   if(!nextChallenge)throw new Error('Missing challenge');
-
-   setChallengeId(nextChallenge);
-   setRecipientHint(String(result?.recipient_hint||'admin e-pastu'));
-   setOtpSent(true);
-   setOtp('');
-   setOtpCooldown(60);
-   setMessage('6 ciparu kods nosūtīts uz '+String(result?.recipient_hint||'admin e-pastu')+'.');
-
-   const timer=window.setInterval(()=>setOtpCooldown(value=>{
-    if(value<=1){window.clearInterval(timer);return 0;}
-    return value-1;
-   }),1000);
-  }catch{
-   setMessage('Kodu neizdevās nosūtīt. Mēģini vēlreiz pēc brīža.');
-  }finally{
-   setLoading(false);
-  }
- }
-
- async function verifyOtp(event){
-  event.preventDefault();
-  const code=normalizeAdminOtp(otp);
-  if(!isValidAdminOtp(code)||!challengeId){
-   setMessage('Ievadi 6 ciparu kodu no e-pasta.');
-   return;
-  }
-
-  setLoading(true);setMessage('');
-  try{
-   const sessionToken=await apiFetch(
-    supabaseUrl,
-    publishableKey,
-    'meets_admin_verify_otp',
-    {p_challenge_id:challengeId,p_code:code}
-   );
-
-   if(!sessionToken||typeof sessionToken!=='string'){
-    throw new Error('Missing admin session');
-   }
-
-   sessionStorage.setItem(SESSION_KEY,sessionToken);
-   localStorage.setItem('meets_admin_email',String(email||'').trim().toLowerCase());
-   notifyAdminSession();
-
-   setToken(sessionToken);
-   setOtp('');
-   setOtpSent(false);
-   setChallengeId('');
-   setRecipientHint('');
-   setIsAdmin(true);
-   await loadEvents(sessionToken);
-  }catch{
-   setMessage('Kods nav derīgs vai tam beidzies termiņš. Pieprasi jaunu kodu un mēģini vēlreiz.');
-  }finally{
-   setLoading(false);setAuthChecked(true);
+   setAuthChecked(true);
   }
  }
 
@@ -441,81 +280,40 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
  if(!authChecked)return <div className="admin-login"><p>Pārbaudām admin piekļuvi…</p></div>;
  if(!token||!isAdmin){
-  return <div className="admin-login admin-auth-stack">
-   <div className="admin-auth-primary">
-    <p className="eyebrow">Primārā piekļuve</p>
-    <h2>Admin pieslēgšanās</h2>
-    <p>Ātrākais veids ir Google konts. MEETS piešķirs admin piekļuvi tikai iepriekš atļautajam Google kontam.</p>
-    <button className="button primary google-login-button" type="button" onClick={startGoogleLogin} disabled={loading||googleReady!==true}>
-     <span className="google-mark" aria-hidden="true">G</span>
-     {googleReady===false?'Google login vēl jāaktivizē':'Ielogoties ar Google'}
+  return <form className="admin-login admin-simple-login" onSubmit={login}>
+   <p className="eyebrow">MEETS · admin</p>
+   <h2>Admin pieslēgšanās</h2>
+   <p>Starta režīms: pieslēdzies ar savu admin e-pastu un paroli.</p>
+
+   <label>E-pasts
+    <input
+     type="email"
+     value={email}
+     onChange={event=>setEmail(event.target.value)}
+     autoComplete="username"
+     placeholder="admin@gmail.com"
+     autoFocus
+    />
+   </label>
+
+   <label>Parole
+    <input
+     type="password"
+     value={password}
+     onChange={event=>setPassword(event.target.value)}
+     autoComplete="current-password"
+     placeholder="••••••••••••"
+    />
+   </label>
+
+   <div className="actions">
+    <button className="button primary" type="submit" disabled={loading}>
+     {loading?'Pārbaudām…':'Ielogoties'}
     </button>
-    {googleReady===false&&<p className="sync-text">MEETS Google login kods ir gatavs; Supabase projektā vēl jāieslēdz Google providers un production redirect.</p>}
    </div>
 
-   <div className="admin-auth-divider"><span>rezerves piekļuve</span></div>
-
-   <details className="admin-auth-option" open={otpSent||undefined}>
-    <summary>Saņemt 6 ciparu kodu e-pastā</summary>
-    <form className="admin-auth-option-body" onSubmit={verifyOtp}>
-     {!otpSent?<>
-      <label>Admin Gmail
-       <input
-        type="email"
-        value={email}
-        onChange={event=>setEmail(event.target.value)}
-        autoComplete="email"
-        placeholder="admin@gmail.com"
-       />
-      </label>
-      <button className="button" type="button" onClick={sendOtp} disabled={loading||otpCooldown>0}>
-       {loading?'Sūta kodu…':otpCooldown>0?`Sūtīt vēlreiz pēc ${otpCooldown}s`:'Nosūtīt kodu'}
-      </button>
-     </>:<>
-      <p className="sync-text">Kods nosūtīts uz <strong>{recipientHint||'admin e-pastu'}</strong>.</p>
-      <label>6 ciparu kods
-       <input
-        className="otp-code-input"
-        inputMode="numeric"
-        pattern="[0-9]*"
-        autoComplete="one-time-code"
-        maxLength={6}
-        value={otp}
-        onChange={event=>setOtp(normalizeAdminOtp(event.target.value))}
-        placeholder="000000"
-       />
-      </label>
-      <div className="actions">
-       <button className="button primary" type="submit" disabled={loading||!isValidAdminOtp(otp)}>{loading?'Pārbaudām…':'Ielogoties ar kodu'}</button>
-       <button className="text-button" type="button" onClick={sendOtp} disabled={loading||otpCooldown>0}>
-        {otpCooldown>0?`Jauns kods pēc ${otpCooldown}s`:'Nosūtīt jaunu kodu'}
-       </button>
-       <button className="text-button" type="button" onClick={()=>{setOtpSent(false);setOtp('');setChallengeId('');setRecipientHint('');setMessage('');}}>Mainīt e-pastu</button>
-      </div>
-     </>}
-    </form>
-   </details>
-
-   <details className="admin-auth-option emergency">
-    <summary>Emergency recovery kods</summary>
-    <form className="admin-auth-option-body" onSubmit={loginWithRecovery}>
-     <p className="sync-text">Izmanto tikai tad, ja Google un e-pasta OTP nav pieejami. Kods ir vienreizējs.</p>
-     <label>Recovery kods
-      <input
-       type="text"
-       value={formatRecoveryCode(recoveryCode)}
-       onChange={event=>setRecoveryCode(normalizeRecoveryCode(event.target.value))}
-       autoComplete="off"
-       spellCheck={false}
-       placeholder="XXXXXX-XXXXXX-XXXXXX-XXXXXX"
-      />
-     </label>
-     <button className="button" type="submit" disabled={loading||!isValidRecoveryCode(recoveryCode)}>Ielogoties ar recovery kodu</button>
-    </form>
-   </details>
-
    {message&&<p className="sync-text admin-auth-message" role="status">{message}</p>}
-  </div>;
+  </form>;
  }
 
  return <>
