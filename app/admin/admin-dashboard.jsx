@@ -71,6 +71,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [email,setEmail]=useState('');
  const [otp,setOtp]=useState('');
  const [recoveryCode,setRecoveryCode]=useState('');
+ const [googleReady,setGoogleReady]=useState(null);
  const [challengeId,setChallengeId]=useState('');
  const [recipientHint,setRecipientHint]=useState('');
  const [otpSent,setOtpSent]=useState(false);
@@ -114,6 +115,17 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   async function bootstrapAuth(){
    const active=sessionStorage.getItem(SESSION_KEY)||'';
    setEmail(localStorage.getItem('meets_admin_email')||'');
+
+   try{
+    const settingsResponse=await fetch(supabaseUrl+'/auth/v1/settings',{
+     headers:{apikey:publishableKey},
+     cache:'no-store'
+    });
+    const settings=settingsResponse.ok?await settingsResponse.json():null;
+    if(!cancelled)setGoogleReady(settings?.external?.google===true);
+   }catch{
+    if(!cancelled)setGoogleReady(false);
+   }
 
    if(active){
     setToken(active);
@@ -434,10 +446,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     <p className="eyebrow">Primārā piekļuve</p>
     <h2>Admin pieslēgšanās</h2>
     <p>Ātrākais veids ir Google konts. MEETS piešķirs admin piekļuvi tikai iepriekš atļautajam Google kontam.</p>
-    <button className="button primary google-login-button" type="button" onClick={startGoogleLogin} disabled={loading}>
+    <button className="button primary google-login-button" type="button" onClick={startGoogleLogin} disabled={loading||googleReady!==true}>
      <span className="google-mark" aria-hidden="true">G</span>
-     Ielogoties ar Google
+     {googleReady===false?'Google login vēl jāaktivizē':'Ielogoties ar Google'}
     </button>
+    {googleReady===false&&<p className="sync-text">MEETS Google login kods ir gatavs; Supabase projektā vēl jāieslēdz Google providers un production redirect.</p>}
    </div>
 
    <div className="admin-auth-divider"><span>rezerves piekļuve</span></div>
