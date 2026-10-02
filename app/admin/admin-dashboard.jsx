@@ -2,7 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState} from 'react';
 import AdminEventMap from './admin-event-map.jsx';
-import {isValidAdminOtp,normalizeAdminOtp} from '../../lib/admin-otp.js';
+import {formatRecoveryCode,isValidAdminOtp,isValidRecoveryCode,normalizeAdminOtp,normalizeRecoveryCode} from '../../lib/admin-otp.js';
 
 const SESSION_KEY='meets_admin_access_token';
 function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
@@ -57,8 +57,10 @@ function groupMissingLff(events){
   .map(g=>({...g,competitions:[...g.competitions].sort((a,b)=>a.localeCompare(b,'lv'))}))
   .sort((a,b)=>b.events.length-a.events.length||a.venueName.localeCompare(b.venueName,'lv'));
 }
-async function apiFetch(url,key,path,body){
- const response=await fetch(url+'/rest/v1/rpc/'+path,{method:'POST',headers:{apikey:key,'Content-Type':'application/json'},body:JSON.stringify(body||{}),cache:'no-store'});
+async function apiFetch(url,key,path,body,authorization=''){
+ const headers={apikey:key,'Content-Type':'application/json'};
+ if(authorization)headers.Authorization='Bearer '+authorization;
+ const response=await fetch(url+'/rest/v1/rpc/'+path,{method:'POST',headers,body:JSON.stringify(body||{}),cache:'no-store'});
  const text=await response.text();
  if(!response.ok)throw new Error(text||('HTTP '+response.status));
  return text?JSON.parse(text):null;
@@ -68,6 +70,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [token,setToken]=useState('');
  const [email,setEmail]=useState('');
  const [otp,setOtp]=useState('');
+ const [recoveryCode,setRecoveryCode]=useState('');
  const [challengeId,setChallengeId]=useState('');
  const [recipientHint,setRecipientHint]=useState('');
  const [otpSent,setOtpSent]=useState(false);
@@ -106,10 +109,114 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   finally{setLoading(false);}
  }
  useEffect(()=>{
-  const active=sessionStorage.getItem(SESSION_KEY)||'';
-  setEmail(localStorage.getItem('meets_admin_email')||'');
-  setToken(active);checkAdmin(active);
+  let cancelled=false;
+
+  async function bootstrapAuth(){
+   const active=sessionStorage.getItem(SESSION_KEY)||'';
+   setEmail(localStorage.getItem('meets_admin_email')||'');
+
+   if(active){
+    setToken(active);
+    await checkAdmin(active);
+    return;
+   }
+
+   const hash=new URLSearchParams(window.location.hash.slice(1));
+   const oauthError=hash.get('error_description')||hash.get('error');
+   const accessToken=hash.get('access_token')||'';
+
+   if(oauthError){
+    window.history.replaceState(null,'',window.location.pathname+window.location.search);
+    if(!cancelled){
+     setMessage('Google pieslēgšanās neizdevās. Pārbaudi Google kontu vai izmanto rezerves piekļuvi.');
+     setAuthChecked(true);
+    }
+    return;
+   }
+
+   if(accessToken){
+    setLoading(true);
+    try{
+     const sessionToken=await apiFetch(
+      supabaseUrl,
+      publishableKey,
+      'meets_admin_google_exchange',
+      {},
+      accessToken
+     );
+     if(!sessionToken||typeof sessionToken!=='string')throw new Error('Missing admin session');
+
+     window.history.replaceState(null,'',window.location.pathname+window.location.search);
+     sessionStorage.setItem(SESSION_KEY,sessionToken);
+     notifyAdminSession();
+
+     if(cancelled)return;
+     setToken(sessionToken);
+     setIsAdmin(true);
+     setAuthChecked(true);
+     await loadEvents(sessionToken);
+    }catch{
+     window.history.replaceState(null,'',window.location.pathname+window.location.search);
+     if(!cancelled){
+      setMessage('Šis Google konts nav atļauts MEETS admin videi.');
+      setAuthChecked(true);
+     }
+    }finally{
+     if(!cancelled)setLoading(false);
+    }
+    return;
+   }
+
+   if(!cancelled)setAuthChecked(true);
+  }
+
+  bootstrapAuth();
+  return()=>{cancelled=true;};
  },[]);
+ function startGoogleLogin(){
+  setMessage('');
+  const redirectTo=window.location.origin+'/admin';
+  const url=new URL(supabaseUrl+'/auth/v1/authorize');
+  url.searchParams.set('provider','google');
+  url.searchParams.set('redirect_to',redirectTo);
+  window.location.assign(url.toString());
+ }
+
+ async function loginWithRecovery(event){
+  event.preventDefault();
+  const normalized=normalizeRecoveryCode(recoveryCode);
+  if(!isValidRecoveryCode(normalized)){
+   setMessage('Ievadi pilnu emergency recovery kodu.');
+   return;
+  }
+
+  setLoading(true);setMessage('');
+  try{
+   const sessionToken=await apiFetch(
+    supabaseUrl,
+    publishableKey,
+    'meets_admin_recovery_login',
+    {p_code:normalized}
+   );
+
+   if(!sessionToken||typeof sessionToken!=='string'){
+    throw new Error('Missing admin session');
+   }
+
+   sessionStorage.setItem(SESSION_KEY,sessionToken);
+   notifyAdminSession();
+   setToken(sessionToken);
+   setRecoveryCode('');
+   setIsAdmin(true);
+   setAuthChecked(true);
+   await loadEvents(sessionToken);
+  }catch{
+   setMessage('Recovery kods nav derīgs vai jau ir izmantots.');
+  }finally{
+   setLoading(false);
+  }
+ }
+
  async function sendOtp(){
   if(loading||otpCooldown>0)return;
   const normalizedEmail=String(email||'').trim().toLowerCase();
@@ -322,52 +429,80 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
  if(!authChecked)return <div className="admin-login"><p>Pārbaudām admin piekļuvi…</p></div>;
  if(!token||!isAdmin){
-  return <form className="admin-login admin-otp-login" onSubmit={verifyOtp}>
-   <h2>Admin pieslēgšanās</h2>
-   <p>Piekļuve ar vienreizēju 6 ciparu kodu uz apstiprināto Gmail adresi. Parole un Magic Link nav vajadzīgi.</p>
+  return <div className="admin-login admin-auth-stack">
+   <div className="admin-auth-primary">
+    <p className="eyebrow">Primārā piekļuve</p>
+    <h2>Admin pieslēgšanās</h2>
+    <p>Ātrākais veids ir Google konts. MEETS piešķirs admin piekļuvi tikai iepriekš atļautajam Google kontam.</p>
+    <button className="button primary google-login-button" type="button" onClick={startGoogleLogin} disabled={loading}>
+     <span className="google-mark" aria-hidden="true">G</span>
+     Ielogoties ar Google
+    </button>
+   </div>
 
-   {!otpSent?<>
-    <label>Admin e-pasts
-     <input
-      type="email"
-      value={email}
-      onChange={event=>setEmail(event.target.value)}
-      autoComplete="email"
-      placeholder="admin@gmail.com"
-      autoFocus
-     />
-    </label>
-    <div className="actions">
-     <button className="button primary" type="button" onClick={sendOtp} disabled={loading||otpCooldown>0}>
-      {loading?'Sūta kodu…':otpCooldown>0?`Sūtīt vēlreiz pēc ${otpCooldown}s`:'Nosūtīt kodu'}
-     </button>
-    </div>
-   </>:<>
-    <p className="sync-text">Kods nosūtīts uz <strong>{recipientHint||'admin e-pastu'}</strong>.</p>
-    <label>6 ciparu kods
-     <input
-      className="otp-code-input"
-      inputMode="numeric"
-      pattern="[0-9]*"
-      autoComplete="one-time-code"
-      maxLength={6}
-      value={otp}
-      onChange={event=>setOtp(normalizeAdminOtp(event.target.value))}
-      placeholder="000000"
-      autoFocus
-     />
-    </label>
-    <div className="actions">
-     <button className="button primary" type="submit" disabled={loading||!isValidAdminOtp(otp)}>{loading?'Pārbaudām…':'Ielogoties'}</button>
-     <button className="text-button" type="button" onClick={sendOtp} disabled={loading||otpCooldown>0}>
-      {otpCooldown>0?`Jauns kods pēc ${otpCooldown}s`:'Nosūtīt jaunu kodu'}
-     </button>
-     <button className="text-button" type="button" onClick={()=>{setOtpSent(false);setOtp('');setChallengeId('');setRecipientHint('');setMessage('');}}>Mainīt e-pastu</button>
-    </div>
-   </>}
+   <div className="admin-auth-divider"><span>rezerves piekļuve</span></div>
 
-   {message&&<p className="sync-text" role="status">{message}</p>}
-  </form>;
+   <details className="admin-auth-option" open={otpSent||undefined}>
+    <summary>Saņemt 6 ciparu kodu e-pastā</summary>
+    <form className="admin-auth-option-body" onSubmit={verifyOtp}>
+     {!otpSent?<>
+      <label>Admin Gmail
+       <input
+        type="email"
+        value={email}
+        onChange={event=>setEmail(event.target.value)}
+        autoComplete="email"
+        placeholder="admin@gmail.com"
+       />
+      </label>
+      <button className="button" type="button" onClick={sendOtp} disabled={loading||otpCooldown>0}>
+       {loading?'Sūta kodu…':otpCooldown>0?`Sūtīt vēlreiz pēc ${otpCooldown}s`:'Nosūtīt kodu'}
+      </button>
+     </>:<>
+      <p className="sync-text">Kods nosūtīts uz <strong>{recipientHint||'admin e-pastu'}</strong>.</p>
+      <label>6 ciparu kods
+       <input
+        className="otp-code-input"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        autoComplete="one-time-code"
+        maxLength={6}
+        value={otp}
+        onChange={event=>setOtp(normalizeAdminOtp(event.target.value))}
+        placeholder="000000"
+       />
+      </label>
+      <div className="actions">
+       <button className="button primary" type="submit" disabled={loading||!isValidAdminOtp(otp)}>{loading?'Pārbaudām…':'Ielogoties ar kodu'}</button>
+       <button className="text-button" type="button" onClick={sendOtp} disabled={loading||otpCooldown>0}>
+        {otpCooldown>0?`Jauns kods pēc ${otpCooldown}s`:'Nosūtīt jaunu kodu'}
+       </button>
+       <button className="text-button" type="button" onClick={()=>{setOtpSent(false);setOtp('');setChallengeId('');setRecipientHint('');setMessage('');}}>Mainīt e-pastu</button>
+      </div>
+     </>}
+    </form>
+   </details>
+
+   <details className="admin-auth-option emergency">
+    <summary>Emergency recovery kods</summary>
+    <form className="admin-auth-option-body" onSubmit={loginWithRecovery}>
+     <p className="sync-text">Izmanto tikai tad, ja Google un e-pasta OTP nav pieejami. Kods ir vienreizējs.</p>
+     <label>Recovery kods
+      <input
+       type="text"
+       value={formatRecoveryCode(recoveryCode)}
+       onChange={event=>setRecoveryCode(normalizeRecoveryCode(event.target.value))}
+       autoComplete="off"
+       spellCheck={false}
+       placeholder="XXXXXX-XXXXXX-XXXXXX-XXXXXX"
+      />
+     </label>
+     <button className="button" type="submit" disabled={loading||!isValidRecoveryCode(recoveryCode)}>Ielogoties ar recovery kodu</button>
+    </form>
+   </details>
+
+   {message&&<p className="sync-text admin-auth-message" role="status">{message}</p>}
+  </div>;
  }
 
  return <>
