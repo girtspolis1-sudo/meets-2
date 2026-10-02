@@ -50,25 +50,46 @@ Internal comments, review fields, import payloads, admin sessions and change his
 
 ## Admin authentication
 
-The admin login uses a **MEETS-managed six-digit email OTP** delivered through Resend. Supabase Magic Link, password login and password reset links are not used.
+MEETS admin access has three ordered paths:
 
-Flow:
+1. **Google OAuth** — primary login. Supabase authenticates Google and MEETS accepts only the pre-approved verified Google email.
+2. **Email OTP through Resend** — backup login. MEETS generates and hashes a six-digit code, then Resend delivers it to the approved Gmail account.
+3. **Emergency recovery code** — last-resort one-time login that does not depend on Google, email delivery, or Magic Link.
 
-1. the admin enters the approved Gmail address;
-2. `public.meets_admin_request_otp(p_email)` validates only the SHA-256 hash of the approved address;
-3. MEETS generates a six-digit code, stores only its hash and a short-lived challenge, and sends the code through Resend;
-4. the admin enters the code;
-5. `public.meets_admin_verify_otp(p_challenge_id,p_code)` validates the code and issues the existing short-lived MEETS admin session token.
+All three successful paths issue the same short-lived MEETS admin session token used by the existing admin RPCs.
 
-Security controls:
+### Google OAuth
 
-- the approved email address is not stored in the public repo or in the OTP settings table; only its SHA-256 hash is stored;
+The app starts Google OAuth through Supabase Auth and redirects back to `/admin`. The returned Supabase access token can call only `public.meets_admin_google_exchange()`, which verifies:
+
+- the authenticated identity is a Google identity;
+- Google reports the email as verified;
+- the SHA-256 hash of the Google email matches the approved admin Gmail hash.
+
+The Google provider must be enabled in Supabase Auth. The Google OAuth callback configured in Google Cloud is the Supabase callback URL:
+
+`https://<project-ref>.supabase.co/auth/v1/callback`
+
+The MEETS production `/admin` URL must also be in Supabase Auth Redirect URLs.
+
+### Resend OTP
+
+- approved Gmail address is stored only as a SHA-256 hash;
 - OTP codes expire after 10 minutes;
+- maximum five failed attempts per challenge;
+- resend limited to once per 60 seconds;
 - old challenges are invalidated when a new code is requested;
-- a challenge is limited to five failed attempts;
-- resend requests are rate-limited to one per 60 seconds;
-- the Resend sending-only API key is stored in Supabase Vault;
-- the email sender uses Resend's test sender while the account has no verified custom domain.
+- Resend sending-only key is stored in Supabase Vault;
+- Supabase Magic Link/password login is not used.
+
+### Emergency recovery
+
+A single high-entropy recovery code is stored only as a SHA-256 hash in `meets_private.admin_recovery_access`.
+
+- it is one-time use;
+- a successful recovery consumes the code immediately;
+- rotate the recovery code after it is used;
+- keep the plaintext code outside the application and repository.
 
 Required environment variables:
 
