@@ -3,6 +3,11 @@
 -- Active login:
 --   public.meets_admin_password_login(p_email text, p_password text)
 --
+-- One-time initial setup:
+--   public.meets_admin_password_ready()
+--   public.meets_admin_setup_password(p_email text, p_recovery_code text, p_password text)
+--   setup consumes the existing emergency recovery code and stores only a bcrypt hash.
+--
 -- Private credential storage:
 --   meets_private.admin_password_credentials
 --
