@@ -1,29 +1,21 @@
--- MEETS admin authentication architecture
+-- MEETS start-stage admin authentication
 --
--- 1. Primary: Google OAuth through Supabase Auth.
---    public.meets_admin_google_exchange()
---    - requires authenticated role;
---    - requires auth.uid();
---    - requires a verified Google identity;
---    - hashes identity email and compares it to the approved admin hash.
+-- Active login:
+--   public.meets_admin_password_login(p_email text, p_password text)
 --
--- 2. Backup: MEETS-generated six-digit OTP delivered through Resend.
---    public.meets_admin_request_otp(text)
---    public.meets_admin_verify_otp(uuid,text)
---    - approved address stored only as SHA-256 hash;
---    - 10-minute expiry;
---    - max five failed attempts;
---    - one resend per 60 seconds;
---    - Resend sending-only key lives in Supabase Vault as meets_resend_api_key.
+-- Private credential storage:
+--   meets_private.admin_password_credentials
 --
--- 3. Last resort: one-time high-entropy emergency recovery code.
---    public.meets_admin_recovery_login(text)
---    - plaintext recovery code is never stored;
---    - database keeps only SHA-256 hash;
---    - code is consumed on first successful use.
+-- Security properties:
+-- - approved email stored only as SHA-256 hash;
+-- - password stored only as bcrypt hash (pgcrypto crypt/gen_salt);
+-- - five failed attempts lock login for 15 minutes;
+-- - successful login resets the failed-attempt counter;
+-- - successful login issues the existing short-lived MEETS admin session token;
+-- - credential table is not readable by anon/authenticated roles.
 --
--- All successful methods issue the same short-lived MEETS admin session token.
--- Supabase Magic Link and password login are not part of the MEETS admin flow.
+-- Google/OTP/recovery flows are not part of the active start-stage UI.
+-- When the project matures, stronger authentication can replace this login
+-- without changing downstream admin session RPCs.
 --
--- Production definitions must be inspected with pg_get_functiondef before changes.
--- Apply database changes via reviewed migrations.
+-- Apply production changes through reviewed migrations.
