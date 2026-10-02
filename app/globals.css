@@ -361,40 +361,33 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
  .home-map-caption{right:12px;bottom:12px;padding:9px 11px}
 }
 
-.admin-otp-login{max-width:520px}
-.admin-otp-login .otp-code-input{
- max-width:220px;
- font-size:28px;
- font-weight:800;
- letter-spacing:8px;
- text-align:center;
- font-variant-numeric:tabular-nums
+/* Simple start-stage admin login */
+.admin-simple-login{
+ max-width:520px;
+ display:grid;
+ gap:14px
 }
-.admin-otp-login .actions{align-items:center}
-
-/* Admin authentication hierarchy */
-.admin-auth-stack{max-width:600px;display:grid;gap:18px}
-.admin-auth-primary{display:grid;gap:12px}
-.admin-auth-primary h2{margin:0}
-.admin-auth-primary p{margin:0;color:var(--muted)}
-.google-login-button{justify-content:center;gap:10px;min-height:46px}
-.google-mark{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#4285f4;font-weight:900;font-size:15px;box-shadow:inset 0 0 0 1px #d7dce5}
-.admin-auth-divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:800}
-.admin-auth-divider::before,.admin-auth-divider::after{content:"";height:1px;flex:1;background:#d9cde2}
-.admin-auth-option{border:1px solid #d9cde2;border-radius:14px;background:rgba(255,255,255,.72);overflow:hidden}
-.admin-auth-option>summary{cursor:pointer;padding:13px 15px;font-weight:800;list-style:none}
-.admin-auth-option>summary::-webkit-details-marker{display:none}
-.admin-auth-option>summary::after{content:"+";float:right;color:var(--accent);font-size:18px;line-height:1}
-.admin-auth-option[open]>summary::after{content:"−"}
-.admin-auth-option-body{display:grid;gap:12px;padding:2px 15px 15px}
-.admin-auth-option-body label{display:grid;gap:6px;font-size:12px;font-weight:700}
-.admin-auth-option.emergency{border-style:dashed}
-.admin-auth-option.emergency>summary{color:#685b70}
-.admin-auth-message{margin:0;padding:10px 12px;border-radius:10px;background:#f5eff9}
-.admin-auth-option .otp-code-input{max-width:220px;font-size:28px;font-weight:800;letter-spacing:8px;text-align:center;font-variant-numeric:tabular-nums}
+.admin-simple-login h2{margin:0}
+.admin-simple-login>p{margin:0;color:var(--muted)}
+.admin-simple-login label{
+ display:grid;
+ gap:6px;
+ font-size:12px;
+ font-weight:700
+}
+.admin-simple-login input{
+ min-height:44px
+}
+.admin-simple-login .actions{margin-top:2px}
+.admin-auth-message{
+ margin:0;
+ padding:10px 12px;
+ border-radius:10px;
+ background:#f5eff9
+}
 
 @media(max-width:640px){
- .admin-auth-stack{max-width:none}
- .google-login-button{width:100%}
+ .admin-simple-login{max-width:none}
+ .admin-simple-login .button{width:100%}
 }
 
