@@ -170,9 +170,9 @@ test('admin OTP accepts exactly six digits and normalizes pasted codes',()=>{
 });
 
 test('admin recovery code normalization keeps 24 safe characters',()=>{
- const raw='q6ha9w ykx2uj-ral7pd-d3ch2b';
- assert.equal(normalizeRecoveryCode(raw),'Q6HA9WYKX2UJRAL7PDD3CH2B');
- assert.equal(formatRecoveryCode(raw),'Q6HA9W-YKX2UJ-RAL7PD-D3CH2B');
+ const raw='abcdef ghjklm-npqrst-uvwxyz';
+ assert.equal(normalizeRecoveryCode(raw),'ABCDEFGHJKLMNPQRSTUVWXYZ');
+ assert.equal(formatRecoveryCode(raw),'ABCDEF-GHJKLM-NPQRST-UVWXYZ');
  assert.equal(isValidRecoveryCode(raw),true);
  assert.equal(isValidRecoveryCode('TOO-SHORT'),false);
 });
