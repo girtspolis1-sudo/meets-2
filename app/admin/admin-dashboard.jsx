@@ -69,6 +69,9 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [token,setToken]=useState('');
  const [email,setEmail]=useState('');
  const [password,setPassword]=useState('');
+ const [confirmPassword,setConfirmPassword]=useState('');
+ const [recoveryCode,setRecoveryCode]=useState('');
+ const [passwordReady,setPasswordReady]=useState(null);
  const [authChecked,setAuthChecked]=useState(false);
  const [isAdmin,setIsAdmin]=useState(false);
  const [message,setMessage]=useState('');
@@ -103,11 +106,92 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   finally{setLoading(false);}
  }
  useEffect(()=>{
-  const active=sessionStorage.getItem(SESSION_KEY)||'';
-  setEmail(localStorage.getItem('meets_admin_email')||'');
-  setToken(active);
-  checkAdmin(active);
+  let cancelled=false;
+
+  async function bootstrap(){
+   const active=sessionStorage.getItem(SESSION_KEY)||'';
+   setEmail(localStorage.getItem('meets_admin_email')||'');
+
+   try{
+    const ready=await apiFetch(supabaseUrl,publishableKey,'meets_admin_password_ready',{});
+    if(!cancelled)setPasswordReady(ready===true);
+   }catch{
+    if(!cancelled){
+     setPasswordReady(false);
+     setMessage('Admin paroles statusu neizdevās pārbaudīt.');
+    }
+   }
+
+   if(cancelled)return;
+   setToken(active);
+   await checkAdmin(active);
+  }
+
+  bootstrap();
+  return()=>{cancelled=true;};
  },[]);
+
+ async function authenticatePassword(normalizedEmail,secret){
+  return apiFetch(
+   supabaseUrl,
+   publishableKey,
+   'meets_admin_password_login',
+   {p_email:normalizedEmail,p_password:secret}
+  );
+ }
+
+ async function setupPassword(event){
+  event.preventDefault();
+  const normalizedEmail=String(email||'').trim().toLowerCase();
+
+  if(!normalizedEmail||!normalizedEmail.includes('@')){
+   setMessage('Ievadi admin e-pastu.');
+   return;
+  }
+  if(String(recoveryCode||'').replace(/[^A-Za-z0-9]/g,'').length<20){
+   setMessage('Ievadi emergency recovery kodu.');
+   return;
+  }
+  if(password.length<12||!/[A-Z]/.test(password)||!/[a-z]/.test(password)||!/[0-9]/.test(password)){
+   setMessage('Parolei jābūt vismaz 12 rakstzīmēm ar lielo burtu, mazo burtu un ciparu.');
+   return;
+  }
+  if(password!==confirmPassword){
+   setMessage('Abas paroles nesakrīt.');
+   return;
+  }
+
+  setLoading(true);setMessage('');
+  try{
+   const ok=await apiFetch(
+    supabaseUrl,
+    publishableKey,
+    'meets_admin_setup_password',
+    {p_email:normalizedEmail,p_recovery_code:recoveryCode,p_password:password}
+   );
+   if(ok!==true)throw new Error('Setup failed');
+
+   const sessionToken=await authenticatePassword(normalizedEmail,password);
+   if(!sessionToken||typeof sessionToken!=='string')throw new Error('Missing admin session');
+
+   localStorage.setItem('meets_admin_email',normalizedEmail);
+   sessionStorage.setItem(SESSION_KEY,sessionToken);
+   notifyAdminSession();
+
+   setPasswordReady(true);
+   setToken(sessionToken);
+   setRecoveryCode('');
+   setConfirmPassword('');
+   setPassword('');
+   setIsAdmin(true);
+   setAuthChecked(true);
+   await loadEvents(sessionToken);
+  }catch{
+   setMessage('Paroli neizdevās aktivizēt. Pārbaudi e-pastu, recovery kodu un paroles prasības.');
+  }finally{
+   setLoading(false);
+  }
+ }
 
  async function login(event){
   event.preventDefault();
@@ -124,12 +208,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
   setLoading(true);setMessage('');
   try{
-   const sessionToken=await apiFetch(
-    supabaseUrl,
-    publishableKey,
-    'meets_admin_password_login',
-    {p_email:normalizedEmail,p_password:password}
-   );
+   const sessionToken=await authenticatePassword(normalizedEmail,password);
 
    if(!sessionToken||typeof sessionToken!=='string'){
     throw new Error('Missing admin session');
@@ -278,12 +357,71 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   findMissingLffSuggestions(unprocessed);
  },[isAdmin,token,lffMissingGroups,autoGeocodeStarted,geocodeRunning]);
 
- if(!authChecked)return <div className="admin-login"><p>Pārbaudām admin piekļuvi…</p></div>;
+ if(!authChecked||passwordReady===null)return <div className="admin-login"><p>Pārbaudām admin piekļuvi…</p></div>;
+
  if(!token||!isAdmin){
+  if(passwordReady===false){
+   return <form className="admin-login admin-simple-login" onSubmit={setupPassword}>
+    <p className="eyebrow">MEETS · admin</p>
+    <h2>Aktivizēt admin paroli</h2>
+    <p>Vienreizēja aktivizācija. Pēc tās turpmāk izmantosi tikai e-pastu un paroli.</p>
+
+    <label>E-pasts
+     <input
+      type="email"
+      value={email}
+      onChange={event=>setEmail(event.target.value)}
+      autoComplete="username"
+      placeholder="admin@gmail.com"
+      autoFocus
+     />
+    </label>
+
+    <label>Emergency recovery kods
+     <input
+      type="text"
+      value={recoveryCode}
+      onChange={event=>setRecoveryCode(event.target.value)}
+      autoComplete="off"
+      spellCheck={false}
+      placeholder="XXXXXX-XXXXXX-XXXXXX-XXXXXX"
+     />
+    </label>
+
+    <label>Jaunā parole
+     <input
+      type="password"
+      value={password}
+      onChange={event=>setPassword(event.target.value)}
+      autoComplete="new-password"
+      placeholder="Vismaz 12 rakstzīmes"
+     />
+    </label>
+
+    <label>Atkārto paroli
+     <input
+      type="password"
+      value={confirmPassword}
+      onChange={event=>setConfirmPassword(event.target.value)}
+      autoComplete="new-password"
+      placeholder="Atkārto paroli"
+     />
+    </label>
+
+    <div className="actions">
+     <button className="button primary" type="submit" disabled={loading}>
+      {loading?'Aktivizē…':'Aktivizēt un ielogoties'}
+     </button>
+    </div>
+
+    {message&&<p className="sync-text admin-auth-message" role="status">{message}</p>}
+   </form>;
+  }
+
   return <form className="admin-login admin-simple-login" onSubmit={login}>
    <p className="eyebrow">MEETS · admin</p>
    <h2>Admin pieslēgšanās</h2>
-   <p>Starta režīms: pieslēdzies ar savu admin e-pastu un paroli.</p>
+   <p>Pieslēdzies ar savu admin e-pastu un paroli.</p>
 
    <label>E-pasts
     <input
