@@ -1,58 +1,24 @@
--- Admin authentication transition:
--- Supabase Auth verifies the admin email/password, then exchanges the authenticated
--- user identity for the existing short-lived MEETS admin session token.
-
-create or replace function meets_private.admin_auth_exchange()
-returns text
-language plpgsql
-security definer
-set search_path=''
-as $$
-declare
-  v_user_id uuid;
-  v_token text;
-begin
-  v_user_id := auth.uid();
-
-  if v_user_id is null
-     or not exists(
-       select 1
-       from public.admin_users
-       where user_id=v_user_id
-     )
-  then
-    raise exception 'Unauthorized' using errcode='42501';
-  end if;
-
-  delete from meets_private.admin_sessions
-  where expires_at <= now();
-
-  v_token := encode(extensions.gen_random_bytes(32),'hex');
-
-  insert into meets_private.admin_sessions(token_hash,expires_at)
-  values(
-    encode(extensions.digest(v_token,'sha256'),'hex'),
-    now()+interval '8 hours'
-  );
-
-  return v_token;
-end
-$$;
-
-revoke all on function meets_private.admin_auth_exchange()
-from public, anon;
-grant execute on function meets_private.admin_auth_exchange()
-to authenticated, service_role;
-
-create or replace function public.meets_admin_exchange_auth()
-returns text
-language sql
-set search_path=''
-as $$
-  select meets_private.admin_auth_exchange()
-$$;
-
-revoke all on function public.meets_admin_exchange_auth()
-from public, anon;
-grant execute on function public.meets_admin_exchange_auth()
-to authenticated, service_role;
+-- MEETS admin authentication
+-- Production uses a custom six-digit OTP challenge delivered with Resend.
+-- The Resend sending-only API key is stored in Supabase Vault under:
+--   meets_resend_api_key
+--
+-- The production migration creates:
+--   meets_private.admin_otp_settings
+--   meets_private.admin_otp_challenges
+--   meets_private.request_admin_email_otp(text)
+--   meets_private.verify_admin_email_otp(uuid,text)
+--   public.meets_admin_request_otp(text)
+--   public.meets_admin_verify_otp(uuid,text)
+--
+-- Key properties:
+-- - only the SHA-256 hash of the approved login email is stored;
+-- - codes expire after 10 minutes;
+-- - maximum five failed verification attempts;
+-- - resend limited to once per 60 seconds;
+-- - code hashes and session-token hashes are stored, never plaintext values;
+-- - Supabase Auth Magic Link/password login is not part of the MEETS admin flow.
+--
+-- Current production functions should be inspected with pg_get_functiondef
+-- before changing this file into an executable migration. Database changes
+-- must be applied through versioned migrations, not ad-hoc DDL.

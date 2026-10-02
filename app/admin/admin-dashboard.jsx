@@ -4,7 +4,6 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import AdminEventMap from './admin-event-map.jsx';
 import {isValidAdminOtp,normalizeAdminOtp} from '../../lib/admin-otp.js';
 
-const ADMIN_EMAIL='girts.polis@icloud.com';
 const SESSION_KEY='meets_admin_access_token';
 function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
 
@@ -67,7 +66,10 @@ async function apiFetch(url,key,path,body){
 
 export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [token,setToken]=useState('');
+ const [email,setEmail]=useState('');
  const [otp,setOtp]=useState('');
+ const [challengeId,setChallengeId]=useState('');
+ const [recipientHint,setRecipientHint]=useState('');
  const [otpSent,setOtpSent]=useState(false);
  const [authChecked,setAuthChecked]=useState(false);
  const [isAdmin,setIsAdmin]=useState(false);
@@ -105,31 +107,43 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  }
  useEffect(()=>{
   const active=sessionStorage.getItem(SESSION_KEY)||'';
+  setEmail(localStorage.getItem('meets_admin_email')||'');
   setToken(active);checkAdmin(active);
  },[]);
  async function sendOtp(){
   if(loading||otpCooldown>0)return;
+  const normalizedEmail=String(email||'').trim().toLowerCase();
+  if(!normalizedEmail||!normalizedEmail.includes('@')){
+   setMessage('Ievadi admin Gmail adresi.');
+   return;
+  }
+
   setLoading(true);setMessage('');
   try{
-   const response=await fetch(supabaseUrl+'/auth/v1/otp',{
-    method:'POST',
-    headers:{apikey:publishableKey,'Content-Type':'application/json'},
-    body:JSON.stringify({email:ADMIN_EMAIL,create_user:false}),
-    cache:'no-store'
-   });
-   if(!response.ok){
-    let code='';
-    try{code=(await response.json())?.error_code||'';}catch{}
-    if(response.status===429||code.includes('rate_limit')){
-     setMessage('Kods jau nesen nosūtīts. Pagaidi brīdi un mēģini vēlreiz.');
-     return;
-    }
-    throw new Error('OTP send failed');
+   const result=await apiFetch(
+    supabaseUrl,
+    publishableKey,
+    'meets_admin_request_otp',
+    {p_email:normalizedEmail}
+   );
+
+   if(result?.ok===false&&result?.reason==='rate_limited'){
+    const retry=Math.max(1,Number(result.retry_after)||60);
+    setOtpCooldown(retry);
+    setMessage('Kods jau nesen nosūtīts. Pagaidi un mēģini vēlreiz.');
+    return;
    }
+
+   const nextChallenge=String(result?.challenge_id||'');
+   if(!nextChallenge)throw new Error('Missing challenge');
+
+   setChallengeId(nextChallenge);
+   setRecipientHint(String(result?.recipient_hint||'admin e-pastu'));
    setOtpSent(true);
    setOtp('');
    setOtpCooldown(60);
-   setMessage('6 ciparu kods nosūtīts uz '+ADMIN_EMAIL+'.');
+   setMessage('6 ciparu kods nosūtīts uz '+String(result?.recipient_hint||'admin e-pastu')+'.');
+
    const timer=window.setInterval(()=>setOtpCooldown(value=>{
     if(value<=1){window.clearInterval(timer);return 0;}
     return value-1;
@@ -144,32 +158,35 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  async function verifyOtp(event){
   event.preventDefault();
   const code=normalizeAdminOtp(otp);
-  if(!isValidAdminOtp(code)){setMessage('Ievadi 6 ciparu kodu no e-pasta.');return;}
+  if(!isValidAdminOtp(code)||!challengeId){
+   setMessage('Ievadi 6 ciparu kodu no e-pasta.');
+   return;
+  }
+
   setLoading(true);setMessage('');
   try{
-   const verifyResponse=await fetch(supabaseUrl+'/auth/v1/verify',{
-    method:'POST',
-    headers:{apikey:publishableKey,'Content-Type':'application/json'},
-    body:JSON.stringify({email:ADMIN_EMAIL,token:code,type:'email'}),
-    cache:'no-store'
-   });
-   if(!verifyResponse.ok)throw new Error('Invalid OTP');
-   const authData=await verifyResponse.json();
-   const accessToken=authData?.access_token;
-   if(!accessToken)throw new Error('Missing access token');
+   const sessionToken=await apiFetch(
+    supabaseUrl,
+    publishableKey,
+    'meets_admin_verify_otp',
+    {p_challenge_id:challengeId,p_code:code}
+   );
 
-   const exchangeResponse=await fetch(supabaseUrl+'/rest/v1/rpc/meets_admin_exchange_auth',{
-    method:'POST',
-    headers:{apikey:publishableKey,Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-    body:'{}',
-    cache:'no-store'
-   });
-   if(!exchangeResponse.ok)throw new Error('Admin exchange failed');
-   const sessionToken=await exchangeResponse.json();
-   if(!sessionToken||typeof sessionToken!=='string')throw new Error('Missing admin session');
+   if(!sessionToken||typeof sessionToken!=='string'){
+    throw new Error('Missing admin session');
+   }
 
-   sessionStorage.setItem(SESSION_KEY,sessionToken);notifyAdminSession();
-   setToken(sessionToken);setOtp('');setOtpSent(false);setIsAdmin(true);await loadEvents(sessionToken);
+   sessionStorage.setItem(SESSION_KEY,sessionToken);
+   localStorage.setItem('meets_admin_email',String(email||'').trim().toLowerCase());
+   notifyAdminSession();
+
+   setToken(sessionToken);
+   setOtp('');
+   setOtpSent(false);
+   setChallengeId('');
+   setRecipientHint('');
+   setIsAdmin(true);
+   await loadEvents(sessionToken);
   }catch{
    setMessage('Kods nav derīgs vai tam beidzies termiņš. Pieprasi jaunu kodu un mēģini vēlreiz.');
   }finally{
@@ -307,13 +324,26 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  if(!token||!isAdmin){
   return <form className="admin-login admin-otp-login" onSubmit={verifyOtp}>
    <h2>Admin pieslēgšanās</h2>
-   <p>Piekļuve ar vienreizēju kodu uz <strong>{ADMIN_EMAIL}</strong>. Parole nav vajadzīga.</p>
+   <p>Piekļuve ar vienreizēju 6 ciparu kodu uz apstiprināto Gmail adresi. Parole un Magic Link nav vajadzīgi.</p>
 
-   {!otpSent?<div className="actions">
-    <button className="button primary" type="button" onClick={sendOtp} disabled={loading||otpCooldown>0}>
-     {loading?'Sūta kodu…':otpCooldown>0?`Sūtīt vēlreiz pēc ${otpCooldown}s`:'Nosūtīt kodu'}
-    </button>
-   </div>:<>
+   {!otpSent?<>
+    <label>Admin e-pasts
+     <input
+      type="email"
+      value={email}
+      onChange={event=>setEmail(event.target.value)}
+      autoComplete="email"
+      placeholder="admin@gmail.com"
+      autoFocus
+     />
+    </label>
+    <div className="actions">
+     <button className="button primary" type="button" onClick={sendOtp} disabled={loading||otpCooldown>0}>
+      {loading?'Sūta kodu…':otpCooldown>0?`Sūtīt vēlreiz pēc ${otpCooldown}s`:'Nosūtīt kodu'}
+     </button>
+    </div>
+   </>:<>
+    <p className="sync-text">Kods nosūtīts uz <strong>{recipientHint||'admin e-pastu'}</strong>.</p>
     <label>6 ciparu kods
      <input
       className="otp-code-input"
@@ -332,6 +362,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
      <button className="text-button" type="button" onClick={sendOtp} disabled={loading||otpCooldown>0}>
       {otpCooldown>0?`Jauns kods pēc ${otpCooldown}s`:'Nosūtīt jaunu kodu'}
      </button>
+     <button className="text-button" type="button" onClick={()=>{setOtpSent(false);setOtp('');setChallengeId('');setRecipientHint('');setMessage('');}}>Mainīt e-pastu</button>
     </div>
    </>}
 

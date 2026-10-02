@@ -50,19 +50,25 @@ Internal comments, review fields, import payloads, admin sessions and change his
 
 ## Admin authentication
 
-The admin account uses **Supabase Auth email OTP**. No password or recovery link is required.
+The admin login uses a **MEETS-managed six-digit email OTP** delivered through Resend. Supabase Magic Link, password login and password reset links are not used.
 
 Flow:
 
-1. the admin requests a one-time code for the existing admin email;
-2. Supabase sends a six-digit OTP email with `shouldCreateUser/create_user = false`;
-3. the code is verified through Supabase Auth;
-4. the authenticated identity calls `public.meets_admin_exchange_auth()`;
-5. that RPC verifies the user exists in `public.admin_users` and issues the short-lived MEETS admin session token used by the admin catalogue/edit RPCs.
+1. the admin enters the approved Gmail address;
+2. `public.meets_admin_request_otp(p_email)` validates only the SHA-256 hash of the approved address;
+3. MEETS generates a six-digit code, stores only its hash and a short-lived challenge, and sends the code through Resend;
+4. the admin enters the code;
+5. `public.meets_admin_verify_otp(p_challenge_id,p_code)` validates the code and issues the existing short-lived MEETS admin session token.
 
-The Supabase **Magic Link email template must contain `{{ .Token }}`** so that the email shows the six-digit OTP rather than a clickable link.
+Security controls:
 
-The legacy temporary password login and password-recovery pages are not used.
+- the approved email address is not stored in the public repo or in the OTP settings table; only its SHA-256 hash is stored;
+- OTP codes expire after 10 minutes;
+- old challenges are invalidated when a new code is requested;
+- a challenge is limited to five failed attempts;
+- resend requests are rate-limited to one per 60 seconds;
+- the Resend sending-only API key is stored in Supabase Vault;
+- the email sender uses Resend's test sender while the account has no verified custom domain.
 
 Required environment variables:
 

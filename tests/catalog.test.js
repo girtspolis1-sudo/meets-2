@@ -28,8 +28,8 @@ test('live Supabase data and Excel round trip include every row; no formulas',{s
  const publicRpc=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_public_catalog',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({})});assert(publicRpc.ok);
  const publicPayload=await publicRpc.json();assert(Array.isArray(publicPayload.events));assert(publicPayload.events.every(e=>e.status==='published'));
  const table=await fetch(process.env.SUPABASE_URL+'/rest/v1/events?select=id&limit=1',{headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY}});assert(!table.ok);
- const adminExchange=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_exchange_auth',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:'{}'});assert(!adminExchange.ok);
- console.log(`Verified ${data.total} live rows, public published-only RPC, no anonymous table access and no anonymous admin exchange.`);
+ const invalidOtp=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_verify_otp',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_challenge_id:'00000000-0000-0000-0000-000000000000',p_code:'000000'})});assert(!invalidOtp.ok);
+ console.log(`Verified ${data.total} live rows, public published-only RPC, no anonymous table access and invalid admin OTP rejection.`);
 });
 
 test('each shared filter matches, excludes, combines and resets',()=>{
