@@ -50,46 +50,16 @@ Internal comments, review fields, import payloads, admin sessions and change his
 
 ## Admin authentication
 
-MEETS admin access has three ordered paths:
+MEETS start-stage admin access uses a single **email + password** login.
 
-1. **Google OAuth** — primary login. Supabase authenticates Google and MEETS accepts only the pre-approved verified Google email.
-2. **Email OTP through Resend** — backup login. MEETS generates and hashes a six-digit code, then Resend delivers it to the approved Gmail account.
-3. **Emergency recovery code** — last-resort one-time login that does not depend on Google, email delivery, or Magic Link.
+- only one approved admin email is accepted;
+- the database stores the email only as a SHA-256 hash;
+- the password is stored only as a bcrypt hash;
+- five failed login attempts lock the credential for 15 minutes;
+- successful login issues the existing short-lived MEETS admin session token;
+- Google OAuth, email OTP, Magic Link and emergency recovery are intentionally not part of the active start-stage login UI.
 
-All three successful paths issue the same short-lived MEETS admin session token used by the existing admin RPCs.
-
-### Google OAuth
-
-The app starts Google OAuth through Supabase Auth and redirects back to `/admin`. The returned Supabase access token can call only `public.meets_admin_google_exchange()`, which verifies:
-
-- the authenticated identity is a Google identity;
-- Google reports the email as verified;
-- the SHA-256 hash of the Google email matches the approved admin Gmail hash.
-
-The Google provider must be enabled in Supabase Auth. The Google OAuth callback configured in Google Cloud is the Supabase callback URL:
-
-`https://<project-ref>.supabase.co/auth/v1/callback`
-
-The MEETS production `/admin` URL must also be in Supabase Auth Redirect URLs.
-
-### Resend OTP
-
-- approved Gmail address is stored only as a SHA-256 hash;
-- OTP codes expire after 10 minutes;
-- maximum five failed attempts per challenge;
-- resend limited to once per 60 seconds;
-- old challenges are invalidated when a new code is requested;
-- Resend sending-only key is stored in Supabase Vault;
-- Supabase Magic Link/password login is not used.
-
-### Emergency recovery
-
-A single high-entropy recovery code is stored only as a SHA-256 hash in `meets_private.admin_recovery_access`.
-
-- it is one-time use;
-- a successful recovery consumes the code immediately;
-- rotate the recovery code after it is used;
-- keep the plaintext code outside the application and repository.
+This simplified mode is temporary for the project start phase and can later be replaced by stronger multi-factor/social authentication without changing the existing admin session model.
 
 Required environment variables:
 
