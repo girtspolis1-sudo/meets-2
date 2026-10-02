@@ -1,24 +1,29 @@
--- MEETS admin authentication
--- Production uses a custom six-digit OTP challenge delivered with Resend.
--- The Resend sending-only API key is stored in Supabase Vault under:
---   meets_resend_api_key
+-- MEETS admin authentication architecture
 --
--- The production migration creates:
---   meets_private.admin_otp_settings
---   meets_private.admin_otp_challenges
---   meets_private.request_admin_email_otp(text)
---   meets_private.verify_admin_email_otp(uuid,text)
---   public.meets_admin_request_otp(text)
---   public.meets_admin_verify_otp(uuid,text)
+-- 1. Primary: Google OAuth through Supabase Auth.
+--    public.meets_admin_google_exchange()
+--    - requires authenticated role;
+--    - requires auth.uid();
+--    - requires a verified Google identity;
+--    - hashes identity email and compares it to the approved admin hash.
 --
--- Key properties:
--- - only the SHA-256 hash of the approved login email is stored;
--- - codes expire after 10 minutes;
--- - maximum five failed verification attempts;
--- - resend limited to once per 60 seconds;
--- - code hashes and session-token hashes are stored, never plaintext values;
--- - Supabase Auth Magic Link/password login is not part of the MEETS admin flow.
+-- 2. Backup: MEETS-generated six-digit OTP delivered through Resend.
+--    public.meets_admin_request_otp(text)
+--    public.meets_admin_verify_otp(uuid,text)
+--    - approved address stored only as SHA-256 hash;
+--    - 10-minute expiry;
+--    - max five failed attempts;
+--    - one resend per 60 seconds;
+--    - Resend sending-only key lives in Supabase Vault as meets_resend_api_key.
 --
--- Current production functions should be inspected with pg_get_functiondef
--- before changing this file into an executable migration. Database changes
--- must be applied through versioned migrations, not ad-hoc DDL.
+-- 3. Last resort: one-time high-entropy emergency recovery code.
+--    public.meets_admin_recovery_login(text)
+--    - plaintext recovery code is never stored;
+--    - database keeps only SHA-256 hash;
+--    - code is consumed on first successful use.
+--
+-- All successful methods issue the same short-lived MEETS admin session token.
+-- Supabase Magic Link and password login are not part of the MEETS admin flow.
+--
+-- Production definitions must be inspected with pg_get_functiondef before changes.
+-- Apply database changes via reviewed migrations.
