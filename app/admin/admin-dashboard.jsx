@@ -440,14 +440,6 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   window.history.replaceState(null,'','/admin');
  },[isAdmin,events,editing]);
 
- useEffect(()=>{
-  if(!isAdmin||!token||autoGeocodeStarted||geocodeRunning||!lffMissingGroups.length)return;
-  const unprocessed=lffMissingGroups.filter(g=>!g.suggestedAt);
-  if(!unprocessed.length)return;
-  setAutoGeocodeStarted(true);
-  findMissingLffSuggestions(unprocessed);
- },[isAdmin,token,lffMissingGroups,autoGeocodeStarted,geocodeRunning]);
-
  if(!authChecked||passwordReady===null)return <div className="admin-login"><p>Pārbaudām admin piekļuvi…</p></div>;
 
  if(!token||!isAdmin){
@@ -687,7 +679,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  </>;
 }
 
-function LocationEditor({event,token,close,save}){
+function LocationEditor({event,token,close,save,mode='event',mappingAlias='',mappingCount=1}){
  const dialog=useRef(null),mapEl=useRef(null),mapRef=useRef(null),markerRef=useRef(null);
  const [venueName,setVenueName]=useState(event.venue_name||event.address_raw||'');
  const initialSearch=[event.venue_name,event.address_raw,event.municipality||event.settlement].filter(Boolean).join(', ');
@@ -741,7 +733,7 @@ function LocationEditor({event,token,close,save}){
    const data=await response.json();
    if(!response.ok)throw new Error(data?.error||'Meklēšana neizdevās.');
    setSearchResults(Array.isArray(data.results)?data.results:[]);
-   if(!data.results?.length)setSearchError('Latvijā netika atrasts neviens atbilstošs variants. Pamēģini saīsināt vai precizēt adresi.');
+   if(!data.results?.length)setSearchError('Baltijā netika atrasts neviens atbilstošs variants. Pamēģini saīsināt vai precizēt adresi.');
   }catch(error){
    setSearchError(error?.message||'Vietu meklēšana neizdevās.');
   }finally{setSearching(false);}
@@ -763,13 +755,14 @@ function LocationEditor({event,token,close,save}){
  const meta=qualityMeta(event.location_quality);
  const canSave=Number.isFinite(Number(latitude))&&Number.isFinite(Number(longitude))&&Boolean(venueName.trim());
  const locationSource=selectedPlace?.sourceUrl||'admin map correction';
+ const isMapping=mode==='mapping';
 
  return <dialog ref={dialog} className="event-dialog location-dialog" onCancel={close} onClose={close}>
-  <div className="detail-header"><div><p className="eyebrow">Lokācijas pārbaude</p><h2>{event.title}</h2></div><button className="button" onClick={close}>Aizvērt ✕</button></div>
+  <div className="detail-header"><div><p className="eyebrow">{isMapping?'Atkārtoti izmantojams mapping':'Lokācijas pārbaude'}</p><h2>{isMapping?(mappingAlias||event.venue_name||event.address_raw):event.title}</h2></div><button className="button" onClick={close}>Aizvērt ✕</button></div>
 
   <div className={'location-issue-panel '+meta.tone}>
-   <strong>{meta.label}</strong>
-   <p>{event.location_review_reason||'Lokācija pašlaik ir verificēta.'}</p>
+   <strong>{isMapping?`${mappingCount} esoši pasākumi ar šo aliasu`:meta.label}</strong>
+   <p>{isMapping?'Saglabājot mappingu, esošie ieraksti tiks salaboti uzreiz un nākamajos importos šis pats nosaukums automātiski saņems apstiprināto vietu.':(event.location_review_reason||'Lokācija pašlaik ir verificēta.')}</p>
    {event.address_raw&&<p><b>Nolasītā adrese:</b> {event.address_raw}</p>}
    {sourceLinks(event).map((s,i)=><a key={(s.url||'')+i} href={s.url} target="_blank" rel="noreferrer">Atvērt {s.source||'avotu'} ↗</a>)}
   </div>
@@ -823,8 +816,12 @@ function LocationEditor({event,token,close,save}){
   <p className="sync-text">Ieteicamais variants: atrodi vietu pēc nosaukuma vai adreses, izvēlies konkrēto rezultātu un pārbaudi marķieri kartē. Vietu meklēšana: © OpenStreetMap contributors.</p>
 
   <div className="actions">
-   <button className="button" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},false)}>Saglabāt verificētu lokāciju</button>
-   <button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},true)}>Saglabāt un publicēt</button>
+   {isMapping
+    ?<button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource})}>Saglabāt mappingu un labot {mappingCount}</button>
+    :<>
+      <button className="button" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},false)}>Saglabāt verificētu lokāciju</button>
+      <button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},true)}>Saglabāt un publicēt</button>
+     </>}
    <button className="button" onClick={close}>Atcelt</button>
   </div>
  </dialog>;
