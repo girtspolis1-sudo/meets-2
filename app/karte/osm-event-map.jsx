@@ -141,6 +141,8 @@ export default function OsmEventMap(){
  const [eventType,setEventType]=useState('');
  const [competition,setCompetition]=useState('');
  const [category,setCategory]=useState('');
+ const [eventSearch,setEventSearch]=useState('');
+ const [price,setPrice]=useState('');
  const [municipality,setMunicipality]=useState('');
  const [country,setCountry]=useState('');
  const [from,setFrom]=useState('');
@@ -249,6 +251,8 @@ export default function OsmEventMap(){
   if(eventType&&sourceType(e)!==eventType)return false;
   if(competition&&e.competition_key!==competition)return false;
   if(category&&e.primary_category!==category&&!e.tags?.includes(category))return false;
+  if(eventSearch&& !norm(e.title).includes(norm(eventSearch)))return false;
+  if(price&&e.price_status!==price)return false;
   if(municipality&&e.municipality!==municipality)return false;
   if(country&&e.country_code!==country)return false;
   if(from&&(e.date_to||e.date_from)<from)return false;
@@ -259,7 +263,7 @@ export default function OsmEventMap(){
    if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radiusKm)return false;
   }
   return true;
- },[eventType,competition,category,municipality,country,from,to,userLocation,radiusKm]);
+ },[eventType,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
 
  const activeEvents=useMemo(()=>events.filter(matchesEvent),[events,matchesEvent]);
  const activeIds=useMemo(()=>new Set(activeEvents.map(e=>e.id)),[activeEvents]);
@@ -467,7 +471,7 @@ export default function OsmEventMap(){
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;leafletRef.current=null;},[]);
 
- const advancedFilterCount=[eventType,competition,category,country,municipality,mapStyle!=='positron'?'map-style':''].filter(Boolean).length;
+ const advancedFilterCount=[eventType,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'?'map-style':''].filter(Boolean).length;
 
  function changeEventType(value){
   setEventType(value);setCompetition('');setCategory('');setMunicipality('');setCountry('');
@@ -480,7 +484,7 @@ export default function OsmEventMap(){
   setFrom(next.from);setTo(next.to);
  }
  function resetFilters(){
-  setEventType('');setCompetition('');setCategory('');setMunicipality('');setCountry('');setRadiusKm(30);setMapStyle('positron');setPeriodMode('week');
+  setEventType('');setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(30);setMapStyle('positron');setPeriodMode('week');
   if(publicFrom){const next=periodDates('week',publicFrom,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
@@ -589,6 +593,24 @@ export default function OsmEventMap(){
 
      <select value={category} onChange={e=>setCategory(e.target.value)} aria-label="Kategorija" title="Kategorija">
       <option value="">Visas kategorijas</option>{categories.map(v=><option key={v}>{v}</option>)}
+     </select>
+
+     <input
+      className="map-event-search"
+      type="search"
+      value={eventSearch}
+      onChange={e=>setEventSearch(e.target.value)}
+      placeholder="Meklēt pasākumu…"
+      aria-label="Meklēt pēc pasākuma nosaukuma"
+      title="Pasākuma nosaukums"
+     />
+
+     <select value={price} onChange={e=>setPrice(e.target.value)} aria-label="Maksas statuss" title="Maksa">
+      <option value="">Visas maksas</option>
+      <option value="free">Bezmaksas</option>
+      <option value="paid">Maksas</option>
+      <option value="mixed">Daļēji maksas</option>
+      <option value="unknown">Nav zināms</option>
      </select>
 
      <select value={country} onChange={e=>{setCountry(e.target.value);setMunicipality('');}} aria-label="Valsts" title="Valsts">
