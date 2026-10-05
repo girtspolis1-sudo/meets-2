@@ -4,11 +4,10 @@ const nextConfig = {
   async rewrites() {
     const base = process.env.SUPABASE_URL;
     if (!base) return [];
-    return [
-      { source: '/admin-auth/ready', destination: base + '/rest/v1/rpc/meets_admin_password_ready' },
-      { source: '/admin-auth/setup', destination: base + '/rest/v1/rpc/meets_admin_setup_password' },
-      { source: '/admin-auth/login', destination: base + '/rest/v1/rpc/meets_admin_password_login' }
-    ];
+    return [{
+      source: '/admin-proxy/rest/v1/rpc/:path*',
+      destination: base + '/rest/v1/rpc/:path*'
+    }];
   },
   async headers() {
     return [{ source: '/:path*', headers: [
