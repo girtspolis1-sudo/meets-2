@@ -500,3 +500,92 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
  .admin-sheet-head{align-items:flex-start;flex-direction:column}
 }
 
+/* Distinct admin environment */
+body.admin-environment{
+ background:#e5e7ea;
+ --bg:#e5e7ea;
+ --border:#cfd4d9;
+}
+body.admin-environment .header{
+ max-width:none;
+ padding-left:max(36px,calc((100vw - 1240px)/2 + 36px));
+ padding-right:max(36px,calc((100vw - 1240px)/2 + 36px));
+ background:#dfe3e7;
+ border-bottom-color:#c6ccd2;
+ box-shadow:0 1px 0 rgba(34,42,49,.04)
+}
+body.admin-environment main#saturs{
+ max-width:none;
+ margin:0;
+ background:#e5e7ea;
+ padding:0 max(36px,calc((100vw - 1168px)/2))
+}
+body.admin-environment footer{
+ max-width:none;
+ margin:0;
+ padding-left:max(36px,calc((100vw - 1168px)/2));
+ padding-right:max(36px,calc((100vw - 1168px)/2));
+ background:#d9dde1;
+ border-top-color:#c4c9ce
+}
+body.admin-environment .admin-page{
+ margin-top:0;
+ margin-bottom:0;
+ padding-top:34px;
+ padding-bottom:42px;
+ border:0;
+ border-radius:0;
+ background:#e5e7ea;
+ box-shadow:none
+}
+body.admin-environment .admin-page>h1,
+body.admin-environment .admin-page>.lead,
+body.admin-environment .admin-page>.eyebrow{
+ max-width:980px
+}
+body.admin-environment .admin-sheet-intro,
+body.admin-environment .admin-summary article,
+body.admin-environment .admin-toolbar,
+body.admin-environment .admin-map-section,
+body.admin-environment .lff-location-queue,
+body.admin-environment .table-scroll,
+body.admin-environment .admin-login{
+ background:#f7f8f9;
+ border-color:#cbd0d5;
+ box-shadow:0 4px 14px rgba(35,43,50,.055)
+}
+body.admin-environment .admin-rule{
+ background:#eef0f2;
+ border-color:#cbd0d5
+}
+body.admin-environment .admin-workspace-tabs{
+ background:#d9dde1;
+ border-color:#c4c9ce
+}
+body.admin-environment .admin-workspace-tabs button.active{
+ background:#fff
+}
+body.admin-environment .preview.admin-role-badge{
+ background:#343a40;
+ border-color:#343a40;
+ color:#fff
+}
+
+@media(max-width:640px){
+ body.admin-environment .header{
+  padding-left:20px;
+  padding-right:20px
+ }
+ body.admin-environment main#saturs{
+  padding:0 20px
+ }
+ body.admin-environment footer{
+  padding-left:20px;
+  padding-right:20px
+ }
+ body.admin-environment .admin-page{
+  padding-top:22px;
+  padding-bottom:28px
+ }
+}
+
