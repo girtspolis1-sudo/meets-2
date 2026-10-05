@@ -391,3 +391,112 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
  .admin-simple-login .button{width:100%}
 }
 
+/* Logged-in admin role and workspace sheets */
+.preview.admin-role-badge{
+ border-color:#a779ca;
+ background:#efe1f8;
+ color:#5f00b7;
+ font-weight:800;
+ letter-spacing:.45px
+}
+
+.admin-workspace-tabs{
+ display:flex;
+ gap:8px;
+ flex-wrap:wrap;
+ margin:0 0 14px;
+ padding:5px;
+ width:max-content;
+ max-width:100%;
+ border:1px solid #dacbe5;
+ border-radius:14px;
+ background:rgba(255,255,255,.58)
+}
+.admin-workspace-tabs button{
+ display:inline-flex;
+ align-items:center;
+ gap:8px;
+ min-height:40px;
+ padding:8px 13px;
+ border:0;
+ border-radius:10px;
+ background:transparent;
+ color:#62566a;
+ font:inherit;
+ font-size:12px;
+ font-weight:800;
+ cursor:pointer
+}
+.admin-workspace-tabs button span{
+ min-width:24px;
+ padding:3px 7px;
+ border-radius:999px;
+ background:#ece6f0;
+ color:#6d6273;
+ font-size:10px;
+ text-align:center
+}
+.admin-workspace-tabs button:hover{background:#f5eef9}
+.admin-workspace-tabs button.active{
+ background:#fff;
+ color:#6200bd;
+ box-shadow:0 3px 12px rgba(71,42,89,.09)
+}
+.admin-workspace-tabs button.active span{background:#ead8f8;color:#6200bd}
+.admin-workspace-tabs button.attention.active{
+ background:#fff7f3;
+ color:#9a4219
+}
+.admin-workspace-tabs button.attention.active span{
+ background:#f8dfd2;
+ color:#8a3714
+}
+
+.admin-sheet-intro{
+ display:flex;
+ align-items:flex-start;
+ justify-content:space-between;
+ gap:22px;
+ margin-bottom:18px;
+ padding:18px 20px;
+ border:1px solid #ddcfe8;
+ border-radius:16px;
+ background:rgba(255,255,255,.72)
+}
+.admin-sheet-intro .eyebrow{margin:0 0 5px}
+.admin-sheet-intro h2{margin:0 0 6px;font-size:22px}
+.admin-sheet-intro p{margin:0;max-width:850px;color:var(--muted);line-height:1.5}
+.admin-issue-count{
+ flex:0 0 auto;
+ padding:8px 11px;
+ border:1px solid #e3bba7;
+ border-radius:999px;
+ background:#fff2eb;
+ color:#8e3b17;
+ font-size:12px
+}
+
+.admin-sheet-head{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:16px;
+ margin:22px 0 8px
+}
+.admin-sheet-head>div{display:grid;gap:2px}
+.admin-sheet-head strong{font-size:15px}
+.admin-sheet-head span{font-size:11px;color:var(--muted)}
+.admin-sheet-head>.quality-badge{color:#8d2d25}
+
+.admin-events-table .location-needs-review td{background:rgba(255,248,242,.38)}
+.admin-events-table .location-needs-review:hover td{background:rgba(255,242,232,.7)}
+.admin-events-table .reason-cell{min-width:190px;max-width:280px}
+
+@media(max-width:700px){
+ .admin-workspace-tabs{width:100%;display:grid;grid-template-columns:1fr 1fr}
+ .admin-workspace-tabs button{justify-content:center;padding:8px}
+ .admin-sheet-intro{display:grid;padding:15px}
+ .admin-issue-count{justify-self:start}
+ .admin-sheet-head{align-items:flex-start;flex-direction:column}
+}
+
