@@ -696,6 +696,9 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    mappings={mappings}
    onMap={setMappingEditing}
    onEditEvent={setEditing}
+   onEditMapping={setMappingRuleEditing}
+   onToggleMapping={toggleMapping}
+   busyMappingId={busyMappingId}
   />}
 
   {workspaceView==='all'&&<>
@@ -733,18 +736,37 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
    <AdminEventMap events={filtered} onEdit={setEditing}/>
 
-   <div className="admin-sheet-head">
-    <div><strong>Pasākumu saraksts</strong><span>{filtered.length} ieraksti pēc filtriem</span></div>
+   <div className="admin-sheet-head admin-bulk-head">
+    <div><strong>Pasākumu saraksts</strong><span>{filtered.length} ieraksti pēc filtriem · lapa {safePage}/{pageCount}</span></div>
+    <div className="admin-bulk-actions">
+     <span>Atlasīti: <strong>{selectedIds.size}</strong></span>
+     <button type="button" className="button compact" onClick={selectPage} disabled={!pageRows.length||bulkLoading}>{allPageSelected?'Noņemt šīs lapas atlasi':'Atlasīt šīs lapas ierakstus'}</button>
+     <button type="button" className="button compact" onClick={selectAllFiltered} disabled={!filtered.length||bulkLoading}>{allFilteredSelected?'Noņemt visu filtrēto atlasi':'Atlasīt visus filtrētos ierakstus'}</button>
+     <button type="button" className="button primary compact" onClick={bulkPublish} disabled={!selectedIds.size||bulkLoading}>{bulkLoading?'Publicē…':'Publicēt atlasītos'}</button>
+    </div>
    </div>
+   {bulkResult&&<div className="bulk-result" role="status">
+    <strong>Masveida darbības rezultāts</strong>
+    <span>Publicēti: {bulkResult.published?.length||0} · Izlaisti: {bulkResult.skipped?.length||0} · Kļūdas: {bulkResult.errors?.length||0}</span>
+    {(bulkResult.skipped?.length>0||bulkResult.errors?.length>0)&&<details>
+     <summary>Rādīt iemeslus</summary>
+     {[...(bulkResult.skipped||[]),...(bulkResult.errors||[])].map((item,index)=>{
+      const event=events.find(row=>row.id===item.id);
+      return <div key={(item.id||'error')+index}><strong>{event?.title||item.id}</strong> — {item.reason||'Nezināma kļūda'}</div>;
+     })}
+    </details>}
+   </div>}
    <div className="table-scroll" role="region" aria-label="Admin pasākumu tabula" tabIndex={0}>
     <table className="events-table admin-events-table location-review-table">
      <thead><tr>
+      <th className="select-column"><input type="checkbox" checked={allPageSelected} onChange={selectPage} aria-label="Atlasīt vai noņemt šīs lapas ierakstus"/></th>
       <th>Datums</th><th>Pasākums</th><th>Lokācijas kvalitāte</th><th>Kāpēc jāpārbauda</th><th>Norises vieta</th><th>Avots</th><th>Darbības</th>
      </tr></thead>
      <tbody>
-      {filtered.map(event=>{
+      {pageRows.map(event=>{
        const meta=qualityMeta(event.location_quality);
        return <tr key={event.id} className={event.location_quality==='verified_exact'?'location-ok':'location-needs-review'}>
+        <td className="select-column"><input type="checkbox" checked={selectedIds.has(event.id)} onChange={()=>toggleSelected(event.id)} aria-label={'Atlasīt '+event.title}/></td>
         <td>{dateText(event.date_from)}</td>
         <td><strong>{event.title}</strong><small className="table-subline">{event.status}</small></td>
         <td><span className={'quality-badge '+meta.tone}>{meta.label}</span></td>
@@ -756,7 +778,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
         </td>
         <td>{sourceLinks(event).length?sourceLinks(event).map((s,i)=><span key={(s.url||'')+i} className="source-link-row"><a href={s.url} target="_blank" rel="noreferrer">{s.source||'Avots'} ↗</a></span>):sourceText(event)}</td>
         <td><div className="admin-actions">
-         {event.location_quality==='verified_exact'&&event.status!=='published'&&<button className="text-button strong-action" onClick={()=>changeStatus(event,'published')}>Publicēt</button>}
+         {canPublishEvent(event)&&event.status!=='published'&&<button className="text-button strong-action" onClick={()=>changeStatus(event,'published')}>Publicēt</button>}
          {event.status==='published'&&<button className="text-button" onClick={()=>changeStatus(event,'pending_review')}>Atgriezt pārbaudei</button>}
          <button className="button compact" onClick={()=>setEditing(event)}>{isLocationIssue(event)?'Labot adresi / karti':'Pārbaudīt adresi / karti'}</button>
         </div></td>
@@ -764,6 +786,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
       })}
      </tbody>
     </table>
+   </div>
+   <div className="admin-pagination">
+    <button type="button" className="button compact" onClick={()=>setPage(value=>Math.max(1,value-1))} disabled={safePage<=1}>← Iepriekšējā</button>
+    <span>{safePage}. lapa no {pageCount}</span>
+    <button type="button" className="button compact" onClick={()=>setPage(value=>Math.min(pageCount,value+1))} disabled={safePage>=pageCount}>Nākamā →</button>
    </div>
    <p className="sync-text"><strong>{filtered.length}</strong> no {events.length} ierakstiem.</p>
   </>}
@@ -776,6 +803,25 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    mappingCount={mappingEditing.events.length}
    close={()=>setMappingEditing(null)}
    save={values=>saveMapping(mappingEditing,values)}
+  />}
+
+  {mappingRuleEditing&&<LocationEditor
+   event={{
+    venue_name:mappingRuleEditing.canonical_venue_name,
+    address_raw:mappingRuleEditing.canonical_address_text,
+    latitude:mappingRuleEditing.latitude,
+    longitude:mappingRuleEditing.longitude,
+    municipality:mappingRuleEditing.municipality,
+    country_code:mappingRuleEditing.country_code,
+    location_quality:'verified_exact',
+    sources:[]
+   }}
+   token={token}
+   mode="saved-mapping"
+   mappingAlias={mappingRuleEditing.alias_text}
+   mappingCount={mappingRuleEditing.current_events||0}
+   close={()=>setMappingRuleEditing(null)}
+   save={values=>updateMapping(mappingRuleEditing,values)}
   />}
 
   {editing&&<LocationEditor event={editing} token={token} close={()=>setEditing(null)} save={(values,publish)=>saveLocation(editing,values,publish)}/>} 
@@ -858,14 +904,19 @@ function LocationEditor({event,token,close,save,mode='event',mappingAlias='',map
  const meta=qualityMeta(event.location_quality);
  const canSave=Number.isFinite(Number(latitude))&&Number.isFinite(Number(longitude))&&Boolean(venueName.trim());
  const locationSource=selectedPlace?.sourceUrl||'admin map correction';
- const isMapping=mode==='mapping';
+ const isMapping=mode==='mapping'||mode==='saved-mapping';
+ const isSavedMapping=mode==='saved-mapping';
 
  return <dialog ref={dialog} className="event-dialog location-dialog" onCancel={close} onClose={close}>
   <div className="detail-header"><div><p className="eyebrow">{isMapping?'Atkārtoti izmantojams mapping':'Lokācijas pārbaude'}</p><h2>{isMapping?(mappingAlias||event.venue_name||event.address_raw):event.title}</h2></div><button className="button" onClick={close}>Aizvērt ✕</button></div>
 
   <div className={'location-issue-panel '+meta.tone}>
    <strong>{isMapping?`${mappingCount} esoši pasākumi ar šo aliasu`:meta.label}</strong>
-   <p>{isMapping?'Saglabājot mappingu, esošie ieraksti tiks salaboti uzreiz un nākamajos importos šis pats nosaukums automātiski saņems apstiprināto vietu.':(event.location_review_reason||'Lokācija pašlaik ir verificēta.')}</p>
+   <p>{isSavedMapping
+    ?'Labojot mappingu, ar šo mapping ID jau saistītie ieraksti tiks atjaunoti; nākamie importi izmantos jauno korekciju.'
+    :isMapping
+     ?'Saglabājot mappingu, esošie ieraksti tiks salaboti uzreiz un nākamajos importos šis pats nosaukums automātiski saņems apstiprināto vietu.'
+     :(event.location_review_reason||'Lokācija pašlaik ir verificēta.')}</p>
    {event.address_raw&&<p><b>Nolasītā adrese:</b> {event.address_raw}</p>}
    {sourceLinks(event).map((s,i)=><a key={(s.url||'')+i} href={s.url} target="_blank" rel="noreferrer">Atvērt {s.source||'avotu'} ↗</a>)}
   </div>
@@ -920,7 +971,7 @@ function LocationEditor({event,token,close,save,mode='event',mappingAlias='',map
 
   <div className="actions">
    {isMapping
-    ?<button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource})}>Saglabāt mappingu un labot {mappingCount}</button>
+    ?<button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource})}>{isSavedMapping?'Saglabāt mappinga labojumu':'Saglabāt mappingu un labot '+mappingCount}</button>
     :<>
       <button className="button" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},false)}>Saglabāt verificētu lokāciju</button>
       <button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},true)}>Saglabāt un publicēt</button>
