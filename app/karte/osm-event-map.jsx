@@ -3,6 +3,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel} from '../../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaTodayIso} from '../../lib/event-date.js';
+import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 
 const MAP_STYLES={
  positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
@@ -13,7 +14,7 @@ const MAP_STYLES={
 };
 const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
 const DEFAULT_LOCATION={lat:56.9053,lon:24.0556,label:'Mārupes dome',source:'fallback'};
-const RADIUS_OPTIONS=[5,10,25,50,0];
+const RADIUS_OPTIONS=[5,10,25,30,50,0];
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function norm(v=''){return String(v).toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
@@ -99,13 +100,6 @@ function popupHtml(group,activeIds,isAdminSession,now){
  const activeCount=group.events.filter(e=>activeIds.has(e.id)).length;
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div><ol>'+rows+'</ol></div>';
 }
-async function loadMapStack(){
- const leafletModule=await import('leaflet');
- const L=leafletModule.default||leafletModule;
- await import('@maplibre/maplibre-gl-leaflet');
- if(!L?.maplibreGL)throw new Error('MapLibre Leaflet adapter failed to load');
- return {L,maplibreGL:L.maplibreGL};
-}
 function distanceKm(aLat,aLon,bLat,bLon){
  const r=6371,toRad=v=>v*Math.PI/180;
  const dLat=toRad(bLat-aLat),dLon=toRad(bLon-aLon);
@@ -151,7 +145,7 @@ export default function OsmEventMap(){
  const [country,setCountry]=useState('');
  const [from,setFrom]=useState('');
  const [to,setTo]=useState('');
- const [radiusKm,setRadiusKm]=useState(50);
+ const [radiusKm,setRadiusKm]=useState(30);
  const [periodMode,setPeriodMode]=useState('week');
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [mapStyle,setMapStyle]=useState('positron');
@@ -161,10 +155,13 @@ export default function OsmEventMap(){
  const [locationMessage,setLocationMessage]=useState('');
  const [locationSearching,setLocationSearching]=useState(false);
  const [mapReady,setMapReady]=useState(false);
+ const [mapMode,setMapMode]=useState('loading');
+ const [mapError,setMapError]=useState('');
+ const [mapRetry,setMapRetry]=useState(0);
  const [isAdminSession,setIsAdminSession]=useState(false);
  const [clockNow,setClockNow]=useState(()=>new Date());
  const {data,loading,error,refresh}=useEvents();
- const mapEl=useRef(null),mapRef=useRef(null),leafletRef=useRef(null),baseMapLayerRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
+ const mapEl=useRef(null),mapRef=useRef(null),leafletRef=useRef(null),baseMapLayerRef=useRef(null),baseLayerCleanupRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
  const defaultsSetRef=useRef(false);
 
  const publicFrom=data?.window?.from||'';
@@ -272,30 +269,131 @@ export default function OsmEventMap(){
 
  useEffect(()=>{
   let cancelled=false;
-  loadMapStack().then(({L,maplibreGL})=>{
-   if(cancelled||!mapEl.current||mapRef.current)return;
-   const fixedBounds=L.latLngBounds([BALTIC_VIEW.south,BALTIC_VIEW.west],[BALTIC_VIEW.north,BALTIC_VIEW.east]);
-   const map=L.map(mapEl.current,{maxBounds:fixedBounds,maxBoundsViscosity:1,minZoom:5}).fitBounds(fixedBounds,{padding:[20,20]});
-   map.createPane('backgroundMarkers');map.getPane('backgroundMarkers').style.zIndex='410';
-   map.createPane('activeMarkers');map.getPane('activeMarkers').style.zIndex='460';
-   map.createPane('userLocation');map.getPane('userLocation').style.zIndex='520';
-   if(map.getPane('popupPane'))map.getPane('popupPane').style.zIndex='920';
-   baseMapLayerRef.current=maplibreGL({style:MAP_STYLES.positron.url}).addTo(map);
-   map.attributionControl.addAttribution('<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> © OpenMapTiles · Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>');
-   leafletRef.current=L;mapRef.current=map;setMapReady(true);
-  }).catch(error=>{console.error('map_stack_failed',error);});
-  return()=>{cancelled=true;};
- },[]);
+  let rasterCleanup=null;
+
+  async function init(){
+   setMapReady(false);
+   setMapMode('loading');
+   setMapError('');
+
+   removeLayerSafe(baseMapLayerRef.current);
+   baseMapLayerRef.current=null;
+   baseLayerCleanupRef.current?.();
+   baseLayerCleanupRef.current=null;
+   backgroundLayerRef.current?.remove();backgroundLayerRef.current=null;
+   activeLayerRef.current?.remove();activeLayerRef.current=null;
+   focusLayerRef.current?.remove();focusLayerRef.current=null;
+   if(mapRef.current){
+    try{mapRef.current.remove();}catch{}
+    mapRef.current=null;
+   }
+
+   try{
+    const L=await loadLeaflet();
+    if(cancelled||!mapEl.current)return;
+
+    const fixedBounds=L.latLngBounds([BALTIC_VIEW.south,BALTIC_VIEW.west],[BALTIC_VIEW.north,BALTIC_VIEW.east]);
+    const map=L.map(mapEl.current,{maxBounds:fixedBounds,maxBoundsViscosity:1,minZoom:5}).fitBounds(fixedBounds,{padding:[20,20]});
+    map.createPane('backgroundMarkers');map.getPane('backgroundMarkers').style.zIndex='410';
+    map.createPane('activeMarkers');map.getPane('activeMarkers').style.zIndex='460';
+    map.createPane('userLocation');map.getPane('userLocation').style.zIndex='520';
+    if(map.getPane('popupPane'))map.getPane('popupPane').style.zIndex='920';
+    leafletRef.current=L;
+    mapRef.current=map;
+
+    const requested=requestedMapMode();
+    let vectorError=null;
+
+    if(requested!=='raster'&&requested!=='fail'&&hasWebGL()){
+     try{
+      const maplibreGL=await enableMapLibre(L);
+      if(cancelled)return;
+      const style=MAP_STYLES[mapStyle]||MAP_STYLES.positron;
+      baseMapLayerRef.current=maplibreGL({style:style.url}).addTo(map);
+      map.attributionControl.addAttribution('<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> © OpenMapTiles · Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>');
+      setMapMode('vector');
+      setMapReady(true);
+      return;
+     }catch(error){
+      vectorError=error;
+      console.warn('map_vector_failed_using_raster',error);
+      removeLayerSafe(baseMapLayerRef.current);
+      baseMapLayerRef.current=null;
+     }
+    }else if(requested!=='raster'){
+     vectorError=new Error(requested==='fail'?'Forced map failure':'WebGL is unavailable');
+    }
+
+    if(requested==='fail'){
+     throw vectorError;
+    }
+
+    try{
+     const raster=addRasterLayer(L,map,{
+      onReady:()=>{
+       if(cancelled)return;
+       setMapMode('raster');
+       setMapReady(true);
+       setMapError('');
+      },
+      onFailure:error=>{
+       if(cancelled)return;
+       setMapMode('failed');
+       setMapReady(false);
+       setMapError('Karti neizdevās ielādēt. Pasākumu dati joprojām ir pieejami sarakstā.');
+       console.error('map_raster_failed',error);
+      }
+     });
+     baseMapLayerRef.current=raster.layer;
+     rasterCleanup=raster.cleanup;
+     baseLayerCleanupRef.current=raster.cleanup;
+     setMapMode('raster');
+     setMapReady(true);
+    }catch(error){
+     console.error('map_fallback_failed',error);
+     throw error;
+    }
+   }catch(error){
+    if(cancelled)return;
+    console.error('map_stack_failed',error);
+    setMapMode('failed');
+    setMapReady(false);
+    setMapError('Karti neizdevās ielādēt. Vari mēģināt vēlreiz vai atvērt pasākumu sarakstu.');
+   }
+  }
+
+  init();
+
+  return()=>{
+   cancelled=true;
+   rasterCleanup?.();
+   baseLayerCleanupRef.current?.();
+   baseLayerCleanupRef.current=null;
+   removeLayerSafe(baseMapLayerRef.current);
+   baseMapLayerRef.current=null;
+   backgroundLayerRef.current?.remove();backgroundLayerRef.current=null;
+   activeLayerRef.current?.remove();activeLayerRef.current=null;
+   focusLayerRef.current?.remove();focusLayerRef.current=null;
+   if(mapRef.current){
+    try{mapRef.current.remove();}catch{}
+    mapRef.current=null;
+   }
+   leafletRef.current=null;
+  };
+ },[mapRetry]);
 
  useEffect(()=>{
-  if(!mapReady||!mapRef.current||!leafletRef.current?.maplibreGL)return;
+  if(!mapReady||mapMode!=='vector'||!mapRef.current||!leafletRef.current?.maplibreGL)return;
   const L=leafletRef.current;
   const style=MAP_STYLES[mapStyle]||MAP_STYLES.positron;
-  if(baseMapLayerRef.current){
-   try{baseMapLayerRef.current.remove();}catch{}
+  removeLayerSafe(baseMapLayerRef.current);
+  try{
+   baseMapLayerRef.current=L.maplibreGL({style:style.url}).addTo(mapRef.current);
+  }catch(error){
+   console.warn('map_style_failed_switching_to_raster',error);
+   setMapRetry(value=>value+1);
   }
-  baseMapLayerRef.current=L.maplibreGL({style:style.url}).addTo(mapRef.current);
- },[mapReady,mapStyle]);
+ },[mapReady,mapMode,mapStyle]);
 
  useEffect(()=>{
   if(!mapReady||!mapRef.current)return;
@@ -382,7 +480,7 @@ export default function OsmEventMap(){
   setFrom(next.from);setTo(next.to);
  }
  function resetFilters(){
-  setEventType('');setCompetition('');setCategory('');setMunicipality('');setCountry('');setRadiusKm(50);setMapStyle('positron');setPeriodMode('week');
+  setEventType('');setCompetition('');setCategory('');setMunicipality('');setCountry('');setRadiusKm(30);setMapStyle('positron');setPeriodMode('week');
   if(publicFrom){const next=periodDates('week',publicFrom,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
@@ -501,8 +599,10 @@ export default function OsmEventMap(){
       <option value="">Visas pašvaldības</option>{municipalities.map(v=><option key={v}>{v}</option>)}
      </select>
 
-     <select value={mapStyle} onChange={e=>setMapStyle(e.target.value)} aria-label="Kartes stils" title="Kartes stils">
-      {Object.entries(MAP_STYLES).map(([key,style])=><option key={key} value={key}>{style.label}</option>)}
+     <select value={mapStyle} onChange={e=>setMapStyle(e.target.value)} aria-label="Kartes stils" title={mapMode==='raster'?'Rastra rezerves režīmā kartes stilu mainīt nevar':'Kartes stils'} disabled={mapMode==='raster'}>
+      {mapMode==='raster'
+       ?<option value={mapStyle}>Rastra rezerves karte</option>
+       :Object.entries(MAP_STYLES).map(([key,style])=><option key={key} value={key}>{style.label}</option>)}
      </select>
 
      <button className="map-reset-icon" type="button" onClick={resetFilters} aria-label="Atiestatīt filtrus" title="Atiestatīt filtrus">
@@ -519,6 +619,15 @@ export default function OsmEventMap(){
    {locationMessage&&<div className="map-location-message">{locationMessage}</div>}
 
    <div ref={mapEl} className="osm-map" aria-label="Pasākumu karte"/>
+   {mapMode==='raster'&&<div className="map-fallback-note" role="status">Rastra rezerves karte</div>}
+   {mapError&&<div className="map-render-error" role="alert">
+    <strong>Karti neizdevās attēlot.</strong>
+    <span>{mapError}</span>
+    <div>
+     <button type="button" className="button compact" onClick={()=>setMapRetry(value=>value+1)}>Mēģināt vēlreiz</button>
+     <a className="button compact" href="/pasakumi">Atvērt pasākumu sarakstu</a>
+    </div>
+   </div>}
 
    <div className="map-legend map-legend-overlay" aria-label="Kartes leģenda">
     <span><i className="legend-symbol municipality" aria-hidden="true">📅</i>Pašvaldības</span>
