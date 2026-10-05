@@ -91,6 +91,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [isAdmin,setIsAdmin]=useState(false);
  const [message,setMessage]=useState('');
  const [events,setEvents]=useState([]);
+ const [catalogLoaded,setCatalogLoaded]=useState(false);
  const [loading,setLoading]=useState(false);
  const [search,setSearch]=useState('');
  const [status,setStatus]=useState('');
@@ -117,9 +118,13 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   setLoading(true);
   try{
    const data=await apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken});
-   setEvents(Array.isArray(data?.events)?data.events:[]);setMessage('');
-  }catch{setMessage('Admin datus neizdevās ielādēt.');}
-  finally{setLoading(false);}
+   setEvents(Array.isArray(data?.events)?data.events:[]);
+   setCatalogLoaded(true);
+   setMessage('');
+  }catch{
+   setCatalogLoaded(false);
+   setMessage('Admin datus neizdevās ielādēt.');
+  }finally{setLoading(false);}
  }
  useEffect(()=>{
   let cancelled=false;
@@ -471,6 +476,16 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
    {message&&<p className="sync-text admin-auth-message" role="status">{message}</p>}
   </form>;
+ }
+
+ if(!catalogLoaded){
+  return <div className="admin-catalog-error" role="alert">
+   <strong>Admin katalogu neizdevās ielādēt.</strong>
+   <p>Pasākumu karte un labošanas darbības netiek rādītas, kamēr dati nav veiksmīgi ielādēti.</p>
+   <button className="button primary" type="button" onClick={()=>loadEvents()} disabled={loading}>
+    {loading?'Ielādē…':'Mēģināt vēlreiz'}
+   </button>
+  </div>;
  }
 
  return <>
