@@ -18,7 +18,7 @@ const QUALITY={
 function qualityMeta(value){return QUALITY[value]||{label:value||'Nav novērtēts',tone:'bad',priority:0};}
 function isLocationIssue(event){
  const quality=String(event?.location_quality||'');
- const hasPoint=Number.isFinite(Number(event?.latitude))&&Number.isFinite(Number(event?.longitude));
+ const hasPoint=event?.latitude!=null&&event?.longitude!=null&&Number.isFinite(Number(event.latitude))&&Number.isFinite(Number(event.longitude));
  const hasPlace=Boolean(String(event?.venue_name||event?.address_raw||'').trim());
  return !hasPoint||!hasPlace||quality!=='verified_exact';
 }
