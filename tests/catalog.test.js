@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterEvents,filterEventsByColumns,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
-import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded} from '../lib/event-date.js';
+import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaClockMinutes} from '../lib/event-date.js';
 import {createWorkbook} from '../lib/excel.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
@@ -126,6 +126,27 @@ test('map date badges distinguish today, tomorrow, future, ranges and ended even
   {tone:'past',label:'Pasākums beidzās pirms 3 dienām',badge:'-3d',days:-3,isOpenToday:false}
  );
  assert.equal(eventDateState({date_from:'2026-10-01',date_to:'2026-10-05'},today).tone,'today');
+
+ const beforeEnd=new Date('2026-10-03T15:29:00Z');
+ const afterEnd=new Date('2026-10-03T15:31:00Z');
+ assert.equal(rigaClockMinutes(beforeEnd),18*60+29);
+ assert.equal(
+  eventDateState({date_from:'2026-10-03',time_to:'18:30:00'},today,beforeEnd).tone,
+  'today'
+ );
+ assert.deepEqual(
+  eventDateState({date_from:'2026-10-03',time_to:'18:30:00'},today,afterEnd),
+  {tone:'ended-today',label:'Iespējams noslēdzies · beigu laiks 18:30',badge:'Noslēdzies?',days:0,isOpenToday:true,isPossiblyEnded:true}
+ );
+ assert.equal(
+  eventDateState({date_from:'2026-10-02',date_to:'2026-10-04',time_to:'10:00:00'},today,afterEnd).tone,
+  'today'
+ );
+ assert.equal(groupDateTone([
+  {date_from:'2026-10-03',time_to:'18:00:00'},
+  {date_from:'2026-10-03',time_to:'18:30:00'}
+ ],today,afterEnd),'ended-today');
+
  assert.equal(eventDateRangeLabel({date_from:'2026-10-01',date_to:'2026-10-05'},value=>value),'2026-10-01–2026-10-05');
  assert.equal(groupDateTone([{date_from:'2026-10-08'},{date_from:'2026-10-04'}],today),'tomorrow');
  assert.equal(groupDateTone([{date_from:'2026-09-29'}],today),'');
