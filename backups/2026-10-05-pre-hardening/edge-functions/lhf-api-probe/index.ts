@@ -1,0 +1,2 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+Deno.serve(async()=>new Response(JSON.stringify({ok:false,status:"disabled",reason:"LHF documented JSON endpoints currently return HTML instead of JSON; importer intentionally disabled to prevent corrupt production imports."}),{status:503,headers:{"content-type":"application/json","cache-control":"no-store"}}));
