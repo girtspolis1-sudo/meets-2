@@ -28,7 +28,8 @@ test('live Supabase data and Excel round trip include every row; no formulas',{s
  const publicPayload=await publicRpc.json();assert(Array.isArray(publicPayload.events));assert(publicPayload.events.every(e=>e.status==='published'));
  const table=await fetch(process.env.SUPABASE_URL+'/rest/v1/events?select=id&limit=1',{headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY}});assert(!table.ok);
  const passwordReady=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_password_ready',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:'{}'});assert(passwordReady.ok);assert.equal(typeof await passwordReady.json(),'boolean');
- console.log(`Verified ${data.total} live rows, public published-only RPC, no direct anonymous table access and admin password readiness endpoint.`);
+ const mappingCatalog=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_admin_location_mapping_catalog',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_session_token:'invalid-ci-session'})});assert(!mappingCatalog.ok);
+ console.log(`Verified ${data.total} live rows, public published-only RPC, no direct anonymous table access, admin password readiness and protected mapping catalogue.`);
 });
 
 test('each shared filter matches, excludes, combines and resets',()=>{
