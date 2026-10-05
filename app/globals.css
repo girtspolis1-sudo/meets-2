@@ -589,3 +589,15 @@ body.admin-environment .preview.admin-role-badge{
  }
 }
 
+.admin-catalog-error{
+ max-width:720px;
+ margin:26px 0;
+ padding:22px;
+ border:1px solid #c9a89c;
+ border-radius:16px;
+ background:#fff6f1;
+ box-shadow:0 4px 14px rgba(35,43,50,.05)
+}
+.admin-catalog-error strong{display:block;font-size:18px}
+.admin-catalog-error p{margin:8px 0 16px;color:#695d58}
+
