@@ -1,0 +1,134 @@
+[
+  {
+    "version": "20260923164027",
+    "name": "meets_events_initial_schema"
+  },
+  {
+    "version": "20260923165136",
+    "name": "private_site_read_integration"
+  },
+  {
+    "version": "20260924050735",
+    "name": "event_short_comments"
+  },
+  {
+    "version": "20260924050841",
+    "name": "comment_in_event_overview"
+  },
+  {
+    "version": "20260924171901",
+    "name": "reviewed_calendar_refresh"
+  },
+  {
+    "version": "20260924184055",
+    "name": "refresh_change_summary"
+  },
+  {
+    "version": "20260926191128",
+    "name": "source_registry_and_read_lifecycle"
+  },
+  {
+    "version": "20260928075948",
+    "name": "remove_internal_review_status_from_public_catalog"
+  },
+  {
+    "version": "20260928095940",
+    "name": "enable_pg_net_for_source_sync"
+  },
+  {
+    "version": "20260929062831",
+    "name": "secure_admin_review_workflow"
+  },
+  {
+    "version": "20260929111619",
+    "name": "basketball_estlat_country_support_v3"
+  },
+  {
+    "version": "20260930123407",
+    "name": "stabilize_public_catalog_rpc"
+  },
+  {
+    "version": "20260930123826",
+    "name": "remove_catalog_rpc_compat_wrapper"
+  },
+  {
+    "version": "20260930130904",
+    "name": "backfill_lv_basketball_municipalities"
+  },
+  {
+    "version": "20260930131006",
+    "name": "clean_corrupted_lff_venue_names"
+  },
+  {
+    "version": "20260930131030",
+    "name": "add_adazi_settlement_fallbacks"
+  },
+  {
+    "version": "20261001051018",
+    "name": "add_admin_auth_exchange"
+  },
+  {
+    "version": "20261001051402",
+    "name": "disable_legacy_temp_admin_login"
+  },
+  {
+    "version": "20261002051036",
+    "name": "remove_legacy_admin_password_login"
+  },
+  {
+    "version": "20261002065609",
+    "name": "store_resend_key_for_admin_otp"
+  },
+  {
+    "version": "20261002065704",
+    "name": "add_resend_admin_otp_flow"
+  },
+  {
+    "version": "20261002081005",
+    "name": "finalize_resend_admin_otp_hash_allowlist"
+  },
+  {
+    "version": "20261002081050",
+    "name": "remove_obsolete_supabase_auth_exchange"
+  },
+  {
+    "version": "20261002110329",
+    "name": "add_google_admin_and_emergency_recovery"
+  },
+  {
+    "version": "20261002110636",
+    "name": "rotate_emergency_recovery_code"
+  },
+  {
+    "version": "20261002112328",
+    "name": "prepare_simple_admin_password_login"
+  },
+  {
+    "version": "20261002113007",
+    "name": "add_one_time_simple_admin_password_setup"
+  },
+  {
+    "version": "20261002113433",
+    "name": "disable_obsolete_admin_auth_paths"
+  },
+  {
+    "version": "20261005044357",
+    "name": "fix_simple_admin_password_setup_session_cleanup"
+  },
+  {
+    "version": "20261005050559",
+    "name": "fix_admin_session_rpc_wrappers_security"
+  },
+  {
+    "version": "20261005064517",
+    "name": "add_persistent_location_alias_mapping"
+  },
+  {
+    "version": "20261005065436",
+    "name": "harden_location_mapping_reapply_and_baltic_admin_bounds"
+  },
+  {
+    "version": "20261005111003",
+    "name": "pre_hardening_backup_snapshot_20261005"
+  }
+]
