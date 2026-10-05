@@ -2,6 +2,8 @@
 
 import {useEffect,useMemo,useRef,useState} from 'react';
 import AdminEventMap from './admin-event-map.jsx';
+import AdminReviewOverview from './admin-review-overview.jsx';
+import AdminMappingList from './admin-mapping-list.jsx';
 
 const SESSION_KEY='meets_admin_access_token';
 function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
@@ -30,6 +32,45 @@ function locationIssueReason(event){
  if(event?.location_quality==='venue_unverified')return 'Kartes punkts nav verificēts';
  if(event?.location_quality==='source_exact')return 'Avotā ir precīza vieta, nepieciešama admin pārbaude';
  return event?.location_review_reason||'Adrese vai kartes punkts jāpārbauda';
+}
+
+function normalizeMappingAlias(value){
+ return String(value||'')
+  .toLocaleLowerCase('lv')
+  .replace(/[.,;:/\\()"'’“”_\-]+/g,' ')
+  .replace(/\s+/g,' ')
+  .trim();
+}
+function groupLocationIssues(events){
+ const groups=new Map();
+ for(const event of events){
+  if(!isLocationIssue(event))continue;
+  const alias=String(event.venue_name||event.address_raw||'').trim();
+  const municipality=String(event.municipality||'').trim();
+  const countryCode=String(event.country_code||'').trim();
+  const key=[normalizeMappingAlias(alias)||'__missing__',municipality.toLocaleLowerCase('lv'),countryCode].join('|');
+  const current=groups.get(key)||{
+   key,
+   alias,
+   municipality,
+   countryCode,
+   sampleAddress:String(event.address_raw||'').trim(),
+   events:[],
+   sources:new Set(),
+   qualities:new Set(),
+   firstDate:event.date_from||'',
+   lastDate:event.date_from||''
+  };
+  current.events.push(event);
+  for(const source of event.sources||[])if(source?.source)current.sources.add(source.source);
+  current.qualities.add(qualityMeta(event.location_quality).label);
+  if(event.date_from&&(!current.firstDate||event.date_from<current.firstDate))current.firstDate=event.date_from;
+  if(event.date_from&&(!current.lastDate||event.date_from>current.lastDate))current.lastDate=event.date_from;
+  groups.set(key,current);
+ }
+ return [...groups.values()]
+  .map(group=>({...group,sources:[...group.sources].sort(),qualities:[...group.qualities]}))
+  .sort((a,b)=>b.events.length-a.events.length||String(a.alias).localeCompare(String(b.alias),'lv'));
 }
 async function loadLeaflet(){
  const leafletModule=await import('leaflet');
@@ -91,13 +132,15 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [isAdmin,setIsAdmin]=useState(false);
  const [message,setMessage]=useState('');
  const [events,setEvents]=useState([]);
+ const [mappings,setMappings]=useState([]);
  const [catalogLoaded,setCatalogLoaded]=useState(false);
  const [loading,setLoading]=useState(false);
  const [search,setSearch]=useState('');
  const [status,setStatus]=useState('');
  const [quality,setQuality]=useState('');
- const [workspaceView,setWorkspaceView]=useState('all');
+ const [workspaceView,setWorkspaceView]=useState('overview');
  const [editing,setEditing]=useState(null);
+ const [mappingEditing,setMappingEditing]=useState(null);
  const [geocodeRunning,setGeocodeRunning]=useState(false);
  const [geocodeProgress,setGeocodeProgress]=useState('');
  const [autoGeocodeStarted,setAutoGeocodeStarted]=useState(false);
@@ -117,8 +160,12 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!activeToken)return;
   setLoading(true);
   try{
-   const data=await apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken});
+   const [data,mappingData]=await Promise.all([
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken}),
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{p_session_token:activeToken})
+   ]);
    setEvents(Array.isArray(data?.events)?data.events:[]);
+   setMappings(Array.isArray(mappingData?.mappings)?mappingData.mappings:[]);
    setCatalogLoaded(true);
    setMessage('');
   }catch{
@@ -279,6 +326,25 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }catch{setMessage('Lokāciju neizdevās saglabāt.');}
   finally{setLoading(false);}
  }
+
+ async function saveMapping(group,values){
+  setLoading(true);
+  try{
+   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_save_location_mapping',{
+    p_session_token:token,
+    p_sample_event_id:group.events[0].id,
+    p_venue_name:values.venueName,
+    p_address_text:values.addressText||null,
+    p_latitude:Number(values.latitude),
+    p_longitude:Number(values.longitude)
+   });
+   setMappingEditing(null);
+   await loadEvents();
+   setMessage(`Mapping saglabāts: “${result?.alias_text||group.alias}”. Izlaboti ${result?.updated_events||group.events.length} esošie pasākumi; nākamajos importos korekcija tiks piemērota automātiski.`);
+  }catch{
+   setMessage('Mappingu neizdevās saglabāt. Pārbaudi vietu, adresi un koordinātas.');
+  }finally{setLoading(false);}
+ }
  const lffMissingGroups=useMemo(()=>groupMissingLff(events),[events]);
  const lffMissingEvents=useMemo(()=>lffMissingGroups.reduce((sum,g)=>sum+g.events.length,0),[lffMissingGroups]);
 
@@ -348,10 +414,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  },[events]);
 
  const locationIssues=useMemo(()=>events.filter(isLocationIssue),[events]);
+ const mappingGroups=useMemo(()=>groupLocationIssues(events),[events]);
 
  const filtered=useMemo(()=>{
   const q=search.trim().toLocaleLowerCase('lv');
-  const source=workspaceView==='locations'?locationIssues:events;
+  const source=events;
   return source.filter(e=>
    (!status||e.status===status)&&
    (!quality||e.location_quality===quality)&&
@@ -361,7 +428,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    if(qa!==qb)return qa-qb;
    return String(a.date_from||'').localeCompare(String(b.date_from||''))||String(a.title).localeCompare(String(b.title),'lv');
   });
- },[events,locationIssues,workspaceView,search,status,quality]);
+ },[events,search,status,quality]);
 
  useEffect(()=>{
   if(!isAdmin||!events.length||editing)return;
@@ -372,14 +439,6 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   setEditing(event);
   window.history.replaceState(null,'','/admin');
  },[isAdmin,events,editing]);
-
- useEffect(()=>{
-  if(!isAdmin||!token||autoGeocodeStarted||geocodeRunning||!lffMissingGroups.length)return;
-  const unprocessed=lffMissingGroups.filter(g=>!g.suggestedAt);
-  if(!unprocessed.length)return;
-  setAutoGeocodeStarted(true);
-  findMissingLffSuggestions(unprocessed);
- },[isAdmin,token,lffMissingGroups,autoGeocodeStarted,geocodeRunning]);
 
  if(!authChecked||passwordReady===null)return <div className="admin-login"><p>Pārbaudām admin piekļuvi…</p></div>;
 
@@ -493,147 +552,134 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <button
     type="button"
     role="tab"
+    aria-selected={workspaceView==='overview'}
+    className={workspaceView==='overview'?'active':''}
+    onClick={()=>setWorkspaceView('overview')}
+   >Pārskats <span>{counts.byStatus.pending_review||0}</span></button>
+   <button
+    type="button"
+    role="tab"
+    aria-selected={workspaceView==='mapping'}
+    className={workspaceView==='mapping'?'active attention':''}
+    onClick={()=>setWorkspaceView('mapping')}
+   >Mapping <span>{mappingGroups.length}</span></button>
+   <button
+    type="button"
+    role="tab"
     aria-selected={workspaceView==='all'}
     className={workspaceView==='all'?'active':''}
     onClick={()=>{setWorkspaceView('all');setQuality('');}}
    >Visi pasākumi <span>{events.length}</span></button>
-   <button
-    type="button"
-    role="tab"
-    aria-selected={workspaceView==='locations'}
-    className={workspaceView==='locations'?'active attention':''}
-    onClick={()=>{setWorkspaceView('locations');setQuality('');}}
-   >Adreses / kartes kļūdas <span>{locationIssues.length}</span></button>
   </div>
 
-  <div className="admin-sheet-intro">
-   <div>
-    <p className="eyebrow">{workspaceView==='locations'?'Lokāciju kvalitāte':'Admin darba lapa'}</p>
-    <h2>{workspaceView==='locations'?'Adreses un kartes punktu pārbaude':'Visi pasākumi'}</h2>
-    <p>{workspaceView==='locations'
-     ?'Šeit automātiski atlasīti pasākumi, kuriem kartes punkts vai adrese nav precīzi verificēta. Labojums tiek veikts vienā redaktorā un pēc saglabāšanas uzreiz atjauno admin karti un sarakstu.'
-     :'Pilns admin katalogs. No šī skata vari pārbaudīt statusu un atvērt adreses/kartes redaktoru jebkuram pasākumam.'}</p>
-   </div>
-   {workspaceView==='locations'&&<strong className="admin-issue-count">{locationIssues.length} jāpārbauda</strong>}
-  </div>
+  {message&&<p className="sync-text admin-workspace-message" role="status">{message}</p>}
 
-  <div className="admin-summary location-summary">
-   <article><strong>{counts.byStatus.published||0}</strong><span>Publicēti kopā</span></article>
-   <article><strong>{counts.byStatus.pending_review||0}</strong><span>Gaida pārbaudi</span></article>
-   <article><strong>{counts.byQuality.fallback_center||0}</strong><span>Tikai centra fallback</span></article>
-   <article><strong>{counts.byQuality.missing_point||0}</strong><span>Nav koordinātu</span></article>
-   <article><strong>{counts.byQuality.source_exact||0}</strong><span>Precīzi pēc avota, jāverificē</span></article>
-   <article className={lffMissingEvents?'attention-card':''}><strong>{lffMissingEvents}</strong><span>LFF spēles bez kartes punkta · {lffMissingGroups.length} stadioni</span></article>
-  </div>
+  {workspaceView==='overview'&&<AdminReviewOverview
+   events={events}
+   mappingGroups={mappingGroups}
+   mappingsCount={mappings.length}
+   counts={counts}
+   onOpenMapping={group=>{
+    setWorkspaceView('mapping');
+    if(group?.events?.length)setMappingEditing(group);
+   }}
+   onOpenAll={()=>setWorkspaceView('all')}
+   onEditEvent={setEditing}
+   onPublish={event=>changeStatus(event,'published')}
+  />}
 
-  <div className="admin-toolbar admin-toolbar-wide">
-   <label>Meklēt<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Pasākums, vieta, problēma, avots…"/></label>
-   <label>Statuss<select value={status} onChange={e=>setStatus(e.target.value)}>
-    <option value="">Visi</option><option value="pending_review">Pending review</option><option value="published">Published</option>
-    <option value="cancelled">Cancelled</option><option value="archived">Archived</option><option value="draft">Draft</option>
-   </select></label>
-   <label>Lokācijas kvalitāte<select value={quality} onChange={e=>setQuality(e.target.value)}>
-    <option value="">Visas</option>
-    {Object.entries(QUALITY).map(([value,meta])=><option key={value} value={value}>{meta.label}</option>)}
-   </select></label>
-   <button className="button" onClick={()=>loadEvents()} disabled={loading}>{loading?'Ielādē…':'Pārlasīt'}</button>
-  </div>
+  {workspaceView==='mapping'&&<AdminMappingList
+   groups={mappingGroups}
+   mappings={mappings}
+   onMap={setMappingEditing}
+   onEditEvent={setEditing}
+  />}
 
-  <p className="admin-rule"><strong>{workspaceView==='locations'?'Darba princips:':'Lokācijas kvalitāte:'}</strong> {workspaceView==='locations'
-   ?'vispirms atrodi precīzo vietu/adresi, pārbaudi marķieri kartē un tikai tad saglabā kā verificētu. Ieraksts pēc labošanas pazūd no kļūdu saraksta.'
-   :'visi pasākumi ir redzami vienā darba lapā; lokācijas kvalitātes atzīmes palīdz noteikt, kuri ieraksti vēl jāpārbauda.'}</p>
-  {message&&<p className="sync-text" role="status">{message}</p>}
-
-  <AdminEventMap events={filtered} onEdit={setEditing}/>
-
-  {workspaceView==='locations'&&lffMissingGroups.length>0&&<section className="lff-location-queue">
-   <div className="queue-head">
+  {workspaceView==='all'&&<>
+   <div className="admin-sheet-intro">
     <div>
-     <p className="eyebrow">LFF · lokācijas</p>
-     <h2>LFF — nav kartes punkta</h2>
-     <p>{lffMissingEvents} spēles · {lffMissingGroups.length} unikāli stadioni. Automātiskais meklētājs sagatavo kandidātus, bet kartes punkts mainās tikai pēc apstiprināšanas.</p>
+     <p className="eyebrow">Admin darba lapa</p>
+     <h2>Visi pasākumi</h2>
+     <p>Pilns katalogs ar karti, statusiem un individuālu adreses/kartes redaktoru. Atkārtotas vietu kļūdas labo Mapping skatā.</p>
     </div>
-    <button className="button" disabled={geocodeRunning} onClick={()=>findMissingLffSuggestions(lffMissingGroups,true)}>
-     {geocodeRunning?'Meklē kandidātus…':'Atkārtoti atrast kandidātus'}
-    </button>
    </div>
-   {geocodeProgress&&<p className="sync-text" role="status">{geocodeProgress}</p>}
-   <div className="table-scroll" role="region" aria-label="LFF stadioni bez kartes punkta" tabIndex={0}>
-    <table className="events-table lff-location-table">
-     <thead><tr><th>Stadions</th><th>Spēles</th><th>Turnīri</th><th>Automātiski atrastā vieta</th><th>Darbības</th></tr></thead>
-     <tbody>{lffMissingGroups.map(group=>{
-      const best=group.candidates?.[0]||null;
-      return <tr key={group.venueName}>
-       <td><strong>{group.venueName}</strong><small className="table-subline">{[group.settlement,group.municipality].filter(Boolean).join(' · ')||'Pilsēta nav noteikta'}</small></td>
-       <td><strong>{group.events.length}</strong></td>
-       <td>{group.competitions.join(', ')||'LFF'}</td>
-       <td>
-        {best?<>
-         <strong>{best.label||best.displayName}</strong>
-         <small className="table-subline">{best.displayName}</small>
-         <small className="table-subline">{Number(best.latitude).toFixed(5)}, {Number(best.longitude).toFixed(5)}{Number.isFinite(Number(best.score))?' · atbilstība '+Number(best.score).toFixed(1):''}</small>
-         {best.sourceUrl&&<a className="queue-source-link" href={best.sourceUrl} target="_blank" rel="noreferrer">OpenStreetMap ↗</a>}
-         {group.candidates.length>1&&<details className="candidate-alternatives">
-          <summary>Citi varianti ({group.candidates.length-1})</summary>
-          {group.candidates.slice(1).map(candidate=><div className="candidate-alt" key={candidate.id||candidate.sourceUrl||candidate.displayName}>
-           <span><strong>{candidate.label||'Vieta'}</strong><small>{candidate.displayName}</small></span>
-           <button className="text-button" disabled={applyingVenue===group.venueName} onClick={()=>applyLffCandidate(group,candidate)}>Apstiprināt šo</button>
-          </div>)}
-         </details>}
-        </>:<span className="quality-badge bad">{group.suggestedAt?'Kandidāts nav atrasts':'Vēl nav meklēts'}</span>}
-       </td>
-       <td><div className="admin-actions">
-        {best&&<button className="button primary compact" disabled={applyingVenue===group.venueName} onClick={()=>applyLffCandidate(group,best)}>
-         {applyingVenue===group.venueName?'Saglabā…':'Apstiprināt'}
-        </button>}
-        <button className="button compact" onClick={()=>setEditing(group.events[0])}>Atvērt redaktoru</button>
-       </div></td>
-      </tr>;
-     })}</tbody>
+
+   <div className="admin-summary location-summary">
+    <article><strong>{events.length}</strong><span>Pasākumi kopā</span></article>
+    <article><strong>{counts.byStatus.published||0}</strong><span>Publicēti</span></article>
+    <article><strong>{counts.byStatus.pending_review||0}</strong><span>Gaida pārbaudi</span></article>
+    <article><strong>{counts.byQuality.fallback_center||0}</strong><span>Centra fallback</span></article>
+    <article><strong>{counts.byQuality.missing_point||0}</strong><span>Nav koordinātu</span></article>
+    <article><strong>{mappingGroups.length}</strong><span>Neatpazīti aliasi</span></article>
+   </div>
+
+   <div className="admin-toolbar admin-toolbar-wide">
+    <label>Meklēt<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Pasākums, vieta, problēma, avots…"/></label>
+    <label>Statuss<select value={status} onChange={e=>setStatus(e.target.value)}>
+     <option value="">Visi</option><option value="pending_review">Pending review</option><option value="published">Published</option>
+     <option value="cancelled">Cancelled</option><option value="archived">Archived</option><option value="draft">Draft</option>
+    </select></label>
+    <label>Lokācijas kvalitāte<select value={quality} onChange={e=>setQuality(e.target.value)}>
+     <option value="">Visas</option>
+     {Object.entries(QUALITY).map(([value,meta])=><option key={value} value={value}>{meta.label}</option>)}
+    </select></label>
+    <button className="button" onClick={()=>loadEvents()} disabled={loading}>{loading?'Ielādē…':'Pārlasīt'}</button>
+   </div>
+
+   <p className="admin-rule"><strong>Lokācijas kvalitāte:</strong> individuālu pasākumu vari labot šeit; ja viens un tas pats kļūdainais vietas nosaukums atkārtojas, izmanto Mapping skatu, lai korekcija darbotos arī nākamajos importos.</p>
+
+   <AdminEventMap events={filtered} onEdit={setEditing}/>
+
+   <div className="admin-sheet-head">
+    <div><strong>Pasākumu saraksts</strong><span>{filtered.length} ieraksti pēc filtriem</span></div>
+   </div>
+   <div className="table-scroll" role="region" aria-label="Admin pasākumu tabula" tabIndex={0}>
+    <table className="events-table admin-events-table location-review-table">
+     <thead><tr>
+      <th>Datums</th><th>Pasākums</th><th>Lokācijas kvalitāte</th><th>Kāpēc jāpārbauda</th><th>Norises vieta</th><th>Avots</th><th>Darbības</th>
+     </tr></thead>
+     <tbody>
+      {filtered.map(event=>{
+       const meta=qualityMeta(event.location_quality);
+       return <tr key={event.id} className={event.location_quality==='verified_exact'?'location-ok':'location-needs-review'}>
+        <td>{dateText(event.date_from)}</td>
+        <td><strong>{event.title}</strong><small className="table-subline">{event.status}</small></td>
+        <td><span className={'quality-badge '+meta.tone}>{meta.label}</span></td>
+        <td className="reason-cell">{isLocationIssue(event)?locationIssueReason(event):(event.location_review_reason||'Lokācija verificēta.')}</td>
+        <td>
+         <strong>{event.venue_name||event.address_raw||'—'}</strong>
+         <small className="table-subline">{event.address_raw&&event.address_raw!==event.venue_name?event.address_raw+' · ':''}{event.municipality||event.settlement||''}</small>
+         <small className="table-subline">{event.latitude!=null&&event.longitude!=null?Number(event.latitude).toFixed(5)+', '+Number(event.longitude).toFixed(5):'Nav koordinātu'}</small>
+        </td>
+        <td>{sourceLinks(event).length?sourceLinks(event).map((s,i)=><span key={(s.url||'')+i} className="source-link-row"><a href={s.url} target="_blank" rel="noreferrer">{s.source||'Avots'} ↗</a></span>):sourceText(event)}</td>
+        <td><div className="admin-actions">
+         {event.location_quality==='verified_exact'&&event.status!=='published'&&<button className="text-button strong-action" onClick={()=>changeStatus(event,'published')}>Publicēt</button>}
+         {event.status==='published'&&<button className="text-button" onClick={()=>changeStatus(event,'pending_review')}>Atgriezt pārbaudei</button>}
+         <button className="button compact" onClick={()=>setEditing(event)}>{isLocationIssue(event)?'Labot adresi / karti':'Pārbaudīt adresi / karti'}</button>
+        </div></td>
+       </tr>;
+      })}
+     </tbody>
     </table>
    </div>
-  </section>}
+   <p className="sync-text"><strong>{filtered.length}</strong> no {events.length} ierakstiem.</p>
+  </>}
 
-  <div className="admin-sheet-head">
-   <div><strong>{workspaceView==='locations'?'Kļūdaini / nepilnīgi lokācijas ieraksti':'Pasākumu saraksts'}</strong><span>{filtered.length} ieraksti pēc filtriem</span></div>
-   {workspaceView==='locations'&&<span className="quality-badge bad">Prioritāte: adrese + kartes punkts</span>}
-  </div>
-  <div className="table-scroll" role="region" aria-label={workspaceView==='locations'?'Adreses un kartes kļūdu tabula':'Admin pasākumu tabula'} tabIndex={0}>
-   <table className="events-table admin-events-table location-review-table">
-    <thead><tr>
-     <th>Datums</th><th>Pasākums</th><th>Lokācijas kvalitāte</th><th>Kāpēc jāpārbauda</th><th>Norises vieta</th><th>Avots</th><th>Darbības</th>
-    </tr></thead>
-    <tbody>
-     {filtered.map(event=>{
-      const meta=qualityMeta(event.location_quality);
-      return <tr key={event.id} className={event.location_quality==='verified_exact'?'location-ok':'location-needs-review'}>
-       <td>{dateText(event.date_from)}</td>
-       <td><strong>{event.title}</strong><small className="table-subline">{event.status}</small></td>
-       <td><span className={'quality-badge '+meta.tone}>{meta.label}</span></td>
-       <td className="reason-cell">{isLocationIssue(event)?locationIssueReason(event):(event.location_review_reason||'Lokācija verificēta.')}</td>
-       <td>
-        <strong>{event.venue_name||event.address_raw||'—'}</strong>
-        <small className="table-subline">{event.address_raw&&event.address_raw!==event.venue_name?event.address_raw+' · ':''}{event.municipality||event.settlement||''}</small>
-        <small className="table-subline">{event.latitude!=null&&event.longitude!=null?Number(event.latitude).toFixed(5)+', '+Number(event.longitude).toFixed(5):'Nav koordinātu'}</small>
-       </td>
-       <td>{sourceLinks(event).length?sourceLinks(event).map((s,i)=><span key={(s.url||'')+i} className="source-link-row"><a href={s.url} target="_blank" rel="noreferrer">{s.source||'Avots'} ↗</a></span>):sourceText(event)}</td>
-       <td><div className="admin-actions">
-        {event.location_quality==='verified_exact'&&event.status!=='published'&&<button className="text-button strong-action" onClick={()=>changeStatus(event,'published')}>Publicēt</button>}
-        {event.status==='published'&&<button className="text-button" onClick={()=>changeStatus(event,'pending_review')}>Atgriezt pārbaudei</button>}
-        <button className="button compact" onClick={()=>setEditing(event)}>{isLocationIssue(event)?'Labot adresi / karti':'Pārbaudīt adresi / karti'}</button>
-       </div></td>
-      </tr>;
-     })}
-    </tbody>
-   </table>
-  </div>
-  <p className="sync-text"><strong>{filtered.length}</strong> ieraksti redzami · {workspaceView==='locations'?locationIssues.length:events.length} šajā admin skatā.</p>
+  {mappingEditing&&<LocationEditor
+   event={mappingEditing.events[0]}
+   token={token}
+   mode="mapping"
+   mappingAlias={mappingEditing.alias}
+   mappingCount={mappingEditing.events.length}
+   close={()=>setMappingEditing(null)}
+   save={values=>saveMapping(mappingEditing,values)}
+  />}
 
   {editing&&<LocationEditor event={editing} token={token} close={()=>setEditing(null)} save={(values,publish)=>saveLocation(editing,values,publish)}/>} 
  </>;
 }
 
-function LocationEditor({event,token,close,save}){
+function LocationEditor({event,token,close,save,mode='event',mappingAlias='',mappingCount=1}){
  const dialog=useRef(null),mapEl=useRef(null),mapRef=useRef(null),markerRef=useRef(null);
  const [venueName,setVenueName]=useState(event.venue_name||event.address_raw||'');
  const initialSearch=[event.venue_name,event.address_raw,event.municipality||event.settlement].filter(Boolean).join(', ');
@@ -687,7 +733,7 @@ function LocationEditor({event,token,close,save}){
    const data=await response.json();
    if(!response.ok)throw new Error(data?.error||'Meklēšana neizdevās.');
    setSearchResults(Array.isArray(data.results)?data.results:[]);
-   if(!data.results?.length)setSearchError('Latvijā netika atrasts neviens atbilstošs variants. Pamēģini saīsināt vai precizēt adresi.');
+   if(!data.results?.length)setSearchError('Baltijā netika atrasts neviens atbilstošs variants. Pamēģini saīsināt vai precizēt adresi.');
   }catch(error){
    setSearchError(error?.message||'Vietu meklēšana neizdevās.');
   }finally{setSearching(false);}
@@ -709,13 +755,14 @@ function LocationEditor({event,token,close,save}){
  const meta=qualityMeta(event.location_quality);
  const canSave=Number.isFinite(Number(latitude))&&Number.isFinite(Number(longitude))&&Boolean(venueName.trim());
  const locationSource=selectedPlace?.sourceUrl||'admin map correction';
+ const isMapping=mode==='mapping';
 
  return <dialog ref={dialog} className="event-dialog location-dialog" onCancel={close} onClose={close}>
-  <div className="detail-header"><div><p className="eyebrow">Lokācijas pārbaude</p><h2>{event.title}</h2></div><button className="button" onClick={close}>Aizvērt ✕</button></div>
+  <div className="detail-header"><div><p className="eyebrow">{isMapping?'Atkārtoti izmantojams mapping':'Lokācijas pārbaude'}</p><h2>{isMapping?(mappingAlias||event.venue_name||event.address_raw):event.title}</h2></div><button className="button" onClick={close}>Aizvērt ✕</button></div>
 
   <div className={'location-issue-panel '+meta.tone}>
-   <strong>{meta.label}</strong>
-   <p>{event.location_review_reason||'Lokācija pašlaik ir verificēta.'}</p>
+   <strong>{isMapping?`${mappingCount} esoši pasākumi ar šo aliasu`:meta.label}</strong>
+   <p>{isMapping?'Saglabājot mappingu, esošie ieraksti tiks salaboti uzreiz un nākamajos importos šis pats nosaukums automātiski saņems apstiprināto vietu.':(event.location_review_reason||'Lokācija pašlaik ir verificēta.')}</p>
    {event.address_raw&&<p><b>Nolasītā adrese:</b> {event.address_raw}</p>}
    {sourceLinks(event).map((s,i)=><a key={(s.url||'')+i} href={s.url} target="_blank" rel="noreferrer">Atvērt {s.source||'avotu'} ↗</a>)}
   </div>
@@ -769,8 +816,12 @@ function LocationEditor({event,token,close,save}){
   <p className="sync-text">Ieteicamais variants: atrodi vietu pēc nosaukuma vai adreses, izvēlies konkrēto rezultātu un pārbaudi marķieri kartē. Vietu meklēšana: © OpenStreetMap contributors.</p>
 
   <div className="actions">
-   <button className="button" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},false)}>Saglabāt verificētu lokāciju</button>
-   <button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},true)}>Saglabāt un publicēt</button>
+   {isMapping
+    ?<button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource})}>Saglabāt mappingu un labot {mappingCount}</button>
+    :<>
+      <button className="button" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},false)}>Saglabāt verificētu lokāciju</button>
+      <button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},true)}>Saglabāt un publicēt</button>
+     </>}
    <button className="button" onClick={close}>Atcelt</button>
   </div>
  </dialog>;

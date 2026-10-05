@@ -66,9 +66,9 @@ export async function POST(request){
    format:'jsonv2',
    addressdetails:'1',
    limit:'8',
-   countrycodes:'lv',
+   countrycodes:'lv,ee,lt',
    bounded:'1',
-   viewbox:'20.5,58.2,28.5,55.5',
+   viewbox:'16,60.8,31.5,53.5',
    'accept-language':'lv,en'
   });
 
@@ -91,7 +91,7 @@ export async function POST(request){
   for(const item of Array.isArray(raw)?raw:[]){
    const lat=Number(item.lat),lon=Number(item.lon);
    if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;
-   if(lat<55.5||lat>58.2||lon<20.5||lon>28.5)continue;
+   if(lat<53.5||lat>60.8||lon<16||lon>31.5)continue;
    const key=String(item.osm_type||'')+':'+String(item.osm_id||'');
    if(seen.has(key))continue;
    seen.add(key);

@@ -27,7 +27,8 @@ Implemented:
 - XLSX export;
 - LFF, athletics, basketball and municipality events;
 - Latvia, Estonia and Lithuania map support where source data is available;
-- dedicated admin review and location-quality workflows.
+- dedicated admin review and location-quality workflows;
+- reusable admin location mapping: once a raw venue/address alias is corrected, the same alias is automatically resolved in future imports.
 
 The map has one implementation under `/karte`. The list page `/pasakumi` does not maintain a second map renderer.
 
@@ -118,6 +119,12 @@ The audit covers:
 Latvian imported sports events also use a durable locality → municipality normalization rule stored in:
 
 `database/location-municipality-normalization.sql`
+
+Repeated venue/address corrections use a private persistent mapping layer. The admin Mapping view groups unresolved aliases, shows how many events will be affected, and stores the approved canonical venue/address/coordinates. A database trigger applies active mappings to future `event_locations` writes before the event reaches the public catalogue.
+
+See:
+
+`database/location-alias-mapping.md`
 
 ## Local development
 
