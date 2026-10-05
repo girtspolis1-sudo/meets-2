@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
+import {useAdminSession} from './use-admin-session.js';
 
 const items=[
  {href:'/karte',label:'Karte'},
@@ -10,8 +11,10 @@ const items=[
 
 export default function SiteNav(){
  const pathname=usePathname();
+ const {isAdmin}=useAdminSession();
+ const visibleItems=isAdmin?[...items,{href:'/admin',label:'Admin'}]:items;
  return <nav aria-label="Galvenā izvēlne">
-  {items.map(item=>{
+  {visibleItems.map(item=>{
    const active=pathname===item.href||pathname.startsWith(item.href+'/');
    return <Link
     key={item.href}
