@@ -2,6 +2,8 @@
 
 import {useEffect,useMemo,useRef,useState} from 'react';
 import AdminEventMap from './admin-event-map.jsx';
+import AdminReviewOverview from './admin-review-overview.jsx';
+import AdminMappingList from './admin-mapping-list.jsx';
 
 const SESSION_KEY='meets_admin_access_token';
 function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
@@ -30,6 +32,45 @@ function locationIssueReason(event){
  if(event?.location_quality==='venue_unverified')return 'Kartes punkts nav verificēts';
  if(event?.location_quality==='source_exact')return 'Avotā ir precīza vieta, nepieciešama admin pārbaude';
  return event?.location_review_reason||'Adrese vai kartes punkts jāpārbauda';
+}
+
+function normalizeMappingAlias(value){
+ return String(value||'')
+  .toLocaleLowerCase('lv')
+  .replace(/[.,;:/\\()"'’“”_\-]+/g,' ')
+  .replace(/\s+/g,' ')
+  .trim();
+}
+function groupLocationIssues(events){
+ const groups=new Map();
+ for(const event of events){
+  if(!isLocationIssue(event))continue;
+  const alias=String(event.venue_name||event.address_raw||'').trim();
+  const municipality=String(event.municipality||'').trim();
+  const countryCode=String(event.country_code||'').trim();
+  const key=[normalizeMappingAlias(alias)||'__missing__',municipality.toLocaleLowerCase('lv'),countryCode].join('|');
+  const current=groups.get(key)||{
+   key,
+   alias,
+   municipality,
+   countryCode,
+   sampleAddress:String(event.address_raw||'').trim(),
+   events:[],
+   sources:new Set(),
+   qualities:new Set(),
+   firstDate:event.date_from||'',
+   lastDate:event.date_from||''
+  };
+  current.events.push(event);
+  for(const source of event.sources||[])if(source?.source)current.sources.add(source.source);
+  current.qualities.add(qualityMeta(event.location_quality).label);
+  if(event.date_from&&(!current.firstDate||event.date_from<current.firstDate))current.firstDate=event.date_from;
+  if(event.date_from&&(!current.lastDate||event.date_from>current.lastDate))current.lastDate=event.date_from;
+  groups.set(key,current);
+ }
+ return [...groups.values()]
+  .map(group=>({...group,sources:[...group.sources].sort(),qualities:[...group.qualities]}))
+  .sort((a,b)=>b.events.length-a.events.length||String(a.alias).localeCompare(String(b.alias),'lv'));
 }
 async function loadLeaflet(){
  const leafletModule=await import('leaflet');
@@ -91,13 +132,15 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [isAdmin,setIsAdmin]=useState(false);
  const [message,setMessage]=useState('');
  const [events,setEvents]=useState([]);
+ const [mappings,setMappings]=useState([]);
  const [catalogLoaded,setCatalogLoaded]=useState(false);
  const [loading,setLoading]=useState(false);
  const [search,setSearch]=useState('');
  const [status,setStatus]=useState('');
  const [quality,setQuality]=useState('');
- const [workspaceView,setWorkspaceView]=useState('all');
+ const [workspaceView,setWorkspaceView]=useState('overview');
  const [editing,setEditing]=useState(null);
+ const [mappingEditing,setMappingEditing]=useState(null);
  const [geocodeRunning,setGeocodeRunning]=useState(false);
  const [geocodeProgress,setGeocodeProgress]=useState('');
  const [autoGeocodeStarted,setAutoGeocodeStarted]=useState(false);
@@ -117,8 +160,12 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!activeToken)return;
   setLoading(true);
   try{
-   const data=await apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken});
+   const [data,mappingData]=await Promise.all([
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken}),
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{p_session_token:activeToken})
+   ]);
    setEvents(Array.isArray(data?.events)?data.events:[]);
+   setMappings(Array.isArray(mappingData?.mappings)?mappingData.mappings:[]);
    setCatalogLoaded(true);
    setMessage('');
   }catch{
@@ -279,6 +326,25 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }catch{setMessage('Lokāciju neizdevās saglabāt.');}
   finally{setLoading(false);}
  }
+
+ async function saveMapping(group,values){
+  setLoading(true);
+  try{
+   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_save_location_mapping',{
+    p_session_token:token,
+    p_sample_event_id:group.events[0].id,
+    p_venue_name:values.venueName,
+    p_address_text:values.addressText||null,
+    p_latitude:Number(values.latitude),
+    p_longitude:Number(values.longitude)
+   });
+   setMappingEditing(null);
+   await loadEvents();
+   setMessage(`Mapping saglabāts: “${result?.alias_text||group.alias}”. Izlaboti ${result?.updated_events||group.events.length} esošie pasākumi; nākamajos importos korekcija tiks piemērota automātiski.`);
+  }catch{
+   setMessage('Mappingu neizdevās saglabāt. Pārbaudi vietu, adresi un koordinātas.');
+  }finally{setLoading(false);}
+ }
  const lffMissingGroups=useMemo(()=>groupMissingLff(events),[events]);
  const lffMissingEvents=useMemo(()=>lffMissingGroups.reduce((sum,g)=>sum+g.events.length,0),[lffMissingGroups]);
 
@@ -348,10 +414,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  },[events]);
 
  const locationIssues=useMemo(()=>events.filter(isLocationIssue),[events]);
+ const mappingGroups=useMemo(()=>groupLocationIssues(events),[events]);
 
  const filtered=useMemo(()=>{
   const q=search.trim().toLocaleLowerCase('lv');
-  const source=workspaceView==='locations'?locationIssues:events;
+  const source=events;
   return source.filter(e=>
    (!status||e.status===status)&&
    (!quality||e.location_quality===quality)&&
@@ -361,7 +428,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    if(qa!==qb)return qa-qb;
    return String(a.date_from||'').localeCompare(String(b.date_from||''))||String(a.title).localeCompare(String(b.title),'lv');
   });
- },[events,locationIssues,workspaceView,search,status,quality]);
+ },[events,search,status,quality]);
 
  useEffect(()=>{
   if(!isAdmin||!events.length||editing)return;
