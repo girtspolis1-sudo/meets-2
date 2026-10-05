@@ -2,7 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel} from '../../lib/catalog.js';
-import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded} from '../../lib/event-date.js';
+import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaTodayIso} from '../../lib/event-date.js';
 
 const MAP_STYLES={
  positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
@@ -85,15 +85,16 @@ function groupPosition(group,indexByCoordinate){
  }
  return [lat,lon];
 }
-function popupHtml(group,activeIds,isAdminSession){
+function popupHtml(group,activeIds,isAdminSession,now){
  const sorted=closestFirst(group.events).sort((a,b)=>(activeIds.has(b.id)?1:0)-(activeIds.has(a.id)?1:0));
  const rows=sorted.map(e=>{
   const approximate=['settlement_center','municipality_center'].includes(e.location_precision);
   const meta=competitionMeta(e),country=countryLabel(e.country_code),active=activeIds.has(e.id);
-  const dateState=eventDateState(e);
+  const dateState=eventDateState(e,rigaTodayIso(now),now);
   const rangeLabel=eventDateRangeLabel(e,dateLabel);
   const editLink=isAdminSession&&active?'<a class="admin-popup-edit" href="/admin?edit='+encodeURIComponent(e.id)+'">Labot</a>':'';
-  return '<li class="'+(active?'':'popup-event-muted')+'"><strong>'+esc(e.title)+'</strong><span class="popup-date-row"><span class="event-date-indicator '+esc(dateState.tone)+'" aria-hidden="true">●</span><span class="event-date-badge '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(dateState.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span></span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+editLink+'</li>';
+  const rowClass=[active?'':'popup-event-muted',dateState.tone==='ended-today'?'popup-event-ended':''].filter(Boolean).join(' ');
+  return '<li class="'+rowClass+'"><strong>'+esc(e.title)+'</strong><span class="popup-date-row"><span class="event-date-indicator '+esc(dateState.tone)+'" aria-hidden="true">●</span><span class="event-date-badge '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(dateState.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span></span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+editLink+'</li>';
  }).join('');
  const activeCount=group.events.filter(e=>activeIds.has(e.id)).length;
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div><ol>'+rows+'</ol></div>';
@@ -132,6 +133,7 @@ function monthEndIso(iso){
 function minIso(a,b){return !a?b:!b?a:(a<b?a:b);}
 function periodDates(mode,today,windowTo,currentFrom,currentTo){
  if(!today)return {from:currentFrom,to:currentTo};
+ if(mode==='today')return {from:today,to:today};
  if(mode==='3days')return {from:today,to:minIso(addDaysIso(today,2),windowTo)};
  if(mode==='month')return {from:today,to:minIso(monthEndIso(today),windowTo)};
  if(mode==='week')return {from:today,to:minIso(weekEndIso(today),windowTo)};
@@ -160,6 +162,7 @@ export default function OsmEventMap(){
  const [locationSearching,setLocationSearching]=useState(false);
  const [mapReady,setMapReady]=useState(false);
  const [isAdminSession,setIsAdminSession]=useState(false);
+ const [clockNow,setClockNow]=useState(()=>new Date());
  const {data,loading,error,refresh}=useEvents();
  const mapEl=useRef(null),mapRef=useRef(null),leafletRef=useRef(null),baseMapLayerRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
  const defaultsSetRef=useRef(false);
@@ -194,6 +197,11 @@ export default function OsmEventMap(){
    window.removeEventListener('storage',syncAdminSession);
    window.removeEventListener('meets-admin-session-change',syncAdminSession);
   };
+ },[]);
+
+ useEffect(()=>{
+  const timer=window.setInterval(()=>setClockNow(new Date()),30000);
+  return()=>window.clearInterval(timer);
  },[]);
 
  useEffect(()=>{
@@ -303,7 +311,7 @@ export default function OsmEventMap(){
    const isActive=activeInGroup.length>0;
    const chosenEvents=isActive?activeInGroup:group.events;
    const type=groupType(chosenEvents),glyph=markerGlyph(type),typeLabel=markerTypeLabel(type);
-   const dateTone=groupDateTone(chosenEvents);
+   const dateTone=groupDateTone(chosenEvents,rigaTodayIso(clockNow),clockNow);
    const dateClass=dateTone?' date-'+dateTone:'';
    const shownCount=isActive?activeInGroup.length:group.events.length;
    const grouped=shownCount>1;
@@ -318,7 +326,7 @@ export default function OsmEventMap(){
    const icon=L.divIcon({className:grouped?'event-count-marker-wrap':'event-symbol-marker-wrap',html,iconSize:[size,size],iconAnchor:[size/2,size/2]});
    const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
    const popupMaxHeight=Math.max(260,Math.min(560,map.getSize().y-150));
-   marker.bindPopup(popupHtml(group,activeIds,isAdminSession),{
+   marker.bindPopup(popupHtml(group,activeIds,isAdminSession,clockNow),{
     maxWidth:430,
     maxHeight:popupMaxHeight,
     autoPan:true,
@@ -340,7 +348,7 @@ export default function OsmEventMap(){
    });
    marker.addTo(isActive?active:bg);
   }
- },[mapReady,locationGroups,activeIds,isAdminSession]);
+ },[mapReady,locationGroups,activeIds,isAdminSession,clockNow]);
 
  useEffect(()=>{
   if(!mapReady||!mapRef.current)return;
@@ -369,7 +377,8 @@ export default function OsmEventMap(){
  function changePeriod(value){
   setPeriodMode(value);
   if(value==='manual')return;
-  const next=periodDates(value,publicFrom,publicTo,from,to);
+  const filterToday=publicFrom||rigaTodayIso(clockNow);
+  const next=periodDates(value,filterToday,publicTo,from,to);
   setFrom(next.from);setTo(next.to);
  }
  function resetFilters(){
@@ -447,6 +456,7 @@ export default function OsmEventMap(){
      </select>
 
      <select className="map-compact-select period-select" value={periodMode} onChange={e=>changePeriod(e.target.value)} aria-label="Laika periods" title="Laika periods">
+      <option value="today">Šodien</option>
       <option value="3days">3 dienas</option>
       <option value="week">Šonedēļ</option>
       <option value="month">Šomēnes</option>
@@ -515,6 +525,7 @@ export default function OsmEventMap(){
     <span><i className="legend-symbol lff" aria-hidden="true">⚽</i>Futbols</span>
     <span><i className="legend-symbol athletics" aria-hidden="true">🏃</i>Vieglatlētika</span>
     <span><i className="legend-symbol basketball" aria-hidden="true">🏀</i>Basketbols</span>
+    <span className="legend-ended-example"><i aria-hidden="true"></i>iespējams noslēdzies</span>
     <span className="legend-muted-example"><i>⚽</i>ārpus filtra</span>
    </div>
   </div>

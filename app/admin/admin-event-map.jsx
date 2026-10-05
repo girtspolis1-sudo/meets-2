@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {eventDateRangeLabel,eventDateState,groupDateTone} from '../../lib/event-date.js';
+import {eventDateRangeLabel,eventDateState,groupDateTone,rigaTodayIso} from '../../lib/event-date.js';
 
 const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
 const STYLE_URL='https://tiles.openfreemap.org/styles/positron';
@@ -47,13 +47,14 @@ function groupsFor(events){
  }
  return [...groups.values()];
 }
-function popupHtml(group){
+function popupHtml(group,now){
  const rows=[...group.events].sort((a,b)=>String(a.date_from||'').localeCompare(String(b.date_from||''))||String(a.title||'').localeCompare(String(b.title||''),'lv')).map(event=>{
-  const state=eventDateState(event);
+  const state=eventDateState(event,rigaTodayIso(now),now);
   const quality=event.location_quality||'nav kvalitātes atzīmes';
   const status=event.status||'';
   const rangeLabel=eventDateRangeLabel(event,dateText);
-  return '<li><strong>'+esc(event.title)+'</strong>'+
+  const rowClass=state.tone==='ended-today'?' class="popup-event-ended"':'';
+  return '<li'+rowClass+'><strong>'+esc(event.title)+'</strong>'+
    '<span class="popup-date-row"><span class="event-date-indicator '+esc(state.tone)+'" aria-hidden="true">●</span><span class="event-date-badge '+esc(state.tone)+'" title="'+esc(state.label)+'">'+esc(state.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeText(event))+'</span></span>'+
    '<small>'+esc([status,quality].filter(Boolean).join(' · '))+'</small>'+
    '<button type="button" class="admin-popup-edit" data-admin-edit="'+esc(event.id)+'">Labot</button></li>';
@@ -74,6 +75,7 @@ export default function AdminEventMap({events,onEdit}){
  const mapRef=useRef(null);
  const layerRef=useRef(null);
  const [ready,setReady]=useState(false);
+ const [clockNow,setClockNow]=useState(()=>new Date());
  const groups=useMemo(()=>groupsFor(events),[events]);
  const eventById=useMemo(()=>new Map(events.map(event=>[event.id,event])),[events]);
 
@@ -93,6 +95,11 @@ export default function AdminEventMap({events,onEdit}){
  },[]);
 
  useEffect(()=>{
+  const timer=window.setInterval(()=>setClockNow(new Date()),30000);
+  return()=>window.clearInterval(timer);
+ },[]);
+
+ useEffect(()=>{
   if(!ready||!mapRef.current)return;
   const map=mapRef.current,L=map._meetsLeaflet;
   layerRef.current?.remove();
@@ -102,7 +109,7 @@ export default function AdminEventMap({events,onEdit}){
 
   for(const group of groups){
    const type=groupType(group.events);
-   const tone=groupDateTone(group.events);
+   const tone=groupDateTone(group.events,rigaTodayIso(clockNow),clockNow);
    const dateClass=tone?' date-'+tone:'';
    const grouped=group.events.length>1;
    const size=grouped?44:38;
@@ -111,7 +118,7 @@ export default function AdminEventMap({events,onEdit}){
     :'<span class="event-symbol-marker '+type+dateClass+'"><span aria-hidden="true">'+glyph(type)+'</span></span>';
    const icon=L.divIcon({className:grouped?'event-count-marker-wrap':'event-symbol-marker-wrap',html,iconSize:[size,size],iconAnchor:[size/2,size/2]});
    const marker=L.marker([group.lat,group.lon],{icon,keyboard:true,title:group.label}).addTo(layer);
-   marker.bindPopup(popupHtml(group),{maxWidth:430,maxHeight:520,autoPan:true,keepInView:true});
+   marker.bindPopup(popupHtml(group,clockNow),{maxWidth:430,maxHeight:520,autoPan:true,keepInView:true});
 
    marker.on('popupopen',event=>{
     const root=event.popup.getElement();
@@ -129,14 +136,14 @@ export default function AdminEventMap({events,onEdit}){
    const bounds=L.latLngBounds(markerBounds);
    map.fitBounds(bounds,{padding:[42,42],maxZoom:12});
   }
- },[ready,groups,eventById,onEdit]);
+ },[ready,groups,eventById,onEdit,clockNow]);
 
  return <section className="admin-map-section">
   <div className="queue-head">
    <div>
     <p className="eyebrow">Admin · karte</p>
     <h2>Pasākumi kartē</h2>
-    <p>Redzami pašreiz atlasītie pasākumi ar kartes punktu. Šodienas marķieriem ir zaļa līnija, rītdienas — dzeltena; nospied marķieri un <strong>Labot</strong>, lai uzreiz atvērtu korekciju.</p>
+    <p>Redzami pašreiz atlasītie pasākumi ar kartes punktu. Šodienas marķieriem ir zaļa līnija, rītdienas — dzeltena, bet šodienas pasākumiem ar jau pagājušu beigu laiku — sarkana; nospied marķieri un <strong>Labot</strong>, lai uzreiz atvērtu korekciju.</p>
    </div>
    <span className="quality-badge ok">{groups.length} vietas</span>
   </div>
