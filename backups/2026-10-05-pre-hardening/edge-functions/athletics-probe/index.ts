@@ -1,0 +1,2 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+Deno.serve(async()=>new Response(JSON.stringify({ok:false,status:"probe_disabled",message:"Athletics source structure verified. Production sync will use authenticated execution only."}),{status:503,headers:{"content-type":"application/json","cache-control":"no-store"}}));
