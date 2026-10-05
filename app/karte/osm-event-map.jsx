@@ -223,7 +223,7 @@ export default function OsmEventMap(){
  },[typedEvents,data?.competitions,eventType]);
 
  const scopedEvents=useMemo(()=>competition?typedEvents.filter(e=>e.competition_key===competition):typedEvents,[typedEvents,competition]);
- const categories=useMemo(()=>[...new Set(scopedEvents.flatMap(e=>[e.primary_category,...(e.tags||[])].filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
+ const categories=useMemo(()=>[...new Set(scopedEvents.map(e=>e.primary_category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
  const municipalities=useMemo(()=>[...new Set(scopedEvents.filter(e=>!country||e.country_code===country).map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents,country]);
  const countries=useMemo(()=>[...new Set(scopedEvents.map(e=>e.country_code).filter(Boolean))],[scopedEvents]);
  const sourceCounts=useMemo(()=>events.reduce((acc,e)=>{const type=sourceType(e);acc[type]=(acc[type]||0)+1;return acc;},{municipality:0,lff:0,athletics:0,basketball:0}),[events]);
@@ -250,7 +250,7 @@ export default function OsmEventMap(){
  const matchesEvent=useMemo(()=>e=>{
   if(eventType&&sourceType(e)!==eventType)return false;
   if(competition&&e.competition_key!==competition)return false;
-  if(category&&e.primary_category!==category&&!e.tags?.includes(category))return false;
+  if(category&&e.primary_category!==category)return false;
   if(eventSearch&& !norm(e.title).includes(norm(eventSearch)))return false;
   if(price&&e.price_status!==price)return false;
   if(municipality&&e.municipality!==municipality)return false;
