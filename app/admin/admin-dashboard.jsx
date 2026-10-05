@@ -18,6 +18,9 @@ const QUALITY={
 };
 
 function qualityMeta(value){return QUALITY[value]||{label:value||'Nav novērtēts',tone:'bad',priority:0};}
+function canPublishEvent(event){
+ return event?.attendance_mode==='online'||event?.location_quality==='verified_exact';
+}
 function isLocationIssue(event){
  const quality=String(event?.location_quality||'');
  const hasPoint=event?.latitude!=null&&event?.longitude!=null&&Number.isFinite(Number(event.latitude))&&Number.isFinite(Number(event.longitude));
@@ -141,6 +144,12 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [workspaceView,setWorkspaceView]=useState('overview');
  const [editing,setEditing]=useState(null);
  const [mappingEditing,setMappingEditing]=useState(null);
+ const [mappingRuleEditing,setMappingRuleEditing]=useState(null);
+ const [busyMappingId,setBusyMappingId]=useState('');
+ const [selectedIds,setSelectedIds]=useState(()=>new Set());
+ const [page,setPage]=useState(1);
+ const [bulkLoading,setBulkLoading]=useState(false);
+ const [bulkResult,setBulkResult]=useState(null);
  const [geocodeRunning,setGeocodeRunning]=useState(false);
  const [geocodeProgress,setGeocodeProgress]=useState('');
  const [autoGeocodeStarted,setAutoGeocodeStarted]=useState(false);
@@ -166,6 +175,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    ]);
    setEvents(Array.isArray(data?.events)?data.events:[]);
    setMappings(Array.isArray(mappingData?.mappings)?mappingData.mappings:[]);
+   setSelectedIds(new Set());
+   setBulkResult(null);
    setCatalogLoaded(true);
    setMessage('');
   }catch{
@@ -300,8 +311,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  }
 
  async function changeStatus(event,newStatus){
-  if(newStatus==='published'&&event.location_quality!=='verified_exact'){
-   setMessage('Publicēt drīkst tikai pasākumu ar precīzi verificētu lokāciju. Vispirms izlabo/verificē vietu.');
+  if(newStatus==='published'&&!canPublishEvent(event)){
+   setMessage('Publicēt drīkst tikai pasākumu ar precīzi verificētu lokāciju. Tiešsaistes pasākums ir izņēmums.');
    return;
   }
   setLoading(true);
@@ -344,6 +355,68 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }catch{
    setMessage('Mappingu neizdevās saglabāt. Pārbaudi vietu, adresi un koordinātas.');
   }finally{setLoading(false);}
+ }
+
+ async function updateMapping(mapping,values){
+  setBusyMappingId(mapping.id);
+  try{
+   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_location_mapping',{
+    p_session_token:token,
+    p_mapping_id:mapping.id,
+    p_venue_name:values.venueName,
+    p_address_text:values.addressText||null,
+    p_latitude:Number(values.latitude),
+    p_longitude:Number(values.longitude),
+    p_active:true
+   });
+   setMappingRuleEditing(null);
+   await loadEvents();
+   setMessage(`Mapping atjaunots. Saistītie ieraksti atjaunoti: ${result?.updated_events||0}.`);
+  }catch{
+   setMessage('Mappinga labojumu neizdevās saglabāt.');
+  }finally{setBusyMappingId('');}
+ }
+
+ async function toggleMapping(mapping){
+  setBusyMappingId(mapping.id);
+  try{
+   const nextActive=!mapping.active;
+   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_location_mapping',{
+    p_session_token:token,
+    p_mapping_id:mapping.id,
+    p_venue_name:mapping.canonical_venue_name,
+    p_address_text:mapping.canonical_address_text||null,
+    p_latitude:Number(mapping.latitude),
+    p_longitude:Number(mapping.longitude),
+    p_active:nextActive
+   });
+   await loadEvents();
+   setMessage(nextActive
+    ?`Mapping aktivizēts. Atjaunoti ${result?.updated_events||0} saistītie ieraksti.`
+    :'Mapping deaktivizēts. Esošie izlabotie ieraksti netika atgriezti iepriekšējā stāvoklī.');
+  }catch{
+   setMessage('Mappinga statusu neizdevās mainīt.');
+  }finally{setBusyMappingId('');}
+ }
+
+ async function bulkPublish(){
+  const ids=[...selectedIds];
+  if(!ids.length||bulkLoading)return;
+  setBulkLoading(true);setBulkResult(null);
+  try{
+   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_bulk_publish',{
+    p_session_token:token,
+    p_event_ids:ids
+   });
+   setBulkResult(result);
+   await loadEvents();
+   const published=Array.isArray(result?.published)?result.published.length:0;
+   const skipped=Array.isArray(result?.skipped)?result.skipped.length:0;
+   const errors=Array.isArray(result?.errors)?result.errors.length:0;
+   setMessage(`Masveida publicēšana pabeigta: publicēti ${published}, izlaisti ${skipped}, kļūdas ${errors}.`);
+  }catch{
+   setMessage('Masveida publicēšanu neizdevās pabeigt.');
+  }finally{setBulkLoading(false);}
  }
  const lffMissingGroups=useMemo(()=>groupMissingLff(events),[events]);
  const lffMissingEvents=useMemo(()=>lffMissingGroups.reduce((sum,g)=>sum+g.events.length,0),[lffMissingGroups]);
@@ -429,6 +502,36 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    return String(a.date_from||'').localeCompare(String(b.date_from||''))||String(a.title).localeCompare(String(b.title),'lv');
   });
  },[events,search,status,quality]);
+
+ const PAGE_SIZE=50;
+ const pageCount=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+ const safePage=Math.min(page,pageCount);
+ const pageRows=useMemo(()=>filtered.slice((safePage-1)*PAGE_SIZE,safePage*PAGE_SIZE),[filtered,safePage]);
+ const pageIds=useMemo(()=>pageRows.map(event=>event.id),[pageRows]);
+ const allPageSelected=pageIds.length>0&&pageIds.every(id=>selectedIds.has(id));
+ const allFilteredSelected=filtered.length>0&&filtered.every(event=>selectedIds.has(event.id));
+
+ useEffect(()=>{if(page>pageCount)setPage(pageCount);},[page,pageCount]);
+ useEffect(()=>{setPage(1);setSelectedIds(new Set());},[search,status,quality]);
+
+ function toggleSelected(id){
+  setSelectedIds(previous=>{
+   const next=new Set(previous);
+   if(next.has(id))next.delete(id);else next.add(id);
+   return next;
+  });
+ }
+ function selectPage(){
+  setSelectedIds(previous=>{
+   const next=new Set(previous);
+   if(allPageSelected)pageIds.forEach(id=>next.delete(id));
+   else pageIds.forEach(id=>next.add(id));
+   return next;
+  });
+ }
+ function selectAllFiltered(){
+  setSelectedIds(allFilteredSelected?new Set():new Set(filtered.map(event=>event.id)));
+ }
 
  useEffect(()=>{
   if(!isAdmin||!events.length||editing)return;
