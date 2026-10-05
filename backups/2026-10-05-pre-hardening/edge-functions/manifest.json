@@ -1,0 +1,128 @@
+[
+  {
+    "slug": "lhf-api-probe",
+    "name": "lhf-api-probe",
+    "status": "ACTIVE",
+    "version": 3,
+    "verify_jwt": true,
+    "updated_at": 1790589618378,
+    "ezbr_sha256": "5a9286d9b18129325dbc90b85594c4631cb7559e91a355aa6957021bd712388f"
+  },
+  {
+    "slug": "athletics-probe",
+    "name": "athletics-probe",
+    "status": "ACTIVE",
+    "version": 4,
+    "verify_jwt": true,
+    "updated_at": 1790596276423,
+    "ezbr_sha256": "e2f07f61af55a73e98573d5c6b729ec47d0618dd1d9e1f38a5f45a14595c7b9f"
+  },
+  {
+    "slug": "sync-athletics-events",
+    "name": "sync-athletics-events",
+    "status": "ACTIVE",
+    "version": 3,
+    "verify_jwt": true,
+    "updated_at": 1790598453250,
+    "ezbr_sha256": "990f1e2c15f25e9128371bd3e5becc43e57ae7e593405eee887b5a645598e3a4"
+  },
+  {
+    "slug": "athletics-location-probe",
+    "name": "athletics-location-probe",
+    "status": "ACTIVE",
+    "version": 1,
+    "verify_jwt": false,
+    "updated_at": 1790598163617,
+    "ezbr_sha256": "47b91fe45a0f748a69fd0143bf213cb153780b62b96fd97aac1118ebdb17d7ff"
+  },
+  {
+    "slug": "handball-probe",
+    "name": "handball-probe",
+    "status": "ACTIVE",
+    "version": 2,
+    "verify_jwt": false,
+    "updated_at": 1790600374310,
+    "ezbr_sha256": "559abd589f7ec8c6a143792c09d252c1bffeeb6355cd60e8129eedc6d8d43285"
+  },
+  {
+    "slug": "parse-handball-events",
+    "name": "parse-handball-events",
+    "status": "ACTIVE",
+    "version": 1,
+    "verify_jwt": true,
+    "updated_at": 1790600567996,
+    "ezbr_sha256": "4553ca2c611b48f12dd4e3840119c94de7328b4acfe979d8248aaf3ae24e84b1"
+  },
+  {
+    "slug": "validate-handball-events",
+    "name": "validate-handball-events",
+    "status": "ACTIVE",
+    "version": 4,
+    "verify_jwt": true,
+    "updated_at": 1790603320458,
+    "ezbr_sha256": "62139c9c2dd5a8ca6de7c94e572e0ab289263e347ae815f4122833c50ec97c33"
+  },
+  {
+    "slug": "handball-structure-probe",
+    "name": "handball-structure-probe",
+    "status": "ACTIVE",
+    "version": 1,
+    "verify_jwt": true,
+    "updated_at": 1790615285516,
+    "ezbr_sha256": "32a718b0a10caad5dc1cce95b78b8897519ab6009e911c35544f5e6248df3d0f"
+  },
+  {
+    "slug": "lff-probe",
+    "name": "lff-probe",
+    "status": "ACTIVE",
+    "version": 1,
+    "verify_jwt": true,
+    "updated_at": 1790615531654,
+    "ezbr_sha256": "232445551d08c7c2da13a5ef577559ea4daeca67bfba9b168cbc3c731b78032a"
+  },
+  {
+    "slug": "parse-lff-events",
+    "name": "parse-lff-events",
+    "status": "ACTIVE",
+    "version": 1,
+    "verify_jwt": true,
+    "updated_at": 1790615546350,
+    "ezbr_sha256": "ec5e75f1a6f59d3f1051ab02c8e1a3a2f1c4b5fdf3a275330eb813cb05a70b0a"
+  },
+  {
+    "slug": "validate-lff-events",
+    "name": "validate-lff-events",
+    "status": "ACTIVE",
+    "version": 1,
+    "verify_jwt": true,
+    "updated_at": 1790616410285,
+    "ezbr_sha256": "72be76c2672e87ea79b85eb683b3fb698c4c431344448b7f64aa23cba2351f15"
+  },
+  {
+    "slug": "sync-lff-events",
+    "name": "sync-lff-events",
+    "status": "ACTIVE",
+    "version": 6,
+    "verify_jwt": true,
+    "updated_at": 1790671343166,
+    "ezbr_sha256": "e05320d00e6a4ef7f10badc7da11c572056cf60599b31973324c4ba092d84898"
+  },
+  {
+    "slug": "sync-estlat-basketball-events",
+    "name": "sync-estlat-basketball-events",
+    "status": "ACTIVE",
+    "version": 1,
+    "verify_jwt": true,
+    "updated_at": 1790680711665,
+    "ezbr_sha256": "36e9106a5b3e802ecb0797a53ca31593f3ccd76fcf341253092e85ceb266729a"
+  },
+  {
+    "slug": "sync-lbs-basketball-events",
+    "name": "sync-lbs-basketball-events",
+    "status": "ACTIVE",
+    "version": 1,
+    "verify_jwt": true,
+    "updated_at": 1790683168291,
+    "ezbr_sha256": "8ec37b021739d609091035733979a10f679c50ca39012e267f522876ff1a971c"
+  }
+]
