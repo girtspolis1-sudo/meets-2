@@ -4,6 +4,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import AdminEventMap from './admin-event-map.jsx';
 import AdminReviewOverview from './admin-review-overview.jsx';
 import AdminMappingList from './admin-mapping-list.jsx';
+import AdminImportHealth from './admin-import-health.jsx';
 
 const SESSION_KEY='meets_admin_access_token';
 function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
@@ -136,6 +137,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [message,setMessage]=useState('');
  const [events,setEvents]=useState([]);
  const [mappings,setMappings]=useState([]);
+ const [importHealth,setImportHealth]=useState({sports:[],municipalities:[]});
  const [catalogLoaded,setCatalogLoaded]=useState(false);
  const [loading,setLoading]=useState(false);
  const [search,setSearch]=useState('');
@@ -169,12 +171,14 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!activeToken)return;
   setLoading(true);
   try{
-   const [data,mappingData]=await Promise.all([
+   const [data,mappingData,healthData]=await Promise.all([
     apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken}),
-    apiFetch(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{p_session_token:activeToken})
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{p_session_token:activeToken}),
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_import_health',{p_session_token:activeToken})
    ]);
    setEvents(Array.isArray(data?.events)?data.events:[]);
    setMappings(Array.isArray(mappingData?.mappings)?mappingData.mappings:[]);
+   setImportHealth(healthData&&typeof healthData==='object'?healthData:{sports:[],municipalities:[]});
    setSelectedIds(new Set());
    setBulkResult(null);
    setCatalogLoaded(true);
@@ -677,19 +681,22 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
   {message&&<p className="sync-text admin-workspace-message" role="status">{message}</p>}
 
-  {workspaceView==='overview'&&<AdminReviewOverview
-   events={events}
-   mappingGroups={mappingGroups}
-   mappingsCount={mappings.length}
-   counts={counts}
-   onOpenMapping={group=>{
-    setWorkspaceView('mapping');
-    if(group?.events?.length)setMappingEditing(group);
-   }}
-   onOpenAll={()=>setWorkspaceView('all')}
-   onEditEvent={setEditing}
-   onPublish={event=>changeStatus(event,'published')}
-  />}
+  {workspaceView==='overview'&&<>
+   <AdminReviewOverview
+    events={events}
+    mappingGroups={mappingGroups}
+    mappingsCount={mappings.length}
+    counts={counts}
+    onOpenMapping={group=>{
+     setWorkspaceView('mapping');
+     if(group?.events?.length)setMappingEditing(group);
+    }}
+    onOpenAll={()=>setWorkspaceView('all')}
+    onEditEvent={setEditing}
+    onPublish={event=>changeStatus(event,'published')}
+   />
+   <AdminImportHealth health={importHealth}/>
+  </>}
 
   {workspaceView==='mapping'&&<AdminMappingList
    groups={mappingGroups}
