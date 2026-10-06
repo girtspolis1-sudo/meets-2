@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {filterEvents,filterEventsByColumns,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
+import {display,filterEvents,filterEventsByColumns,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaClockMinutes} from '../lib/event-date.js';
 import {createWorkbook} from '../lib/excel.js';
 import {requestedMapMode} from '../lib/leaflet-runtime.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
-const hasLiveSupabase=Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_PUBLISHABLE_KEY);
+const hasLiveSupabase=process.env.MEETS_LIVE_TESTS==='1'&&Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_PUBLISHABLE_KEY);
 process.env.SUPABASE_URL ||= 'https://ci.invalid';
 process.env.SUPABASE_PUBLISHABLE_KEY ||= 'ci-test';
 test('all dates and statuses included; intervals overlap; Latvian search; invalid date range',()=>{
