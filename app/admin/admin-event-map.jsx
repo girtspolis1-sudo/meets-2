@@ -2,6 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {eventDateRangeLabel,eventDateState,groupDateTone,rigaTodayIso} from '../../lib/event-date.js';
+import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 
 const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
 const STYLE_URL='https://tiles.openfreemap.org/styles/positron';
@@ -62,37 +63,93 @@ function popupHtml(group,now){
  return '<div class="location-popup admin-map-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+group.events.length+' pasākumi</span></div><ol>'+rows+'</ol></div>';
 }
 
-async function loadMapStack(){
- const leafletModule=await import('leaflet');
- const L=leafletModule.default||leafletModule;
- await import('@maplibre/maplibre-gl-leaflet');
- if(!L?.maplibreGL)throw new Error('MapLibre Leaflet adapter failed to load');
- return L;
-}
-
 export default function AdminEventMap({events,onEdit}){
  const mapEl=useRef(null);
  const mapRef=useRef(null);
  const layerRef=useRef(null);
+ const baseLayerRef=useRef(null);
+ const baseCleanupRef=useRef(null);
  const [ready,setReady]=useState(false);
+ const [mapMode,setMapMode]=useState('loading');
+ const [mapError,setMapError]=useState('');
+ const [retry,setRetry]=useState(0);
  const [clockNow,setClockNow]=useState(()=>new Date());
  const groups=useMemo(()=>groupsFor(events),[events]);
  const eventById=useMemo(()=>new Map(events.map(event=>[event.id,event])),[events]);
 
  useEffect(()=>{
   let cancelled=false;
-  loadMapStack().then(L=>{
-   if(cancelled||!mapEl.current||mapRef.current)return;
-   const bounds=L.latLngBounds([BALTIC_VIEW.south,BALTIC_VIEW.west],[BALTIC_VIEW.north,BALTIC_VIEW.east]);
-   const map=L.map(mapEl.current,{maxBounds:bounds,maxBoundsViscosity:1,minZoom:5}).fitBounds(bounds,{padding:[18,18]});
-   L.maplibreGL({style:STYLE_URL}).addTo(map);
-   map.attributionControl.addAttribution('<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> · Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>');
-   mapRef.current=map;
-   map._meetsLeaflet=L;
-   setReady(true);
-  }).catch(error=>console.error('admin_map_stack_failed',error));
-  return()=>{cancelled=true;mapRef.current?.remove();mapRef.current=null;};
- },[]);
+  let rasterCleanup=null;
+
+  async function init(){
+   setReady(false);
+   setMapMode('loading');
+   setMapError('');
+   layerRef.current?.remove();layerRef.current=null;
+   baseCleanupRef.current?.();
+   baseCleanupRef.current=null;
+   removeLayerSafe(baseLayerRef.current);baseLayerRef.current=null;
+   if(mapRef.current){try{mapRef.current.remove();}catch{}mapRef.current=null;}
+
+   try{
+    const L=await loadLeaflet();
+    if(cancelled||!mapEl.current)return;
+    const bounds=L.latLngBounds([BALTIC_VIEW.south,BALTIC_VIEW.west],[BALTIC_VIEW.north,BALTIC_VIEW.east]);
+    const map=L.map(mapEl.current,{maxBounds:bounds,maxBoundsViscosity:1,minZoom:5}).fitBounds(bounds,{padding:[18,18]});
+    mapRef.current=map;
+    map._meetsLeaflet=L;
+
+    const requested=requestedMapMode();
+    if(requested!=='raster'&&requested!=='fail'&&hasWebGL()){
+     try{
+      await enableMapLibre(L);
+      if(cancelled)return;
+      baseLayerRef.current=L.maplibreGL({style:STYLE_URL}).addTo(map);
+      map.attributionControl.addAttribution('<a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> · Data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>');
+      setMapMode('vector');
+      setReady(true);
+      return;
+     }catch(error){
+      console.warn('admin_map_vector_failed_using_raster',error);
+      removeLayerSafe(baseLayerRef.current);
+      baseLayerRef.current=null;
+     }
+    }
+
+    if(requested==='fail')throw new Error('Forced map failure');
+
+    const raster=addRasterLayer(L,map,{
+     onReady:()=>{if(!cancelled){setMapMode('raster');setReady(true);setMapError('');}},
+     onFailure:error=>{
+      if(cancelled)return;
+      console.error('admin_map_raster_failed',error);
+      setMapMode('failed');setReady(false);setMapError('Admin karti neizdevās ielādēt.');
+     }
+    });
+    baseLayerRef.current=raster.layer;
+    rasterCleanup=raster.cleanup;
+    baseCleanupRef.current=raster.cleanup;
+    setMapMode('raster');
+    setReady(true);
+   }catch(error){
+    if(cancelled)return;
+    console.error('admin_map_stack_failed',error);
+    setMapMode('failed');
+    setReady(false);
+    setMapError('Admin karti neizdevās ielādēt. Pasākumu labošana joprojām pieejama tabulā.');
+   }
+  }
+
+  init();
+  return()=>{
+   cancelled=true;
+   rasterCleanup?.();
+   baseCleanupRef.current?.();baseCleanupRef.current=null;
+   layerRef.current?.remove();layerRef.current=null;
+   removeLayerSafe(baseLayerRef.current);baseLayerRef.current=null;
+   if(mapRef.current){try{mapRef.current.remove();}catch{}mapRef.current=null;}
+  };
+ },[retry]);
 
  useEffect(()=>{
   const timer=window.setInterval(()=>setClockNow(new Date()),30000);
@@ -148,5 +205,10 @@ export default function AdminEventMap({events,onEdit}){
    <span className="quality-badge ok">{groups.length} vietas</span>
   </div>
   <div ref={mapEl} className="admin-event-map" aria-label="Admin pasākumu karte"/>
+  {mapMode==='raster'&&<div className="admin-map-fallback-note">Rastra rezerves karte</div>}
+  {mapError&&<div className="admin-map-error" role="alert">
+   <strong>{mapError}</strong>
+   <button type="button" className="button compact" onClick={()=>setRetry(value=>value+1)}>Mēģināt vēlreiz</button>
+  </div>}
  </section>;
 }

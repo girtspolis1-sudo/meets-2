@@ -4,6 +4,7 @@ import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} fro
 import {useEvents} from '../../lib/use-events.js';
 
 const pageSize=50;
+const mobileFilterKeys=new Set(['date_from','title','municipality','event_type','primary_category','price_status']);
 
 export default function EventCatalog(){
  const {data,loading,error,refresh}=useEvents();
@@ -64,7 +65,7 @@ export default function EventCatalog(){
    return <select {...common}><option value="">Visi</option>{options.prices.map(item=><option key={item} value={item}>{prices[item]||item}</option>)}</select>;
   }
   if(key==='event_type'){
-   return <select {...common}><option value="">Visi</option>{options.eventTypes.map(item=><option key={item} value={item}>{item}</option>)}</select>;
+   return <select {...common}><option value="">Visi</option>{options.eventTypes.map(item=><option key={item} value={item}>{display({event_type:item},'event_type')}</option>)}</select>;
   }
   if(key==='map_status'){
    return <select {...common}><option value="">Visi</option>{options.mapStatuses.map(item=><option key={item} value={item}>{item}</option>)}</select>;
@@ -120,7 +121,7 @@ export default function EventCatalog(){
   <details className="mobile-table-filters">
    <summary>Filtrēt pasākumus{activeFilterCount?` (${activeFilterCount})`:''}</summary>
    <div className="mobile-filter-grid">
-    {columns.map(([key,label])=><label key={key}>{label}{filterControl(key,label)}</label>)}
+    {columns.filter(([key])=>mobileFilterKeys.has(key)).map(([key,label])=><label key={key}>{label}{filterControl(key,label)}</label>)}
    </div>
   </details>
 
@@ -150,12 +151,18 @@ export default function EventCatalog(){
     </div>
 
     <div className="mobile-events">{visible.map(event=><article key={event.id} className="mobile-event">
-     <div className="mobile-event-meta"><span>{display(event,'date_from')}</span><span className={`badge ${event.status}`}>{display(event,'status')}</span></div>
+     <div className="mobile-event-meta">
+      <div><strong>{display(event,'date_from')}</strong><span>{display(event,'time')}</span></div>
+      <span className={`badge ${event.status}`}>{display(event,'status')}</span>
+     </div>
      <button className="event-title" onClick={()=>setSelected(event.id)}>{event.title}</button>
-     <p>{event.municipality||'Pašvaldība nav norādīta'} · {display(event,'time')}</p>
-     <p>{event.venue_name||event.address_raw||'Vieta nav norādīta'}</p>
-     <span>{display(event,'price_status')}</span>
-     <button className="text-button" onClick={()=>setSelected(event.id)}>Visa informācija ↗</button>
+     <div className="mobile-event-facts">
+      <span><b>Vieta</b>{event.venue_name||event.address_raw||'Nav norādīta'}</span>
+      <span><b>Pašvaldība</b>{event.municipality||'Nav norādīta'}</span>
+      <span><b>Veids</b>{display(event,'event_type')||event.primary_category||'Nav norādīts'}</span>
+      <span><b>Maksa</b>{display(event,'price_status')}</span>
+     </div>
+     <button className="button compact mobile-event-open" onClick={()=>setSelected(event.id)}>Skatīt pasākumu</button>
     </article>)}</div>
    </>}
 

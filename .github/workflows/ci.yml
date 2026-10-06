@@ -18,6 +18,9 @@ jobs:
     name: test-and-build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      SUPABASE_URL: https://ci.invalid
+      SUPABASE_PUBLISHABLE_KEY: ci-test
 
     steps:
       - name: Checkout

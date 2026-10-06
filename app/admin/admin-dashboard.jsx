@@ -4,6 +4,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import AdminEventMap from './admin-event-map.jsx';
 import AdminReviewOverview from './admin-review-overview.jsx';
 import AdminMappingList from './admin-mapping-list.jsx';
+import AdminImportHealth from './admin-import-health.jsx';
 
 const SESSION_KEY='meets_admin_access_token';
 function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
@@ -18,6 +19,9 @@ const QUALITY={
 };
 
 function qualityMeta(value){return QUALITY[value]||{label:value||'Nav novērtēts',tone:'bad',priority:0};}
+function canPublishEvent(event){
+ return event?.attendance_mode==='online'||event?.location_quality==='verified_exact';
+}
 function isLocationIssue(event){
  const quality=String(event?.location_quality||'');
  const hasPoint=event?.latitude!=null&&event?.longitude!=null&&Number.isFinite(Number(event.latitude))&&Number.isFinite(Number(event.longitude));
@@ -133,6 +137,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [message,setMessage]=useState('');
  const [events,setEvents]=useState([]);
  const [mappings,setMappings]=useState([]);
+ const [importHealth,setImportHealth]=useState({sports:[],municipalities:[]});
  const [catalogLoaded,setCatalogLoaded]=useState(false);
  const [loading,setLoading]=useState(false);
  const [search,setSearch]=useState('');
@@ -141,6 +146,12 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [workspaceView,setWorkspaceView]=useState('overview');
  const [editing,setEditing]=useState(null);
  const [mappingEditing,setMappingEditing]=useState(null);
+ const [mappingRuleEditing,setMappingRuleEditing]=useState(null);
+ const [busyMappingId,setBusyMappingId]=useState('');
+ const [selectedIds,setSelectedIds]=useState(()=>new Set());
+ const [page,setPage]=useState(1);
+ const [bulkLoading,setBulkLoading]=useState(false);
+ const [bulkResult,setBulkResult]=useState(null);
  const [geocodeRunning,setGeocodeRunning]=useState(false);
  const [geocodeProgress,setGeocodeProgress]=useState('');
  const [autoGeocodeStarted,setAutoGeocodeStarted]=useState(false);
@@ -160,12 +171,16 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!activeToken)return;
   setLoading(true);
   try{
-   const [data,mappingData]=await Promise.all([
+   const [data,mappingData,healthData]=await Promise.all([
     apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken}),
-    apiFetch(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{p_session_token:activeToken})
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{p_session_token:activeToken}),
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_import_health',{p_session_token:activeToken})
    ]);
    setEvents(Array.isArray(data?.events)?data.events:[]);
    setMappings(Array.isArray(mappingData?.mappings)?mappingData.mappings:[]);
+   setImportHealth(healthData&&typeof healthData==='object'?healthData:{sports:[],municipalities:[]});
+   setSelectedIds(new Set());
+   setBulkResult(null);
    setCatalogLoaded(true);
    setMessage('');
   }catch{
@@ -300,8 +315,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  }
 
  async function changeStatus(event,newStatus){
-  if(newStatus==='published'&&event.location_quality!=='verified_exact'){
-   setMessage('Publicēt drīkst tikai pasākumu ar precīzi verificētu lokāciju. Vispirms izlabo/verificē vietu.');
+  if(newStatus==='published'&&!canPublishEvent(event)){
+   setMessage('Publicēt drīkst tikai pasākumu ar precīzi verificētu lokāciju. Tiešsaistes pasākums ir izņēmums.');
    return;
   }
   setLoading(true);
@@ -344,6 +359,68 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }catch{
    setMessage('Mappingu neizdevās saglabāt. Pārbaudi vietu, adresi un koordinātas.');
   }finally{setLoading(false);}
+ }
+
+ async function updateMapping(mapping,values){
+  setBusyMappingId(mapping.id);
+  try{
+   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_location_mapping',{
+    p_session_token:token,
+    p_mapping_id:mapping.id,
+    p_venue_name:values.venueName,
+    p_address_text:values.addressText||null,
+    p_latitude:Number(values.latitude),
+    p_longitude:Number(values.longitude),
+    p_active:true
+   });
+   setMappingRuleEditing(null);
+   await loadEvents();
+   setMessage(`Mapping atjaunots. Saistītie ieraksti atjaunoti: ${result?.updated_events||0}.`);
+  }catch{
+   setMessage('Mappinga labojumu neizdevās saglabāt.');
+  }finally{setBusyMappingId('');}
+ }
+
+ async function toggleMapping(mapping){
+  setBusyMappingId(mapping.id);
+  try{
+   const nextActive=!mapping.active;
+   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_location_mapping',{
+    p_session_token:token,
+    p_mapping_id:mapping.id,
+    p_venue_name:mapping.canonical_venue_name,
+    p_address_text:mapping.canonical_address_text||null,
+    p_latitude:Number(mapping.latitude),
+    p_longitude:Number(mapping.longitude),
+    p_active:nextActive
+   });
+   await loadEvents();
+   setMessage(nextActive
+    ?`Mapping aktivizēts. Atjaunoti ${result?.updated_events||0} saistītie ieraksti.`
+    :'Mapping deaktivizēts. Esošie izlabotie ieraksti netika atgriezti iepriekšējā stāvoklī.');
+  }catch{
+   setMessage('Mappinga statusu neizdevās mainīt.');
+  }finally{setBusyMappingId('');}
+ }
+
+ async function bulkPublish(){
+  const ids=[...selectedIds];
+  if(!ids.length||bulkLoading)return;
+  setBulkLoading(true);setBulkResult(null);
+  try{
+   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_bulk_publish',{
+    p_session_token:token,
+    p_event_ids:ids
+   });
+   setBulkResult(result);
+   await loadEvents();
+   const published=Array.isArray(result?.published)?result.published.length:0;
+   const skipped=Array.isArray(result?.skipped)?result.skipped.length:0;
+   const errors=Array.isArray(result?.errors)?result.errors.length:0;
+   setMessage(`Masveida publicēšana pabeigta: publicēti ${published}, izlaisti ${skipped}, kļūdas ${errors}.`);
+  }catch{
+   setMessage('Masveida publicēšanu neizdevās pabeigt.');
+  }finally{setBulkLoading(false);}
  }
  const lffMissingGroups=useMemo(()=>groupMissingLff(events),[events]);
  const lffMissingEvents=useMemo(()=>lffMissingGroups.reduce((sum,g)=>sum+g.events.length,0),[lffMissingGroups]);
@@ -429,6 +506,36 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    return String(a.date_from||'').localeCompare(String(b.date_from||''))||String(a.title).localeCompare(String(b.title),'lv');
   });
  },[events,search,status,quality]);
+
+ const PAGE_SIZE=50;
+ const pageCount=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+ const safePage=Math.min(page,pageCount);
+ const pageRows=useMemo(()=>filtered.slice((safePage-1)*PAGE_SIZE,safePage*PAGE_SIZE),[filtered,safePage]);
+ const pageIds=useMemo(()=>pageRows.map(event=>event.id),[pageRows]);
+ const allPageSelected=pageIds.length>0&&pageIds.every(id=>selectedIds.has(id));
+ const allFilteredSelected=filtered.length>0&&filtered.every(event=>selectedIds.has(event.id));
+
+ useEffect(()=>{if(page>pageCount)setPage(pageCount);},[page,pageCount]);
+ useEffect(()=>{setPage(1);setSelectedIds(new Set());},[search,status,quality]);
+
+ function toggleSelected(id){
+  setSelectedIds(previous=>{
+   const next=new Set(previous);
+   if(next.has(id))next.delete(id);else next.add(id);
+   return next;
+  });
+ }
+ function selectPage(){
+  setSelectedIds(previous=>{
+   const next=new Set(previous);
+   if(allPageSelected)pageIds.forEach(id=>next.delete(id));
+   else pageIds.forEach(id=>next.add(id));
+   return next;
+  });
+ }
+ function selectAllFiltered(){
+  setSelectedIds(allFilteredSelected?new Set():new Set(filtered.map(event=>event.id)));
+ }
 
  useEffect(()=>{
   if(!isAdmin||!events.length||editing)return;
@@ -574,25 +681,31 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
   {message&&<p className="sync-text admin-workspace-message" role="status">{message}</p>}
 
-  {workspaceView==='overview'&&<AdminReviewOverview
-   events={events}
-   mappingGroups={mappingGroups}
-   mappingsCount={mappings.length}
-   counts={counts}
-   onOpenMapping={group=>{
-    setWorkspaceView('mapping');
-    if(group?.events?.length)setMappingEditing(group);
-   }}
-   onOpenAll={()=>setWorkspaceView('all')}
-   onEditEvent={setEditing}
-   onPublish={event=>changeStatus(event,'published')}
-  />}
+  {workspaceView==='overview'&&<>
+   <AdminReviewOverview
+    events={events}
+    mappingGroups={mappingGroups}
+    mappingsCount={mappings.length}
+    counts={counts}
+    onOpenMapping={group=>{
+     setWorkspaceView('mapping');
+     if(group?.events?.length)setMappingEditing(group);
+    }}
+    onOpenAll={()=>setWorkspaceView('all')}
+    onEditEvent={setEditing}
+    onPublish={event=>changeStatus(event,'published')}
+   />
+   <AdminImportHealth health={importHealth}/>
+  </>}
 
   {workspaceView==='mapping'&&<AdminMappingList
    groups={mappingGroups}
    mappings={mappings}
    onMap={setMappingEditing}
    onEditEvent={setEditing}
+   onEditMapping={setMappingRuleEditing}
+   onToggleMapping={toggleMapping}
+   busyMappingId={busyMappingId}
   />}
 
   {workspaceView==='all'&&<>
@@ -630,18 +743,37 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
    <AdminEventMap events={filtered} onEdit={setEditing}/>
 
-   <div className="admin-sheet-head">
-    <div><strong>Pasākumu saraksts</strong><span>{filtered.length} ieraksti pēc filtriem</span></div>
+   <div className="admin-sheet-head admin-bulk-head">
+    <div><strong>Pasākumu saraksts</strong><span>{filtered.length} ieraksti pēc filtriem · lapa {safePage}/{pageCount}</span></div>
+    <div className="admin-bulk-actions">
+     <span>Atlasīti: <strong>{selectedIds.size}</strong></span>
+     <button type="button" className="button compact" onClick={selectPage} disabled={!pageRows.length||bulkLoading}>{allPageSelected?'Noņemt šīs lapas atlasi':'Atlasīt šīs lapas ierakstus'}</button>
+     <button type="button" className="button compact" onClick={selectAllFiltered} disabled={!filtered.length||bulkLoading}>{allFilteredSelected?'Noņemt visu filtrēto atlasi':'Atlasīt visus filtrētos ierakstus'}</button>
+     <button type="button" className="button primary compact" onClick={bulkPublish} disabled={!selectedIds.size||bulkLoading}>{bulkLoading?'Publicē…':'Publicēt atlasītos'}</button>
+    </div>
    </div>
+   {bulkResult&&<div className="bulk-result" role="status">
+    <strong>Masveida darbības rezultāts</strong>
+    <span>Publicēti: {bulkResult.published?.length||0} · Izlaisti: {bulkResult.skipped?.length||0} · Kļūdas: {bulkResult.errors?.length||0}</span>
+    {(bulkResult.skipped?.length>0||bulkResult.errors?.length>0)&&<details>
+     <summary>Rādīt iemeslus</summary>
+     {[...(bulkResult.skipped||[]),...(bulkResult.errors||[])].map((item,index)=>{
+      const event=events.find(row=>row.id===item.id);
+      return <div key={(item.id||'error')+index}><strong>{event?.title||item.id}</strong> — {item.reason||'Nezināma kļūda'}</div>;
+     })}
+    </details>}
+   </div>}
    <div className="table-scroll" role="region" aria-label="Admin pasākumu tabula" tabIndex={0}>
     <table className="events-table admin-events-table location-review-table">
      <thead><tr>
+      <th className="select-column"><input type="checkbox" checked={allPageSelected} onChange={selectPage} aria-label="Atlasīt vai noņemt šīs lapas ierakstus"/></th>
       <th>Datums</th><th>Pasākums</th><th>Lokācijas kvalitāte</th><th>Kāpēc jāpārbauda</th><th>Norises vieta</th><th>Avots</th><th>Darbības</th>
      </tr></thead>
      <tbody>
-      {filtered.map(event=>{
+      {pageRows.map(event=>{
        const meta=qualityMeta(event.location_quality);
        return <tr key={event.id} className={event.location_quality==='verified_exact'?'location-ok':'location-needs-review'}>
+        <td className="select-column"><input type="checkbox" checked={selectedIds.has(event.id)} onChange={()=>toggleSelected(event.id)} aria-label={'Atlasīt '+event.title}/></td>
         <td>{dateText(event.date_from)}</td>
         <td><strong>{event.title}</strong><small className="table-subline">{event.status}</small></td>
         <td><span className={'quality-badge '+meta.tone}>{meta.label}</span></td>
@@ -653,7 +785,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
         </td>
         <td>{sourceLinks(event).length?sourceLinks(event).map((s,i)=><span key={(s.url||'')+i} className="source-link-row"><a href={s.url} target="_blank" rel="noreferrer">{s.source||'Avots'} ↗</a></span>):sourceText(event)}</td>
         <td><div className="admin-actions">
-         {event.location_quality==='verified_exact'&&event.status!=='published'&&<button className="text-button strong-action" onClick={()=>changeStatus(event,'published')}>Publicēt</button>}
+         {canPublishEvent(event)&&event.status!=='published'&&<button className="text-button strong-action" onClick={()=>changeStatus(event,'published')}>Publicēt</button>}
          {event.status==='published'&&<button className="text-button" onClick={()=>changeStatus(event,'pending_review')}>Atgriezt pārbaudei</button>}
          <button className="button compact" onClick={()=>setEditing(event)}>{isLocationIssue(event)?'Labot adresi / karti':'Pārbaudīt adresi / karti'}</button>
         </div></td>
@@ -661,6 +793,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
       })}
      </tbody>
     </table>
+   </div>
+   <div className="admin-pagination">
+    <button type="button" className="button compact" onClick={()=>setPage(value=>Math.max(1,value-1))} disabled={safePage<=1}>← Iepriekšējā</button>
+    <span>{safePage}. lapa no {pageCount}</span>
+    <button type="button" className="button compact" onClick={()=>setPage(value=>Math.min(pageCount,value+1))} disabled={safePage>=pageCount}>Nākamā →</button>
    </div>
    <p className="sync-text"><strong>{filtered.length}</strong> no {events.length} ierakstiem.</p>
   </>}
@@ -673,6 +810,25 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    mappingCount={mappingEditing.events.length}
    close={()=>setMappingEditing(null)}
    save={values=>saveMapping(mappingEditing,values)}
+  />}
+
+  {mappingRuleEditing&&<LocationEditor
+   event={{
+    venue_name:mappingRuleEditing.canonical_venue_name,
+    address_raw:mappingRuleEditing.canonical_address_text,
+    latitude:mappingRuleEditing.latitude,
+    longitude:mappingRuleEditing.longitude,
+    municipality:mappingRuleEditing.municipality,
+    country_code:mappingRuleEditing.country_code,
+    location_quality:'verified_exact',
+    sources:[]
+   }}
+   token={token}
+   mode="saved-mapping"
+   mappingAlias={mappingRuleEditing.alias_text}
+   mappingCount={mappingRuleEditing.current_events||0}
+   close={()=>setMappingRuleEditing(null)}
+   save={values=>updateMapping(mappingRuleEditing,values)}
   />}
 
   {editing&&<LocationEditor event={editing} token={token} close={()=>setEditing(null)} save={(values,publish)=>saveLocation(editing,values,publish)}/>} 
@@ -755,14 +911,19 @@ function LocationEditor({event,token,close,save,mode='event',mappingAlias='',map
  const meta=qualityMeta(event.location_quality);
  const canSave=Number.isFinite(Number(latitude))&&Number.isFinite(Number(longitude))&&Boolean(venueName.trim());
  const locationSource=selectedPlace?.sourceUrl||'admin map correction';
- const isMapping=mode==='mapping';
+ const isMapping=mode==='mapping'||mode==='saved-mapping';
+ const isSavedMapping=mode==='saved-mapping';
 
  return <dialog ref={dialog} className="event-dialog location-dialog" onCancel={close} onClose={close}>
   <div className="detail-header"><div><p className="eyebrow">{isMapping?'Atkārtoti izmantojams mapping':'Lokācijas pārbaude'}</p><h2>{isMapping?(mappingAlias||event.venue_name||event.address_raw):event.title}</h2></div><button className="button" onClick={close}>Aizvērt ✕</button></div>
 
   <div className={'location-issue-panel '+meta.tone}>
    <strong>{isMapping?`${mappingCount} esoši pasākumi ar šo aliasu`:meta.label}</strong>
-   <p>{isMapping?'Saglabājot mappingu, esošie ieraksti tiks salaboti uzreiz un nākamajos importos šis pats nosaukums automātiski saņems apstiprināto vietu.':(event.location_review_reason||'Lokācija pašlaik ir verificēta.')}</p>
+   <p>{isSavedMapping
+    ?'Labojot mappingu, ar šo mapping ID jau saistītie ieraksti tiks atjaunoti; nākamie importi izmantos jauno korekciju.'
+    :isMapping
+     ?'Saglabājot mappingu, esošie ieraksti tiks salaboti uzreiz un nākamajos importos šis pats nosaukums automātiski saņems apstiprināto vietu.'
+     :(event.location_review_reason||'Lokācija pašlaik ir verificēta.')}</p>
    {event.address_raw&&<p><b>Nolasītā adrese:</b> {event.address_raw}</p>}
    {sourceLinks(event).map((s,i)=><a key={(s.url||'')+i} href={s.url} target="_blank" rel="noreferrer">Atvērt {s.source||'avotu'} ↗</a>)}
   </div>
@@ -817,7 +978,7 @@ function LocationEditor({event,token,close,save,mode='event',mappingAlias='',map
 
   <div className="actions">
    {isMapping
-    ?<button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource})}>Saglabāt mappingu un labot {mappingCount}</button>
+    ?<button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource})}>{isSavedMapping?'Saglabāt mappinga labojumu':'Saglabāt mappingu un labot '+mappingCount}</button>
     :<>
       <button className="button" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},false)}>Saglabāt verificētu lokāciju</button>
       <button className="button primary" disabled={!canSave} onClick={()=>save({venueName,addressText,latitude,longitude,locationSource},true)}>Saglabāt un publicēt</button>
