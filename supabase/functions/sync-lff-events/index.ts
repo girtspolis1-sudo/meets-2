@@ -165,8 +165,19 @@ function parseVeterans(h:string,today:string,windowTo:string){
 }
 
 Deno.serve(async()=>{
+ let rid:string|null=null;
  try{
   const today=new Date().toISOString().slice(0,10),windowTo=addMonthsIso(today,3);
+  const run=await q("import_runs",{
+    method:"POST",headers:{"Prefer":"return=representation"},
+    body:JSON.stringify({
+      source_key:"lff-all-"+new Date().toISOString().replace(/[:.]/g,"-"),
+      source_commit:"lff-men-v6-multi-competition-3month",
+      snapshot_date:today,status:"loading",expected_count:0,imported_count:0
+    })
+  });
+  rid=run[0].id;
+
   const competitionRows=await q("sports_competitions?governing_body=eq.LFF&select=id,competition_key,name,season,sport_format,default_age_group");
   const compMap=new Map(competitionRows.map((x:any)=>[x.competition_key,x]));
   const all:any[]=[];
@@ -196,15 +207,10 @@ Deno.serve(async()=>{
 
   const src=(await q("sources?domain=eq.lff.lv&select=id"))[0];
   const cat=(await q("categories?name=eq.Futbols&select=id"))[0];
-  const run=await q("import_runs",{
-    method:"POST",headers:{"Prefer":"return=representation"},
-    body:JSON.stringify({
-      source_key:"lff-all-"+new Date().toISOString().replace(/[:.]/g,"-"),
-      source_commit:"lff-men-v6-multi-competition-3month",
-      snapshot_date:today,status:"loading",expected_count:items.length,imported_count:0
-    })
+  await q("import_runs?id=eq."+rid,{
+    method:"PATCH",
+    body:JSON.stringify({expected_count:items.length})
   });
-  const rid=run[0].id;
   let created=0,updated=0,unresolved=0;
 
   for(const x of items){
@@ -292,6 +298,18 @@ Deno.serve(async()=>{
     items:items.map(x=>({id:x.id,date:x.date,time:x.time,competition:x.competition_name,group:x.group||null,stage:x.stage||null,title:x.veteran_event?x.home:x.home+" – "+x.away,venue:x.venue,url:x.url}))
   });
  }catch(e){
+  if(rid){
+   try{
+    await q("import_runs?id=eq."+rid,{
+     method:"PATCH",
+     body:JSON.stringify({
+      status:"failed",
+      completed_at:new Date().toISOString(),
+      error_text:String(e).slice(0,500)
+     })
+    });
+   }catch{}
+  }
   console.error("sync_lff_failed",e);
   return Response.json({ok:false,error:String(e)},{status:500});
  }
