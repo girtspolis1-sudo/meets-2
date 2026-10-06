@@ -4,36 +4,54 @@ import {useMemo,useState} from 'react';
 
 export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEditMapping,onToggleMapping,busyMappingId}){
  const [query,setQuery]=useState('');
+ const [view,setView]=useState('issues');
  const q=query.trim().toLocaleLowerCase('lv');
 
- const filtered=useMemo(()=>groups.filter(group=>{
+ const filteredGroups=useMemo(()=>groups.filter(group=>{
   if(!q)return true;
   return [group.alias,group.municipality,group.countryCode,...group.sources]
    .some(value=>String(value||'').toLocaleLowerCase('lv').includes(q));
  }),[groups,q]);
 
+ const filteredMappings=useMemo(()=>mappings.filter(mapping=>{
+  if(!q)return true;
+  return [
+   mapping.alias_text,mapping.original_address_text,mapping.canonical_venue_name,
+   mapping.canonical_address_text,mapping.municipality,mapping.country_code
+  ].some(value=>String(value||'').toLocaleLowerCase('lv').includes(q));
+ }),[mappings,q]);
+
+ const activeMappings=mappings.filter(mapping=>mapping.active);
+
  return <div className="admin-mapping-workspace">
   <div className="admin-sheet-intro compact">
    <div>
-    <p className="eyebrow">Atkārtoti izmantojama korekcija</p>
+    <p className="eyebrow">Lokāciju kvalitātes darba rinda</p>
     <h2>Adreses un vietu mapping</h2>
-    <p>Vienreiz norādi pareizo vietu. Visi esošie ieraksti ar to pašu nosaukumu tiek salaboti, un nākamajos importos korekcija tiek piemērota automātiski.</p>
+    <p>Jālabo — vietas, kurām vēl nav drošas lokācijas. Sakārtoti — jau saglabātie mappingi; tie ir atzīmēti zaļi, bet tos jebkurā brīdī var atkārtoti labot.</p>
    </div>
-   <strong className="admin-issue-count">{groups.length} neatpazīti aliasi</strong>
+   <div className="mapping-summary-chips">
+    <strong className="admin-issue-count">{groups.length} jālabo</strong>
+    <strong className="admin-ok-count">{activeMappings.length} sakārtoti</strong>
+   </div>
   </div>
 
   <div className="admin-mapping-toolbar">
-   <label>Meklēt aliasu
+   <label>Meklēt vietu vai aliasu
     <input type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="OC Ventspils, Keila Tervisekeskus…"/>
    </label>
-   <span><strong>{filtered.length}</strong> grupas · <strong>{mappings.length}</strong> saglabāti mappingi</span>
+   <div className="mapping-view-tabs" role="tablist" aria-label="Mapping statusi">
+    <button type="button" role="tab" aria-selected={view==='issues'} className={view==='issues'?'active attention':''} onClick={()=>setView('issues')}>Jālabo <span>{groups.length}</span></button>
+    <button type="button" role="tab" aria-selected={view==='resolved'} className={view==='resolved'?'active success':''} onClick={()=>setView('resolved')}>Sakārtoti <span>{activeMappings.length}</span></button>
+   </div>
   </div>
 
-  <div className="table-scroll admin-mapping-table-wrap" role="region" aria-label="Neatpazīto adrešu mapping" tabIndex={0}>
+  {view==='issues'&&<div className="table-scroll admin-mapping-table-wrap" role="region" aria-label="Neatpazīto adrešu mapping" tabIndex={0}>
    <table className="events-table admin-mapping-table">
-    <thead><tr><th>Ielasītais nosaukums</th><th>Konteksts</th><th>Avoti</th><th>Pasākumi</th><th>Kvalitāte</th><th>Korekcija</th></tr></thead>
+    <thead><tr><th>Statuss</th><th>Ielasītais nosaukums</th><th>Konteksts</th><th>Avoti</th><th>Aktuālie pasākumi</th><th>Kvalitāte</th><th>Darbība</th></tr></thead>
     <tbody>
-     {filtered.map(group=><tr key={group.key}>
+     {filteredGroups.length?filteredGroups.map(group=><tr key={group.key} className="mapping-needs-review">
+      <td><span className="quality-badge bad">Jālabo</span></td>
       <td><strong>{group.alias||'Nav vietas/adreses'}</strong>{group.sampleAddress&&group.sampleAddress!==group.alias&&<small className="table-subline">{group.sampleAddress}</small>}</td>
       <td>{group.municipality||'—'}<small className="table-subline">{group.countryCode||'—'}</small></td>
       <td>{group.sources.join(', ')||'—'}</td>
@@ -44,35 +62,31 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
         ?<button type="button" className="button primary compact" onClick={()=>onMap(group)}>Norādīt korekciju</button>
         :<button type="button" className="button compact" onClick={()=>onEditEvent(group.events[0])}>Labot ierakstu</button>}
       </td>
-     </tr>)}
+     </tr>):<tr><td colSpan={7}><p className="admin-empty-inline">Nav neatpazītu aktuālo vietu pēc izvēlētā filtra.</p></td></tr>}
     </tbody>
    </table>
-  </div>
+  </div>}
 
-  <details className="saved-mappings">
-   <summary>Saglabātie mappingi ({mappings.length})</summary>
-   <div className="table-scroll" role="region" aria-label="Saglabātie mappingi" tabIndex={0}>
-    <table className="events-table admin-mapping-table saved">
-     <thead><tr><th>Ielasītais alias</th><th>Sākotnējā adrese</th><th>→ Pareizā vieta</th><th>Adrese</th><th>Konteksts</th><th>Lietojums</th><th>Statuss / darbības</th></tr></thead>
-     <tbody>{mappings.map(mapping=><tr key={mapping.id}>
-      <td><strong>{mapping.alias_text}</strong><small className="table-subline">Labots: {mapping.updated_at?new Date(mapping.updated_at).toLocaleString('lv-LV'):'—'}</small></td>
-      <td>{mapping.original_address_text||'—'}</td>
-      <td>{mapping.canonical_venue_name}</td>
-      <td>{mapping.canonical_address_text||'—'}<small className="table-subline">{Number(mapping.latitude).toFixed(5)}, {Number(mapping.longitude).toFixed(5)}</small></td>
-      <td>{[mapping.municipality,mapping.country_code].filter(Boolean).join(' · ')||'Globāls'}</td>
-      <td>{mapping.current_events||0} pašlaik<small className="table-subline">{mapping.apply_count||0} piemērošanas</small></td>
-      <td>
-       <span className={'quality-badge '+(mapping.active?'ok':'bad')}>{mapping.active?'Aktīvs':'Izslēgts'}</span>
-       <div className="admin-actions mapping-actions">
-        <button type="button" className="button compact" onClick={()=>onEditMapping(mapping)} disabled={busyMappingId===mapping.id}>Labot</button>
-        <button type="button" className="text-button" onClick={()=>onToggleMapping(mapping)} disabled={busyMappingId===mapping.id}>
-         {busyMappingId===mapping.id?'Saglabā…':mapping.active?'Deaktivizēt':'Aktivizēt'}
-        </button>
-       </div>
-      </td>
-     </tr>)}</tbody>
-    </table>
-   </div>
-  </details>
+  {view==='resolved'&&<div className="table-scroll admin-mapping-table-wrap" role="region" aria-label="Saglabātie mappingi" tabIndex={0}>
+   <table className="events-table admin-mapping-table saved">
+    <thead><tr><th>Statuss</th><th>Ielasītais alias</th><th>→ Pareizā vieta</th><th>Adrese</th><th>Konteksts</th><th>Lietojums</th><th>Darbības</th></tr></thead>
+    <tbody>{filteredMappings.length?filteredMappings.map(mapping=><tr key={mapping.id} className={mapping.active?'mapping-resolved':'mapping-disabled'}>
+     <td><span className={'quality-badge '+(mapping.active?'ok':'bad')}>{mapping.active?'Sakārtots':'Izslēgts'}</span></td>
+     <td><strong>{mapping.alias_text}</strong><small className="table-subline">Labots: {mapping.updated_at?new Date(mapping.updated_at).toLocaleString('lv-LV'):'—'}</small>{mapping.original_address_text&&<small className="table-subline">Sākotnēji: {mapping.original_address_text}</small>}</td>
+     <td><strong>{mapping.canonical_venue_name}</strong></td>
+     <td>{mapping.canonical_address_text||'—'}<small className="table-subline">{Number(mapping.latitude).toFixed(5)}, {Number(mapping.longitude).toFixed(5)}</small></td>
+     <td>{[mapping.municipality,mapping.country_code].filter(Boolean).join(' · ')||'Globāls'}</td>
+     <td><strong>{mapping.current_events||0} aktuāli</strong><small className="table-subline">{mapping.total_events??mapping.current_events??0} kopā · {mapping.apply_count||0} piemērošanas</small></td>
+     <td>
+      <div className="admin-actions mapping-actions">
+       <button type="button" className="button compact" onClick={()=>onEditMapping(mapping)} disabled={busyMappingId===mapping.id}>Labot mappingu</button>
+       <button type="button" className="text-button" onClick={()=>onToggleMapping(mapping)} disabled={busyMappingId===mapping.id}>
+        {busyMappingId===mapping.id?'Saglabā…':mapping.active?'Deaktivizēt':'Aktivizēt'}
+       </button>
+      </div>
+     </td>
+    </tr>):<tr><td colSpan={7}><p className="admin-empty-inline">Nav saglabātu mappingu pēc izvēlētā filtra.</p></td></tr>}</tbody>
+   </table>
+  </div>}
  </div>;
 }
