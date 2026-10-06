@@ -226,7 +226,7 @@ Deno.serve(async()=>{
    });
   }
 
-  await q("import_runs?id=eq."+rid,{method:"PATCH",body:JSON.stringify({status:"complete",imported_count:games.length})});
+  await q("import_runs?id=eq."+rid,{method:"PATCH",body:JSON.stringify({status:"complete",imported_count:games.length,added_count:created,updated_count:updated,skipped_count:0,completed_at:new Date().toISOString(),error_text:null})});
 
   return Response.json({
    ok:true,run_id:rid,window_from:today,window_to:windowTo,
