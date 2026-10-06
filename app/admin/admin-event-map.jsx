@@ -209,6 +209,6 @@ export default function AdminEventMap({events,onEdit}){
   {mapError&&<div className="admin-map-error" role="alert">
    <strong>{mapError}</strong>
    <button type="button" className="button compact" onClick={()=>setRetry(value=>value+1)}>Mēģināt vēlreiz</button>
-  </div>
+  </div>}
  </section>;
 }
