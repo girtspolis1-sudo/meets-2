@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {filterEvents,filterEventsByColumns,initialFilters,publicEvent,safeUrl,timeLabel,dateLabel} from '../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaClockMinutes} from '../lib/event-date.js';
 import {createWorkbook} from '../lib/excel.js';
+import {requestedMapMode} from '../lib/leaflet-runtime.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
 const hasLiveSupabase=Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_PUBLISHABLE_KEY);
@@ -22,8 +23,8 @@ test('public projection excludes administrative data and unsafe URLs',()=>{
 test('live Supabase data and Excel round trip include every row; no formulas',{skip:!hasLiveSupabase},async()=>{
  const data=await readEvents(); assert(data.events.every(e=>e.status==='published'));assert.equal(new Set(data.events.map(e=>e.id)).size,data.total);
  const buf=await createWorkbook([...data.events,{id:'test',title:'=HYPERLINK("https://example.com")',sources:[],tags:[],date_from:'2026-09-28'}],data.fetchedAt);
- const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);const sheet=wb.getWorksheet('Pasākumi');
- assert.equal(sheet.rowCount,data.total+2);assert.equal(sheet.getCell(`D${data.total+2}`).value,'=HYPERLINK("https://example.com")');assert.equal(sheet.getCell(`D${data.total+2}`).type,ExcelJS.ValueType.String);assert(sheet.getCell(`A${data.total+2}`).value instanceof Date);
+ const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);const sheet=wb.getWorksheet('Pasākumi');const details=wb.getWorksheet('Detaļas');
+ assert.equal(sheet.rowCount,data.total+2);assert.equal(details.rowCount,data.total+2);assert.equal(sheet.getCell(`D${data.total+2}`).value,'=HYPERLINK("https://example.com")');assert.equal(sheet.getCell(`D${data.total+2}`).type,ExcelJS.ValueType.String);assert(sheet.getCell(`A${data.total+2}`).value instanceof Date);assert.equal(details.getCell(`A${data.total+2}`).value,'test');
  const publicRpc=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/meets_public_catalog',{method:'POST',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({})});assert(publicRpc.ok);
  const publicPayload=await publicRpc.json();assert(Array.isArray(publicPayload.events));assert(publicPayload.events.every(e=>e.status==='published'));
  const table=await fetch(process.env.SUPABASE_URL+'/rest/v1/events?select=id&limit=1',{headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY}});assert(!table.ok);
@@ -182,3 +183,16 @@ test('admin session endpoint rejects missing tokens without upstream access',asy
 
 
 
+
+test('map diagnostics select raster and failure modes deterministically',()=>{
+ assert.equal(requestedMapMode('?map=raster'),'raster');
+ assert.equal(requestedMapMode('?map=fail'),'fail');
+ assert.equal(requestedMapMode('?map=vector'),'auto');
+ assert.equal(requestedMapMode(''),'auto');
+});
+
+test('event type labels stay user friendly',()=>{
+ assert.equal(display({event_type:'sports_match'},'event_type'),'Sporta spēle');
+ assert.equal(display({event_type:'concert'},'event_type'),'Koncerts');
+ assert.equal(display({event_type:'custom'},'event_type'),'custom');
+});
