@@ -5,20 +5,24 @@ async function db(p:string,i:RequestInit={}){const r=await fetch(SB+"/rest/v1/"+
 const clean=(s:string)=>s.replace(/<[^>]+>/g," ").replace(/&quot;/g,'"').replace(/&amp;/g,"&").replace(/\s+/g," ").trim();
 const norm=(s:string)=>s.toLocaleLowerCase("lv").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/gi," ").trim();
 const iso=(d:string)=>{const [dd,mm,yy]=d.split("/");return yy+"-"+mm.padStart(2,"0")+"-"+dd.padStart(2,"0")};
+const addMonthsIso=(isoDate:string,n:number)=>{const d=new Date(isoDate+"T12:00:00Z"),day=d.getUTCDate();d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+n);const max=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate();d.setUTCDate(Math.min(day,max));return d.toISOString().slice(0,10)};
 const municipalityMap:any={"aizkraukle":1,"koknese":1,"carnikava":2,"adazi":2,"daugavpils":29,"balvi":4,"bauska":5,"grobina":6,"dobele":7,"gulbene":8,"jelgava":26,"jekabpils":10,"jurmala":11,"kraslava":12,"limbazi":13,"livani":14,"ludza":15,"marupe":16,"ogre":17,"preili":18,"riga":19,"ulbroka":20,"smiltene":21,"talsi":22,"tukums":23,"valka":24,"ventspils":32,"liepaja":30,"rezekne":31,"aluksne":33,"cesis":34,"kuldiga":35,"kekava":36,"madona":37,"olaine":38,"salaspils":40,"saldus":41,"saulkrasti":42,"sigulda":43,"valmiera":44};
 const venueAlias:any={"nacionalais stadions daugava":"riga"};
-Deno.serve(async()=>{try{
+Deno.serve(async()=>{let rid:string|null=null;try{
+ const today=new Date().toISOString().slice(0,10),windowTo=addMonthsIso(today,3),rk="athletics-lv-"+new Date().toISOString().replace(/[:.]/g,"-");
+ const rr=await db("import_runs",{method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify({source_key:rk,source_commit:"athletics-calendar-v2-location-map",snapshot_date:today,status:"loading",expected_count:0,imported_count:0})});rid=rr[0].id;
  const p=await fetch("https://athletics.lv/lv/events",{headers:{"user-agent":"MEETS/1.0 event sync","accept":"text/html"}});if(!p.ok)throw new Error("calendar HTTP "+p.status);const html=await p.text();
  const settlements=await db("settlements?select=id,name"),cat=await db("categories?name=eq.Vieglatl%C4%93tika&select=id");if(!cat?.[0])throw new Error("Vieglatlētika missing");
- const byNorm=new Map(settlements.map((s:any)=>[norm(s.name),s])),blocks=[...html.matchAll(/<div class="calendar__event expander__parent">([\s\S]*?)(?=<div class="calendar__event expander__parent">|<div class="calendar__date"|$)/g)],today=new Date().toISOString().slice(0,10),arr:any[]=[];
+ const byNorm=new Map(settlements.map((s:any)=>[norm(s.name),s])),blocks=[...html.matchAll(/<div class="calendar__event expander__parent">([\s\S]*?)(?=<div class="calendar__event expander__parent">|<div class="calendar__date"|$)/g)],arr:any[]=[];
  for(const b of blocks){const x=b[1],lm=x.match(/class="calendar__event-link[^"]*" href="https:\/\/athletics\.lv\/event\/(\d+)\/([^"]+)">([\s\S]*?)<\/a>/),dm=x.match(/class="calendar__event-date[^"]*">\s*(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4})/),vm=x.match(/class="calendar__event-venue[^"]*">([\s\S]*?)<\/span>/);if(!lm||!dm||!vm)continue;
   const venue=clean(vm[1]),vn=norm(venue);let key=Object.keys(venueAlias).find(k=>vn.includes(k))?venueAlias[Object.keys(venueAlias).find(k=>vn.includes(k))!]:null;
   if(!key){key=Object.keys(municipalityMap).sort((a,b)=>b.length-a.length).find(k=>vn.includes(k))||null}
   if(!key||!municipalityMap[key])continue;const st=byNorm.get(key);if(!st)continue;const from=iso(dm[1]),to=iso(dm[2]);if(to<today||from>windowTo)continue;
   arr.push({ext_id:lm[1],slug:lm[2],title:clean(lm[3]),date_from:from,date_to:to,venue,settlement_id:st.id,municipality_id:municipalityMap[key],url:`https://athletics.lv/event/${lm[1]}/${lm[2]}`})
  }
- const uniq=[...new Map(arr.map(x=>[x.ext_id,x])).values()],rk="athletics-lv-"+new Date().toISOString().replace(/[:.]/g,"-");
- const rr=await db("import_runs",{method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify({source_key:rk,source_commit:"athletics-calendar-v2-location-map",snapshot_date:today,status:"loading",expected_count:uniq.length,imported_count:0})}),rid=rr[0].id;let n=0,created=0,updated=0;
+ const uniq=[...new Map(arr.map(x=>[x.ext_id,x])).values()];
+ await db("import_runs?id=eq."+rid,{method:"PATCH",body:JSON.stringify({expected_count:uniq.length})});
+ let n=0,created=0,updated=0;
  for(const s of uniq){const ik="athletics.lv:"+s.ext_id,existing=await db("events?import_key=eq."+encodeURIComponent(ik)+"&select=id,status"),base={title:s.title,date_from:s.date_from,date_to:s.date_to,schedule_type:s.date_from===s.date_to?"single_day":"continuous",time_type:"unspecified",attendance_mode:"in_person",record_type:"event",event_type:"sports_competition",primary_category:"Vieglatlētika",price_status:"unknown",review_status:"needs_review",quality_flags:["source_time_unspecified"],import_run_id:rid};let id;
   if(existing.length){id=existing[0].id;await db("events?id=eq."+id,{method:"PATCH",body:JSON.stringify(base)});updated++}else{const ev=await db("events",{method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify({...base,import_key:ik,status:"pending_review"})});id=ev[0].id;created++}
   await db("event_occurrences?on_conflict=event_id,occurrence_key",{method:"POST",headers:{"Prefer":"resolution=merge-duplicates"},body:JSON.stringify({event_id:id,occurrence_key:"source",occurrence_kind:"confirmed_date",date_from:s.date_from,date_to:s.date_to,time_type:"unspecified",timezone:"Europe/Riga"})});
@@ -28,4 +32,4 @@ Deno.serve(async()=>{try{
   await db("event_categories?on_conflict=event_id,category_id",{method:"POST",headers:{"Prefer":"resolution=ignore-duplicates"},body:JSON.stringify({event_id:id,category_id:cat[0].id})});
   await db("import_items",{method:"POST",body:JSON.stringify({import_run_id:rid,event_id:id,import_key:ik,raw_data:s,normalized_data:{title:s.title,date_from:s.date_from,date_to:s.date_to,venue:s.venue,primary_category:"Vieglatlētika",status:existing.length?existing[0].status:"pending_review"}})});n++}
  await db("import_runs?id=eq."+rid,{method:"PATCH",body:JSON.stringify({status:"complete",imported_count:n,added_count:created,updated_count:updated,skipped_count:0,completed_at:new Date().toISOString(),error_text:null})});return new Response(JSON.stringify({ok:true,run_id:rid,found:uniq.length,imported:n,locations:[...new Set(uniq.map(x=>x.venue))]}),{headers:{"content-type":"application/json"}})
-}catch(e){return new Response(JSON.stringify({ok:false,error:String(e)}),{status:500,headers:{"content-type":"application/json"}})}});
+}catch(e){if(rid){try{await db("import_runs?id=eq."+rid,{method:"PATCH",body:JSON.stringify({status:"failed",completed_at:new Date().toISOString(),error_text:String(e).slice(0,500)})})}catch{}}return new Response(JSON.stringify({ok:false,error:String(e)}),{status:500,headers:{"content-type":"application/json"}})}});
