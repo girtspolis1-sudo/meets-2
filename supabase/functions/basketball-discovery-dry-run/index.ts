@@ -60,7 +60,8 @@ Deno.serve(async()=>{
   const run=(await q("basketball_discovery_runs",{method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify({window_from:today,window_to:to,status:"running"})}))[0];
   try{
     const sources=await q("basketball_sources?active=eq.true&select=source_key,section,basketball_level,website_id,calendar_url,discovery_status");
-    const resolvedAll=sources.filter((s:any)=>s.discovery_status==="resolved");\n    const resolved=sources.filter((s:any)=>s.website_id&&s.discovery_status==="resolved");
+    const resolvedAll=sources.filter((s:any)=>s.discovery_status==="resolved");
+    const resolved=sources.filter((s:any)=>s.website_id&&s.discovery_status==="resolved");
     const existing=await q("events?date_from=gte."+today+"&date_from=lte."+to+"&primary_category=eq.Basketbols&select=import_key,title,date_from");
     const existingKeys=new Set(existing.map((e:any)=>e.import_key));
     const existingSig=new Set(existing.map((e:any)=>norm(e.title)+"|"+e.date_from));
