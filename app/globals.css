@@ -1016,3 +1016,42 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
  .import-health-grid{grid-template-columns:1fr}
 }
 
+
+
+/* admin current-event review queues */
+.admin-overview-kpis-five{grid-template-columns:repeat(5,minmax(0,1fr))}
+.admin-overview-kpis article.success,.location-summary article.summary-ok{background:#eefaf1;border-color:#b9dfc1}
+.admin-overview-kpis article.success strong,.location-summary article.summary-ok strong{color:#19723a}
+.admin-overview-kpis article.danger,.location-summary article.summary-bad{background:#fff0ef;border-color:#efb7b2}
+.admin-overview-kpis article.danger strong,.location-summary article.summary-bad strong{color:#a6322b}
+.location-summary article.summary-warn{background:#fff8e8;border-color:#ead08c}
+.location-summary article.summary-warn strong{color:#8a6200}
+.admin-overview-panel-danger{border-color:#efc4bf;background:#fffafa}
+.admin-overview-panel-wide{margin-top:14px}
+.admin-review-row.review-bad{background:#fff4f2;border-color:#efc4bf}
+.admin-review-row.review-ok{background:#f1faf3;border-color:#c5e2cb}
+.admin-review-list-compact .admin-review-row{min-height:auto}
+.mapping-summary-chips{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.admin-ok-count{display:inline-flex;align-items:center;border:1px solid #b9dfc1;background:#eefaf1;color:#19723a;border-radius:999px;padding:7px 10px;font-size:.82rem}
+.mapping-view-tabs{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.mapping-view-tabs button{border:1px solid #d1d5db;background:#fff;border-radius:10px;padding:8px 11px;font:inherit;font-weight:700;cursor:pointer}
+.mapping-view-tabs button span{display:inline-flex;min-width:22px;justify-content:center;margin-left:5px;border-radius:999px;background:#eceff3;padding:1px 6px;font-size:.78rem}
+.mapping-view-tabs button.active.attention{border-color:#e4bd62;background:#fff7e2}
+.mapping-view-tabs button.active.success{border-color:#9fcfad;background:#eefaf1;color:#176b36}
+.admin-mapping-table tr.mapping-resolved td{background:#f3fbf5}
+.admin-mapping-table tr.mapping-resolved:hover td{background:#eaf7ee}
+.admin-mapping-table tr.mapping-needs-review td{background:#fffafa}
+.admin-mapping-table tr.mapping-disabled td{opacity:.68;background:#f5f5f5}
+.location-review-table tr.location-ready td{background:#fffaf0}
+.location-review-table tr.location-needs-review td{background:#fff8f7}
+.location-review-table tr.location-ok td{background:#f4fbf5}
+.location-review-table tr.location-ok:hover td{background:#ebf7ee}
+.quality-badge.ok{white-space:nowrap}
+@media (max-width:1100px){
+ .admin-overview-kpis-five{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:680px){
+ .admin-overview-kpis-five{grid-template-columns:1fr}
+ .mapping-view-tabs{width:100%}
+ .mapping-view-tabs button{flex:1}
+}
