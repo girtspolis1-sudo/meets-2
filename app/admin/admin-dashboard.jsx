@@ -5,6 +5,7 @@ import AdminEventMap from './admin-event-map.jsx';
 import AdminReviewOverview from './admin-review-overview.jsx';
 import AdminMappingList from './admin-mapping-list.jsx';
 import AdminImportHealth from './admin-import-health.jsx';
+import {rigaTodayIso} from '../../lib/event-date.js';
 
 const SESSION_KEY='meets_admin_access_token';
 function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
@@ -21,6 +22,28 @@ const QUALITY={
 function qualityMeta(value){return QUALITY[value]||{label:value||'Nav novērtēts',tone:'bad',priority:0};}
 function canPublishEvent(event){
  return event?.attendance_mode==='online'||event?.location_quality==='verified_exact';
+}
+function eventIsCurrent(event,today=rigaTodayIso()){
+ const end=String(event?.date_to||event?.date_from||'');
+ return /^\d{4}-\d{2}-\d{2}$/.test(end)&&end>=today;
+}
+function publicationMeta(event){
+ if(event?.status==='published'){
+  return canPublishEvent(event)
+   ?{key:'published-ok',label:'Publicēts · korekts',tone:'ok'}
+   :{key:'published-review',label:'Publicēts · jāpārbauda',tone:'bad'};
+ }
+ if(event?.status==='pending_review'){
+  return canPublishEvent(event)
+   ?{key:'ready',label:'Gatavs publicēšanai',tone:'warn'}
+   :{key:'needs-location',label:'Jāsakārto lokācija',tone:'bad'};
+ }
+ return {key:'other',label:event?.status||'Nav statusa',tone:'warn'};
+}
+function dateRangeText(event){
+ const from=dateText(event?.date_from);
+ const to=event?.date_to&&event.date_to!==event.date_from?dateText(event.date_to):'';
+ return to?from+'–'+to:from;
 }
 function isLocationIssue(event){
  const quality=String(event?.location_quality||'');
@@ -422,7 +445,9 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    setMessage('Masveida publicēšanu neizdevās pabeigt.');
   }finally{setBulkLoading(false);}
  }
- const lffMissingGroups=useMemo(()=>groupMissingLff(events),[events]);
+ const today=rigaTodayIso();
+ const activeEvents=useMemo(()=>events.filter(event=>eventIsCurrent(event,today)),[events,today]);
+ const lffMissingGroups=useMemo(()=>groupMissingLff(activeEvents),[activeEvents]);
  const lffMissingEvents=useMemo(()=>lffMissingGroups.reduce((sum,g)=>sum+g.events.length,0),[lffMissingGroups]);
 
  async function findMissingLffSuggestions(groups=lffMissingGroups,force=false){
@@ -486,16 +511,19 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
  const counts=useMemo(()=>{
   const byStatus={},byQuality={};
-  for(const e of events){byStatus[e.status]=(byStatus[e.status]||0)+1;byQuality[e.location_quality]=(byQuality[e.location_quality]||0)+1;}
+  for(const e of activeEvents){byStatus[e.status]=(byStatus[e.status]||0)+1;byQuality[e.location_quality]=(byQuality[e.location_quality]||0)+1;}
   return {byStatus,byQuality};
- },[events]);
+ },[activeEvents]);
 
- const locationIssues=useMemo(()=>events.filter(isLocationIssue),[events]);
- const mappingGroups=useMemo(()=>groupLocationIssues(events),[events]);
+ const readyToPublish=useMemo(()=>activeEvents.filter(event=>event.status==='pending_review'&&canPublishEvent(event)),[activeEvents]);
+ const publishedNeedsReview=useMemo(()=>activeEvents.filter(event=>event.status==='published'&&!canPublishEvent(event)),[activeEvents]);
+ const publishedOk=useMemo(()=>activeEvents.filter(event=>event.status==='published'&&canPublishEvent(event)),[activeEvents]);
+ const locationIssues=useMemo(()=>activeEvents.filter(isLocationIssue),[activeEvents]);
+ const mappingGroups=useMemo(()=>groupLocationIssues(activeEvents),[activeEvents]);
 
  const filtered=useMemo(()=>{
   const q=search.trim().toLocaleLowerCase('lv');
-  const source=events;
+  const source=activeEvents;
   return source.filter(e=>
    (!status||e.status===status)&&
    (!quality||e.location_quality===quality)&&
@@ -505,7 +533,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    if(qa!==qb)return qa-qb;
    return String(a.date_from||'').localeCompare(String(b.date_from||''))||String(a.title).localeCompare(String(b.title),'lv');
   });
- },[events,search,status,quality]);
+ },[activeEvents,search,status,quality]);
 
  const PAGE_SIZE=50;
  const pageCount=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
@@ -662,7 +690,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     aria-selected={workspaceView==='overview'}
     className={workspaceView==='overview'?'active':''}
     onClick={()=>setWorkspaceView('overview')}
-   >Pārskats <span>{counts.byStatus.pending_review||0}</span></button>
+   >Pārskats <span>{readyToPublish.length+publishedNeedsReview.length}</span></button>
    <button
     type="button"
     role="tab"
@@ -676,17 +704,19 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     aria-selected={workspaceView==='all'}
     className={workspaceView==='all'?'active':''}
     onClick={()=>{setWorkspaceView('all');setQuality('');}}
-   >Visi pasākumi <span>{events.length}</span></button>
+   >Aktuālie pasākumi <span>{activeEvents.length}</span></button>
   </div>
 
   {message&&<p className="sync-text admin-workspace-message" role="status">{message}</p>}
 
   {workspaceView==='overview'&&<>
    <AdminReviewOverview
-    events={events}
+    events={activeEvents}
+    readyToPublish={readyToPublish}
+    publishedNeedsReview={publishedNeedsReview}
+    publishedOk={publishedOk}
     mappingGroups={mappingGroups}
     mappingsCount={mappings.length}
-    counts={counts}
     onOpenMapping={group=>{
      setWorkspaceView('mapping');
      if(group?.events?.length)setMappingEditing(group);
@@ -712,17 +742,17 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <div className="admin-sheet-intro">
     <div>
      <p className="eyebrow">Admin darba lapa</p>
-     <h2>Visi pasākumi</h2>
-     <p>Pilns katalogs ar karti, statusiem un individuālu adreses/kartes redaktoru. Atkārtotas vietu kļūdas labo Mapping skatā.</p>
+     <h2>Aktuālie pasākumi</h2>
+     <p>Darba katalogā nerādām beigušos pasākumus. Vairāku dienu pasākums paliek redzams līdz <strong>date_to</strong> datumam. Publicētie ieraksti tiek atsevišķi pārbaudīti pret lokācijas kvalitāti.</p>
     </div>
    </div>
 
    <div className="admin-summary location-summary">
-    <article><strong>{events.length}</strong><span>Pasākumi kopā</span></article>
-    <article><strong>{counts.byStatus.published||0}</strong><span>Publicēti</span></article>
-    <article><strong>{counts.byStatus.pending_review||0}</strong><span>Gaida pārbaudi</span></article>
-    <article><strong>{counts.byQuality.fallback_center||0}</strong><span>Centra fallback</span></article>
-    <article><strong>{counts.byQuality.missing_point||0}</strong><span>Nav koordinātu</span></article>
+    <article><strong>{activeEvents.length}</strong><span>Aktuāli</span></article>
+    <article className="summary-ok"><strong>{publishedOk.length}</strong><span>Publicēti korekti</span></article>
+    <article className="summary-warn"><strong>{readyToPublish.length}</strong><span>Gatavi publicēšanai</span></article>
+    <article className="summary-bad"><strong>{publishedNeedsReview.length}</strong><span>Publicēti · jāpārbauda</span></article>
+    <article><strong>{locationIssues.length}</strong><span>Lokācijas jālabo</span></article>
     <article><strong>{mappingGroups.length}</strong><span>Neatpazīti aliasi</span></article>
    </div>
 
@@ -739,7 +769,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     <button className="button" onClick={()=>loadEvents()} disabled={loading}>{loading?'Ielādē…':'Pārlasīt'}</button>
    </div>
 
-   <p className="admin-rule"><strong>Lokācijas kvalitāte:</strong> individuālu pasākumu vari labot šeit; ja viens un tas pats kļūdainais vietas nosaukums atkārtojas, izmanto Mapping skatu, lai korekcija darbotos arī nākamajos importos.</p>
+   <p className="admin-rule"><strong>Darba princips:</strong> zaļš = publicēts un lokācija korekta; dzeltens = gatavs publicēšanai; sarkans = publicēts, bet lokācija vairs neatbilst publicēšanas noteikumam vai vēl jāsakārto. Atkārtotām vietām izmanto Mapping, lai labojums darbotos arī nākamajos importos.</p>
 
    <AdminEventMap events={filtered} onEdit={setEditing}/>
 
@@ -767,15 +797,17 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     <table className="events-table admin-events-table location-review-table">
      <thead><tr>
       <th className="select-column"><input type="checkbox" checked={allPageSelected} onChange={selectPage} aria-label="Atlasīt vai noņemt šīs lapas ierakstus"/></th>
-      <th>Datums</th><th>Pasākums</th><th>Lokācijas kvalitāte</th><th>Kāpēc jāpārbauda</th><th>Norises vieta</th><th>Avots</th><th>Darbības</th>
+      <th>Datums</th><th>Pasākums</th><th>Publicēšanas pārbaude</th><th>Lokācijas kvalitāte</th><th>Kāpēc jāpārbauda</th><th>Norises vieta</th><th>Avots</th><th>Darbības</th>
      </tr></thead>
      <tbody>
       {pageRows.map(event=>{
        const meta=qualityMeta(event.location_quality);
-       return <tr key={event.id} className={event.location_quality==='verified_exact'?'location-ok':'location-needs-review'}>
+       const publication=publicationMeta(event);
+       return <tr key={event.id} className={publication.key==='published-ok'?'location-ok':publication.key==='ready'?'location-ready':'location-needs-review'}>
         <td className="select-column"><input type="checkbox" checked={selectedIds.has(event.id)} onChange={()=>toggleSelected(event.id)} aria-label={'Atlasīt '+event.title}/></td>
-        <td>{dateText(event.date_from)}</td>
+        <td>{dateRangeText(event)}</td>
         <td><strong>{event.title}</strong><small className="table-subline">{event.status}</small></td>
+        <td><span className={'quality-badge '+publication.tone}>{publication.label}</span></td>
         <td><span className={'quality-badge '+meta.tone}>{meta.label}</span></td>
         <td className="reason-cell">{isLocationIssue(event)?locationIssueReason(event):(event.location_review_reason||'Lokācija verificēta.')}</td>
         <td>
@@ -799,7 +831,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     <span>{safePage}. lapa no {pageCount}</span>
     <button type="button" className="button compact" onClick={()=>setPage(value=>Math.min(pageCount,value+1))} disabled={safePage>=pageCount}>Nākamā →</button>
    </div>
-   <p className="sync-text"><strong>{filtered.length}</strong> no {events.length} ierakstiem.</p>
+   <p className="sync-text"><strong>{filtered.length}</strong> no {activeEvents.length} aktuālajiem ierakstiem. Beigušies pasākumi šajā darba skatā netiek rādīti.</p>
   </>}
 
   {mappingEditing&&<LocationEditor
