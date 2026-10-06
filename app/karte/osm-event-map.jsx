@@ -95,7 +95,7 @@ function popupHtml(group,activeIds,isAdminSession,now){
   const rangeLabel=eventDateRangeLabel(e,dateLabel);
   const editLink=isAdminSession&&active?'<a class="admin-popup-edit" href="/admin?edit='+encodeURIComponent(e.id)+'">Labot</a>':'';
   const rowClass=[active?'':'popup-event-muted',dateState.tone==='ended-today'?'popup-event-ended':''].filter(Boolean).join(' ');
-  return '<li class="'+rowClass+'"><strong>'+esc(e.title)+'</strong><span class="popup-date-row"><span class="event-date-indicator '+esc(dateState.tone)+'" aria-hidden="true">●</span><span class="event-date-badge '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(dateState.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span></span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+editLink+'</li>';
+  return '<li class="'+rowClass+'"><strong>'+esc(e.title)+'</strong><span class="popup-date-row"><span class="event-date-badge '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(dateState.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span></span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+editLink+'</li>';
  }).join('');
  const activeCount=group.events.filter(e=>activeIds.has(e.id)).length;
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div><ol>'+rows+'</ol></div>';
@@ -428,14 +428,17 @@ export default function OsmEventMap(){
    }
    const icon=L.divIcon({className:grouped?'event-count-marker-wrap':'event-symbol-marker-wrap',html,iconSize:[size,size],iconAnchor:[size/2,size/2]});
    const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
-   const popupMaxHeight=Math.max(260,Math.min(560,map.getSize().y-150));
+   const viewportWidth=typeof window!=='undefined'?window.innerWidth:1366;
+   const isMobileViewport=viewportWidth<=700;
+   const popupMaxWidth=isMobileViewport?Math.max(250,viewportWidth-32):430;
+   const popupMaxHeight=isMobileViewport?Math.max(220,Math.min(420,map.getSize().y-120)):Math.max(260,Math.min(560,map.getSize().y-150));
    marker.bindPopup(popupHtml(group,activeIds,isAdminSession,clockNow),{
-    maxWidth:430,
+    maxWidth:popupMaxWidth,
     maxHeight:popupMaxHeight,
     autoPan:true,
     keepInView:true,
-    autoPanPaddingTopLeft:[28,118],
-    autoPanPaddingBottomRight:[28,32]
+    autoPanPaddingTopLeft:isMobileViewport?[14,92]:[28,118],
+    autoPanPaddingBottomRight:isMobileViewport?[14,18]:[28,32]
    });
    marker.on('click',()=>{
     setFiltersOpen(false);
@@ -572,6 +575,31 @@ export default function OsmEventMap(){
      </div>
     </div>
 
+    <div className="map-quick-settings" aria-label="Ātrie kartes filtri">
+     <label>
+      <span>Radiuss</span>
+      <select className="map-compact-select radius-select" value={radiusKm} onChange={e=>setRadiusKm(Number(e.target.value))} aria-label="Meklēšanas radiuss">
+       {RADIUS_OPTIONS.map(v=><option key={v} value={v}>{v===0?'Visa karte':v+' km'}</option>)}
+      </select>
+     </label>
+     <label>
+      <span>Datums</span>
+      <select className="map-compact-select period-select" value={periodMode} onChange={e=>changePeriod(e.target.value)} aria-label="Laika periods">
+       <option value="today">Šodien</option>
+       <option value="3days">3 dienas</option>
+       <option value="week">Šonedēļ</option>
+       <option value="month">Šomēnes</option>
+       <option value="manual">Manuāli</option>
+      </select>
+     </label>
+    </div>
+
+    {periodMode==='manual'&&<div className="map-primary-manual-period">
+     <input aria-label="Datums no" title="Datums no" type="date" min={publicFrom||undefined} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setFrom(value);if(to&&value>to)setTo(value);}}/>
+     <span aria-hidden="true">–</span>
+     <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/>
+    </div>}
+
     <div className="map-quick-filters" aria-label="Ātrie pasākumu filtri">
      {quickTypes.map(item=><button
       key={item.value}
@@ -587,28 +615,6 @@ export default function OsmEventMap(){
       <strong>Filtri</strong>
       <button type="button" className="map-filter-close" onClick={()=>setFiltersOpen(false)} aria-label="Aizvērt filtrus">×</button>
      </div>
-
-     <label className="map-filter-field"><span>Radiuss</span>
-      <select value={radiusKm} onChange={e=>setRadiusKm(Number(e.target.value))} aria-label="Meklēšanas radiuss">
-       {RADIUS_OPTIONS.map(v=><option key={v} value={v}>{v===0?'Visa karte':v+' km'}</option>)}
-      </select>
-     </label>
-
-     <label className="map-filter-field"><span>Datums</span>
-      <select value={periodMode} onChange={e=>changePeriod(e.target.value)} aria-label="Laika periods">
-       <option value="today">Šodien</option>
-       <option value="3days">3 dienas</option>
-       <option value="week">Šonedēļ</option>
-       <option value="month">Šomēnes</option>
-       <option value="manual">Manuāli</option>
-      </select>
-     </label>
-
-     {periodMode==='manual'&&<div className="map-manual-period">
-      <input aria-label="Datums no" title="Datums no" type="date" min={publicFrom||undefined} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setFrom(value);if(to&&value>to)setTo(value);}}/>
-      <span aria-hidden="true">–</span>
-      <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/>
-     </div>}
 
      <fieldset className="map-type-options">
       <legend>Tips</legend>
