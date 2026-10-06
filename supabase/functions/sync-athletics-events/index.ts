@@ -14,7 +14,7 @@ Deno.serve(async()=>{try{
  for(const b of blocks){const x=b[1],lm=x.match(/class="calendar__event-link[^"]*" href="https:\/\/athletics\.lv\/event\/(\d+)\/([^"]+)">([\s\S]*?)<\/a>/),dm=x.match(/class="calendar__event-date[^"]*">\s*(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4})/),vm=x.match(/class="calendar__event-venue[^"]*">([\s\S]*?)<\/span>/);if(!lm||!dm||!vm)continue;
   const venue=clean(vm[1]),vn=norm(venue);let key=Object.keys(venueAlias).find(k=>vn.includes(k))?venueAlias[Object.keys(venueAlias).find(k=>vn.includes(k))!]:null;
   if(!key){key=Object.keys(municipalityMap).sort((a,b)=>b.length-a.length).find(k=>vn.includes(k))||null}
-  if(!key||!municipalityMap[key])continue;const st=byNorm.get(key);if(!st)continue;const from=iso(dm[1]),to=iso(dm[2]);if(to<today)continue;
+  if(!key||!municipalityMap[key])continue;const st=byNorm.get(key);if(!st)continue;const from=iso(dm[1]),to=iso(dm[2]);if(to<today||from>windowTo)continue;
   arr.push({ext_id:lm[1],slug:lm[2],title:clean(lm[3]),date_from:from,date_to:to,venue,settlement_id:st.id,municipality_id:municipalityMap[key],url:`https://athletics.lv/event/${lm[1]}/${lm[2]}`})
  }
  const uniq=[...new Map(arr.map(x=>[x.ext_id,x])).values()],rk="athletics-lv-"+new Date().toISOString().replace(/[:.]/g,"-");
