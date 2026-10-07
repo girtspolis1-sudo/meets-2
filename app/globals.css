@@ -165,6 +165,108 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
 .event-count-marker.lff{background:#3f8ed8;outline-color:#174a7e}.event-count-marker.athletics{background:#a66bd1;outline-color:#63328d}.event-count-marker.basketball{background:#e58b3a;outline-color:#9a4f16}.event-count-marker.municipality{background:#9b38ff;outline-color:#6500c9}
 .event-count-marker .event-group-symbol{font-size:16px;line-height:1}.event-count-marker strong{font-size:11px;line-height:1;margin:0}
 .event-symbol-marker.dimmed,.event-count-marker.dimmed{opacity:.56;filter:grayscale(.92) brightness(.82);background:#cfd3cf;color:#4f5550;border-color:#8f9690;outline-color:#9da39e;box-shadow:0 2px 7px rgba(40,46,42,.15);transform:scale(.76);transform-origin:center}
+
+/* Double-layer droplet markers */
+.event-drop-marker-wrap{background:transparent!important;border:0!important}
+.event-drop-marker{
+ position:relative;
+ width:58px;
+ height:70px;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:flex-start;
+ padding-top:8px;
+ border-radius:50% 50% 48% 48% / 42% 42% 58% 58%;
+ color:#fff;
+ background:linear-gradient(180deg,#8a37ff 0%,#6b13e8 58%,#4a00b3 100%);
+ border:3px solid #fff;
+ box-shadow:0 0 0 2px rgba(109,31,225,.38),0 7px 18px rgba(73,38,111,.28);
+ transform:rotate(0deg);
+}
+.event-drop-marker:after{
+ content:'';
+ position:absolute;
+ left:50%;
+ bottom:-10px;
+ width:22px;
+ height:22px;
+ background:inherit;
+ transform:translateX(-50%) rotate(45deg);
+ border-right:3px solid #fff;
+ border-bottom:3px solid #fff;
+ border-radius:0 0 5px 0;
+ box-shadow:4px 4px 8px rgba(73,38,111,.12);
+ z-index:-1;
+}
+.event-drop-marker:before{
+ content:'';
+ position:absolute;
+ left:50%;
+ bottom:-19px;
+ width:26px;
+ height:7px;
+ transform:translateX(-50%);
+ border-radius:50%;
+ background:rgba(78,41,104,.18);
+ filter:blur(2px);
+}
+.event-drop-time{
+ display:block;
+ width:100%;
+ padding:0 4px 5px;
+ text-align:center;
+ font:900 10px/1 Arial,Helvetica,sans-serif;
+ letter-spacing:.2px;
+ white-space:nowrap;
+ text-shadow:0 1px 2px rgba(37,15,62,.25);
+}
+.event-drop-icon{
+ width:31px;
+ height:31px;
+ border-radius:50%;
+ display:grid;
+ place-items:center;
+ background:#fff;
+ color:#5220bd;
+ font-size:19px;
+ line-height:1;
+ border:2px solid rgba(255,255,255,.86);
+ box-shadow:0 2px 7px rgba(41,25,60,.20),inset 0 0 0 1px rgba(94,53,145,.08);
+}
+.event-drop-count{
+ position:absolute;
+ right:-6px;
+ top:-5px;
+ min-width:20px;
+ height:20px;
+ padding:0 5px;
+ border-radius:999px;
+ display:grid;
+ place-items:center;
+ background:#fff;
+ color:#5c10c8;
+ border:2px solid currentColor;
+ font:900 10px/1 Arial,Helvetica,sans-serif;
+ box-shadow:0 2px 6px rgba(45,25,62,.18);
+}
+.event-drop-marker.today,.event-drop-marker.ended-today{
+ background:linear-gradient(180deg,#ff3b76 0%,#f0105e 58%,#bd0053 100%);
+ box-shadow:0 0 0 3px rgba(255,40,101,.15),0 0 18px rgba(255,40,101,.42),0 7px 18px rgba(89,24,49,.25)
+}
+.event-drop-marker.today .event-drop-icon,.event-drop-marker.ended-today .event-drop-icon{color:#e71354}
+.event-drop-marker.today .event-drop-count,.event-drop-marker.ended-today .event-drop-count{color:#e71354}
+.event-drop-marker.tomorrow{
+ background:linear-gradient(180deg,#8f4dff 0%,#7028e8 58%,#4f0fb7 100%);
+}
+.event-drop-marker.future{
+ background:linear-gradient(180deg,#858ca9 0%,#626a89 58%,#434b6a 100%);
+ box-shadow:0 0 0 2px rgba(91,101,137,.20),0 6px 15px rgba(60,68,91,.22)
+}
+.event-drop-marker.future .event-drop-icon{color:#555f82}
+.event-drop-marker.future .event-drop-count{color:#555f82}
+.event-drop-marker.dimmed{opacity:.46;filter:grayscale(.82);transform:scale(.78);transform-origin:center bottom}
+
 .event-symbol-marker.dimmed{width:34px;height:34px;font-size:17px}.event-count-marker.dimmed{width:36px;height:36px}.event-count-marker.dimmed .event-group-symbol{font-size:13px}.event-count-marker.dimmed strong{font-size:10px}
 .popup-event-muted{opacity:.48;filter:grayscale(.9)}
 .user-location-marker{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.96);border:2px solid var(--accent);box-shadow:0 0 0 5px rgba(127,0,255,.16),0 2px 9px rgba(72,0,120,.28)}
@@ -178,6 +280,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
 .location-popup{min-width:270px}.location-popup-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;padding-bottom:9px;border-bottom:1px solid var(--border)}
 .location-popup-head>strong{font-size:15px;line-height:1.35}.location-popup-head>span{white-space:nowrap;font-size:11px;color:var(--muted)}
 .location-popup ol{list-style:none;margin:8px 0 0;padding:0;max-height:270px;overflow:auto}.location-popup li{padding:10px 2px;border-bottom:1px solid #edf0e6}.location-popup li:last-child{border-bottom:0}.location-popup li>strong{display:block;font-size:13px;line-height:1.35;margin-bottom:3px}.location-popup li>span,.location-popup li>small{display:block;font-size:11px;line-height:1.45;color:var(--muted)}
+.popup-event-description{margin:4px 0 0;font-size:11px;line-height:1.35;color:#706577}
 .popup-source-link{display:inline-block;margin-top:5px;font-size:11px;font-weight:700;color:#6f00d9;text-decoration:underline;text-underline-offset:3px}.popup-source-link:hover{color:var(--accent-dark)}
 .map-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 
@@ -198,6 +301,10 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12
  .leaflet-popup-content{margin:14px 15px;min-width:240px}.leaflet-popup-content-wrapper{max-width:calc(100vw - 28px)}
 }
 @media(max-width:700px){
+ .event-drop-marker{width:52px;height:63px;padding-top:7px}
+ .event-drop-marker:after{width:19px;height:19px;bottom:-9px}
+ .event-drop-time{font-size:9px}
+ .event-drop-icon{width:28px;height:28px;font-size:17px}
  .location-popup .popup-event-main{gap:8px}
  .event-date-badge-prominent{min-width:58px;min-height:32px;padding:4px 7px;font-size:10px}
  .location-popup .popup-event-copy>strong{font-size:12px}
