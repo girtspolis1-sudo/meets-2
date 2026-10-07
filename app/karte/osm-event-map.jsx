@@ -48,6 +48,12 @@ function popupEventType(e){
  const generic=display(e,'event_type');
  return generic&&generic!=='Sporta spēle'?generic:(generic||'');
 }
+function popupDayLabel(state){
+ if(state.tone==='today'||state.tone==='ended-today')return 'ŠODIEN';
+ if(state.tone==='tomorrow')return 'RĪT';
+ if(Number.isFinite(state.days)&&state.days>1)return state.days+' DIENAS';
+ return state.badge||'—';
+}
 function insideBalticView(lat,lon){return lat>=BALTIC_VIEW.south&&lat<=BALTIC_VIEW.north&&lon>=BALTIC_VIEW.west&&lon<=BALTIC_VIEW.east;}
 function isSupportedMapEvent(e){
  const code=String(e.country_code||'').toUpperCase();
