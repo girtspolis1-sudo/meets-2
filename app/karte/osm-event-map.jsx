@@ -268,7 +268,7 @@ export default function OsmEventMap(){
  useEffect(()=>{
   if(defaultsSetRef.current||!publicFrom)return;
   defaultsSetRef.current=true;
-  const next=periodDates('week',publicFrom,publicTo,'','');
+  const next=periodDates('week',rigaTodayIso(clockNow),publicTo,'','');
   setFrom(next.from);setTo(next.to);
  },[publicFrom,publicTo]);
 
@@ -361,6 +361,7 @@ export default function OsmEventMap(){
 
     const fixedBounds=L.latLngBounds([BALTIC_VIEW.south,BALTIC_VIEW.west],[BALTIC_VIEW.north,BALTIC_VIEW.east]);
     const map=L.map(mapEl.current,{maxBounds:fixedBounds,maxBoundsViscosity:1,minZoom:5}).fitBounds(fixedBounds,{padding:[20,20]});
+    if(map.zoomControl?.setPosition)map.zoomControl.setPosition('bottomright');
     map.createPane('centerPane');map.getPane('centerPane').style.zIndex='390';
     map.createPane('backgroundMarkers');map.getPane('backgroundMarkers').style.zIndex='450';
     map.createPane('activeMarkers');map.getPane('activeMarkers').style.zIndex='490';
@@ -557,13 +558,13 @@ export default function OsmEventMap(){
  function changePeriod(value){
   setPeriodMode(value);
   if(value==='manual')return;
-  const filterToday=publicFrom||rigaTodayIso(clockNow);
+  const filterToday=rigaTodayIso(clockNow);
   const next=periodDates(value,filterToday,publicTo,from,to);
   setFrom(next.from);setTo(next.to);
  }
  function resetFilters(){
   setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(30);setMapStyle('positron');setPeriodMode('week');
-  if(publicFrom){const next=periodDates('week',publicFrom,publicTo,'','');setFrom(next.from);setTo(next.to);}
+  {const filterToday=rigaTodayIso(clockNow);const next=periodDates('week',filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
   if(!navigator.geolocation){setLocationMessage('Pārlūks neatbalsta atrašanās vietas noteikšanu.');return;}
@@ -659,9 +660,9 @@ export default function OsmEventMap(){
     </div>
 
     {periodMode==='manual'&&<div className="map-primary-manual-period">
-     <input aria-label="Datums no" title="Datums no" type="date" min={publicFrom||undefined} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setFrom(value);if(to&&value>to)setTo(value);}}/>
+     <input aria-label="Datums no" title="Datums no" type="date" min={rigaTodayIso(clockNow)} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setPeriodMode('manual');setFrom(value);if(!to||value>to)setTo(value);}}/>
      <span aria-hidden="true">–</span>
-     <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/>
+     <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||rigaTodayIso(clockNow)} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
     </div>}
 
     <div className="map-quick-filters" aria-label="Ātrie pasākumu filtri">
