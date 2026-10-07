@@ -1,5 +1,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
+import {useSearchParams,useRouter,usePathname} from 'next/navigation';
+import {HOME_CATEGORY_FILTERS,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel,display} from '../../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaTodayIso} from '../../lib/event-date.js';
@@ -18,15 +20,6 @@ const RADIUS_OPTIONS=[5,10,25,30,50,0];
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function norm(v=''){return String(v).toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
-function sourceType(e){
- if(String(e.sport_format||'').toLowerCase()==='basketball'||String(e.governing_body||'').toUpperCase()==='LBS')return 'basketball';
- if(String(e.governing_body||'').toUpperCase()==='LFF')return 'lff';
- const sources=(e.sources||[]).map(s=>String(s.source||'').toLowerCase());
- if(sources.includes('estlatbl.com')||sources.includes('basket.lv'))return 'basketball';
- if(sources.includes('lff.lv'))return 'lff';
- if(sources.includes('athletics.lv'))return 'athletics';
- return 'municipality';
-}
 function markerGlyph(type){return type==='lff'?'⚽':type==='basketball'?'🏀':type==='athletics'?'🏃':'📅';}
 function eventGlyph(e){
  const type=sourceType(e);
@@ -200,6 +193,16 @@ function periodDates(mode,today,windowTo,currentFrom,currentTo){
 }
 
 export default function OsmEventMap(){
+ const searchParams=useSearchParams();
+ const router=useRouter();
+ const pathname=usePathname();
+ const homeCategory=homeCategoryKey(searchParams.get('category'));
+ function clearHomeCategory(){
+  const params=new URLSearchParams(searchParams.toString());
+  params.delete('category');
+  router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
+ }
+
  const [eventTypes,setEventTypes]=useState([]);
  const [competition,setCompetition]=useState('');
  const [category,setCategory]=useState('');
@@ -311,6 +314,7 @@ export default function OsmEventMap(){
  },[events]);
 
  const matchesEvent=useMemo(()=>e=>{
+  if(!matchesHomeCategory(e,homeCategory))return false;
   if(eventTypes.length&&!eventTypes.includes(sourceType(e)))return false;
   if(competition&&e.competition_key!==competition)return false;
   if(category&&e.primary_category!==category)return false;
@@ -326,11 +330,11 @@ export default function OsmEventMap(){
    if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radiusKm)return false;
   }
   return true;
- },[eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
+ },[homeCategory,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
 
  const activeEvents=useMemo(()=>events.filter(matchesEvent),[events,matchesEvent]);
  const activeIds=useMemo(()=>new Set(activeEvents.map(e=>e.id)),[activeEvents]);
- const mapEvents=useMemo(()=>events.filter(e=>Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))&&isSupportedMapEvent(e)&&insideBalticView(Number(e.latitude),Number(e.longitude))),[events]);
+ const mapEvents=useMemo(()=>events.filter(e=>matchesHomeCategory(e,homeCategory)&&Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))&&isSupportedMapEvent(e)&&insideBalticView(Number(e.latitude),Number(e.longitude))),[events,homeCategory]);
  const locationGroups=useMemo(()=>groupEvents(mapEvents),[mapEvents]);
  const activeGroupCount=useMemo(()=>locationGroups.filter(g=>g.events.some(e=>activeIds.has(e.id))).length,[locationGroups,activeIds]);
 
@@ -539,7 +543,7 @@ export default function OsmEventMap(){
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;leafletRef.current=null;},[]);
 
- const advancedFilterCount=[radiusKm!==30,periodMode!=='week',eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
+ const advancedFilterCount=[homeCategory,radiusKm!==30,periodMode!=='week',eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
   {value:'municipality',label:'Pašvaldības',glyph:'📅'},
@@ -563,6 +567,7 @@ export default function OsmEventMap(){
   setFrom(next.from);setTo(next.to);
  }
  function resetFilters(){
+  clearHomeCategory();
   setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(30);setMapStyle('positron');setPeriodMode('week');
   {const filterToday=rigaTodayIso(clockNow);const next=periodDates('week',filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
@@ -665,6 +670,10 @@ export default function OsmEventMap(){
      <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||rigaTodayIso(clockNow)} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
     </div>}
 
+    {homeCategory&&<div className="map-home-category" aria-label="Aktīvā kategorija">
+     <strong>{HOME_CATEGORY_FILTERS[homeCategory].title}</strong>
+     <button type="button" onClick={clearHomeCategory} aria-label="Noņemt kategorijas filtru">×</button>
+    </div>}
     <div className="map-quick-filters" aria-label="Ātrie pasākumu filtri">
      {quickTypes.map(item=><button
       key={item.value}
@@ -761,6 +770,9 @@ export default function OsmEventMap(){
    </div>
   </div>
 
+  {homeCategory&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">
+   {HOME_CATEGORY_FILTERS[homeCategory].emptyMessage||'Šajā kategorijā izvēlētajā laikā un rādiusā pasākumi nav atrasti. Maini datumu vai rādiusu, vai noņem kategorijas filtru.'}
+  </p>}
   <div className="map-summary">
    <strong>{activeEvents.length}</strong> atlasīti pasākumi · <strong>{activeGroupCount}</strong> vietas
    {userLocation&&radiusKm>0?' · '+radiusKm+' km no '+userLocation.label:''}

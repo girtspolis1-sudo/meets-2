@@ -196,3 +196,19 @@ test('event type labels stay user friendly',()=>{
  assert.equal(display({event_type:'concert'},'event_type'),'Koncerts');
  assert.equal(display({event_type:'custom'},'event_type'),'custom');
 });
+
+test('home categories use verified taxonomy, include municipal sport and do not guess family suitability',async()=>{
+ const {matchesHomeCategory,homeCategoryKey,sourceType}=await import('../lib/home-category-filters.js');
+ assert(matchesHomeCategory({event_type:'concert',primary_category:'Koncerts'},'music'));
+ assert(!matchesHomeCategory({event_type:'exhibition'},'music'));
+ assert(matchesHomeCategory({event_type:'sports',sources:[{source:'marupe.lv'}]},'sport'));
+ assert(matchesHomeCategory({primary_category:'Velobrauciens'},'sport'));
+ assert(matchesHomeCategory({governing_body:'LFF'},'sport'));
+ assert(matchesHomeCategory({sources:[{source:'athletics.lv'}]},'sport'));
+ assert.equal(sourceType({sport_format:'basketball'}),'basketball');
+ assert(matchesHomeCategory({event_type:'performance'},'culture'));
+ assert(!matchesHomeCategory({title:'Bērnu koncerts',event_type:'concert'},'family'));
+ assert.equal(homeCategoryKey('__proto__'),'');
+ assert.equal(homeCategoryKey(null),'');
+ assert(matchesHomeCategory({event_type:'concert'},'invalid'));
+});
