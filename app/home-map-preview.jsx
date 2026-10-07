@@ -43,6 +43,7 @@ export default function HomeMapPreview({events=[]}){
  useEffect(()=>{
   let cancelled=false;
   let rasterCleanup=null;
+  let resizeObserver=null;
 
   async function init(){
    setMapFailed(false);
@@ -73,6 +74,12 @@ export default function HomeMapPreview({events=[]}){
      maxBoundsViscosity:1
     }).fitBounds(bounds,{padding:[8,8]});
     mapRef.current=map;
+    resizeObserver=new ResizeObserver(()=>{
+     if(cancelled)return;
+     map.invalidateSize({pan:false});
+     map.fitBounds(bounds,{padding:[8,8]});
+    });
+    resizeObserver.observe(mapEl.current);
 
     const requested=requestedMapMode();
     let baseReady=false;
@@ -81,6 +88,23 @@ export default function HomeMapPreview({events=[]}){
       await enableMapLibre(L);
       if(cancelled)return;
       baseLayerRef.current=L.maplibreGL({style:STYLE_URL}).addTo(map);
+      const vectorMap=baseLayerRef.current.getMaplibreMap();
+      await new Promise((resolve,reject)=>{
+       let timer;
+       const cleanup=()=>{
+        clearTimeout(timer);
+        vectorMap.off('load',ready);
+        vectorMap.off('error',failed);
+       };
+       const ready=()=>{cleanup();resolve();};
+       const failed=()=>{cleanup();reject(new Error('Preview vector tiles failed'));};
+       baseCleanupRef.current=cleanup;
+       vectorMap.once('load',ready);
+       vectorMap.once('error',failed);
+       timer=setTimeout(failed,12000);
+       if(vectorMap.loaded())ready();
+      });
+      if(cancelled)return;
       baseReady=true;
      }catch(error){
       console.warn('home_map_vector_failed_using_raster',error);
@@ -89,6 +113,7 @@ export default function HomeMapPreview({events=[]}){
     }
     if(requested==='fail')throw new Error('Forced map failure');
 
+    if(cancelled)return;
     if(!baseReady){
      const raster=addRasterLayer(L,map,{
       onFailure:error=>{
@@ -127,6 +152,7 @@ export default function HomeMapPreview({events=[]}){
 
   return()=>{
    cancelled=true;
+   resizeObserver?.disconnect();
    rasterCleanup?.();
    baseCleanupRef.current?.();baseCleanupRef.current=null;
    removeLayerSafe(baseLayerRef.current);baseLayerRef.current=null;
@@ -136,13 +162,17 @@ export default function HomeMapPreview({events=[]}){
 
  return <div className="home-map-card">
   <div ref={mapEl} className="home-map-preview" aria-hidden="true"/>
-  {mapFailed&&<div className="home-map-error" aria-hidden="true">Karte nav pieejama — atver pilno pasākumu sarakstu</div>}
-  <div className="home-map-shade" aria-hidden="true"/>
+  {mapFailed&&<div className="home-map-error" role="status">
+   <span>Karte pašlaik nav pieejama.</span>
+   <Link className="button" href="/pasakumi">Pārlūkot pasākumus</Link>
+  </div>}
+  {!mapFailed&&<><div className="home-map-shade" aria-hidden="true"/>
   <Link className="home-map-hit" href="/karte" aria-label="Atvērt pilno pasākumu karti"/>
   <div className="home-map-caption" aria-hidden="true">
    <span>Pasākumi kartē</span>
    <strong>Atvērt pilno karti ↗</strong>
   </div>
+  </>}
   <div className="home-map-attribution">
    <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>
    <span> · </span>
