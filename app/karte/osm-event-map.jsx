@@ -94,18 +94,42 @@ function groupPosition(group,indexByCoordinate){
  return [lat,lon];
 }
 function popupHtml(group,activeIds,isAdminSession,now){
- const sorted=closestFirst(group.events).sort((a,b)=>(activeIds.has(b.id)?1:0)-(activeIds.has(a.id)?1:0));
- const rows=sorted.map(e=>{
+ const sorted=closestFirst(group.events);
+ const renderRow=(e,active)=>{
   const approximate=['settlement_center','municipality_center'].includes(e.location_precision);
-  const meta=competitionMeta(e),country=countryLabel(e.country_code),active=activeIds.has(e.id);
+  const meta=competitionMeta(e),country=countryLabel(e.country_code);
   const dateState=eventDateState(e,rigaTodayIso(now),now);
   const rangeLabel=eventDateRangeLabel(e,dateLabel);
   const editLink=isAdminSession&&active?'<a class="admin-popup-edit" href="/admin?edit='+encodeURIComponent(e.id)+'">Labot</a>':'';
-  const rowClass=[active?'':'popup-event-muted',dateState.tone==='ended-today'?'popup-event-ended':''].filter(Boolean).join(' ');
-  const popupType=popupEventType(e);\n  return '<li class="'+rowClass+'"><strong>'+esc(e.title)+(popupType?' <span class="popup-event-type">('+esc(popupType)+')</span>':'')+'</strong><span class="popup-date-row"><span class="event-date-badge '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(dateState.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span></span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+editLink+'</li>';
- }).join('');
- const activeCount=group.events.filter(e=>activeIds.has(e.id)).length;
- return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div><ol>'+rows+'</ol></div>';
+  const rowClass=[active?'popup-event-active':'popup-event-muted',dateState.tone==='ended-today'?'popup-event-ended':''].filter(Boolean).join(' ');
+  const eventType=popupEventType(e);
+  const compactMeta=sourceType(e)==='basketball'
+   ? [eventType,e.competition_group,e.age_group].filter(Boolean).join(' · ')
+   : [eventType||sourceLabel(e),meta].filter(Boolean).join(' · ');
+  return '<li class="'+rowClass+'">'+
+   '<div class="popup-event-main">'+
+    '<span class="event-date-badge event-date-badge-prominent '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(popupDayLabel(dateState))+'</span>'+
+    '<div class="popup-event-copy">'+
+     '<strong>'+esc(e.title)+(eventType?' <span class="popup-event-type">('+esc(eventType)+')</span>':'')+'</strong>'+
+     '<span class="popup-event-datetime">'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span>'+
+     (compactMeta?'<small>'+esc(compactMeta)+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>':'')+
+     sourceLinksHtml(e)+editLink+
+    '</div>'+
+   '</div>'+
+  '</li>';
+ };
+ const activeEvents=sorted.filter(e=>activeIds.has(e.id));
+ const otherEvents=sorted.filter(e=>!activeIds.has(e.id));
+ const activeRows=activeEvents.map(e=>renderRow(e,true)).join('');
+ const otherRows=otherEvents.map(e=>renderRow(e,false)).join('');
+ const activeCount=activeEvents.length;
+ const activeSection=activeRows
+  ? '<div class="popup-section-title active">ATBILST FILTRAM · '+activeCount+'</div><ol class="popup-active-list">'+activeRows+'</ol>'
+  : '';
+ const otherSection=otherRows
+  ? '<div class="popup-section-title">CITI PASĀKUMI ŠAJĀ VIETĀ · '+otherEvents.length+'</div><ol class="popup-other-list">'+otherRows+'</ol>'
+  : '';
+ return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div>'+activeSection+otherSection+'</div>';
 }
 function distanceKm(aLat,aLon,bLat,bLon){
  const r=6371,toRad=v=>v*Math.PI/180;
