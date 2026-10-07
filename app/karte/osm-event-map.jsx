@@ -28,6 +28,22 @@ function sourceType(e){
  return 'municipality';
 }
 function markerGlyph(type){return type==='lff'?'⚽':type==='basketball'?'🏀':type==='athletics'?'🏃':'📅';}
+function eventGlyph(e){
+ const type=sourceType(e);
+ if(type!=='municipality')return markerGlyph(type);
+ const generic=String(e?.event_type||'');
+ return ({
+  concert:'♫',cinema:'🎬',performance:'🎭',exhibition:'◆',market:'●',
+  workshop:'✦',education:'✎',health:'✚',community:'★',government:'◆'
+ })[generic]||'●';
+}
+function markerTimeText(e,now){
+ const state=eventDateState(e,rigaTodayIso(now),now);
+ if(state.tone==='today'||state.tone==='ended-today')return 'ŠODIEN';
+ if(state.tone==='tomorrow')return 'RĪT';
+ if(Number.isFinite(state.days)&&state.days>1)return state.days+' d.';
+ return state.badge||'—';
+}
 function markerTypeLabel(type){return type==='lff'?'Futbols':type==='basketball'?'Basketbols':type==='athletics'?'Vieglatlētika':'Pasākums';}
 function sourceLabel(e){
  const type=sourceType(e);
@@ -37,7 +53,15 @@ function sourceLabel(e){
  return (e.sources||[]).map(s=>s.source).filter(Boolean).join(', ')||'MEETS';
 }
 function sourceLinksHtml(e){
- return (e.sources||[]).filter(s=>s?.url).map(s=>'<a class="popup-source-link" href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer">Avots: '+esc(s.source||'avots')+' ↗</a>').join('');
+ const links=(e.sources||[]).filter(s=>s?.url);
+ if(!links.length)return '';
+ const first=links[0];
+ return '<a class="popup-source-link" href="'+esc(first.url)+'" target="_blank" rel="noopener noreferrer">Vairāk oficiālajā lapā ↗</a>';
+}
+function shortDescription(value,limit=15){
+ const text=String(value||'').trim();
+ if(!text)return '';
+ return text.length>limit?text.slice(0,limit).trimEnd()+'…':text;
 }
 function countryLabel(code){return ({LV:'Latvija',EE:'Igaunija',LT:'Lietuva'})[code]||'';}
 function competitionMeta(e){return [e.competition_season,e.competition_group,e.competition_stage,e.age_group].filter(Boolean).join(' · ');}
@@ -119,6 +143,7 @@ function popupHtml(group,activeIds,isAdminSession,now){
      '<strong>'+esc(e.title)+(eventType?' <span class="popup-event-type">('+esc(eventType)+')</span>':'')+'</strong>'+
      '<span class="popup-event-datetime">'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span>'+
      (compactMeta?'<small>'+esc(compactMeta)+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>':'')+
+     (e.description?'<p class="popup-event-description">'+esc(shortDescription(e.description,15))+'</p>':'')+
      sourceLinksHtml(e)+editLink+
     '</div>'+
    '</div>'+
@@ -450,20 +475,22 @@ export default function OsmEventMap(){
    const activeInGroup=group.events.filter(e=>activeIds.has(e.id));
    const isActive=activeInGroup.length>0;
    const chosenEvents=isActive?activeInGroup:group.events;
-   const type=groupType(chosenEvents),glyph=markerGlyph(type),typeLabel=markerTypeLabel(type);
-   const dateTone=groupDateTone(chosenEvents,rigaTodayIso(clockNow),clockNow);
-   const dateClass=dateTone?' date-'+dateTone:'';
+   const type=groupType(chosenEvents),typeLabel=markerTypeLabel(type);
+   const nearest=closestFirst(chosenEvents)[0]||chosenEvents[0];
+   const glyph=eventGlyph(nearest);
+   const dateState=eventDateState(nearest,rigaTodayIso(clockNow),clockNow);
+   const dateTone=dateState.tone;
    const shownCount=isActive?activeInGroup.length:group.events.length;
    const grouped=shownCount>1;
    const dimmed=!isActive;
-   const size=dimmed?(grouped?32:28):(grouped?44:38);
-   let html;
-   if(grouped){
-    html='<span class="event-count-marker '+type+dateClass+(dimmed?' dimmed':'')+'" title="'+esc(typeLabel)+' · '+shownCount+' pasākumi"><span class="event-group-symbol" aria-hidden="true">'+glyph+'</span><strong>'+shownCount+'</strong></span>';
-   }else{
-    html='<span class="event-symbol-marker '+type+dateClass+(dimmed?' dimmed':'')+'" title="'+esc(typeLabel)+'"><span aria-hidden="true">'+glyph+'</span></span>';
-   }
-   const icon=L.divIcon({className:grouped?'event-count-marker-wrap':'event-symbol-marker-wrap',html,iconSize:[size,size],iconAnchor:[size/2,size/2]});
+   const size=dimmed?44:58;
+   const timeText=markerTimeText(nearest,clockNow);
+   const html='<span class="event-drop-marker '+esc(dateTone)+(dimmed?' dimmed':'')+'" title="'+esc(typeLabel)+' · '+esc(timeText)+'">'+
+     '<span class="event-drop-time">'+esc(timeText)+'</span>'+
+     '<span class="event-drop-icon" aria-hidden="true">'+glyph+'</span>'+
+     (grouped?'<span class="event-drop-count">'+shownCount+'</span>':'')+
+   '</span>';
+   const icon=L.divIcon({className:'event-drop-marker-wrap',html,iconSize:[size,size+12],iconAnchor:[size/2,size+10]});
    const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
    const viewportWidth=typeof window!=='undefined'?window.innerWidth:1366;
    const isMobileViewport=viewportWidth<=700;
