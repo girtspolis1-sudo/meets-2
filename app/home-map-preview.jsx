@@ -74,8 +74,11 @@ export default function HomeMapPreview({events=[]}){
      maxBoundsViscosity:1
     }).fitBounds(bounds,{padding:[8,8]});
     mapRef.current=map;
-    resizeObserver=new ResizeObserver(()=>{
-     if(cancelled)return;
+    resizeObserver=new ResizeObserver(entries=>{
+     // Next can retain a route in a hidden container during client navigation.
+     // Fitting zero-size bounds produces NaN coordinates inside Leaflet.
+     const size=entries[0]?.contentRect;
+     if(cancelled||mapRef.current!==map||!size?.width||!size?.height)return;
      map.invalidateSize({pan:false});
      map.fitBounds(bounds,{padding:[8,8]});
     });
