@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useEvents} from '../../lib/use-events.js';
-import {dateLabel,timeLabel} from '../../lib/catalog.js';
+import {dateLabel,timeLabel,display} from '../../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaTodayIso} from '../../lib/event-date.js';
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 
@@ -41,6 +41,13 @@ function sourceLinksHtml(e){
 }
 function countryLabel(code){return ({LV:'Latvija',EE:'Igaunija',LT:'Lietuva'})[code]||'';}
 function competitionMeta(e){return [e.competition_season,e.competition_group,e.competition_stage,e.age_group].filter(Boolean).join(' · ');}
+function popupEventType(e){
+ const key=String(e.competition_key||'').toLowerCase();
+ if(key.startsWith('ljbl:'))return 'LJBL';
+ if(e.competition_name)return String(e.competition_name);
+ const generic=display(e,'event_type');
+ return generic&&generic!=='Sporta spēle'?generic:(generic||'');
+}
 function insideBalticView(lat,lon){return lat>=BALTIC_VIEW.south&&lat<=BALTIC_VIEW.north&&lon>=BALTIC_VIEW.west&&lon<=BALTIC_VIEW.east;}
 function isSupportedMapEvent(e){
  const code=String(e.country_code||'').toUpperCase();
@@ -95,7 +102,7 @@ function popupHtml(group,activeIds,isAdminSession,now){
   const rangeLabel=eventDateRangeLabel(e,dateLabel);
   const editLink=isAdminSession&&active?'<a class="admin-popup-edit" href="/admin?edit='+encodeURIComponent(e.id)+'">Labot</a>':'';
   const rowClass=[active?'':'popup-event-muted',dateState.tone==='ended-today'?'popup-event-ended':''].filter(Boolean).join(' ');
-  return '<li class="'+rowClass+'"><strong>'+esc(e.title)+'</strong><span class="popup-date-row"><span class="event-date-badge '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(dateState.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span></span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+editLink+'</li>';
+  const popupType=popupEventType(e);\n  return '<li class="'+rowClass+'"><strong>'+esc(e.title)+(popupType?' <span class="popup-event-type">('+esc(popupType)+')</span>':'')+'</strong><span class="popup-date-row"><span class="event-date-badge '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(dateState.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span></span><small>'+esc(sourceLabel(e))+(meta?' · '+esc(meta):'')+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>'+sourceLinksHtml(e)+editLink+'</li>';
  }).join('');
  const activeCount=group.events.filter(e=>activeIds.has(e.id)).length;
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div><ol>'+rows+'</ol></div>';
