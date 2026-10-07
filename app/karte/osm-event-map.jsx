@@ -639,78 +639,48 @@ export default function OsmEventMap(){
      </div>
     </div>
 
-    <div className="map-segmented-quick" aria-label="Ātrie kartes filtri">
-     <div className="map-segment-group">
-      <span className="map-segment-label">Attālums</span>
-      <div className="map-segment-row">
-       {[5,10,30,50].map(v=><button key={v} type="button" className={'map-segment-button'+(radiusKm===v?' active':'')} onClick={()=>setRadiusKm(v)}>{v} km</button>)}
-      </div>
-     </div>
-     <div className="map-segment-group">
-      <span className="map-segment-label">Datums</span>
-      <div className="map-segment-row">
-       {[
-        ['today','Šodien'],['3days','3 dienas'],['week','Šonedēļ'],['month','Šomēnes']
-       ].map(([value,label])=><button key={value} type="button" className={'map-segment-button'+(periodMode===value?' active':'')} onClick={()=>changePeriod(value)}>{label}</button>)}
-       <button type="button" className={'map-segment-button compact'+(periodMode==='manual'?' active':'')} onClick={()=>changePeriod('manual')} aria-label="Izvēlēties datumu manuāli">📅</button>
-      </div>
-     </div>
-     <div className="map-segment-types">
-      {quickTypes.map(item=><button
-       key={item.value}
-       type="button"
-       className={'map-quick-chip'+(eventTypes.includes(item.value)?' active':'')}
-       aria-pressed={eventTypes.includes(item.value)}
-       onClick={()=>toggleEventType(item.value)}
-      ><span aria-hidden="true">{item.glyph}</span>{item.label}</button>)}
-     </div>
+    <div className="map-quick-settings" aria-label="Ātrie kartes filtri">
+     <label>
+      <span>Radiuss</span>
+      <select className="map-compact-select radius-select" value={radiusKm} onChange={e=>setRadiusKm(Number(e.target.value))} aria-label="Meklēšanas radiuss">
+       {RADIUS_OPTIONS.map(v=><option key={v} value={v}>{v===0?'Visa karte':v+' km'}</option>)}
+      </select>
+     </label>
+     <label>
+      <span>Datums</span>
+      <select className="map-compact-select period-select" value={periodMode} onChange={e=>changePeriod(e.target.value)} aria-label="Laika periods">
+       <option value="today">Šodien</option>
+       <option value="3days">3 dienas</option>
+       <option value="week">Šonedēļ</option>
+       <option value="month">Šomēnes</option>
+       <option value="manual">Manuāli</option>
+      </select>
+     </label>
     </div>
 
-    {periodMode==='manual'&&<div className="map-primary-manual-period desktop-manual-period">
+    {periodMode==='manual'&&<div className="map-primary-manual-period">
      <input aria-label="Datums no" title="Datums no" type="date" min={publicFrom||undefined} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setFrom(value);if(to&&value>to)setTo(value);}}/>
      <span aria-hidden="true">–</span>
      <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/>
     </div>}
 
-    {filtersOpen&&<>
-     <button type="button" className="map-filter-backdrop" onClick={()=>setFiltersOpen(false)} aria-label="Aizvērt filtrus"/>
-     <div className="map-advanced-panel" role="dialog" aria-modal="true" aria-label="Kartes filtri">
-     <div className="map-sheet-handle" aria-hidden="true"/>
+    <div className="map-quick-filters" aria-label="Ātrie pasākumu filtri">
+     {quickTypes.map(item=><button
+      key={item.value}
+      type="button"
+      className={'map-quick-chip'+(eventTypes.includes(item.value)?' active':'')}
+      aria-pressed={eventTypes.includes(item.value)}
+      onClick={()=>toggleEventType(item.value)}
+     ><span aria-hidden="true">{item.glyph}</span>{item.label}</button>)}
+    </div>
+
+    {filtersOpen&&<div className="map-advanced-panel" role="dialog" aria-label="Paplašinātie filtri">
      <div className="map-filter-head">
-      <div><strong>Filtri</strong><small>{activeEvents.length} pasākumi</small></div>
+      <strong>Filtri</strong>
       <button type="button" className="map-filter-close" onClick={()=>setFiltersOpen(false)} aria-label="Aizvērt filtrus">×</button>
      </div>
 
-     <div className="map-sheet-quick">
-      <div className="map-sheet-section">
-       <span>Attālums no manis</span>
-       <div className="map-segment-row">
-        {[5,10,30,50].map(v=><button key={v} type="button" className={'map-segment-button'+(radiusKm===v?' active':'')} onClick={()=>setRadiusKm(v)}>{v} km</button>)}
-       </div>
-      </div>
-      <div className="map-sheet-section">
-       <span>Datuma periods</span>
-       <div className="map-segment-row">
-        {[
-         ['today','Šodien'],['3days','3 dienas'],['week','Šonedēļ'],['month','Šomēnes']
-        ].map(([value,label])=><button key={value} type="button" className={'map-segment-button'+(periodMode===value?' active':'')} onClick={()=>changePeriod(value)}>{label}</button>)}
-        <button type="button" className={'map-segment-button compact'+(periodMode==='manual'?' active':'')} onClick={()=>changePeriod('manual')}>📅</button>
-       </div>
-      </div>
-      {periodMode==='manual'&&<div className="map-primary-manual-period">
-       <input aria-label="Datums no" title="Datums no" type="date" min={publicFrom||undefined} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setFrom(value);if(to&&value>to)setTo(value);}}/>
-       <span aria-hidden="true">–</span>
-       <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||publicFrom||undefined} max={publicTo||undefined} value={to} onChange={e=>setTo(e.target.value)}/>
-      </div>}
-      <div className="map-sheet-section">
-       <span>Pasākuma veids</span>
-       <div className="map-sheet-type-row">
-        {quickTypes.map(item=><button key={item.value} type="button" className={'map-quick-chip'+(eventTypes.includes(item.value)?' active':'')} onClick={()=>toggleEventType(item.value)}><span aria-hidden="true">{item.glyph}</span>{item.label}</button>)}
-       </div>
-      </div>
-     </div>
-
-     <fieldset className="map-type-options desktop-type-options">
+     <fieldset className="map-type-options">
       <legend>Tips</legend>
       {quickTypes.map(item=><label key={item.value} className={eventTypes.includes(item.value)?'active':''}>
        <input type="checkbox" checked={eventTypes.includes(item.value)} onChange={()=>toggleEventType(item.value)}/>
@@ -763,8 +733,7 @@ export default function OsmEventMap(){
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6"/><path d="M5.5 15a8 8 0 1 0 1-8.5L4 10"/></svg>
       Atiestatīt filtrus
      </button>
-     <button className="map-apply-filters" type="button" onClick={()=>setFiltersOpen(false)}>Rādīt {activeEvents.length} pasākumus</button>
-    </div></>}
+    </div>}
    </div>
 
    {locationResults.length>0&&<div className="map-location-results" role="listbox" aria-label="Atrastas vietas">
