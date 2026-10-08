@@ -68,6 +68,8 @@ as $$
         left join public.event_sports_metadata sm on sm.event_id = v.id
         left join public.sports_competitions sc on sc.id = sm.competition_id
         where v.status = 'published'
+          -- A paused competition must hide its events as well as its filter option.
+          and (sc.id is null or sc.active = true)
       ) catalog
     )
   )

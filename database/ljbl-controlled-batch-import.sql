@@ -21,7 +21,7 @@ select
   calendar_url,
   true
 from public.basketball_sources
-where section='LJBL'
+where section='LJBL' and active=true
 on conflict(competition_key) do update
 set name=excluded.name,
     season=excluded.season,
@@ -29,7 +29,6 @@ set name=excluded.name,
     sport_format=excluded.sport_format,
     default_age_group=excluded.default_age_group,
     source_url=excluded.source_url,
-    active=true,
     updated_at=now();
 
 -- See production DB function meets_private.import_ljbl_batch(run_id, offset, limit).
