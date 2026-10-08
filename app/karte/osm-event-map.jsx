@@ -513,7 +513,11 @@ export default function OsmEventMap(){
    const popupTopPadding=isMobileViewport?18:controlsHeight+16;
    const popupMaxWidth=Math.min(430,Math.max(220,map.getSize().x-64));
    const popupMaxHeight=Math.max(180,Math.min(isMobileViewport?420:520,map.getSize().y-popupTopPadding-64,window.innerHeight-160));
-   marker.bindPopup(popupHtml(group,activeIds,isAdminSession,clockNow),{
+   // Keep the same DOM nodes when Leaflet updates the popup dimensions, so
+   // native details retain their expanded state instead of being recreated.
+   const popupContent=document.createElement('div');
+   popupContent.innerHTML=popupHtml(group,activeIds,isAdminSession,clockNow);
+   marker.bindPopup(popupContent,{
     className:'meets-event-popup',
     minWidth:popupMaxWidth,
     maxWidth:popupMaxWidth,
