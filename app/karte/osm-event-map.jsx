@@ -534,7 +534,11 @@ export default function OsmEventMap(){
    });
    const updatePopup=()=>{
     const popup=marker.getPopup();
-    if(popup?.isOpen?.())popup.update();
+    if(!popup?.isOpen?.())return;
+    const scrollContainer=popup.getElement()?.querySelector('.leaflet-popup-content');
+    const scrollTop=scrollContainer?.scrollTop||0;
+    popup.update();
+    if(scrollContainer)scrollContainer.scrollTop=scrollTop;
    };
    marker.on('popupopen',()=>{
     const popup=marker.getPopup();
