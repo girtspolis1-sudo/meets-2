@@ -51,10 +51,12 @@ function sourceLinksHtml(e){
  const first=links[0];
  return '<a class="popup-source-link" href="'+esc(first.url)+'" target="_blank" rel="noopener noreferrer">Vairāk oficiālajā lapā ↗</a>';
 }
-function shortDescription(value,limit=15){
- const text=String(value||'').trim();
+function shortDescription(value,limit=280){
+ const text=String(value||'').replace(/\s+/g,' ').trim();
  if(!text)return '';
- return text.length>limit?text.slice(0,limit).trimEnd()+'…':text;
+ if(text.length<=limit)return text;
+ const cut=text.lastIndexOf(' ',limit);
+ return text.slice(0,cut>limit/2?cut:limit).trimEnd()+'…';
 }
 function countryLabel(code){return ({LV:'Latvija',EE:'Igaunija',LT:'Lietuva'})[code]||'';}
 function competitionMeta(e){return [e.competition_season,e.competition_group,e.competition_stage,e.age_group].filter(Boolean).join(' · ');}
@@ -129,15 +131,23 @@ function popupHtml(group,activeIds,isAdminSession,now){
   const compactMeta=sourceType(e)==='basketball'
    ? [eventType,e.competition_group,e.age_group].filter(Boolean).join(' · ')
    : [eventType||sourceLabel(e),meta].filter(Boolean).join(' · ');
+  const description=String(e.description||'').replace(/\s+/g,' ').trim();
+  const summary=shortDescription(description);
+  const address=[e.address_raw,e.settlement||e.municipality].filter(Boolean).join(', ');
+  const price=e.price_status&&e.price_status!=='unknown'?(e.price_text||display(e,'price_status')):'';
   return '<li class="'+rowClass+'">'+
    '<div class="popup-event-main">'+
     '<span class="event-date-badge event-date-badge-prominent '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(popupDayLabel(dateState))+'</span>'+
     '<div class="popup-event-copy">'+
-     '<strong>'+esc(e.title)+(eventType?' <span class="popup-event-type">('+esc(eventType)+')</span>':'')+'</strong>'+
+     '<strong>'+esc(e.title)+'</strong>'+
      '<span class="popup-event-datetime">'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span>'+
+     (address?'<span class="popup-event-address">'+esc(address)+'</span>':'')+
      (compactMeta?'<small>'+esc(compactMeta)+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>':'')+
-     (e.description?'<p class="popup-event-description">'+esc(shortDescription(e.description,15))+'</p>':'')+
-     sourceLinksHtml(e)+editLink+
+     (price?'<span class="popup-event-price">'+esc(price)+'</span>':'')+
+     (description?'<div class="popup-description"><p class="popup-event-description">'+esc(summary)+'</p>'+
+      (description.length>280?'<details><summary>Pilns apraksts</summary><p class="popup-event-description">'+esc(description)+'</p></details>':'')+'</div>':
+      '<p class="popup-event-description popup-description-empty">Apraksts nav norādīts.'+(e.sources?.some(s=>s.url)?' Vairāk informācijas pasākuma avotā.':'')+'</p>')+
+     '<div class="popup-event-actions">'+sourceLinksHtml(e)+editLink+'</div>'+
     '</div>'+
    '</div>'+
   '</li>';
@@ -151,7 +161,7 @@ function popupHtml(group,activeIds,isAdminSession,now){
   ? '<div class="popup-section-title active">ATBILST FILTRAM · '+activeCount+'</div><ol class="popup-active-list">'+activeRows+'</ol>'
   : '';
  const otherSection=otherRows
-  ? '<div class="popup-section-title">CITI PASĀKUMI ŠAJĀ VIETĀ · '+otherEvents.length+'</div><ol class="popup-other-list">'+otherRows+'</ol>'
+  ? '<details class="popup-other-events"'+(!activeCount?' open':'')+'><summary>Citi pasākumi šajā vietā ('+otherEvents.length+')</summary><p class="popup-other-note">Neatbilst pašreizējiem filtriem</p><ol class="popup-other-list">'+otherRows+'</ol></details>'
   : '';
  return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div>'+activeSection+otherSection+'</div>';
 }
@@ -499,14 +509,18 @@ export default function OsmEventMap(){
    const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
    const viewportWidth=typeof window!=='undefined'?window.innerWidth:1366;
    const isMobileViewport=viewportWidth<=700;
-   const popupMaxWidth=isMobileViewport?Math.max(250,viewportWidth-32):430;
-   const popupMaxHeight=isMobileViewport?Math.max(220,Math.min(420,map.getSize().y-120)):Math.max(260,Math.min(560,map.getSize().y-150));
+   const controlsHeight=mapEl.current?.parentElement?.querySelector('.map-controls-overlay')?.getBoundingClientRect().height||118;
+   const popupTopPadding=isMobileViewport?18:controlsHeight+16;
+   const popupMaxWidth=Math.min(430,Math.max(220,map.getSize().x-64));
+   const popupMaxHeight=Math.max(180,Math.min(isMobileViewport?420:520,map.getSize().y-popupTopPadding-64,window.innerHeight-160));
    marker.bindPopup(popupHtml(group,activeIds,isAdminSession,clockNow),{
+    className:'meets-event-popup',
+    minWidth:popupMaxWidth,
     maxWidth:popupMaxWidth,
     maxHeight:popupMaxHeight,
     autoPan:true,
     keepInView:true,
-    autoPanPaddingTopLeft:isMobileViewport?[14,92]:[28,118],
+    autoPanPaddingTopLeft:[isMobileViewport?14:28,popupTopPadding],
     autoPanPaddingBottomRight:isMobileViewport?[14,18]:[28,32]
    });
    marker.on('click',()=>{
@@ -514,13 +528,26 @@ export default function OsmEventMap(){
     setLocationResults([]);
     setLocationMessage('');
    });
+   const updatePopup=()=>{
+    const popup=marker.getPopup();
+    if(popup?.isOpen?.())popup.update();
+   };
    marker.on('popupopen',()=>{
-    window.setTimeout(()=>{
-     const popup=marker.getPopup();
-     if(!popup?.isOpen?.())return;
-     popup.update();
-    },0);
+    const popup=marker.getPopup();
+    const mobile=window.innerWidth<=700;
+    const width=Math.min(430,Math.max(220,map.getSize().x-64));
+    const topPadding=mobile?18:(mapEl.current?.parentElement?.querySelector('.map-controls-overlay')?.getBoundingClientRect().height||118)+16;
+    const maxHeight=Math.max(180,Math.min(mobile?420:520,map.getSize().y-topPadding-64,window.innerHeight-160));
+    const resized=popup.options.maxWidth!==width||popup.options.maxHeight!==maxHeight;
+    popup.options.minWidth=width;
+    popup.options.maxWidth=width;
+    popup.options.maxHeight=maxHeight;
+    popup.options.autoPanPaddingTopLeft=[mobile?14:28,topPadding];
+    popup.getElement()?.querySelector('.leaflet-popup-close-button')?.setAttribute('aria-label','Aizvērt pasākumu logu');
+    popup.getElement()?.addEventListener('toggle',updatePopup,true);
+    if(resized)popup.update();
    });
+   marker.on('popupclose',()=>marker.getPopup()?.getElement()?.removeEventListener('toggle',updatePopup,true));
    marker.addTo(isActive?active:bg);
   }
  },[mapReady,locationGroups,activeIds,isAdminSession,clockNow]);
@@ -535,9 +562,9 @@ export default function OsmEventMap(){
   L.circleMarker(center,{pane:'centerPane',radius:5,color:'#7f00ff',weight:1.5,opacity:.9,fillColor:'#fff',fillOpacity:.96,interactive:false}).addTo(focus);
   if(radiusKm>0){
    const circle=L.circle(center,{pane:'centerPane',radius:radiusKm*1000,color:'#7f00ff',weight:1.1,opacity:.62,fillColor:'#b56cff',fillOpacity:.018,interactive:false}).addTo(focus);
-   map.fitBounds(circle.getBounds(),{padding:[45,45],maxZoom:13});
+   map.fitBounds(circle.getBounds(),{padding:[45,45],maxZoom:13,animate:false});
   }else{
-   map.setView(center,11);
+   map.setView(center,11,{animate:false});
   }
  },[mapReady,userLocation,radiusKm]);
 
