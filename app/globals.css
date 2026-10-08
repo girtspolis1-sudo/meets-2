@@ -1723,6 +1723,7 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .meets-event-popup .location-popup .popup-event-copy>strong{font-size:16px;line-height:1.4;margin-bottom:8px;overflow-wrap:break-word}
 .meets-event-popup .location-popup .popup-event-datetime{font-size:13px;line-height:1.5}
 .meets-event-popup .popup-event-address,.meets-event-popup .popup-event-price{display:block;margin-top:6px;font-size:13px;line-height:1.5;color:#413647}
+.meets-event-popup .location-popup-head>strong,.meets-event-popup .popup-event-address{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meets-event-popup .location-popup .popup-event-copy>small{margin-top:6px;font-size:12px;line-height:1.5;color:#716078}
 .meets-event-popup .popup-event-description{margin:12px 0 0;font-size:14px;line-height:1.6;color:#413647}
 .meets-event-popup .popup-description:has(details[open])>p{display:none}
