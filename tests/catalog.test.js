@@ -202,13 +202,34 @@ test('home categories use verified taxonomy, include municipal sport and do not 
  assert(matchesHomeCategory({event_type:'concert',primary_category:'Koncerts'},'music'));
  assert(!matchesHomeCategory({event_type:'exhibition'},'music'));
  assert(matchesHomeCategory({event_type:'sports',sources:[{source:'marupe.lv'}]},'sport'));
- assert(matchesHomeCategory({primary_category:'Velobrauciens'},'sport'));
+ assert(matchesHomeCategory({primary_category:'Velobrauciens'},'active'));
+ assert(!matchesHomeCategory({primary_category:'Velobrauciens'},'sport'));
  assert(matchesHomeCategory({governing_body:'LFF'},'sport'));
  assert(matchesHomeCategory({sources:[{source:'athletics.lv'}]},'sport'));
  assert.equal(sourceType({sport_format:'basketball'}),'basketball');
- assert(matchesHomeCategory({event_type:'performance'},'culture'));
+ assert(matchesHomeCategory({event_type:'performance'},'stage'));
+ assert(!matchesHomeCategory({event_type:'performance'},'culture'));
  assert(!matchesHomeCategory({title:'Bērnu koncerts',event_type:'concert'},'family'));
  assert.equal(homeCategoryKey('__proto__'),'');
  assert.equal(homeCategoryKey(null),'');
  assert(matchesHomeCategory({event_type:'concert'},'invalid'));
+});
+
+
+test('discovery separates event kind, audience and civic content without title guesses',async()=>{
+ const {HOME_GROUP_KEYS,eventGroup,matchesAudience,matchesHomeCategory}=await import('../lib/home-category-filters.js');
+ assert.equal(HOME_GROUP_KEYS.length,8);
+ assert.equal(eventGroup({event_type:'exhibition',primary_category:'Izklaide'}),'culture');
+ assert.equal(eventGroup({event_type:'cinema',primary_category:'Bibliotēka'}),'stage');
+ assert.equal(eventGroup({event_type:'sports',primary_category:'Veselība'}),'active');
+ assert.equal(eventGroup({event_type:'market',primary_category:'Kultūra'}),'markets');
+ assert.equal(eventGroup({primary_category:'Bibliotēka'}),'');
+ assert.equal(eventGroup({primary_category:'Balle'}),'music');
+ assert.equal(eventGroup({primary_category:'Erudīcijas spēle'}),'learning');
+ assert(matchesAudience({primary_category:'Senioriem'},'seniors'));
+ assert(!matchesAudience({title:'Visai ģimenei',event_type:'concert'},'family'));
+ assert(!matchesAudience({event_type:'sports_match',age_group:'40+'},'adults'));
+ assert(!matchesHomeCategory({event_type:'government'},''));
+ assert(matchesHomeCategory({event_type:'government'},'civic'));
+ assert(matchesHomeCategory({event_type:'exhibition'},''));
 });

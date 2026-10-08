@@ -2,13 +2,13 @@ import Link from 'next/link';
 import HomeMapPreview from './home-map-preview.jsx';
 import {readEvents} from '../lib/events-server.js';
 
-import {HOME_CATEGORY_FILTERS} from '../lib/home-category-filters.js';
+import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,matchesHomeCategory} from '../lib/home-category-filters.js';
 
 // Keep catalogue failures at build time from freezing an empty preview.
 export const dynamic='force-dynamic';
 
-const HOME_CATEGORIES=Object.entries(HOME_CATEGORY_FILTERS).map(([key,value])=>({
- ...value,key,href:'/karte?category='+key
+const HOME_CATEGORIES=HOME_GROUP_KEYS.map(key=>({
+ ...HOME_CATEGORY_FILTERS[key],key,href:'/karte?category='+key
 }));
 
 const CATEGORY_ICONS={
@@ -23,7 +23,7 @@ export default async function Home(){
  try{
   const data=await readEvents();
   events=data.events
-   .filter(event=>event.country_code==='LV'&&Number.isFinite(Number(event.latitude))&&Number.isFinite(Number(event.longitude)))
+   .filter(event=>matchesHomeCategory(event,'')&&event.country_code==='LV'&&Number.isFinite(Number(event.latitude))&&Number.isFinite(Number(event.longitude)))
    .map(event=>({
     id:event.id,
     date_from:event.date_from,
@@ -57,8 +57,8 @@ export default async function Home(){
 
    <div className="home-map-stage">
     <HomeMapPreview events={events}/>
-    {HOME_CATEGORIES.map(item=><Link key={item.key} className={'home-float-card '+item.key} href={item.href}>
-     <span className="home-card-thumb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={CATEGORY_ICONS[item.key]}/></svg></span>
+    {['music','sport','family','culture'].map(key=>({...HOME_CATEGORY_FILTERS[key],title:({music:'Mūzika',sport:'Sports',family:'Ģimenēm',culture:'Kultūra'})[key],key,href:key==='family'?'/karte?audience=family':'/karte?category='+key})).map(item=><Link key={item.key} className={'home-float-card '+item.key} href={item.href}>
+     <span className="home-card-thumb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={CATEGORY_ICONS[item.key]||CATEGORY_ICONS.culture}/></svg></span>
      <span><strong>{item.title}</strong><small>Atvērt kartē</small></span>
      <b aria-hidden="true">↗</b>
     </Link>)}
@@ -68,11 +68,11 @@ export default async function Home(){
   <section className="home-category-strip" aria-label="Populārākās pasākumu kategorijas">
    <div className="home-category-title">
     <h2>Atrodi sev<br/>tuvāko notikumu</h2>
-    <i aria-hidden="true"/>
+    <i aria-hidden="true"/><Link className="button" href="/karte?audience=family">Ar ģimeni ↗</Link>
    </div>
    <div className="home-category-list">
     {HOME_CATEGORIES.map(item=><Link key={item.key} className={'home-category-pill '+item.key} href={item.href}>
-     <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={CATEGORY_ICONS[item.key]}/></svg></span>
+     <span aria-hidden="true">{item.icon}</span>
      <span><strong>{item.title}</strong><small>{item.subtitle}</small></span>
     </Link>)}
    </div>

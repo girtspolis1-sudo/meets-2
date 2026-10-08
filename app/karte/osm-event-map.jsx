@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
-import {HOME_CATEGORY_FILTERS,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
+import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel,display} from '../../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaTodayIso} from '../../lib/event-date.js';
@@ -207,6 +207,12 @@ export default function OsmEventMap(){
  const router=useRouter();
  const pathname=usePathname();
  const homeCategory=homeCategoryKey(searchParams.get('category'));
+ const audience=audienceKey(searchParams.get('audience'));
+ function setDiscoveryFilter(key,value){
+  const params=new URLSearchParams(searchParams.toString());
+  if(value)params.set(key,value);else params.delete(key);
+  router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
+ }
  function clearHomeCategory(){
   const params=new URLSearchParams(searchParams.toString());
   params.delete('category');
@@ -324,7 +330,7 @@ export default function OsmEventMap(){
  },[events]);
 
  const matchesEvent=useMemo(()=>e=>{
-  if(!matchesHomeCategory(e,homeCategory))return false;
+  if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
   if(eventTypes.length&&!eventTypes.includes(sourceType(e)))return false;
   if(competition&&e.competition_key!==competition)return false;
   if(category&&e.primary_category!==category)return false;
@@ -340,11 +346,11 @@ export default function OsmEventMap(){
    if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radiusKm)return false;
   }
   return true;
- },[homeCategory,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
+ },[homeCategory,audience,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
 
  const activeEvents=useMemo(()=>events.filter(matchesEvent),[events,matchesEvent]);
  const activeIds=useMemo(()=>new Set(activeEvents.map(e=>e.id)),[activeEvents]);
- const mapEvents=useMemo(()=>events.filter(e=>matchesHomeCategory(e,homeCategory)&&Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))&&isSupportedMapEvent(e)&&insideBalticView(Number(e.latitude),Number(e.longitude))),[events,homeCategory]);
+ const mapEvents=useMemo(()=>events.filter(e=>matchesHomeCategory(e,homeCategory)&&matchesAudience(e,audience)&&Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))&&isSupportedMapEvent(e)&&insideBalticView(Number(e.latitude),Number(e.longitude))),[events,homeCategory,audience]);
  const locationGroups=useMemo(()=>groupEvents(mapEvents),[mapEvents]);
  const activeGroupCount=useMemo(()=>locationGroups.filter(g=>g.events.some(e=>activeIds.has(e.id))).length,[locationGroups,activeIds]);
 
@@ -578,7 +584,7 @@ export default function OsmEventMap(){
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;leafletRef.current=null;},[]);
 
- const advancedFilterCount=[homeCategory,radiusKm!==30,periodMode!=='week',eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
+ const advancedFilterCount=[homeCategory,audience,radiusKm!==30,periodMode!=='week',eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
   {value:'municipality',label:'Pašvaldības',glyph:'📅'},
@@ -602,7 +608,8 @@ export default function OsmEventMap(){
   setFrom(next.from);setTo(next.to);
  }
  function resetFilters(){
-  clearHomeCategory();
+  const params=new URLSearchParams(searchParams.toString());params.delete('category');params.delete('audience');
+  router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
   setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(30);setMapStyle('positron');setPeriodMode('week');
   {const filterToday=rigaTodayIso(clockNow);const next=periodDates('week',filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
@@ -709,15 +716,20 @@ export default function OsmEventMap(){
      <strong>{HOME_CATEGORY_FILTERS[homeCategory].title}</strong>
      <button type="button" onClick={clearHomeCategory} aria-label="Noņemt kategorijas filtru">×</button>
     </div>}
-    <div className="map-quick-filters" aria-label="Ātrie pasākumu filtri">
-     {quickTypes.map(item=><button
-      key={item.value}
-      type="button"
-      className={'map-quick-chip'+(eventTypes.includes(item.value)?' active':'')}
-      aria-pressed={eventTypes.includes(item.value)}
-      onClick={()=>toggleEventType(item.value)}
-     ><span aria-hidden="true">{item.glyph}</span>{item.label}</button>)}
+    <div className="map-discovery-settings">
+     <label><span>Ko vēlies darīt?</span><select aria-label="Pasākumu grupa" value={homeCategory} onChange={e=>setDiscoveryFilter('category',e.target.value)}>
+      <option value="">Visas atpūtas iespējas</option>
+      {HOME_GROUP_KEYS.map(key=><option key={key} value={key}>{HOME_CATEGORY_FILTERS[key].title}</option>)}
+      {homeCategory==='family'&&<option value="family">Ģimenēm</option>}
+      <option value="civic">Pašvaldības un līdzdalība</option>
+     </select></label>
+     <label><span>Kam piemērots?</span><select aria-label="Auditorija" value={audience} onChange={e=>setDiscoveryFilter('audience',e.target.value)}>
+      <option value="">Jebkura auditorija</option>
+      {Object.entries(AUDIENCE_FILTERS).map(([key,title])=><option key={key} value={key}>{title}</option>)}
+     </select></label>
     </div>
+    {audience&&<div className="map-home-category"><strong>{AUDIENCE_FILTERS[audience]}</strong><button type="button" onClick={()=>setDiscoveryFilter('audience','')} aria-label="Noņemt auditorijas filtru">×</button></div>}
+
 
     {filtersOpen&&<div className="map-advanced-panel" role="dialog" aria-label="Paplašinātie filtri">
      <div className="map-filter-head">
@@ -726,7 +738,7 @@ export default function OsmEventMap(){
      </div>
 
      <fieldset className="map-type-options">
-      <legend>Tips</legend>
+      <legend>Avoti un sporta veidi</legend>
       {quickTypes.map(item=><label key={item.value} className={eventTypes.includes(item.value)?'active':''}>
        <input type="checkbox" checked={eventTypes.includes(item.value)} onChange={()=>toggleEventType(item.value)}/>
        <span aria-hidden="true">{item.glyph}</span>{item.label} <small>({sourceCounts[item.value]||0})</small>
@@ -805,6 +817,7 @@ export default function OsmEventMap(){
    </div>
   </div>
 
+  {audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">Izvēlētajai auditorijai šajā laikā un rādiusā nav pasākumu ar pārbaudītu piemērotību. Izvēlies citu auditoriju vai maini laiku un rādiusu.</p>}
   {homeCategory&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">
    {HOME_CATEGORY_FILTERS[homeCategory].emptyMessage||'Šajā kategorijā izvēlētajā laikā un rādiusā pasākumi nav atrasti. Maini datumu vai rādiusu, vai noņem kategorijas filtru.'}
   </p>}
