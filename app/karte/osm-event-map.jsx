@@ -740,6 +740,10 @@ export default function OsmEventMap(){
        <option value="manual">Manuāli</option>
       </select>
      </label>
+     {(homeCategory||audience)&&<div className="map-inline-selected-filters" aria-label="Aktīvie pasākumu filtri">
+      {homeCategory&&<span className="map-inline-filter-chip"><span title={HOME_CATEGORY_FILTERS[homeCategory].title}>{HOME_CATEGORY_FILTERS[homeCategory].title}</span><button type="button" onClick={clearHomeCategory} aria-label="Noņemt kategorijas filtru">×</button></span>}
+      {audience&&<span className="map-inline-filter-chip"><span title={AUDIENCE_FILTERS[audience]}>{AUDIENCE_FILTERS[audience]}</span><button type="button" onClick={()=>setDiscoveryFilter('audience','')} aria-label="Noņemt auditorijas filtru">×</button></span>}
+     </div>}
     </div>
 
     {periodMode==='manual'&&<div className="map-primary-manual-period">
@@ -748,10 +752,6 @@ export default function OsmEventMap(){
      <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||rigaTodayIso(clockNow)} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
     </div>}
 
-    {homeCategory&&<div className="map-home-category" aria-label="Aktīvā kategorija">
-     <strong>{HOME_CATEGORY_FILTERS[homeCategory].title}</strong>
-     <button type="button" onClick={clearHomeCategory} aria-label="Noņemt kategorijas filtru">×</button>
-    </div>}
     <div className="map-discovery-settings">
      <label><span>Ko vēlies darīt?</span><select aria-label="Pasākumu grupa" value={homeCategory} onChange={e=>setDiscoveryFilter('category',e.target.value)}>
       <option value="">Visas atpūtas iespējas</option>
@@ -764,7 +764,6 @@ export default function OsmEventMap(){
       {Object.entries(AUDIENCE_FILTERS).map(([key,title])=><option key={key} value={key}>{title}</option>)}
      </select></label>
     </div>
-    {audience&&<div className="map-home-category"><strong>{AUDIENCE_FILTERS[audience]}</strong><button type="button" onClick={()=>setDiscoveryFilter('audience','')} aria-label="Noņemt auditorijas filtru">×</button></div>}
 
 
     {filtersOpen&&<div className="map-advanced-panel" role="dialog" aria-label="Paplašinātie filtri">
