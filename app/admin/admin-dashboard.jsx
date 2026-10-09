@@ -765,7 +765,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
   {workspaceView==='sources'&&<AdminSourceChannels
    sources={sources}
+   events={activeEvents}
    onToggle={toggleSourceVisibility}
+   onEdit={setEditing}
+   onPublish={event=>changeStatus(event,'published')}
+   busy={loading}
    busySourceId={busySourceId}
   />}
 
