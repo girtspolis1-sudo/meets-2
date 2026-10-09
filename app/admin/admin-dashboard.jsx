@@ -6,6 +6,7 @@ import AdminReviewOverview from './admin-review-overview.jsx';
 import AdminMappingList from './admin-mapping-list.jsx';
 import AdminImportHealth from './admin-import-health.jsx';
 import AdminSourceChannels from './admin-source-channels.jsx';
+import AdminUserSubmissions from './admin-user-submissions.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
 
 const SESSION_KEY='meets_admin_access_token';
@@ -163,6 +164,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [mappings,setMappings]=useState([]);
  const [importHealth,setImportHealth]=useState({sports:[],municipalities:[]});
  const [sources,setSources]=useState([]);
+ const [userSubmissions,setUserSubmissions]=useState([]);
+ const [reviewingSubmission,setReviewingSubmission]=useState(false);
  const [busySourceId,setBusySourceId]=useState('');
  const [catalogLoaded,setCatalogLoaded]=useState(false);
  const [loading,setLoading]=useState(false);
@@ -197,16 +200,18 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!activeToken)return;
   setLoading(true);
   try{
-   const [data,mappingData,healthData,sourceData]=await Promise.all([
+   const [data,mappingData,healthData,sourceData,submissionData]=await Promise.all([
     apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken}),
     apiFetch(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{p_session_token:activeToken}),
     apiFetch(supabaseUrl,publishableKey,'meets_admin_import_health',{p_session_token:activeToken}),
-    apiFetch(supabaseUrl,publishableKey,'meets_admin_source_visibility_catalog',{p_session_token:activeToken})
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_source_visibility_catalog',{p_session_token:activeToken}),
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_user_submissions',{p_session_token:activeToken})
    ]);
    setEvents(Array.isArray(data?.events)?data.events:[]);
    setMappings(Array.isArray(mappingData?.mappings)?mappingData.mappings:[]);
    setImportHealth(healthData&&typeof healthData==='object'?healthData:{sports:[],municipalities:[]});
    setSources(Array.isArray(sourceData?.sources)?sourceData.sources:[]);
+   setUserSubmissions(Array.isArray(submissionData)?submissionData:[]);
    setSelectedIds(new Set());
    setBulkResult(null);
    setCatalogLoaded(true);
@@ -340,6 +345,19 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    setLoading(false);
    setAuthChecked(true);
   }
+ }
+
+ async function reviewUserSubmission(item,approve,note,latitude=null,longitude=null){
+  setReviewingSubmission(true);setMessage('');
+  try{
+   await apiFetch(supabaseUrl,publishableKey,'meets_admin_review_submission_v2',{
+    p_session_token:token,p_id:item.id,p_approve:approve,p_note:note,
+    p_latitude:latitude,p_longitude:longitude
+   });
+   await loadEvents();
+   setMessage(approve?'Pasākums publicēts kartē.':'Pasākums atgriezts labošanai.');
+  }catch(error){setMessage('Iesnieguma apstrāde neizdevās. Pārbaudi koordinātas un obligātos laukus.');}
+  finally{setReviewingSubmission(false);}
  }
 
  async function changeStatus(event,newStatus){
@@ -719,6 +737,10 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     className={workspaceView==='overview'?'active':''}
     onClick={()=>setWorkspaceView('overview')}
    >Pārskats <span>{readyToPublish.length+publishedNeedsReview.length}</span></button>
+   <button type="button" role="tab" aria-selected={workspaceView==='userSubmissions'}
+    className={workspaceView==='userSubmissions'?'active':''} onClick={()=>setWorkspaceView('userSubmissions')}>
+    Lietotāju pasākumi <span>{userSubmissions.filter(x=>x.status==='pending_review').length}</span>
+   </button>
    <button
     type="button"
     role="tab"
@@ -762,6 +784,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    />
    <AdminImportHealth health={importHealth}/>
   </>}
+
+  {workspaceView==='userSubmissions'&&<AdminUserSubmissions items={userSubmissions} onReview={reviewUserSubmission} busy={reviewingSubmission}/>}
 
   {workspaceView==='sources'&&<AdminSourceChannels
    sources={sources}
