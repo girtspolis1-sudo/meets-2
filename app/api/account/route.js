@@ -4,21 +4,18 @@ const BASE=()=>process.env.SUPABASE_URL;
 const KEY=()=>process.env.SUPABASE_PUBLISHABLE_KEY;
 export async function POST(request){
  try{
-  const {action,email,token,code,ids,eventId,kind}=await request.json();
+  const {action,email,token,password,eventId}=await request.json();
   if(!BASE()||!KEY())return NextResponse.json({error:'Kontu serviss nav konfigurēts.'},{status:503});
   const authUrl=BASE()+'/auth/v1/';
   const head={apikey:KEY(),'Content-Type':'application/json'};
-  if(action==='send'){
-   if(typeof email!=='string'||email.length>254||! /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return NextResponse.json({error:'Ievadi korektu e-pastu.'},{status:400});
-   const res=await fetch(authUrl+'otp',{method:'POST',headers:head,body:JSON.stringify({email,create_user:true}),cache:'no-store'});
-   if(!res.ok)return NextResponse.json({error:'Kodu neizdevās nosūtīt. Mēģini vēlāk.'},{status:400});
-   return NextResponse.json({ok:true});
-  }
-  if(action==='verify'){
-   if(typeof email!=='string'||typeof code!=='string'||!/^\d{6,8}$/.test(code))return NextResponse.json({error:'Nepareizs kods.'},{status:400});
-   const res=await fetch(authUrl+'verify',{method:'POST',headers:head,body:JSON.stringify({email,token:code,type:'email'}),cache:'no-store'});
-   if(!res.ok)return NextResponse.json({error:'Neizdevās apstiprināt kodu.'},{status:401});
+  if(action==='register'||action==='login'){
+   if(typeof email!=='string'||email.length>254||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return NextResponse.json({error:'Ievadi korektu e-pastu.'},{status:400});
+   if(typeof password!=='string'||password.length<8||password.length>128)return NextResponse.json({error:'Parolei jābūt vismaz 8 rakstzīmes garai.'},{status:400});
+   const endpoint=action==='register'?'signup':'token?grant_type=password';
+   const res=await fetch(authUrl+endpoint,{method:'POST',headers:head,body:JSON.stringify({email:email.trim().toLowerCase(),password}),cache:'no-store'});
+   if(!res.ok)return NextResponse.json({error:action==='register'?'Kontu neizdevās izveidot. Pārbaudi datus vai mēģini pieslēgties.':'Nepareizs e-pasts vai parole, vai konts nav apstiprināts.'},{status:action==='register'?400:401});
    const value=await res.json();
+   if(!value.access_token)return NextResponse.json({ok:true,requiresConfirmation:true});
    return NextResponse.json({access_token:value.access_token,refresh_token:value.refresh_token,expires_in:value.expires_in,user:{id:value.user?.id,email:value.user?.email}});
   }
   if(action==='refresh'){
