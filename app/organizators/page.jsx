@@ -3,7 +3,7 @@ import {useEffect,useState} from 'react';
 import Link from 'next/link';
 
 const SESSION='meets_user_session_v1';
-const EMPTY={id:'',organization_id:'',venue_id:'',title:'',description:'',category:'Cits',date_from:'',date_to:'',time_from:'',time_to:'',venue_name:'',address:'',price_status:'free',status:'draft'};
+const EMPTY={id:'',organization_id:'',venue_id:'',title:'',description:'',category:'Cits',date_from:'',date_to:'',time_from:'',time_to:'',venue_name:'',address:'',price_status:'free',schedule_kind:'once',recurrence_note:'',status:'draft'};
 async function call(action,values={}){
  let session;try{session=JSON.parse(localStorage.getItem(SESSION)||'null');}catch{}
  if(!session?.access_token)throw Error('Pieslēdzies sadaļā “Mani pasākumi”.');
@@ -41,7 +41,7 @@ export default function OrganizerPage({initialKind='organizer'}){
  const organizations=items.organizations,venues=items.venues.filter(v=>v.organization_id===orgId),submissions=items.submissions.filter(e=>e.organization_id===orgId);
  function edit(item){setDraft({...EMPTY,...item});setEditing(true);setPanel('events');}
  return <section className="meets-organizer-page">
-  <div className="meets-account-heading"><div><p className="eyebrow">MEETS</p><h1>Organizatora kabinets</h1><p className="meets-muted">Pasākumi, vietas un komanda.</p></div><Link className="button" href="/mani-pasakumi">Mans konts ↗</Link></div>
+  <div className="meets-account-heading"><div><p className="eyebrow">MEETS</p><h1>Organizatora kabinets</h1><p className="meets-muted">Pasākumi, vietas un komanda.</p></div><Link className="button" href="/registre-pasakumu">Reģistrēt pasākumu ↗</Link></div>
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}
   {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
   {!organizations.length?<form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('createOrganization',{name:orgName,kind:orgKind},()=>{setOrgName('');setPanel('events');});}}>
@@ -75,6 +75,7 @@ export default function OrganizerPage({initialKind='organizer'}){
      {!submissions.length&&<p className="meets-muted">Vēl nav iesniegtu pasākumu.</p>}</>:
     <form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('saveEvent',{...draft,organization_id:orgId,status:'pending_review'},()=>{setEditing(false);setDraft(EMPTY);});}}>
      <h2>{draft.id?'Labot pasākumu':'Jauns pasākums'}</h2>
+     <div className="meets-schedule-choice"><label>Pasākuma veids<select value={draft.schedule_kind||'once'} onChange={e=>setDraft({...draft,schedule_kind:e.target.value})}><option value="once">Vienreizējs</option><option value="recurring">Regulārs / atkārtojas</option><option value="ongoing">Pastāvīgs / ilgstošs</option></select></label>{draft.schedule_kind==='recurring'&&<label>Regularitāte<input value={draft.recurrence_note||''} maxLength={300} onChange={e=>setDraft({...draft,recurrence_note:e.target.value})} placeholder="Piem., katru sestdienu plkst. 12.00"/></label>}</div>
      <label>Nosaukums *<input value={draft.title} required minLength={3} maxLength={200} onChange={e=>setDraft({...draft,title:e.target.value})}/></label>
      <div className="meets-organizer-grid"><label>Kategorija<select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})}>{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></label>
      <label>Cena<select value={draft.price_status} onChange={e=>setDraft({...draft,price_status:e.target.value})}><option value="free">Bezmaksas</option><option value="paid">Maksas</option><option value="mixed">Daļēji maksas</option><option value="unknown">Nav zināms</option></select></label>
