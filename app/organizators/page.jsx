@@ -17,9 +17,10 @@ export default function OrganizerPage(){
  const [panel,setPanel]=useState('events'),[orgName,setOrgName]=useState(''),[orgKind,setOrgKind]=useState('organizer');
  const [orgId,setOrgId]=useState(''),[venue,setVenue]=useState({name:'',address:'',latitude:'',longitude:'',directions:'',description:''});
  const [draft,setDraft]=useState(EMPTY),[editing,setEditing]=useState(false);
- const [team,setTeam]=useState([]),[inviteRole,setInviteRole]=useState('editor'),[inviteLink,setInviteLink]=useState('');
+ const [team,setTeam]=useState([]),[inviteRole,setInviteRole]=useState('editor'),[inviteLink,setInviteLink]=useState(''),[currentUserId,setCurrentUserId]=useState('');
  async function refresh(){const data=await call('list');setItems(data);setOrgId(current=>current&&data.organizations.some(org=>org.id===current)?current:(data.organizations[0]?.id||''));}
  useEffect(()=>{
+  try{setCurrentUserId(JSON.parse(localStorage.getItem(SESSION)||'null')?.user?.id||'');}catch{}
   refresh().catch(e=>setError(e.message));
   const invite=new URLSearchParams(window.location.search).get('invite');
   if(invite){
@@ -62,7 +63,7 @@ export default function OrganizerPage(){
    {panel==='team'&&<div className="meets-organizer-form"><h2>Komanda</h2>
     <p className="meets-muted">Uzaicini kolēģi ar privātu saiti. Saites derīgums — 7 dienas. Kolēģim jābūt savam MEETS kontam.</p>
     <div className="meets-account-list">{team.map(member=><div className="meets-organizer-item" key={member.user_id}><strong>{member.email}</strong><span className="meets-organizer-status">{({owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'})[member.role]||member.role}</span></div>)}</div>
-    {items.organizations.find(org=>org.id===orgId)?.owner_id===JSON.parse(localStorage.getItem(SESSION)||'null')?.user?.id&&<>
+    {items.organizations.find(org=>org.id===orgId)?.owner_id===currentUserId&&<>
      <label>Uzaicināt kā<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="editor">Redaktors — pasākumi un vietas</option><option value="admin">Administrators — pasākumi un vietas</option><option value="viewer">Skatītājs — tikai pārskats</option></select></label>
      <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>+ Uzaicināt kolēģi</button>
      {inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/></label>}
