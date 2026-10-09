@@ -264,20 +264,20 @@ export default function OsmEventMap(){
  function chooseRiga(){setUserLocation(DEFAULT_LOCATION);setLocationQuery(DEFAULT_LOCATION.label);setShowLocationChoice(false);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(DEFAULT_LOCATION));}catch{}}
  function toggleFavorite(eventId){setFavorites(previous=>{const next=new Set(previous);const id=String(eventId);if(next.has(id))next.delete(id);else next.add(id);try{localStorage.setItem(FAVORITES_KEY,JSON.stringify([...next]));}catch{}return next;});}
  function calendarDownload(event){
-  const from=String(event.date_from||'');if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(from))return;
-  const escapeIcs=value=>String(value||'').replace(/\\\\/g,'\\\\\\\\').replace(/\\n/g,'\\\\n').replace(/,/g,'\\\\,').replace(/;/g,'\\\\;');
+  const from=String(event.date_from||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(from))return;
+  const escapeIcs=value=>String(value||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
   const day=value=>value.replace(/-/g,'');
   const nextDay=value=>{const date=new Date(value+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+1);return date.toISOString().slice(0,10);};
-  const time=String(event.time_from||'').match(/^(\\d{1,2}):(\\d{2})/);
-  const endTime=String(event.time_to||'').match(/^(\\d{1,2}):(\\d{2})/);
+  const time=String(event.time_from||'').match(/^(\d{1,2}):(\d{2})/);
+  const endTime=String(event.time_to||'').match(/^(\d{1,2}):(\d{2})/);
   const startDate=day(from),endDate=day(event.date_to&&event.date_to>=from?event.date_to:from);
   let dates;
-  if(time){const clock=t=>t[1].padStart(2,'0')+t[2]+'00';const start=startDate+'T'+clock(time);const end=endTime?endDate+'T'+clock(endTime):startDate+'T'+String((Number(time[1])+1)%24).padStart(2,'0')+time[2]+'00';dates='DTSTART;TZID=Europe/Riga:'+start+'\\r\\nDTEND;TZID=Europe/Riga:'+end;}
-  else{dates='DTSTART;VALUE=DATE:'+startDate+'\\r\\nDTEND;VALUE=DATE:'+day(nextDay(event.date_to&&event.date_to>=from?event.date_to:from));}
+  if(time){const clock=t=>t[1].padStart(2,'0')+t[2]+'00';const start=startDate+'T'+clock(time);const end=endTime?endDate+'T'+clock(endTime):startDate+'T'+String((Number(time[1])+1)%24).padStart(2,'0')+time[2]+'00';dates='DTSTART;TZID=Europe/Riga:'+start+'\r\nDTEND;TZID=Europe/Riga:'+end;}
+  else{dates='DTSTART;VALUE=DATE:'+startDate+'\r\nDTEND;VALUE=DATE:'+day(nextDay(event.date_to&&event.date_to>=from?event.date_to:from));}
   const location=[event.venue_name,event.address_raw,event.settlement||event.municipality].filter(Boolean).join(', ');
   const url=event.sources?.find(s=>s.url)?.url||'';
-  const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\\.\\d{3}/,'');
-  const content=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MEETS//LV','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:'+encodeURIComponent(String(event.id))+'@meets.lv','DTSTAMP:'+now,dates,'SUMMARY:'+escapeIcs(event.title),'LOCATION:'+escapeIcs(location),'DESCRIPTION:'+escapeIcs(event.description||''),'URL:'+escapeIcs(url),'END:VEVENT','END:VCALENDAR'].join('\\r\\n')+'\\r\\n';
+  const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const content=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MEETS//LV','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:'+encodeURIComponent(String(event.id))+'@meets.lv','DTSTAMP:'+now,dates,'SUMMARY:'+escapeIcs(event.title),'LOCATION:'+escapeIcs(location),'DESCRIPTION:'+escapeIcs(event.description||''),'URL:'+escapeIcs(url),'END:VEVENT','END:VCALENDAR'].join('\r\n')+'\r\n';
   const blob=new Blob([content],{type:'text/calendar;charset=utf-8'});const objectUrl=URL.createObjectURL(blob);const link=document.createElement('a');link.href=objectUrl;link.download='meets-'+String(event.id).replace(/[^a-zA-Z0-9-]/g,'')+'.ics';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
  }
  const publicFrom=data?.window?.from||'';
@@ -654,7 +654,7 @@ export default function OsmEventMap(){
   navigator.geolocation.getCurrentPosition(
    pos=>{
     const lat=pos.coords.latitude,lon=pos.coords.longitude;
-    if(!insideBalticView(lat,lon)){setLocationMessage('Atrašanās vieta ir ārpus Baltijas kartes.');return;}
+    if(!insideBalticView(lat,lon)){chooseRiga();setLocationMessage('Atrašanās vieta ir ārpus Baltijas kartes. Izmantots Rīgas centrs.');return;}
     const chosen={lat,lon,label:'Mana atrašanās vieta',source:'browser'};setUserLocation(chosen);setShowLocationChoice(false);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(chosen));}catch{}
     setLocationQuery('Mana atrašanās vieta');setLocationResults([]);setLocationMessage('');
    },
