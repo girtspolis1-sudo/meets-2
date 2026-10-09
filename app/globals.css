@@ -1807,3 +1807,13 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .popup-event-actions .popup-save-favorite[aria-pressed="true"]{color:#b91c1c;border-color:#fecaca;background:#fff1f2}
 .popup-event-actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
 @media(max-width:390px){.meets-location-dialog{padding:20px}.popup-event-actions .popup-save-calendar,.popup-event-actions .popup-save-favorite{font-size:.75rem;padding:5px 7px}}
+
+/* Selected discovery filters share unused quick-filter row space. */
+.map-quick-settings{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0}
+.map-quick-settings>label{flex:0 0 auto}
+.map-inline-selected-filters{min-width:0;flex:1 1 auto;display:flex;align-items:center;justify-content:flex-start;gap:6px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;white-space:nowrap;max-width:100%}
+.map-inline-filter-chip{max-width:100%;min-width:0;display:inline-flex;align-items:center;gap:2px;flex:0 1 auto;border:1px solid #d8beed;background:#f3e8ff;color:#5b21b6;border-radius:9px;padding:0 4px 0 9px;min-height:32px;font-size:12px;font-weight:600}
+.map-inline-filter-chip>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.map-inline-filter-chip button{border:0;background:transparent;color:inherit;cursor:pointer;width:27px;min-width:27px;height:30px;line-height:1;font-size:19px;border-radius:6px}
+.map-inline-filter-chip button:hover{background:#e9d5ff}
+@media(max-width:700px){.map-quick-settings{gap:5px}.map-inline-selected-filters{gap:4px}.map-inline-filter-chip{font-size:11px;padding-left:6px;min-height:32px}.map-inline-filter-chip button{width:25px;min-width:25px}}
