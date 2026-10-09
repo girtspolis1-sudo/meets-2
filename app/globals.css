@@ -1871,3 +1871,29 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .meets-password-field button:focus-visible{outline:2px solid #7c3aed}
 .meets-password-note{font-size:12px;color:#64748b;margin:0}
 .meets-inline-error{padding:11px 12px;margin:16px 0 0;background:#fff1f2;color:#9f1239;border:1px solid #fecdd3;border-radius:10px;text-align:left;font-size:13px;line-height:1.45}
+
+/* Organizer and venue workspace */
+.meets-organizer-page{max-width:1080px;margin:0 auto;padding:30px 20px 75px}
+.meets-organizer-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+.meets-organizer-bar select{min-width:230px;max-width:100%;min-height:44px;border:1px solid #cbd5e1;border-radius:11px;padding:9px 12px;background:#fff;color:#1e293b}
+.meets-organizer-page .meets-account-tabs{flex-wrap:wrap;margin:20px 0}
+.meets-organizer-form{display:grid;gap:16px;max-width:760px;margin:20px 0;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 6px 20px rgba(15,23,42,.035)}
+.meets-organizer-form h2{font-size:21px;margin:0}
+.meets-organizer-form label,.meets-organizer-review-card label{display:grid;gap:6px;font-size:13px;font-weight:600;color:#334155;min-width:0}
+.meets-organizer-form input,.meets-organizer-form select,.meets-organizer-form textarea,.meets-organizer-review-card input{display:block;width:100%;min-width:0;min-height:43px;border:1px solid #cbd5e1;border-radius:10px;padding:10px;background:#fff;color:#0f172a;font-size:14px}
+.meets-organizer-form textarea{resize:vertical;min-height:86px}
+.meets-organizer-form .button{justify-self:start}
+.meets-organizer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.meets-organizer-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.meets-organizer-item{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;background:#fff}
+.meets-organizer-item>div{display:grid;gap:5px;flex:1;min-width:150px}
+.meets-organizer-item>span:not(.meets-organizer-status),.meets-organizer-item>div span{color:#64748b;font-size:13px}
+.meets-organizer-status{font-size:12px;background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6;padding:6px 10px;border-radius:999px}
+.meets-organizer-success{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;color:#166534;padding:10px 14px}
+.meets-organizer-review-list{display:grid;gap:14px}
+.meets-organizer-review-card{display:grid;gap:12px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:18px}
+.meets-organizer-review-head{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.meets-organizer-review-head h3{font-size:17px;margin:0 0 5px}
+.meets-organizer-review-head p,.meets-organizer-review-card p{margin:0;color:#64748b;font-size:13px}
+.meets-organizer-review-card .meets-organizer-grid{max-width:460px}
+@media(max-width:570px){.meets-organizer-page{padding:18px 12px 50px}.meets-organizer-form{padding:15px}.meets-organizer-grid{grid-template-columns:1fr}.meets-organizer-review-head{flex-wrap:wrap}.meets-organizer-bar select{width:100%;min-width:0}}
