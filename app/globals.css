@@ -1817,3 +1817,10 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .map-inline-filter-chip button{border:0;background:transparent;color:inherit;cursor:pointer;width:27px;min-width:27px;height:30px;line-height:1;font-size:19px;border-radius:6px}
 .map-inline-filter-chip button:hover{background:#e9d5ff}
 @media(max-width:700px){.map-quick-settings{gap:5px}.map-inline-selected-filters{gap:4px}.map-inline-filter-chip{font-size:11px;padding-left:6px;min-height:32px}.map-inline-filter-chip button{width:25px;min-width:25px}}
+
+/* Icon-first actions for event popups */
+.popup-event-actions .popup-save-calendar,.popup-event-actions .popup-save-favorite{width:36px;height:36px;min-width:36px;min-height:36px;padding:7px;display:inline-grid;place-items:center;border-radius:10px;flex-shrink:0}
+.popup-event-actions .popup-save-calendar svg,.popup-event-actions .popup-save-favorite svg{width:19px;height:19px;display:block}
+.popup-event-actions .popup-save-favorite[aria-pressed="true"] svg{fill:currentColor}
+.popup-event-actions .popup-save-calendar:focus-visible,.popup-event-actions .popup-save-favorite:focus-visible{outline:3px solid #7c3aed;outline-offset:2px}
+@media(max-width:390px){.popup-event-actions .popup-save-calendar,.popup-event-actions .popup-save-favorite{width:36px;height:36px;min-width:36px;padding:7px}}
