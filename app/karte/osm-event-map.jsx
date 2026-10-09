@@ -15,7 +15,9 @@ const MAP_STYLES={
  fiord:{label:'Fiord',url:'https://tiles.openfreemap.org/styles/fiord'}
 };
 const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
-const DEFAULT_LOCATION={lat:56.9053,lon:24.0556,label:'Mārupes dome',source:'fallback'};
+const DEFAULT_LOCATION={lat:56.9496,lon:24.1052,label:'Rīgas centrs',source:'fallback'};
+const LOCATION_CHOICE_KEY='meets_location_choice_v1';
+const FAVORITES_KEY='meets_favorites_v1';
 const RADIUS_OPTIONS=[5,10,25,30,50,0];
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
@@ -118,7 +120,7 @@ function groupPosition(group,indexByCoordinate){
  }
  return [lat,lon];
 }
-function popupHtml(group,activeIds,isAdminSession,now){
+function popupHtml(group,activeIds,isAdminSession,now,favorites){
  const sorted=closestFirst(group.events);
  const renderRow=(e,active)=>{
   const approximate=['settlement_center','municipality_center'].includes(e.location_precision);
@@ -147,7 +149,9 @@ function popupHtml(group,activeIds,isAdminSession,now){
      (description?'<div class="popup-description"><p class="popup-event-description">'+esc(summary)+'</p>'+
       (description.length>280?'<details><summary>Pilns apraksts</summary><p class="popup-event-description">'+esc(description)+'</p></details>':'')+'</div>':
       '<p class="popup-event-description popup-description-empty">Apraksts nav norādīts.'+(e.sources?.some(s=>s.url)?' Vairāk informācijas pasākuma avotā.':'')+'</p>')+
-     '<div class="popup-event-actions">'+sourceLinksHtml(e)+editLink+'</div>'+
+     '<div class="popup-event-actions">'+sourceLinksHtml(e)+
+     '<button type="button" class="popup-save-calendar" data-event-id="'+esc(e.id)+'" title="Pievienot savam kalendāram">📅 Kalendāram</button>'+
+     '<button type="button" class="popup-save-favorite" data-event-id="'+esc(e.id)+'" aria-pressed="'+(favorites.has(String(e.id))?'true':'false')+'">'+(favorites.has(String(e.id))?'♥ Favorītos':'♡ Favorītiem')+'</button>'+editLink+'</div>'+
     '</div>'+
    '</div>'+
   '</li>';
@@ -233,6 +237,8 @@ export default function OsmEventMap(){
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [mapStyle,setMapStyle]=useState('positron');
  const [userLocation,setUserLocation]=useState(DEFAULT_LOCATION);
+ const [showLocationChoice,setShowLocationChoice]=useState(false);
+ const [favorites,setFavorites]=useState(()=>new Set());
  const [locationQuery,setLocationQuery]=useState(DEFAULT_LOCATION.label);
  const [locationResults,setLocationResults]=useState([]);
  const [locationMessage,setLocationMessage]=useState('');
@@ -247,6 +253,33 @@ export default function OsmEventMap(){
  const mapEl=useRef(null),mapRef=useRef(null),leafletRef=useRef(null),baseMapLayerRef=useRef(null),baseLayerCleanupRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
  const defaultsSetRef=useRef(false);
 
+ useEffect(()=>{
+  try{
+   const saved=window.localStorage.getItem(LOCATION_CHOICE_KEY);
+   if(saved){const location=JSON.parse(saved);if(Number.isFinite(location.lat)&&Number.isFinite(location.lon)&&insideBalticView(location.lat,location.lon)){setUserLocation(location);setLocationQuery(location.label);}}
+   else setShowLocationChoice(true);
+  }catch{setShowLocationChoice(true);}
+  try{const ids=JSON.parse(window.localStorage.getItem(FAVORITES_KEY)||'[]');if(Array.isArray(ids))setFavorites(new Set(ids.map(String)));}catch{/* Browser storage can be disabled. */}
+ },[]);
+ function chooseRiga(){setUserLocation(DEFAULT_LOCATION);setLocationQuery(DEFAULT_LOCATION.label);setShowLocationChoice(false);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(DEFAULT_LOCATION));}catch{}}
+ function toggleFavorite(eventId){setFavorites(previous=>{const next=new Set(previous);const id=String(eventId);if(next.has(id))next.delete(id);else next.add(id);try{localStorage.setItem(FAVORITES_KEY,JSON.stringify([...next]));}catch{}return next;});}
+ function calendarDownload(event){
+  const from=String(event.date_from||'');if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(from))return;
+  const escapeIcs=value=>String(value||'').replace(/\\\\/g,'\\\\\\\\').replace(/\\n/g,'\\\\n').replace(/,/g,'\\\\,').replace(/;/g,'\\\\;');
+  const day=value=>value.replace(/-/g,'');
+  const nextDay=value=>{const date=new Date(value+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+1);return date.toISOString().slice(0,10);};
+  const time=String(event.time_from||'').match(/^(\\d{1,2}):(\\d{2})/);
+  const endTime=String(event.time_to||'').match(/^(\\d{1,2}):(\\d{2})/);
+  const startDate=day(from),endDate=day(event.date_to&&event.date_to>=from?event.date_to:from);
+  let dates;
+  if(time){const clock=t=>t[1].padStart(2,'0')+t[2]+'00';const start=startDate+'T'+clock(time);const end=endTime?endDate+'T'+clock(endTime):startDate+'T'+String((Number(time[1])+1)%24).padStart(2,'0')+time[2]+'00';dates='DTSTART;TZID=Europe/Riga:'+start+'\\r\\nDTEND;TZID=Europe/Riga:'+end;}
+  else{dates='DTSTART;VALUE=DATE:'+startDate+'\\r\\nDTEND;VALUE=DATE:'+day(nextDay(event.date_to&&event.date_to>=from?event.date_to:from));}
+  const location=[event.venue_name,event.address_raw,event.settlement||event.municipality].filter(Boolean).join(', ');
+  const url=event.sources?.find(s=>s.url)?.url||'';
+  const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\\.\\d{3}/,'');
+  const content=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MEETS//LV','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:'+encodeURIComponent(String(event.id))+'@meets.lv','DTSTAMP:'+now,dates,'SUMMARY:'+escapeIcs(event.title),'LOCATION:'+escapeIcs(location),'DESCRIPTION:'+escapeIcs(event.description||''),'URL:'+escapeIcs(url),'END:VEVENT','END:VCALENDAR'].join('\\r\\n')+'\\r\\n';
+  const blob=new Blob([content],{type:'text/calendar;charset=utf-8'});const objectUrl=URL.createObjectURL(blob);const link=document.createElement('a');link.href=objectUrl;link.download='meets-'+String(event.id).replace(/[^a-zA-Z0-9-]/g,'')+'.ics';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+ }
  const publicFrom=data?.window?.from||'';
  const publicTo=data?.window?.to||'';
  const events=useMemo(()=>((data?.events)||[]).filter(event=>!hasEventEnded(event)),[data]);
@@ -522,7 +555,7 @@ export default function OsmEventMap(){
    // Keep the same DOM nodes when Leaflet updates the popup dimensions, so
    // native details retain their expanded state instead of being recreated.
    const popupContent=document.createElement('div');
-   popupContent.innerHTML=popupHtml(group,activeIds,isAdminSession,clockNow);
+   popupContent.innerHTML=popupHtml(group,activeIds,isAdminSession,clockNow,favorites);
    marker.bindPopup(popupContent,{
     className:'meets-event-popup',
     minWidth:popupMaxWidth,
@@ -547,6 +580,8 @@ export default function OsmEventMap(){
     if(scrollContainer)scrollContainer.scrollTop=scrollTop;
    };
    marker.on('popupopen',()=>{
+    const actions=event=>{const button=event.target.closest('button[data-event-id]');if(!button)return;const item=group.events.find(e=>String(e.id)===button.dataset.eventId);if(!item)return;if(button.classList.contains('popup-save-calendar'))calendarDownload(item);if(button.classList.contains('popup-save-favorite')){toggleFavorite(item.id);const selected=button.getAttribute('aria-pressed')!=='true';button.setAttribute('aria-pressed',String(selected));button.textContent=selected?'♥ Favorītos':'♡ Favorītiem';}};
+    popupContent.addEventListener('click',actions);
     const popup=marker.getPopup();
     const mobile=window.innerWidth<=700;
     const width=Math.min(430,Math.max(220,map.getSize().x-64));
@@ -564,7 +599,7 @@ export default function OsmEventMap(){
    marker.on('popupclose',()=>marker.getPopup()?.getElement()?.removeEventListener('toggle',updatePopup,true));
    marker.addTo(isActive?active:bg);
   }
- },[mapReady,locationGroups,activeIds,isAdminSession,clockNow]);
+ },[mapReady,locationGroups,activeIds,isAdminSession,clockNow,favorites]);
 
  useEffect(()=>{
   if(!mapReady||!mapRef.current)return;
@@ -614,16 +649,16 @@ export default function OsmEventMap(){
   {const filterToday=rigaTodayIso(clockNow);const next=periodDates('week',filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
-  if(!navigator.geolocation){setLocationMessage('Pārlūks neatbalsta atrašanās vietas noteikšanu.');return;}
+  if(!navigator.geolocation){chooseRiga();setLocationMessage('Pārlūks neatbalsta atrašanās vietas noteikšanu.');return;}
   setLocationMessage('Nosakām atrašanās vietu…');
   navigator.geolocation.getCurrentPosition(
    pos=>{
     const lat=pos.coords.latitude,lon=pos.coords.longitude;
     if(!insideBalticView(lat,lon)){setLocationMessage('Atrašanās vieta ir ārpus Baltijas kartes.');return;}
-    setUserLocation({lat,lon,label:'Mana atrašanās vieta',source:'browser'});
+    const chosen={lat,lon,label:'Mana atrašanās vieta',source:'browser'};setUserLocation(chosen);setShowLocationChoice(false);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(chosen));}catch{}
     setLocationQuery('Mana atrašanās vieta');setLocationResults([]);setLocationMessage('');
    },
-   ()=>setLocationMessage('Atrašanās vietu neizdevās noteikt.'),
+   ()=>{setLocationMessage('Atrašanās vietu neizdevās noteikt. Izmantots Rīgas centrs.');chooseRiga();},
    {enableHighAccuracy:true,timeout:8000,maximumAge:300000}
   );
  }
@@ -658,6 +693,7 @@ export default function OsmEventMap(){
  }
 
  return <>
+  {showLocationChoice&&<div className="meets-location-overlay" role="presentation"><section className="meets-location-dialog" role="dialog" aria-modal="true" aria-labelledby="meets-location-title"><span className="meets-location-symbol" aria-hidden="true">📍</span><h2 id="meets-location-title">Pasākumi Tavā tuvumā</h2><p>Vai vēlies noteikt savu atrašanās vietu, lai atrastu tuvākos pasākumus? Lokācija tiek izmantota tikai kartes attēlošanai.</p><div className="meets-location-dialog-actions"><button type="button" onClick={useCurrentLocation} className="meets-location-accept">Noteikt manu atrašanās vietu</button><button type="button" onClick={chooseRiga} className="meets-location-decline">Turpināt ar Rīgas centru</button></div></section></div>}
   <div className="map-shell">
    <div className="map-controls map-controls-overlay" aria-label="Kartes filtri">
     <div className="map-primary-controls">
