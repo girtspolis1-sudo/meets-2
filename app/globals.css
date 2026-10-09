@@ -1863,3 +1863,11 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .meets-organizer-intro{border-top:1px solid #e2e8f0;margin-top:40px;padding:24px 4px}
 .meets-organizer-intro h2{font-size:19px}.meets-organizer-intro p{color:#64748b;font-size:14px}
 @media(max-width:520px){.meets-account-page{padding:20px 14px 48px}.meets-account-login{padding:20px}.meets-account-event{gap:10px;padding:12px}.meets-account-day{flex-basis:46px;padding:7px}.meets-account-event h3{font-size:14px}}
+
+/* Account onboarding: compact password visibility and feedback */
+.meets-password-field{display:flex;align-items:center;position:relative}
+.meets-password-field input{padding-right:86px!important}
+.meets-password-field button{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:#f1f5f9;border-radius:7px;padding:7px 10px;font-size:12px;font-weight:600;color:#475569;cursor:pointer}
+.meets-password-field button:focus-visible{outline:2px solid #7c3aed}
+.meets-password-note{font-size:12px;color:#64748b;margin:0}
+.meets-inline-error{padding:11px 12px;margin:16px 0 0;background:#fff1f2;color:#9f1239;border:1px solid #fecdd3;border-radius:10px;text-align:left;font-size:13px;line-height:1.45}
