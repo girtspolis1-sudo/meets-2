@@ -6,7 +6,8 @@ import {useAdminSession} from './use-admin-session.js';
 
 const items=[
  {href:'/karte',label:'Karte'},
- {href:'/pasakumi',label:'Pasākumi'}
+ {href:'/pasakumi',label:'Pasākumi'},
+ {href:'/mani-pasakumi',label:'♡ Mani pasākumi'}
 ];
 
 export default function SiteNav(){
