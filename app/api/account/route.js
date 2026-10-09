@@ -13,7 +13,19 @@ export async function POST(request){
    if(typeof password!=='string'||password.length<8||password.length>128)return NextResponse.json({error:'Parolei jābūt vismaz 8 rakstzīmes garai.'},{status:400});
    const endpoint=action==='register'?'signup':'token?grant_type=password';
    const res=await fetch(authUrl+endpoint,{method:'POST',headers:head,body:JSON.stringify({email:email.trim().toLowerCase(),password}),cache:'no-store'});
-   if(!res.ok)return NextResponse.json({error:action==='register'?'Kontu neizdevās izveidot. Pārbaudi datus vai mēģini pieslēgties.':'Nepareizs e-pasts vai parole, vai konts nav apstiprināts.'},{status:action==='register'?400:401});
+   if(!res.ok){
+    const info=await res.json().catch(()=>({}));
+    const code=String(info.error_code||info.code||'');
+    const message=String(info.msg||info.message||info.error_description||'');
+    let error=action==='register'?'Neizdevās izveidot kontu.':'Nepareizs e-pasts vai parole, vai konts nav apstiprināts.';
+    if(res.status===429||code.includes('rate_limit'))error='Sasniegts reģistrācijas vai e-pasta sūtīšanas limits. Uzgaidi un mēģini vēlāk.';
+    else if(code==='email_address_invalid'||/email address.+invalid/i.test(message))error='Šī e-pasta adrese nav pieņemta. Pārbaudi adresi un izmanto derīgu e-pastu.';
+    else if(code==='email_exists'||code==='user_already_exists')error='Šāds konts jau pastāv. Izvēlies “Man jau ir konts”.';
+    else if(code==='email_not_confirmed')error='Kontam nepieciešams e-pasta apstiprinājums. Tas šobrīd ir ieslēgts Supabase Auth iestatījumos.';
+    else if(code==='weak_password')error='Parole neatbilst drošības prasībām. Izvēlies garāku un drošāku paroli.';
+    else if(code==='signup_disabled')error='Jaunu lietotāju reģistrācija šobrīd ir atspējota.';
+    return NextResponse.json({error},{status:res.status===429?429:action==='register'?400:401});
+   }
    const value=await res.json();
    if(!value.access_token)return NextResponse.json({ok:true,requiresConfirmation:true});
    return NextResponse.json({access_token:value.access_token,refresh_token:value.refresh_token,expires_in:value.expires_in,user:{id:value.user?.id,email:value.user?.email}});
