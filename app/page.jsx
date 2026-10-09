@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import HomeMapPreview from './home-map-preview.jsx';
+import HomeLocationChoice from './home-location-choice.jsx';
 import {readEvents} from '../lib/events-server.js';
 
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,matchesHomeCategory} from '../lib/home-category-filters.js';
@@ -43,6 +44,7 @@ export default async function Home(){
  }
 
  return <>
+  <HomeLocationChoice/>
   <section className="home-landing home-landing-rich">
    <div className="home-copy">
     <p className="eyebrow">Tavs nākamais piedzīvojums</p>
