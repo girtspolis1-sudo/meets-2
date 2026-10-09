@@ -5,6 +5,7 @@ import AdminEventMap from './admin-event-map.jsx';
 import AdminReviewOverview from './admin-review-overview.jsx';
 import AdminMappingList from './admin-mapping-list.jsx';
 import AdminImportHealth from './admin-import-health.jsx';
+import AdminSourceChannels from './admin-source-channels.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
 
 const SESSION_KEY='meets_admin_access_token';
@@ -161,6 +162,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [events,setEvents]=useState([]);
  const [mappings,setMappings]=useState([]);
  const [importHealth,setImportHealth]=useState({sports:[],municipalities:[]});
+ const [sources,setSources]=useState([]);
+ const [busySourceId,setBusySourceId]=useState('');
  const [catalogLoaded,setCatalogLoaded]=useState(false);
  const [loading,setLoading]=useState(false);
  const [search,setSearch]=useState('');
@@ -194,14 +197,16 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!activeToken)return;
   setLoading(true);
   try{
-   const [data,mappingData,healthData]=await Promise.all([
+   const [data,mappingData,healthData,sourceData]=await Promise.all([
     apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken}),
     apiFetch(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{p_session_token:activeToken}),
-    apiFetch(supabaseUrl,publishableKey,'meets_admin_import_health',{p_session_token:activeToken})
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_import_health',{p_session_token:activeToken}),
+    apiFetch(supabaseUrl,publishableKey,'meets_admin_source_visibility_catalog',{p_session_token:activeToken})
    ]);
    setEvents(Array.isArray(data?.events)?data.events:[]);
    setMappings(Array.isArray(mappingData?.mappings)?mappingData.mappings:[]);
    setImportHealth(healthData&&typeof healthData==='object'?healthData:{sports:[],municipalities:[]});
+   setSources(Array.isArray(sourceData?.sources)?sourceData.sources:[]);
    setSelectedIds(new Set());
    setBulkResult(null);
    setCatalogLoaded(true);
@@ -424,6 +429,29 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }catch{
    setMessage('Mappinga statusu neizdevās mainīt.');
   }finally{setBusyMappingId('');}
+ }
+
+ async function toggleSourceVisibility(source){
+  if(!source?.id||busySourceId)return;
+  const nextVisible=source.map_visible===false;
+  setBusySourceId(source.id);
+  setSources(current=>current.map(item=>item.id===source.id?{...item,map_visible:nextVisible}:item));
+  setMessage('');
+  try{
+   await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_source_visibility',{
+    p_session_token:token,
+    p_source_id:source.id,
+    p_map_visible:nextVisible
+   });
+   setMessage(nextVisible
+    ?`${source.label||source.domain} ieslēgts publiskajā kartē.`
+    :`${source.label||source.domain} paslēpts no publiskās kartes. Importētie dati netika dzēsti.`);
+  }catch{
+   setSources(current=>current.map(item=>item.id===source.id?{...item,map_visible:source.map_visible!==false}:item));
+   setMessage('Datu avota kartes statusu neizdevās saglabāt.');
+  }finally{
+   setBusySourceId('');
+  }
  }
 
  async function bulkPublish(){
@@ -694,6 +722,13 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <button
     type="button"
     role="tab"
+    aria-selected={workspaceView==='sources'}
+    className={workspaceView==='sources'?'active':''}
+    onClick={()=>setWorkspaceView('sources')}
+   >Datu avoti <span>{sources.filter(source=>source.map_visible!==false).length}/{sources.length}</span></button>
+   <button
+    type="button"
+    role="tab"
     aria-selected={workspaceView==='mapping'}
     className={workspaceView==='mapping'?'active attention':''}
     onClick={()=>setWorkspaceView('mapping')}
@@ -727,6 +762,12 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    />
    <AdminImportHealth health={importHealth}/>
   </>}
+
+  {workspaceView==='sources'&&<AdminSourceChannels
+   sources={sources}
+   onToggle={toggleSourceVisibility}
+   busySourceId={busySourceId}
+  />}
 
   {workspaceView==='mapping'&&<AdminMappingList
    groups={mappingGroups}
