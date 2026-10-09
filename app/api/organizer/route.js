@@ -52,13 +52,16 @@ export async function POST(request){
   }
   const canEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
   if(canEdit!==true)return NextResponse.json({error:'Nav tiesību veikt izmaiņas šajā organizācijā.'},{status:403});
-  if(action==='createVenue'){
+  if(action==='createVenue'||action==='updateVenue'){
    const name=String(data.name||'').trim(),address=String(data.address||'').trim();
    if(name.length<2||name.length>160||address.length<5||address.length>300)return NextResponse.json({error:'Norādi vietas nosaukumu un pilnu adresi.'},{status:400});
    const latitude=data.latitude===''||data.latitude==null?null:Number(data.latitude);
    const longitude=data.longitude===''||data.longitude==null?null:Number(data.longitude);
    if((latitude===null)!==(longitude===null)||latitude!==null&&(!Number.isFinite(latitude)||!Number.isFinite(longitude)))return NextResponse.json({error:'Koordinātām jānorāda gan platums, gan garums.'},{status:400});
-   const result=await api(TABLES.venues,token,'POST',{organization_id:data.organization_id,name,address,latitude,longitude,directions:String(data.directions||'').slice(0,2000),description:String(data.description||'').slice(0,4000)});
+   const payload={organization_id:data.organization_id,name,address,latitude,longitude,directions:String(data.directions||'').slice(0,2000),description:String(data.description||'').slice(0,4000)};
+   if(action==='updateVenue'&&!UUID.test(data.venue_id||''))return NextResponse.json({error:'Nederīgs vietas ieraksts.'},{status:400});
+   const result=await api(TABLES.venues,token,action==='updateVenue'?'PATCH':'POST',payload,action==='updateVenue'?'?id=eq.'+data.venue_id+'&organization_id=eq.'+data.organization_id:'');
+   if(!result.length)return NextResponse.json({error:'Vietu nevar labot.'},{status:404});
    return NextResponse.json({item:result[0]});
   }
   if(action==='saveEvent'){
