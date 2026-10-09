@@ -24,7 +24,7 @@ export async function POST(request){
    const [organizations,venues,submissions]=await Promise.all([
     api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id&order=created_at.desc'),
     api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,directions,description&order=created_at.desc'),
-    api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,admin_note,latitude,longitude&order=created_at.desc')
+    api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,admin_note,latitude,longitude,schedule_kind,recurrence_note&order=created_at.desc')
    ]);
    return NextResponse.json({organizations,venues,submissions});
   }
@@ -74,7 +74,7 @@ export async function POST(request){
     const found=await api(TABLES.venues,token,'GET',null,'?select=*&id=eq.'+data.venue_id+'&organization_id=eq.'+data.organization_id);
     venue=found[0];if(!venue)return NextResponse.json({error:'Norises vieta nav pieejama.'},{status:400});
    }
-   const payload={organization_id:data.organization_id,author_id:user.id,venue_id:venue?.id||null,title,description:String(data.description||'').slice(0,6000),category:String(data.category||'Cits').slice(0,100),date_from,date_to:data.date_to||null,time_from:data.time_from||null,time_to:data.time_to||null,venue_name:venue?.name||String(data.venue_name||'').slice(0,200),address:venue?.address||String(data.address||'').slice(0,300),latitude:venue?.latitude??null,longitude:venue?.longitude??null,price_status:['free','paid','mixed','unknown'].includes(data.price_status)?data.price_status:'unknown',status:data.status};
+   const payload={organization_id:data.organization_id,author_id:user.id,venue_id:venue?.id||null,title,description:String(data.description||'').slice(0,6000),schedule_kind:['once','recurring','ongoing'].includes(data.schedule_kind)?data.schedule_kind:'once',recurrence_note:String(data.recurrence_note||'').slice(0,300),category:String(data.category||'Cits').slice(0,100),date_from,date_to:data.date_to||null,time_from:data.time_from||null,time_to:data.time_to||null,venue_name:venue?.name||String(data.venue_name||'').slice(0,200),address:venue?.address||String(data.address||'').slice(0,300),latitude:venue?.latitude??null,longitude:venue?.longitude??null,price_status:['free','paid','mixed','unknown'].includes(data.price_status)?data.price_status:'unknown',status:data.status};
    if(payload.status==='pending_review'&&(!payload.venue_name||!payload.address))return NextResponse.json({error:'Iesniegšanai norādi norises vietu un adresi.'},{status:400});
    let result;
    if(data.id){
