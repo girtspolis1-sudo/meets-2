@@ -1792,3 +1792,18 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .source-events-table{background:#fff}
 .source-events-table td{vertical-align:middle}
 @media(max-width:700px){.source-event-heading{flex-wrap:wrap}.source-event-toolbar label{flex:1 1 140px}.source-event-count{width:100%;margin:0}}
+
+/* First-visit location decision and compact event actions */
+.meets-location-overlay{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:20px;background:rgba(15,23,42,.48);backdrop-filter:blur(3px)}
+.meets-location-dialog{width:min(100%,420px);background:#fff;color:#172033;border-radius:20px;box-shadow:0 24px 75px rgba(0,0,0,.22);padding:28px;text-align:center}
+.meets-location-symbol{font-size:2rem}
+.meets-location-dialog h2{font-size:1.4rem;line-height:1.25;margin:12px 0}
+.meets-location-dialog p{font-size:.95rem;line-height:1.5;color:#475569}
+.meets-location-dialog-actions{display:grid;gap:10px;margin-top:22px}
+.meets-location-dialog-actions button{min-height:44px;padding:11px 15px;border-radius:11px;font-size:.94rem;font-weight:650;cursor:pointer}
+.meets-location-accept{border:0;background:#116d56;color:#fff}
+.meets-location-decline{border:1px solid #cbd5e1;background:#f8fafc;color:#334155}
+.popup-event-actions .popup-save-calendar,.popup-event-actions .popup-save-favorite{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px;border:1px solid #d1d5db;background:#fff;color:#334155;border-radius:8px;font-size:.8rem;min-height:32px;cursor:pointer}
+.popup-event-actions .popup-save-favorite[aria-pressed="true"]{color:#b91c1c;border-color:#fecaca;background:#fff1f2}
+.popup-event-actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+@media(max-width:390px){.meets-location-dialog{padding:20px}.popup-event-actions .popup-save-calendar,.popup-event-actions .popup-save-favorite{font-size:.75rem;padding:5px 7px}}
