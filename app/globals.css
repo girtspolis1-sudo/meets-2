@@ -1777,3 +1777,18 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
  .source-channel-card{align-items:flex-start}
  .source-channel-switch{padding-top:2px}
 }
+
+/* Per-channel admin event review */
+.source-channel-card{flex-wrap:wrap}
+.source-channel-open{flex:0 0 100%;width:100%;margin-top:4px}
+.source-event-panel{padding:16px;border:1px solid #dfe3e8;border-radius:16px;background:#f8fafc;display:grid;gap:12px}
+.source-event-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.source-event-heading h4{margin:0 0 4px}
+.source-event-heading p{margin:0;color:#64748b;font-size:.86rem}
+.source-event-toolbar{display:flex;align-items:end;flex-wrap:wrap;gap:10px}
+.source-event-toolbar label{display:grid;gap:4px;font-size:.85rem;font-weight:600}
+.source-event-toolbar input,.source-event-toolbar select{min-height:38px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;background:#fff;max-width:100%}
+.source-event-count{margin-left:auto;color:#475569;font-size:.85rem}
+.source-events-table{background:#fff}
+.source-events-table td{vertical-align:middle}
+@media(max-width:700px){.source-event-heading{flex-wrap:wrap}.source-event-toolbar label{flex:1 1 140px}.source-event-count{width:100%;margin:0}}
