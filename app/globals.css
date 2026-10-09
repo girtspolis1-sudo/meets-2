@@ -1824,3 +1824,42 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .popup-event-actions .popup-save-favorite[aria-pressed="true"] svg{fill:currentColor}
 .popup-event-actions .popup-save-calendar:focus-visible,.popup-event-actions .popup-save-favorite:focus-visible{outline:3px solid #7c3aed;outline-offset:2px}
 @media(max-width:390px){.popup-event-actions .popup-save-calendar,.popup-event-actions .popup-save-favorite{width:36px;height:36px;min-width:36px;padding:7px}}
+
+/* Personal MEETS account and event planning */
+.meets-account-page{max-width:960px;margin:0 auto;padding:32px 20px 72px}
+.meets-account-heading{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:26px}
+.meets-account-heading h1{font-size:clamp(27px,4vw,40px);margin:6px 0 8px}
+.meets-muted{color:#64748b;line-height:1.5}
+.meets-account-login{max-width:440px;margin:32px auto;padding:30px;background:#fff;border:1px solid #e2e8f0;border-radius:20px;text-align:center;box-shadow:0 10px 35px rgba(15,23,42,.05)}
+.meets-account-symbol{font-size:36px;color:#6d28d9}
+.meets-account-login h2{margin:10px 0}
+.meets-account-login form{display:grid;gap:12px;margin-top:20px;text-align:left}
+.meets-account-login form label{display:grid;gap:6px;font-weight:600;font-size:13px}
+.meets-account-login input{padding:13px 14px;width:100%;border:1px solid #cbd5e1;border-radius:10px;min-height:44px}
+.meets-account-login form .button{justify-content:center}
+.meets-account-hint{font-size:12px;margin-top:18px}
+.meets-account-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;font-size:13px;color:#475569}
+.meets-account-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.meets-account-stats>div{display:grid;gap:4px;background:#f8fafc;padding:20px;border-radius:16px;border:1px solid #e2e8f0}
+.meets-account-stats strong{font-size:30px;color:#4c1d95}
+.meets-account-stats span{font-size:13px;color:#64748b}
+.meets-account-tabs{display:flex;gap:8px;margin:16px 0}
+.meets-account-tabs button{border:1px solid #e2e8f0;border-radius:999px;padding:10px 18px;cursor:pointer;background:white;color:#475569;font-weight:650}
+.meets-account-tabs button.active{background:#ede9fe;border-color:#c4b5fd;color:#5b21b6}
+.meets-account-list{display:grid;gap:10px}
+.meets-account-event{display:flex;align-items:flex-start;gap:16px;background:#fff;border:1px solid #e2e8f0;border-radius:15px;padding:16px}
+.meets-account-day{flex:0 0 56px;display:grid;place-items:center;padding:10px;border-radius:10px;background:#f5f3ff;color:#5b21b6}
+.meets-account-day strong{font-size:23px}.meets-account-day small{font-size:12px}
+.meets-account-event-body{flex:1;min-width:0}
+.meets-account-event h3{font-size:16px;margin:1px 0 5px;line-height:1.3}
+.meets-account-event p{color:#64748b;font-size:13px;margin:0 0 10px}
+.meets-account-event-actions{display:flex;gap:9px}
+.meets-account-event-actions button,.meets-account-event-actions a{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;border:1px solid #e2e8f0;color:#475569;background:#fff;text-decoration:none;font-size:20px;cursor:pointer}
+.meets-account-event-actions button[aria-pressed="true"]{background:#faf5ff;color:#6d28d9}
+.meets-account-empty{text-align:center;padding:45px 15px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:18px}
+.meets-account-empty>span{font-size:36px;color:#7c3aed}
+.meets-account-empty h3{margin:8px 0}
+.meets-account-empty .button{margin-top:12px}
+.meets-organizer-intro{border-top:1px solid #e2e8f0;margin-top:40px;padding:24px 4px}
+.meets-organizer-intro h2{font-size:19px}.meets-organizer-intro p{color:#64748b;font-size:14px}
+@media(max-width:520px){.meets-account-page{padding:20px 14px 48px}.meets-account-login{padding:20px}.meets-account-event{gap:10px;padding:12px}.meets-account-day{flex-basis:46px;padding:7px}.meets-account-event h3{font-size:14px}}
