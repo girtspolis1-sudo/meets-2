@@ -27,7 +27,16 @@ export async function POST(request){
     return NextResponse.json({error},{status:res.status===429?429:action==='register'?400:401});
    }
    const value=await res.json();
-   if(!value.access_token)return NextResponse.json({ok:true,requiresConfirmation:true});
+   if(!value.access_token){
+    if(action==='register'){
+     const login=await fetch(authUrl+'token?grant_type=password',{method:'POST',headers:head,body:JSON.stringify({email:email.trim().toLowerCase(),password}),cache:'no-store'});
+     if(login.ok){
+      const account=await login.json();
+      if(account.access_token)return NextResponse.json({access_token:account.access_token,refresh_token:account.refresh_token,expires_in:account.expires_in,user:{id:account.user?.id,email:account.user?.email}});
+     }
+    }
+    return NextResponse.json({ok:true,requiresConfirmation:true});
+   }
    return NextResponse.json({access_token:value.access_token,refresh_token:value.refresh_token,expires_in:value.expires_in,user:{id:value.user?.id,email:value.user?.email}});
   }
   if(action==='refresh'){
