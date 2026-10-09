@@ -150,8 +150,8 @@ function popupHtml(group,activeIds,isAdminSession,now,favorites){
       (description.length>280?'<details><summary>Pilns apraksts</summary><p class="popup-event-description">'+esc(description)+'</p></details>':'')+'</div>':
       '<p class="popup-event-description popup-description-empty">Apraksts nav norādīts.'+(e.sources?.some(s=>s.url)?' Vairāk informācijas pasākuma avotā.':'')+'</p>')+
      '<div class="popup-event-actions">'+sourceLinksHtml(e)+
-     '<button type="button" class="popup-save-calendar" data-event-id="'+esc(e.id)+'" title="Pievienot savam kalendāram">📅 Kalendāram</button>'+
-     '<button type="button" class="popup-save-favorite" data-event-id="'+esc(e.id)+'" aria-pressed="'+(favorites.has(String(e.id))?'true':'false')+'">'+(favorites.has(String(e.id))?'♥ Favorītos':'♡ Favorītiem')+'</button>'+editLink+'</div>'+
+     '<button type="button" class="popup-save-calendar" data-event-id="'+esc(e.id)+'" title="Pievienot kalendāram" aria-label="Pievienot kalendāram"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15h8M12 13v4"/></svg></button>'+
+     '<button type="button" class="popup-save-favorite" data-event-id="'+esc(e.id)+'" aria-label="'+(favorites.has(String(e.id))?'Noņemt no favorītiem':'Pievienot favorītiem')+'" title="'+(favorites.has(String(e.id))?'Noņemt no favorītiem':'Pievienot favorītiem')+'" aria-pressed="'+(favorites.has(String(e.id))?'true':'false')+'"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>'+editLink+'</div>'+
     '</div>'+
    '</div>'+
   '</li>';
@@ -580,7 +580,7 @@ export default function OsmEventMap(){
     if(scrollContainer)scrollContainer.scrollTop=scrollTop;
    };
    marker.on('popupopen',()=>{
-    const actions=event=>{const button=event.target.closest('button[data-event-id]');if(!button)return;const item=group.events.find(e=>String(e.id)===button.dataset.eventId);if(!item)return;if(button.classList.contains('popup-save-calendar'))calendarDownload(item);if(button.classList.contains('popup-save-favorite')){toggleFavorite(item.id);const selected=button.getAttribute('aria-pressed')!=='true';button.setAttribute('aria-pressed',String(selected));button.textContent=selected?'♥ Favorītos':'♡ Favorītiem';}};
+    const actions=event=>{const button=event.target.closest('button[data-event-id]');if(!button)return;const item=group.events.find(e=>String(e.id)===button.dataset.eventId);if(!item)return;if(button.classList.contains('popup-save-calendar'))calendarDownload(item);if(button.classList.contains('popup-save-favorite')){toggleFavorite(item.id);const selected=button.getAttribute('aria-pressed')!=='true';button.setAttribute('aria-pressed',String(selected));button.setAttribute('aria-label',selected?'Noņemt no favorītiem':'Pievienot favorītiem');button.title=selected?'Noņemt no favorītiem':'Pievienot favorītiem';}};
     popupContent.addEventListener('click',actions);
     const popup=marker.getPopup();
     const mobile=window.innerWidth<=700;
