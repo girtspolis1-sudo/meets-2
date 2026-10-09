@@ -35,9 +35,23 @@ export async function POST(request){
    const result=await api(TABLES.organizations,token,'POST',{name,kind:data.kind,owner_id:user.id});
    return NextResponse.json({item:result[0]});
   }
+  if(action==='acceptInvite'){
+   if(typeof data.invite_token!=='string'||data.invite_token.length>128)return NextResponse.json({error:'Nederīga uzaicinājuma saite.'},{status:400});
+   const result=await api('rpc/meets_org_invite_accept',token,'POST',{p_token:data.invite_token});
+   return NextResponse.json({item:result});
+  }
   if(!UUID.test(data.organization_id||''))return NextResponse.json({error:'Izvēlies organizāciju.'},{status:400});
-  const own=await api(TABLES.organizations,token,'GET',null,'?select=id&owner_id=eq.'+user.id+'&id=eq.'+data.organization_id);
-  if(!own.length)return NextResponse.json({error:'Nav tiesību pārvaldīt šo organizāciju.'},{status:403});
+  if(action==='team'){
+   const result=await api('rpc/meets_org_team',token,'POST',{p_organization_id:data.organization_id});
+   return NextResponse.json({team:result});
+  }
+  if(action==='invite'){
+   if(!['admin','editor','viewer'].includes(data.role))return NextResponse.json({error:'Nepareiza loma.'},{status:400});
+   const result=await api('rpc/meets_org_invite_create',token,'POST',{p_organization_id:data.organization_id,p_role:data.role});
+   return NextResponse.json({invite:result});
+  }
+  const canEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
+  if(canEdit!==true)return NextResponse.json({error:'Nav tiesību veikt izmaiņas šajā organizācijā.'},{status:403});
   if(action==='createVenue'){
    const name=String(data.name||'').trim(),address=String(data.address||'').trim();
    if(name.length<2||name.length>160||address.length<5||address.length>300)return NextResponse.json({error:'Norādi vietas nosaukumu un pilnu adresi.'},{status:400});
