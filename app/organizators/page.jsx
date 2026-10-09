@@ -11,10 +11,10 @@ async function call(action,values={}){
  const result=await response.json();if(!response.ok)throw Error(result.error||'Neizdevās saglabāt.');return result;
 }
 const CATEGORIES=['Mūzika un dejas','Sports','Ģimenēm','Kultūra','Izstādes','Tirdziņi','Cits'];
-export default function OrganizerPage(){
+export default function OrganizerPage({initialKind='organizer'}){
  const [items,setItems]=useState({organizations:[],venues:[],submissions:[]});
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
- const [panel,setPanel]=useState('events'),[orgName,setOrgName]=useState(''),[orgKind,setOrgKind]=useState('organizer');
+ const [panel,setPanel]=useState('events'),[orgName,setOrgName]=useState(''),[orgKind,setOrgKind]=useState(initialKind);
  const [orgId,setOrgId]=useState(''),[venue,setVenue]=useState({name:'',address:'',latitude:'',longitude:'',directions:'',description:''});
  const [draft,setDraft]=useState(EMPTY),[editing,setEditing]=useState(false);
  const [team,setTeam]=useState([]),[inviteRole,setInviteRole]=useState('editor'),[inviteLink,setInviteLink]=useState(''),[currentUserId,setCurrentUserId]=useState('');
