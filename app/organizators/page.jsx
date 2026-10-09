@@ -17,9 +17,26 @@ export default function OrganizerPage(){
  const [panel,setPanel]=useState('events'),[orgName,setOrgName]=useState(''),[orgKind,setOrgKind]=useState('organizer');
  const [orgId,setOrgId]=useState(''),[venue,setVenue]=useState({name:'',address:'',latitude:'',longitude:'',directions:'',description:''});
  const [draft,setDraft]=useState(EMPTY),[editing,setEditing]=useState(false);
+ const [team,setTeam]=useState([]),[inviteRole,setInviteRole]=useState('editor'),[inviteLink,setInviteLink]=useState('');
  async function refresh(){const data=await call('list');setItems(data);setOrgId(current=>current&&data.organizations.some(org=>org.id===current)?current:(data.organizations[0]?.id||''));}
- useEffect(()=>{refresh().catch(e=>setError(e.message));},[]);
+ useEffect(()=>{
+  refresh().catch(e=>setError(e.message));
+  const invite=new URLSearchParams(window.location.search).get('invite');
+  if(invite){
+   call('acceptInvite',{invite_token:invite}).then(()=>{window.history.replaceState(null,'',window.location.pathname);setNotice('Uzaicinājums pieņemts.');refresh();setPanel('team');}).catch(e=>setError(e.message));
+  }
+ },[]);
+ useEffect(()=>{if(orgId&&panel==='team')call('team',{organization_id:orgId}).then(data=>setTeam(data.team||[])).catch(e=>setError(e.message));},[orgId,panel]);
  async function perform(action,values,onSuccess){setBusy(true);setError('');setNotice('');try{await call(action,values);await refresh();onSuccess?.();setNotice('Saglabāts.');}catch(e){setError(e.message);}finally{setBusy(false);}}
+ async function createInvitation(){
+  setBusy(true);setError('');setInviteLink('');
+  try{
+   const result=await call('invite',{organization_id:orgId,role:inviteRole});
+   const link=window.location.origin+'/organizators?invite='+result.invite.token;
+   setInviteLink(link);
+   try{await navigator.clipboard.writeText(link);setNotice('Uzaicinājuma saite nokopēta.');}catch{setNotice('Uzaicinājuma saite sagatavota.');}
+  }catch(e){setError(e.message);}finally{setBusy(false);}
+ }
  const organizations=items.organizations,venues=items.venues.filter(v=>v.organization_id===orgId),submissions=items.submissions.filter(e=>e.organization_id===orgId);
  function edit(item){setDraft({...EMPTY,...item});setEditing(true);setPanel('events');}
  return <section className="meets-organizer-page">
@@ -42,7 +59,15 @@ export default function OrganizerPage(){
      <label>Kā nokļūt<textarea value={venue.directions} onChange={e=>setVenue({...venue,directions:e.target.value})} placeholder="Ieeja, stāvvieta, transports…"/></label><label>Vietas apraksts<textarea value={venue.description} onChange={e=>setVenue({...venue,description:e.target.value})}/></label><button className="button primary" disabled={busy}>Saglabāt vietu</button></form>
     <div className="meets-account-list">{venues.map(v=><div key={v.id} className="meets-organizer-item"><strong>⌖ {v.name}</strong><span>{v.address}</span></div>)}</div>
    </>}
-   {panel==='team'&&<div className="meets-organizer-form"><h2>Komanda</h2><p className="meets-muted">Pašlaik organizāciju pārvalda konta īpašnieks. Kolēģu uzaicināšana būs pieejama pēc atsevišķas piekļuves un ielūgumu pārbaudes ieviešanas.</p></div>}
+   {panel==='team'&&<div className="meets-organizer-form"><h2>Komanda</h2>
+    <p className="meets-muted">Uzaicini kolēģi ar privātu saiti. Saites derīgums — 7 dienas. Kolēģim jābūt savam MEETS kontam.</p>
+    <div className="meets-account-list">{team.map(member=><div className="meets-organizer-item" key={member.user_id}><strong>{member.email}</strong><span className="meets-organizer-status">{({owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'})[member.role]||member.role}</span></div>)}</div>
+    {items.organizations.find(org=>org.id===orgId)?.owner_id===JSON.parse(localStorage.getItem(SESSION)||'null')?.user?.id&&<>
+     <label>Uzaicināt kā<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="editor">Redaktors — pasākumi un vietas</option><option value="admin">Administrators — pasākumi un vietas</option><option value="viewer">Skatītājs — tikai pārskats</option></select></label>
+     <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>+ Uzaicināt kolēģi</button>
+     {inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/></label>}
+    </>}
+   </div>}
    {panel==='events'&&<>
     {!editing?<><button className="button primary" onClick={()=>{setDraft({...EMPTY,organization_id:orgId});setEditing(true);}}>+ Jauns pasākums</button>
      <div className="meets-account-list">{submissions.map(item=><div key={item.id} className="meets-organizer-item"><div><strong>{item.title}</strong><span>{item.date_from} · {item.venue_name||'Vieta nav norādīta'}</span></div><span className="meets-organizer-status">{({draft:'Melnraksts',pending_review:'Pārbaudē',published:'Publicēts',rejected:'Jālabo'})[item.status]}</span>{['draft','rejected'].includes(item.status)&&<button className="button" onClick={()=>edit(item)}>Labot</button>}</div>)}</div>
