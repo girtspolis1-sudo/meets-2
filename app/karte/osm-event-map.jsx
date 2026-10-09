@@ -262,7 +262,21 @@ export default function OsmEventMap(){
   try{const ids=JSON.parse(window.localStorage.getItem(FAVORITES_KEY)||'[]');if(Array.isArray(ids))setFavorites(new Set(ids.map(String)));}catch{/* Browser storage can be disabled. */}
  },[]);
  function chooseRiga(){setUserLocation(DEFAULT_LOCATION);setLocationQuery(DEFAULT_LOCATION.label);setShowLocationChoice(false);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(DEFAULT_LOCATION));}catch{}}
- function toggleFavorite(eventId){setFavorites(previous=>{const next=new Set(previous);const id=String(eventId);if(next.has(id))next.delete(id);else next.add(id);try{localStorage.setItem(FAVORITES_KEY,JSON.stringify([...next]));}catch{}return next;});}
+ async function toggleFavorite(eventId){
+  const id=String(eventId);
+  const selected=!favorites.has(id);
+  const next=new Set(favorites);
+  if(selected)next.add(id);else next.delete(id);
+  setFavorites(next);
+  try{localStorage.setItem(FAVORITES_KEY,JSON.stringify([...next]));}catch{}
+  try{
+   const session=JSON.parse(localStorage.getItem('meets_user_session_v1')||'null');
+   if(session?.access_token){
+    const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:selected?'add':'remove',token:session.access_token,eventId:id})});
+    if(!response.ok)throw Error('Neizdevās saglabāt kontā.');
+   }
+  }catch{/* Local favorites remain available until account session is renewed. */}
+ }
  function calendarDownload(event){
   const from=String(event.date_from||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(from))return;
   const escapeIcs=value=>String(value||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
