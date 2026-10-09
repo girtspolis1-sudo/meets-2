@@ -1897,3 +1897,15 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .meets-organizer-review-head p,.meets-organizer-review-card p{margin:0;color:#64748b;font-size:13px}
 .meets-organizer-review-card .meets-organizer-grid{max-width:460px}
 @media(max-width:570px){.meets-organizer-page{padding:18px 12px 50px}.meets-organizer-form{padding:15px}.meets-organizer-grid{grid-template-columns:1fr}.meets-organizer-review-head{flex-wrap:wrap}.meets-organizer-bar select{width:100%;min-width:0}}
+
+/* Dedicated organizer enrollment: two clear entry points */
+.meets-register-kind-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:900px;margin:32px 0}
+.meets-register-kind{display:flex;flex-direction:column;align-items:flex-start;gap:12px;text-align:left;border:1px solid #ded6ec;border-radius:19px;background:#fff;padding:26px;min-height:230px;color:#24143c;cursor:pointer;box-shadow:0 7px 24px rgba(38,14,65,.035);transition:border-color .15s,transform .15s}
+.meets-register-kind:hover,.meets-register-kind:focus-visible{border-color:#8b5cf6;transform:translateY(-2px);outline-offset:3px}
+.meets-register-kind-icon{font-size:36px;color:#6d28d9;line-height:1}
+.meets-register-kind strong{font-size:19px}
+.meets-register-kind small{font-size:13px;line-height:1.5;color:#64748b}
+.meets-register-kind-arrow{margin-top:auto;font-weight:650;font-size:13px;color:#6d28d9}
+.meets-register-back{max-width:1080px;margin:12px auto 0;padding:0 20px}
+.meets-schedule-choice{display:grid;gap:12px}
+@media(max-width:650px){.meets-register-kind-grid{grid-template-columns:1fr;gap:12px}.meets-register-kind{min-height:170px;padding:20px}.meets-register-kind strong{font-size:17px}}
