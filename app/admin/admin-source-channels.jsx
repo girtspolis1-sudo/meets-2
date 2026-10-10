@@ -75,6 +75,11 @@ export default function AdminSourceChannels({sources,events,onToggle,onEdit,onPu
        </div>
        <a href={source.calendar_url||('https://'+source.domain)} target="_blank" rel="noreferrer">{source.domain} ↗</a>
        <small>Aktuāli: {source.current_event_count??0} · publicēti: {source.published_event_count??0} · kopā sasaistīti: {source.event_count??0}</small>
+       {source.municipality_id&&source.last_read_at&&<small className="source-channel-refresh-meta">
+        ↻ Pārlasīts: {new Intl.DateTimeFormat('lv-LV',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Riga'}).format(new Date(source.last_read_at))}
+        {' · '}Jauni: <strong>{source.last_result?.new??0}</strong>
+        {source.last_status==='partial'&&<span className="source-channel-refresh-warning"> · Avotā notikumi nav atrasti</span>}
+       </small>}
       </div>
       <label className="source-channel-switch">
        <input
