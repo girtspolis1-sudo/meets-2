@@ -1995,3 +1995,8 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .admin-register-dates{display:grid;gap:3px}
 .admin-register-dates input{min-height:29px;padding:3px 5px;font-size:10px}
 .admin-register-table thead .admin-register-filters th{vertical-align:top}
+
+/* Municipality source refresh status */
+.source-channel-refresh-meta{display:block;color:#475569;margin-top:4px;font-size:11px;line-height:1.4}
+.source-channel-refresh-meta strong{font-variant-numeric:tabular-nums;color:#166534}
+.source-channel-refresh-warning{color:#9a3412}
