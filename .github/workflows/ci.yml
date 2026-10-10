@@ -67,15 +67,18 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium
 
-      - name: Start development server
+      - name: Build testable production bundle
+        run: npm run build
+
+      - name: Start production server
         run: |
-          npm run dev > /tmp/meets-ux-dev.log 2>&1 &
-          echo $! > /tmp/meets-ux-dev.pid
+          npm run start > /tmp/meets-ux-app.log 2>&1 &
+          echo $! > /tmp/meets-ux-app.pid
           for i in $(seq 1 80); do
             if curl -fsS http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
             sleep 2
           done
-          tail -100 /tmp/meets-ux-dev.log
+          tail -100 /tmp/meets-ux-app.log
           exit 1
 
       - name: Verify mobile interfaces
