@@ -5,7 +5,7 @@ import PersonalMap from './personal-map.jsx';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,eventGroup} from '../../lib/home-category-filters.js';
 import {coordinates,navigationLinks,rigaDate,eventOverlapsDate,recommendEvents,icsContent} from '../../lib/meets-personal.js';
 
-const DEFAULT={interests:[],reminders:[],notices:[],follows:[],shared:null,directory:{organizations:[],venues:[]},followedEvents:[],savedDetails:[]};
+const DEFAULT={interests:[],reminders:[],notices:[],follows:[],shared:null,directory:{organizations:[],venues:[],sources:[]},followedEvents:[],savedDetails:[]};
 async function request(body){
  const res=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
  const data=await res.json();if(!res.ok)throw new Error(data.error||'Darbība neizdevās.');return data;
@@ -165,16 +165,17 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
    </section>}
    {view==='following'&&<section className="meets-personal-follows">
     <h2>Seko organizatoriem un norises vietām</h2>
-    <p className="meets-muted">Šeit pieejami MEETS organizatori un vietas, kam ir publicēti pasākumi. Sekošana jaunumus parāda tavā kontā.</p>
+    <p className="meets-muted">Seko MEETS organizatoriem, vietām un publiskajiem pasākumu avotiem, piemēram, pašvaldībām vai sporta federācijām.</p>
     <input aria-label="Meklēt organizatorus vai norises vietas" placeholder="Meklēt organizatoru vai vietu…" value={followQuery} onChange={e=>setFollowQuery(e.target.value)}/>
     <div className="meets-personal-follow-list">
      {[
       ...(extra.directory.organizations||[]).map(x=>({...x,kind:'organization'})),
-      ...(extra.directory.venues||[]).map(x=>({...x,kind:'venue'}))
+      ...(extra.directory.venues||[]).map(x=>({...x,kind:'venue'})),
+      ...(extra.directory.sources||[]).map(x=>({...x,kind:'source'}))
      ].filter(x=>x.name.toLocaleLowerCase('lv').includes(followQuery.toLocaleLowerCase('lv'))).map(x=>{
       const active=extra.follows.some(f=>f.target_id===x.id&&f.target_kind===x.kind);
       return <div className="meets-personal-follow-row" key={x.kind+x.id}>
-       <span>{x.kind==='venue'?'⌖':'♙'} <strong>{x.name}</strong><small>{x.kind==='venue'?'Norises vieta':'Organizators'}</small></span>
+       <span>{x.kind==='venue'?'⌖':x.kind==='source'?'◈':'♙'} <strong>{x.name}</strong><small>{x.kind==='venue'?'Norises vieta':x.kind==='source'?'Pasākumu avots':'Organizators'}</small></span>
        <button disabled={saving} className={active?'selected':''} onClick={()=>mutate({action:'follow',targetId:x.id,targetKind:x.kind,enabled:!active},async()=>{
         setExtra(p=>({...p,follows:active?p.follows.filter(f=>!(f.target_id===x.id&&f.target_kind===x.kind)):[...p.follows,{target_id:x.id,target_kind:x.kind}]}));
         try{await reload();}catch{}
@@ -182,7 +183,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
       </div>;
      })}
     </div>
-    {!extra.directory.organizations?.length&&!extra.directory.venues?.length&&<p className="meets-muted">Pagaidām nav publicētu MEETS organizatoru profilu. Šeit tie parādīsies pēc pirmo organizatoru pasākumu apstiprināšanas.</p>}
+    {!extra.directory.organizations?.length&&!extra.directory.venues?.length&&!extra.directory.sources?.length&&<p className="meets-muted">Pagaidām nav avotu ar publiskiem pasākumiem.</p>}
     <h2>Jaunie pasākumi no sekotajiem</h2>{following.length?cardEvents(following):<p className="meets-muted">Pagaidām nav jaunu publicētu pasākumu no izvēlētajiem organizatoriem un vietām.</p>}
    </section>}
   </>}
