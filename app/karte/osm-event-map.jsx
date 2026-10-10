@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
+import {groupedMapIcon} from '../../lib/event-map-icons.js';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel,display} from '../../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaTodayIso} from '../../lib/event-date.js';
@@ -22,16 +23,6 @@ const RADIUS_OPTIONS=[5,10,25,30,50,0];
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function norm(v=''){return String(v).toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
-function markerGlyph(type){return type==='lff'?'⚽':type==='basketball'?'🏀':type==='athletics'?'🏃':'📅';}
-function eventGlyph(e){
- const type=sourceType(e);
- if(type!=='municipality')return markerGlyph(type);
- const generic=String(e?.event_type||'');
- return ({
-  concert:'♫',cinema:'🎬',performance:'🎭',exhibition:'◆',market:'●',
-  workshop:'✦',education:'✎',health:'✚',community:'★',government:'◆'
- })[generic]||'●';
-}
 function markerTimeText(e,now){
  const state=eventDateState(e,rigaTodayIso(now),now);
  if(state.tone==='today'||state.tone==='ended-today')return 'ŠODIEN';
@@ -39,7 +30,6 @@ function markerTimeText(e,now){
  if(Number.isFinite(state.days)&&state.days>1)return state.days+' d.';
  return state.badge||'—';
 }
-function markerTypeLabel(type){return type==='lff'?'Futbols':type==='basketball'?'Basketbols':type==='athletics'?'Vieglatlētika':'Pasākums';}
 function sourceLabel(e){
  const type=sourceType(e);
  if(type==='lff')return e.competition_name?('LFF · '+e.competition_name):'LFF · Futbols';
@@ -103,10 +93,6 @@ function closestFirst(events){
   const xa=Math.abs(da-today),xb=Math.abs(db-today);
   return xa-xb||da-db||String(a.title).localeCompare(String(b.title),'lv');
  });
-}
-function groupType(events){
- const types=[...new Set(events.map(sourceType))];
- return types.length===1?types[0]:'municipality';
 }
 function groupPosition(group,indexByCoordinate){
  let lat=group.lat,lon=group.lon;
@@ -547,9 +533,8 @@ export default function OsmEventMap(){
    const activeInGroup=group.events.filter(e=>activeIds.has(e.id));
    const isActive=activeInGroup.length>0;
    const chosenEvents=isActive?activeInGroup:group.events;
-   const type=groupType(chosenEvents),typeLabel=markerTypeLabel(type);
    const nearest=closestFirst(chosenEvents)[0]||chosenEvents[0];
-   const glyph=eventGlyph(nearest);
+   const {glyph,label:typeLabel}=groupedMapIcon(chosenEvents);
    const dateState=eventDateState(nearest,rigaTodayIso(clockNow),clockNow);
    const dateTone=dateState.tone;
    const shownCount=isActive?activeInGroup.length:group.events.length;
@@ -559,7 +544,7 @@ export default function OsmEventMap(){
    const timeText=markerTimeText(nearest,clockNow);
    const html='<span class="event-drop-marker '+esc(dateTone)+(dimmed?' dimmed':'')+'" title="'+esc(typeLabel)+' · '+esc(timeText)+'">'+
      '<span class="event-drop-time">'+esc(timeText)+'</span>'+
-     '<span class="event-drop-icon" aria-hidden="true">'+glyph+'</span>'+
+     '<span class="event-drop-icon" aria-hidden="true">'+esc(glyph)+'</span>'+
      (grouped?'<span class="event-drop-count">'+shownCount+'</span>':'')+
    '</span>';
    const icon=L.divIcon({className:'event-drop-marker-wrap',html,iconSize:[size,size+12],iconAnchor:[size/2,size+10]});
