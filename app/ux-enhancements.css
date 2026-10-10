@@ -191,3 +191,26 @@
  .admin-mapping-mobile-card small{color:var(--muted)}
  .admin-mapping-mobile-card .button{width:100%;justify-content:center}
 }
+
+/* Public event discovery filters */
+.catalog-card-filters{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+ gap:11px;margin:16px 0 12px;padding:15px;
+ border:1px solid var(--border);border-radius:14px;background:#fff
+}
+.catalog-card-filters label{display:grid;align-content:start;gap:7px;color:#5d4e66;font-size:12px;font-weight:800;min-width:0}
+.catalog-card-filters input,.catalog-card-filters select{min-height:44px;font-size:13px;width:100%;min-width:0}
+@media(max-width:1050px){.catalog-card-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:640px){.catalog-card-filters{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:9px}.catalog-card-filters label:nth-child(2){grid-column:span 2}}
+@media(max-width:340px){.catalog-card-filters{grid-template-columns:minmax(0,1fr)}.catalog-card-filters label:nth-child(2){grid-column:auto}}
+/* Keep temporal indicators consistent across marker and popup variants. */
+.event-drop-marker.today:not(.dimmed){
+ background:linear-gradient(180deg,#37a96d 0%,#2f8f57 65%,#246e44 100%);
+ box-shadow:0 0 0 2px rgba(47,143,87,.20),0 5px 14px rgba(30,92,61,.20)
+}
+.event-drop-marker.today .event-drop-icon,.event-drop-marker.today .event-drop-count{color:#26794b}
+.event-drop-marker.ended-today:not(.dimmed){
+ background:linear-gradient(180deg,#d75e5e 0%,#c54242 65%,#a73232 100%);
+ box-shadow:0 0 0 2px rgba(197,66,66,.18),0 5px 14px rgba(100,32,32,.20)
+}
+.event-drop-marker.ended-today .event-drop-icon,.event-drop-marker.ended-today .event-drop-count{color:#a73232}
