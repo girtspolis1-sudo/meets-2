@@ -215,19 +215,19 @@ export default function OsmEventMap(){
   router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
  }
 
- const [eventTypes,setEventTypes]=useState([]);
- const [competition,setCompetition]=useState('');
- const [category,setCategory]=useState('');
- const [eventSearch,setEventSearch]=useState('');
- const [price,setPrice]=useState('');
- const [municipality,setMunicipality]=useState('');
- const [country,setCountry]=useState('');
- const [from,setFrom]=useState('');
- const [to,setTo]=useState('');
+ const [eventTypes,setEventTypes]=useState(()=>searchParams.get('types')?.split(',').filter(x=>['municipality','lff','basketball','athletics'].includes(x))||[]);
+ const [competition,setCompetition]=useState(searchParams.get('competition')||'');
+ const [category,setCategory]=useState(searchParams.get('subcategory')||'');
+ const [eventSearch,setEventSearch]=useState(searchParams.get('q')||'');
+ const [price,setPrice]=useState(searchParams.get('price')||'');
+ const [municipality,setMunicipality]=useState(searchParams.get('municipality')||'');
+ const [country,setCountry]=useState(searchParams.get('country')||'');
+ const [from,setFrom]=useState(searchParams.get('from')||'');
+ const [to,setTo]=useState(searchParams.get('to')||'');
  const [radiusKm,setRadiusKm]=useState(()=>{const q=Number(searchParams.get('radius'));return [0,5,10,25,30,50].includes(q)?q:0;});
  const [periodMode,setPeriodMode]=useState(()=>['today','tomorrow','3days','week','month','manual'].includes(searchParams.get('period'))?searchParams.get('period'):'week');
  const [filtersOpen,setFiltersOpen]=useState(false);
- const [mapStyle,setMapStyle]=useState('positron');
+ const [mapStyle,setMapStyle]=useState(()=>Object.hasOwn(MAP_STYLES,searchParams.get('style'))?searchParams.get('style'):'positron');
  const [userLocation,setUserLocation]=useState(DEFAULT_LOCATION);
 
  const [favorites,setFavorites]=useState(()=>new Set());
@@ -247,7 +247,10 @@ export default function OsmEventMap(){
 
  useEffect(()=>{
   try{
-   const saved=window.localStorage.getItem(LOCATION_CHOICE_KEY);
+   const sharedLat=Number(searchParams.get('lat')),sharedLon=Number(searchParams.get('lon'));
+   const hasShared=searchParams.has('lat')&&searchParams.has('lon')&&Number.isFinite(sharedLat)&&Number.isFinite(sharedLon)&&insideBalticView(sharedLat,sharedLon);
+   if(hasShared){setUserLocation({lat:sharedLat,lon:sharedLon,label:'Izvēlētā vieta',source:'shared'});setLocationQuery('Izvēlētā vieta');}
+   const saved=hasShared?null:window.localStorage.getItem(LOCATION_CHOICE_KEY);
    if(saved){const location=JSON.parse(saved);if(Number.isFinite(location.lat)&&Number.isFinite(location.lon)&&insideBalticView(location.lat,location.lon)){setUserLocation(location);setLocationQuery(location.label);}}
   }catch{/* Default to browsing all locations without a permission prompt. */}
   try{const ids=JSON.parse(window.localStorage.getItem(FAVORITES_KEY)||'[]');if(Array.isArray(ids))setFavorites(new Set(ids.map(String)));}catch{/* Browser storage can be disabled. */}
@@ -268,6 +271,7 @@ export default function OsmEventMap(){
    }
   }catch{/* Local favorites remain available until account session is renewed. */}
  }
+ function chooseRiga(){setUserLocation(DEFAULT_LOCATION);setRadiusKm(0);setLocationQuery(DEFAULT_LOCATION.label);setLocationResults([]);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(DEFAULT_LOCATION));}catch{}}
  function calendarDownload(event){
   const from=String(event.date_from||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(from))return;
   const escapeIcs=value=>String(value||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
@@ -288,6 +292,23 @@ export default function OsmEventMap(){
  const publicFrom=data?.window?.from||'';
  const publicTo=data?.window?.to||'';
  const events=useMemo(()=>((data?.events)||[]).filter(event=>!hasEventEnded(event)),[data]);
+ // Keep the discovery state in the address bar so a filtered map can be shared.
+ // Exact browser GPS coordinates are deliberately never written into a URL.
+ useEffect(()=>{
+  const url=new URL(window.location.href);
+  const params=url.searchParams;
+  const state={radius:radiusKm>0?String(radiusKm):'',period:periodMode==='week'?'':periodMode,
+   types:eventTypes.join(','),competition,subcategory:category,q:eventSearch,price,municipality,country,
+   from:periodMode==='manual'?from:'',to:periodMode==='manual'?to:'',style:mapStyle==='positron'?'':mapStyle};
+  for(const [key,value] of Object.entries(state)){if(value)params.set(key,value);else params.delete(key);}
+  if(['search','events','shared'].includes(userLocation?.source)&&insideBalticView(userLocation.lat,userLocation.lon)){
+   params.set('lat',String(Number(userLocation.lat.toFixed(4))));
+   params.set('lon',String(Number(userLocation.lon.toFixed(4))));
+  }else{params.delete('lat');params.delete('lon');}
+  const next=url.pathname+(params.size?'?'+params.toString():'')+url.hash;
+  if(next!==window.location.pathname+window.location.search+window.location.hash)window.history.replaceState(null,'',next);
+ },[radiusKm,periodMode,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,mapStyle,userLocation]);
+
 
  useEffect(()=>{
   let cancelled=false;
@@ -325,7 +346,7 @@ export default function OsmEventMap(){
  useEffect(()=>{
   if(defaultsSetRef.current||!publicFrom)return;
   defaultsSetRef.current=true;
-  const next=periodDates(periodMode,rigaTodayIso(clockNow),publicTo,'','');
+  const next=periodDates(periodMode,rigaTodayIso(clockNow),publicTo,from,to);
   setFrom(next.from);setTo(next.to);
  },[publicFrom,publicTo]);
 
@@ -617,13 +638,14 @@ export default function OsmEventMap(){
    const circle=L.circle(center,{pane:'centerPane',radius:radiusKm*1000,color:'#7f00ff',weight:1.1,opacity:.62,fillColor:'#b56cff',fillOpacity:.018,interactive:false}).addTo(focus);
    map.fitBounds(circle.getBounds(),{padding:[45,45],maxZoom:13,animate:false});
   }else{
-   map.setView(center,11,{animate:false});
+   if(userLocation.source==='fallback')map.fitBounds([[54.5,19.5],[59.5,29.5]],{animate:false,padding:[25,25]});
+   else map.setView(center,11,{animate:false});
   }
  },[mapReady,userLocation,radiusKm]);
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;leafletRef.current=null;},[]);
 
- const advancedFilterCount=[homeCategory,audience,radiusKm!==30,periodMode!=='week',eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
+ const advancedFilterCount=[homeCategory,audience,radiusKm>0,periodMode!=='week',eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
   {value:'municipality',label:'Pašvaldības',glyph:'📅'},
@@ -669,7 +691,7 @@ export default function OsmEventMap(){
  function selectLocation(place){
   setUserLocation({lat:Number(place.latitude),lon:Number(place.longitude),label:place.displayName||place.label,source:place.local?'events':'search'});
   if(place.eventTitle)setEventSearch(place.eventTitle);
-  setLocationQuery(place.eventTitle||place.displayName||place.label);setLocationResults([]);setLocationMessage('');
+  setRadiusKm(30);setLocationQuery(place.eventTitle||place.displayName||place.label);setLocationResults([]);setLocationMessage('');
  }
  async function searchLocation(){
   const q=locationQuery.trim();
@@ -837,7 +859,7 @@ export default function OsmEventMap(){
      <strong>{place.label||place.displayName}</strong><span>{place.displayName||place.label}</span>
     </button>)}
    </div>}
-   {locationMessage&&<div className="map-location-message">{locationMessage}</div>}
+   {locationMessage&&<div className="map-location-message" role="status">{locationMessage}</div>}
 
    <div ref={mapEl} className="osm-map" aria-label="Pasākumu karte"/>
    {mapMode==='raster'&&<div className="map-fallback-note" role="status">Rastra rezerves karte</div>}
@@ -857,7 +879,7 @@ export default function OsmEventMap(){
   </div>
 
   {audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">Izvēlētajai auditorijai šajā laikā un rādiusā nav pasākumu ar pārbaudītu piemērotību. Izvēlies citu auditoriju vai maini laiku un rādiusu.</p>}
-  {homeCategory&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">
+  {homeCategory&&!audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">
    {HOME_CATEGORY_FILTERS[homeCategory].emptyMessage||'Šajā kategorijā izvēlētajā laikā un rādiusā pasākumi nav atrasti. Maini datumu vai rādiusu, vai noņem kategorijas filtru.'}
   </p>}
   <div className="map-summary">
