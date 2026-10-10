@@ -420,6 +420,26 @@ export default function OsmEventMap(){
   return true;
  },[homeCategory,audience,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
 
+ const catalogHref=useMemo(()=>{
+  const params=new URLSearchParams();
+  if(homeCategory)params.set('category',homeCategory);
+  if(audience)params.set('audience',audience);
+  if(eventTypes.length)params.set('types',eventTypes.join(','));
+  if(competition)params.set('competition',competition);
+  if(category)params.set('subcategory',category);
+  if(eventSearch)params.set('q',eventSearch);
+  if(price)params.set('price',price);
+  if(municipality)params.set('municipality',municipality);
+  if(country)params.set('country',country);
+  if(radiusKm)params.set('radius',String(radiusKm));
+  if(periodMode!=='week')params.set('period',periodMode);
+  if(periodMode==='manual'){if(from)params.set('from',from);if(to)params.set('to',to);}
+  if(['search','events','shared'].includes(userLocation?.source)&&insideBalticView(userLocation.lat,userLocation.lon)){
+   params.set('lat',String(Number(userLocation.lat.toFixed(4))));
+   params.set('lon',String(Number(userLocation.lon.toFixed(4))));
+  }
+  return '/pasakumi'+(params.size?'?'+params.toString():'');
+ },[homeCategory,audience,eventTypes,competition,category,eventSearch,price,municipality,country,radiusKm,periodMode,from,to,userLocation]);
  const activeEvents=useMemo(()=>events.filter(matchesEvent),[events,matchesEvent]);
  const activeIds=useMemo(()=>new Set(activeEvents.map(e=>e.id)),[activeEvents]);
  const mapEvents=useMemo(()=>events.filter(e=>matchesHomeCategory(e,homeCategory)&&matchesAudience(e,audience)&&Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))&&isSupportedMapEvent(e)&&insideBalticView(Number(e.latitude),Number(e.longitude))),[events,homeCategory,audience]);
@@ -909,7 +929,7 @@ export default function OsmEventMap(){
    {from&&to?' · '+from+'–'+to:''}
    <button className="text-button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Pārlasīt'}</button>
    <button className="text-button" type="button" onClick={()=>{navigator.clipboard?.writeText(window.location.href).then(()=>setLocationMessage('Atlases saite nokopēta.'),()=>setLocationMessage('Nokopē saiti no pārlūka adreses joslas.'));}}>↗ Kopīgot atlasi</button>
-   <a className="text-button" href="/pasakumi">Saraksts ↗</a>
+   <a className="text-button" href={catalogHref}>Saraksts ↗</a>
   </div>
   {error&&<div className="error-message">{error}</div>}
  </>;
