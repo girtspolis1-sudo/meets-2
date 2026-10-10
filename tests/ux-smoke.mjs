@@ -97,8 +97,58 @@ for(const width of cases){
   if(!(await page.getByRole('button',{name:/Kartītes/}).getAttribute('aria-pressed'))?.includes('true')){fails++;console.error('Card view is not active by default');}
   await assertLayout(page,'catalog',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-catalog.png',fullPage:true});
-  await page.goto(base+'/mani-pasakumi',{waitUntil:'domcontentloaded',timeout:45000});
+  // Exercise account location following without touching real user records or production data.
+  let followed=[];
+  await page.route('**/api/account',async route=>{
+   const body=route.request().postDataJSON()||{};
+   if(body.action==='locationFollows')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({locations:followed})});
+   if(body.action==='followLocation'){
+    if(body.enabled)followed=[{location_key:body.locationKey,location_name:body.locationName,municipality:body.municipality}];
+    else followed=followed.filter(x=>x.location_key!==body.locationKey);
+    return route.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'});
+   }
+   if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({favorites:[mockEvent.id],plans:[],visits:[]})});
+   if(body.action==='dashboard')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+    interests:[],reminders:[],notices:[],follows:[],shared:null,
+    directory:{organizations:[],venues:[],sources:[]},followedEvents:[],savedDetails:[],locationFollows:followed
+   })});
+   return route.fulfill({status:400,contentType:'application/json',body:'{"error":"Unsupported test action"}'});
+  });
+  await page.evaluate(()=>localStorage.setItem('meets_user_session_v1',JSON.stringify({
+   access_token:'test-token',refresh_token:'test-refresh',expires_in:3600,
+   expires_at:Date.now()+3600000,user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',email:'test@example.com'}
+  })));
+  await page.reload({waitUntil:'domcontentloaded'});
+  const followButton=page.locator('.catalog-event-card .catalog-follow-place').first();
+  await followButton.waitFor({timeout:15000});
+  await followButton.click();
+  await page.getByText('Tagad seko vietai', {exact:false}).waitFor({timeout:10000});
+  if((await followButton.getAttribute('aria-pressed'))!=='true'){
+   fails++;console.error('Catalog venue follow state was not updated',width);
+  }
+  const place=followed[0];
+  if(!place?.location_key){fails++;console.error('Catalog venue follow did not persist',width);}
+  else{
+   await page.getByLabel('Filtrēt pēc norises vietas').selectOption(place.location_key);
+   if(!(await page.locator('.catalog-event-card').count())){fails++;console.error('Place filtering hides its own events',width);}
+  }
+  await page.goto(base+'/mani-pasakumi?view=following',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.meets-account-page').waitFor({timeout:30000});
+  await page.locator('.meets-followed-venue').first().waitFor({timeout:15000});
+  const accountEvents=await page.locator('.meets-followed-venue').first().innerText();
+  if(!accountEvents.includes('MEETS pārbaudes koncerts')){fails++;console.error('Followed venue misses upcoming event',width);}
+  await page.getByRole('button',{name:'Pārskats'}).click();
+  const accountActions=page.locator('.meets-personal-actions').first();
+  if(await accountActions.count()){
+   const stats=await accountActions.evaluate(element=>{
+    const rects=[...element.querySelectorAll('button')].map(btn=>btn.getBoundingClientRect());
+    return {count:rects.length,widths:rects.map(r=>r.width),tops:rects.map(r=>r.top),right:Math.max(...rects.map(r=>r.right)),max:element.getBoundingClientRect().right};
+   });
+   if(stats.count!==4||Math.max(...stats.widths)-Math.min(...stats.widths)>1||
+     Math.max(...stats.tops)-Math.min(...stats.tops)>1||stats.right>stats.max+1){
+    fails++;console.error('Personal event buttons not equal in one row',width,stats);
+   }
+  }
   await assertLayout(page,'personal',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-personal.png',fullPage:true});
   if(errors.length){fails++;console.error('Client errors',width,errors.slice(0,3));}
