@@ -197,6 +197,10 @@ function minIso(a,b){return !a?b:!b?a:(a<b?a:b);}
 function periodDates(mode,today,windowTo,currentFrom,currentTo){
  if(!today)return {from:currentFrom,to:currentTo};
  if(mode==='today')return {from:today,to:today};
+ if(mode==='tomorrow'){
+  const tomorrow=addDaysIso(today,1);
+  return {from:tomorrow,to:minIso(tomorrow,windowTo)};
+ }
  if(mode==='3days')return {from:today,to:minIso(addDaysIso(today,2),windowTo)};
  if(mode==='month')return {from:today,to:minIso(monthEndIso(today),windowTo)};
  if(mode==='week')return {from:today,to:minIso(weekEndIso(today),windowTo)};
@@ -748,6 +752,7 @@ export default function OsmEventMap(){
       <span>Datums</span>
       <select className="map-compact-select period-select" value={periodMode} onChange={e=>changePeriod(e.target.value)} aria-label="Laika periods">
        <option value="today">Šodien</option>
+       <option value="tomorrow">Rīt</option>
        <option value="3days">3 dienas</option>
        <option value="week">Šonedēļ</option>
        <option value="month">Šomēnes</option>
