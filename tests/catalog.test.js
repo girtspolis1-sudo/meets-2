@@ -5,6 +5,7 @@ import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaClock
 import {createWorkbook} from '../lib/excel.js';
 import {requestedMapMode} from '../lib/leaflet-runtime.js';
 import {eventMapIcon,groupedMapIcon,GENERAL_EVENT_ICON} from '../lib/event-map-icons.js';
+import {coordinates,navigationLinks,rigaDate,eventOverlapsDate,recommendEvents,icsContent} from '../lib/meets-personal.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
 const hasLiveSupabase=process.env.MEETS_LIVE_TESTS==='1'&&Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_PUBLISHABLE_KEY);
@@ -272,4 +273,44 @@ test('shared map pins show neutral icon for mixed event types',()=>{
  assert.equal(groupedMapIcon([concert,concert]).glyph,'🎵');
  assert.equal(groupedMapIcon([concert,sports]).glyph,GENERAL_EVENT_ICON);
  assert.equal(groupedMapIcon([]).glyph,GENERAL_EVENT_ICON);
+});
+
+test('saved events navigate to Google Maps and Waze safely',()=>{
+ const pinpointed={latitude:56.95,longitude:24.10,address_raw:'Rīga'};
+ assert.deepEqual(coordinates(pinpointed),{latitude:56.95,longitude:24.1});
+ const nav=navigationLinks(pinpointed);
+ assert(nav.google.includes('56.95%2C24.1'));
+ assert(nav.waze.includes('navigate=yes'));
+ assert.equal(navigationLinks({address_raw:'Rīga, Latvija'}).waze,null);
+ assert(navigationLinks({address_raw:'Rīga, Latvija'}).google.includes('R%C4%ABga'));
+ assert.equal(coordinates({latitude:null,longitude:null}),null);
+ assert.equal(coordinates({latitude:999,longitude:30}),null);
+});
+
+test('personal calendar retains multi-day events and Latvian date boundaries',()=>{
+ assert.equal(eventOverlapsDate({date_from:'2030-01-01',date_to:'2030-01-04'},'2030-01-03'),true);
+ assert.equal(eventOverlapsDate({date_from:'2030-01-01',date_to:'2030-01-04'},'2030-01-05'),false);
+ assert(/^\d{4}-\d{2}-\d{2}$/.test(rigaDate()));
+});
+
+test('recommendations use opted-in interests without repeating saved events',()=>{
+ const rows=[
+  {id:'concert1',event_type:'concert',date_from:'2035-01-15'},
+  {id:'basket1',event_type:'sports_match',date_from:'2035-01-17'},
+  {id:'concert2',event_type:'concert',date_from:'2035-01-16'},
+  {id:'theatre1',event_type:'performance',date_from:'2035-01-18'}
+ ];
+ assert.deepEqual(recommendEvents(rows,[{category:'music'}],['concert1'],[],6).map(e=>e.id),['concert2']);
+ assert.deepEqual(recommendEvents(rows,[{category:'sport'}],[],['basket1'],6),[]);
+ assert.deepEqual(recommendEvents(rows,[],[],[],6),[]);
+});
+
+test('Apple/Google/Outlook calendar export uses correct dates and escaped content',()=>{
+ const allDay=icsContent({id:'sample',title:'Koncerts, balle',date_from:'2030-04-15',date_to:'2030-04-16'});
+ assert(allDay.includes('DTSTART;VALUE=DATE:20300415'));
+ assert(allDay.includes('DTEND;VALUE=DATE:20300417'));
+ assert(allDay.includes('SUMMARY:Koncerts\\, balle'));
+ const timed=icsContent({id:'sample2',title:'Sports',date_from:'2030-04-15',time_from:'18:30'});
+ assert(timed.includes('DTSTART;TZID=Europe/Riga:20300415T183000'));
+ assert(timed.includes('DTEND;TZID=Europe/Riga:20300415T193000'));
 });
