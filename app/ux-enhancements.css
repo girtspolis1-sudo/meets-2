@@ -182,7 +182,7 @@
 /* Admin mapping: actionable cards on narrow screens, desktop table unchanged */
 .admin-mapping-mobile-cards{display:none}
 @media(max-width:700px){
- .admin-mapping-workspace .admin-mapping-table-wrap{display:none}
+ .admin-mapping-workspace .admin-mapping-mobile-cards + .admin-mapping-table-wrap{display:none}
  .admin-mapping-mobile-cards{display:grid;gap:10px;margin-top:14px}
  .admin-mapping-mobile-card{display:flex;align-items:flex-start;flex-direction:column;gap:12px;
   border:1px solid #e7deec;border-radius:14px;padding:15px;background:#fff}
