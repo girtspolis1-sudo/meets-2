@@ -7,6 +7,7 @@ import AdminMappingList from './admin-mapping-list.jsx';
 import AdminImportHealth from './admin-import-health.jsx';
 import AdminSourceChannels from './admin-source-channels.jsx';
 import AdminUserSubmissions from './admin-user-submissions.jsx';
+import AdminEventRegister from './admin-event-register.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
 
 const SESSION_KEY='meets_admin_access_token';
@@ -172,7 +173,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [search,setSearch]=useState('');
  const [status,setStatus]=useState('');
  const [quality,setQuality]=useState('');
- const [workspaceView,setWorkspaceView]=useState('overview');
+ const [workspaceView,setWorkspaceView]=useState('register');
+ const [focusedSubmissionId,setFocusedSubmissionId]=useState('');
  const [editing,setEditing]=useState(null);
  const [mappingEditing,setMappingEditing]=useState(null);
  const [mappingRuleEditing,setMappingRuleEditing]=useState(null);
@@ -733,6 +735,13 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <button
     type="button"
     role="tab"
+    aria-selected={workspaceView==='register'}
+    className={workspaceView==='register'?'active':''}
+    onClick={()=>setWorkspaceView('register')}
+   >Ierakstu reģistrs <span>{events.length+userSubmissions.filter(item=>item.status!=='published'||!item.event_id).length}</span></button>
+   <button
+    type="button"
+    role="tab"
     aria-selected={workspaceView==='overview'}
     className={workspaceView==='overview'?'active':''}
     onClick={()=>setWorkspaceView('overview')}
@@ -761,10 +770,22 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     aria-selected={workspaceView==='all'}
     className={workspaceView==='all'?'active':''}
     onClick={()=>{setWorkspaceView('all');setQuality('');}}
-   >Aktuālie pasākumi <span>{activeEvents.length}</span></button>
+   >Karte / masveida darbības <span>{activeEvents.length}</span></button>
   </div>
 
   {message&&<p className="sync-text admin-workspace-message" role="status">{message}</p>}
+
+  {workspaceView==='register'&&<AdminEventRegister
+   events={events}
+   submissions={userSubmissions}
+   sources={sources}
+   today={today}
+   onEditEvent={setEditing}
+   onOpenSubmission={item=>{setFocusedSubmissionId(item.id);setWorkspaceView('userSubmissions');}}
+   onPublish={event=>changeStatus(event,'published')}
+   onRefresh={()=>loadEvents()}
+   busy={loading}
+  />}
 
   {workspaceView==='overview'&&<>
    <AdminReviewOverview
@@ -785,7 +806,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <AdminImportHealth health={importHealth}/>
   </>}
 
-  {workspaceView==='userSubmissions'&&<AdminUserSubmissions items={userSubmissions} onReview={reviewUserSubmission} busy={reviewingSubmission}/>}
+  {workspaceView==='userSubmissions'&&<AdminUserSubmissions items={userSubmissions} focusedId={focusedSubmissionId} onReview={reviewUserSubmission} busy={reviewingSubmission}/>}
 
   {workspaceView==='sources'&&<AdminSourceChannels
    sources={sources}
