@@ -1,0 +1,118 @@
+/* MEETS UX 2026 — isolated refinements; keep established brand and map identity. */
+:root{
+ --meets-primary:#7f00ff;--meets-primary-hover:#5b00bd;
+ --meets-success:#2f8f57;--meets-warning:#d4a900;--meets-danger:#c54242;
+ --meets-radius:16px;--meets-touch:44px;
+}
+.header nav a,.button,.catalog-view-switch button,.catalog-event-card-actions a{min-height:44px}
+.header nav a:focus-visible,.button:focus-visible,.catalog-view-switch button:focus-visible{
+ outline:3px solid var(--meets-primary);outline-offset:2px
+}
+.map-controls-overlay{box-shadow:0 10px 32px rgba(33,22,39,.13)}
+.map-quick-settings{min-width:0}
+.map-inline-selected-filters{min-width:0;max-width:100%}
+.map-inline-filter-chip button{min-width:28px;min-height:28px}
+.map-location-results{max-height:min(320px,48dvh);overflow-y:auto}
+.map-no-results{
+ display:flex;flex-direction:column;gap:9px;padding:16px 18px;
+ background:#fff;border:1px solid #e7deec;border-radius:14px;margin:12px 0;
+}
+.map-no-results span{color:var(--muted);font-size:14px}
+.map-no-results>div{display:flex;flex-wrap:wrap;gap:8px}
+.map-no-results .button{min-height:40px}
+.map-summary{padding:12px 0;line-height:1.5}
+.map-summary .text-button{font-size:13px}
+.meets-event-popup .popup-event-copy>strong{
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+ font-size:14px;line-height:1.4
+}
+.meets-event-popup .popup-event-description{
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ max-width:100%;font-size:12px;line-height:1.55;color:var(--muted)
+}
+.meets-event-popup .popup-description details{margin-top:6px}
+.meets-event-popup .popup-description details[open] p{
+ white-space:normal;overflow:visible;max-width:100%;line-height:1.5
+}
+.meets-event-popup .popup-event-actions{
+ display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px
+}
+.meets-event-popup .popup-navigation-link{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:34px;padding:7px 10px;border:1px solid #d9c6e8;
+ border-radius:8px;background:#f7f0ff;color:#5800ad;
+ text-decoration:none;font-size:12px;font-weight:800;
+}
+.meets-event-popup .popup-navigation-link:hover{background:#ede0ff}
+.meets-event-popup .popup-save-calendar,.meets-event-popup .popup-save-favorite{
+ min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center
+}
+.meets-event-popup .popup-event-ended{
+ border-left-color:var(--meets-danger);background:#fff5f4
+}
+.catalog-availability-note{color:var(--muted);font-size:14px;line-height:1.55}
+.catalog-view-switch{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:24px 0 10px}
+.catalog-view-switch button,.catalog-map-shortcut{
+ padding:10px 14px;border:1px solid var(--border);border-radius:11px;
+ background:#fff;font-size:14px;font-weight:700;cursor:pointer
+}
+.catalog-view-switch button.active{background:#f3e8ff;color:#5b00bd;border-color:#b58bdd}
+.catalog-view-switch button:hover,.catalog-map-shortcut:hover{background:#f3e8ff}
+.catalog-map-shortcut{margin-left:auto;display:inline-flex;align-items:center}
+.catalog-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:20px 0}
+.catalog-event-card{
+ background:#fff;border:1px solid #e7deec;border-radius:var(--meets-radius);
+ padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0;
+ box-shadow:0 3px 13px rgba(57,28,80,.045);
+}
+.catalog-event-card:hover{border-color:#c69be9;box-shadow:0 8px 22px rgba(57,28,80,.08)}
+.catalog-event-card-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.catalog-event-card-top time{font-size:12px;color:#5b00bd;background:#f3e8ff;border-radius:7px;padding:6px 9px;font-weight:800}
+.catalog-event-card-top span{font-size:11px;color:var(--muted);text-align:right}
+.catalog-event-card h2{font-size:19px;line-height:1.35;letter-spacing:-.3px;margin:0;overflow-wrap:anywhere}
+.catalog-event-card-location,.catalog-event-card-time{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
+.catalog-event-card-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto}
+.catalog-event-card-actions .button{min-height:40px;padding:8px 11px;font-size:12px;gap:4px}
+.catalog-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}
+.catalog-detail-actions .button{min-height:42px;font-size:13px}
+.home-nearby{margin:18px 0 45px}
+.home-nearby-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+.home-nearby-header h2{font-size:clamp(24px,3vw,34px);letter-spacing:-.6px;margin:0}
+.home-nearby-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.home-nearby-card{background:#fff;padding:18px;border:1px solid var(--border);border-radius:var(--meets-radius);
+ display:flex;flex-direction:column;gap:10px;min-width:0;transition:transform .18s ease,border-color .18s ease}
+.home-nearby-card:hover{transform:translateY(-2px);border-color:#c69be9}
+.home-nearby-date{font-size:12px;color:#5b00bd;font-weight:800}
+.home-nearby-card strong{font-size:17px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.home-nearby-card small{font-size:12px;color:var(--muted);line-height:1.5}
+.home-nearby-card .card-link{padding:0;margin-top:auto}
+.meets-account-tabs{scrollbar-width:thin;scroll-padding-inline:12px}
+.meets-personal-dashboard .meets-account-stats{margin-bottom:22px}
+.meets-personal-overview{display:grid;gap:16px}
+.meets-personal-overview-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.meets-personal-overview-header h2{font-size:20px;line-height:1.3;margin:0}
+.meets-personal-overview .meets-account-list{margin:0}
+.meets-personal-overview .meets-account-empty{margin:0}
+.meets-personal-calendar-grid button:focus-visible,.meets-personal-actions button:focus-visible{
+ outline:3px solid var(--meets-primary);outline-offset:2px
+}
+@media(max-width:1050px){
+ .catalog-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .home-nearby-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+ .catalog-card-grid,.home-nearby-grid{grid-template-columns:1fr}
+ .catalog-event-card{padding:16px}
+ .catalog-view-switch{margin-top:12px}
+ .catalog-view-switch button{flex:1}
+ .catalog-map-shortcut{width:100%;justify-content:center;margin-left:0}
+ .map-shell .leaflet-popup-content{min-width:0;max-height:calc(68dvh - 125px);overflow-y:auto;overscroll-behavior:contain}
+ .map-shell .leaflet-popup-content-wrapper{max-width:calc(100vw - 24px);border-radius:15px}
+ .map-shell .leaflet-popup-close-button{min-width:40px;min-height:40px}
+ .map-controls-overlay{padding:8px}
+ .home-nearby{margin-top:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ .home-nearby-card{transition:none}
+ .home-nearby-card:hover{transform:none}
+}
