@@ -4,6 +4,18 @@ const base='http://127.0.0.1:3000';
 await mkdir('ux-screenshots',{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 const cases=[320,390];
+const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Riga',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const mockEvent={
+ id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',
+ title:'MEETS pārbaudes koncerts',description:'Aktuāls testa pasākums ar detalizētu aprakstu mobilā paneļa pārbaudei.',
+ date_from:today,date_to:today,time_from:'16:00:00',time_to:'19:00:00',
+ event_type:'concert',primary_category:'Koncerts',price_status:'free',status:'published',
+ venue_name:'Rīgas centrs',address_raw:'Rīga, Latvija',
+ municipality:'Rīga',settlement:'Rīga',country_code:'LV',
+ latitude:56.9496,longitude:24.1052,location_precision:'verified',
+ sources:[{source:'test.example',url:'https://example.com/events/test'}],tags:[]
+};
+const mockedCatalog={events:[mockEvent],window:{from:today,to:today},fetchedAt:new Date().toISOString(),competitions:[]};
 let fails=0;
 async function assertLayout(page,name,width){
  const metrics=await page.evaluate(()=>({
@@ -19,10 +31,12 @@ async function assertLayout(page,name,width){
 for(const width of cases){
  const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ await page.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
  try{
   await page.goto(base+'/',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.home-landing').waitFor({timeout:30000});
   if(await page.locator('.meets-location-overlay').count())throw Error('Forced location dialog on homepage');
+  await page.locator('.home-nearby-card').first().waitFor({timeout:15000});
   await assertLayout(page,'home',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-home.png',fullPage:true});
   await page.goto(base+'/karte?period=week',{waitUntil:'domcontentloaded',timeout:45000});
@@ -33,6 +47,16 @@ for(const width of cases){
   const panelBounds=await page.locator('.map-advanced-panel').boundingBox();
   if(!panelBounds||panelBounds.x<-3||panelBounds.x+panelBounds.width>width+3){fails++;console.error('Filter panel clips viewport',width,panelBounds);}
   await page.getByRole('button',{name:'Aizvērt filtrus'}).click();
+  const marker=page.locator('.event-drop-marker-wrap').first();
+  await marker.waitFor({timeout:15000});
+  await marker.click({force:true});
+  await page.locator('.meets-mobile-event-sheet').waitFor({timeout:10000});
+  const sheet=await page.locator('.meets-mobile-event-sheet').boundingBox();
+  if(!sheet||sheet.x<0||sheet.x+sheet.width>width+2||sheet.y+sheet.height>844+2){
+   fails++;console.error('Mobile event sheet outside viewport',width,sheet);
+  }
+  await page.getByRole('button',{name:/Saglabāt|Saglabāts/}).first().click();
+  await page.getByRole('button',{name:'Aizvērt pasākumu informāciju'}).click();
   await assertLayout(page,'map',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-map.png',fullPage:true});
   await page.goto(base+'/pasakumi',{waitUntil:'domcontentloaded',timeout:45000});
