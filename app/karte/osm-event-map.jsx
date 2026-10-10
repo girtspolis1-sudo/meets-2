@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
+import {placeFromEvent} from '../../lib/location-follow.js';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
 import {groupedMapIcon} from '../../lib/event-map-icons.js';
@@ -243,6 +244,7 @@ export default function OsmEventMap(){
  const homeCategory=homeCategoryKey(searchParams.get('category'));
  const audience=audienceKey(searchParams.get('audience'));
  const eventTypeFilter=searchParams.get('event_type')||'';
+ const placeFilter=searchParams.get('place')||'';
  function setDiscoveryFilter(key,value){
   const params=new URLSearchParams(searchParams.toString());
   if(value)params.set(key,value);else params.delete(key);
@@ -430,6 +432,7 @@ export default function OsmEventMap(){
 
  const matchesEvent=useMemo(()=>e=>{
   if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
+  if(placeFilter&&placeFromEvent(e)?.key!==placeFilter)return false;
   if(eventTypeFilter&&e.event_type!==eventTypeFilter)return false;
   if(eventTypes.length&&!eventTypes.includes(sourceType(e)))return false;
   if(competition&&e.competition_key!==competition)return false;
@@ -446,11 +449,12 @@ export default function OsmEventMap(){
    if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radiusKm)return false;
   }
   return true;
- },[homeCategory,audience,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
+ },[homeCategory,audience,placeFilter,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
 
  const catalogHref=useMemo(()=>{
   const params=new URLSearchParams();
   if(homeCategory)params.set('category',homeCategory);
+  if(placeFilter)params.set('place',placeFilter);
   if(audience)params.set('audience',audience);
   if(eventTypeFilter)params.set('event_type',eventTypeFilter);
   if(eventTypes.length)params.set('types',eventTypes.join(','));
@@ -468,10 +472,10 @@ export default function OsmEventMap(){
    params.set('lon',String(Number(userLocation.lon.toFixed(4))));
   }
   return '/pasakumi'+(params.size?'?'+params.toString():'');
- },[homeCategory,audience,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,radiusKm,periodMode,from,to,userLocation]);
+ },[homeCategory,audience,placeFilter,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,radiusKm,periodMode,from,to,userLocation]);
  const activeEvents=useMemo(()=>events.filter(matchesEvent),[events,matchesEvent]);
  const activeIds=useMemo(()=>new Set(activeEvents.map(e=>e.id)),[activeEvents]);
- const mapEvents=useMemo(()=>events.filter(e=>matchesHomeCategory(e,homeCategory)&&matchesAudience(e,audience)&&Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))&&isSupportedMapEvent(e)&&insideBalticView(Number(e.latitude),Number(e.longitude))),[events,homeCategory,audience]);
+ const mapEvents=useMemo(()=>events.filter(e=>matchesHomeCategory(e,homeCategory)&&matchesAudience(e,audience)&&(!placeFilter||placeFromEvent(e)?.key===placeFilter)&&Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))&&isSupportedMapEvent(e)&&insideBalticView(Number(e.latitude),Number(e.longitude))),[events,homeCategory,audience,placeFilter]);
  const locationGroups=useMemo(()=>groupEvents(mapEvents),[mapEvents]);
  const mobileSheetGroup=useMemo(()=>locationGroups.find(g=>g.key===mobileGroupKey)||null,[locationGroups,mobileGroupKey]);
  const activeGroupCount=useMemo(()=>locationGroups.filter(g=>g.events.some(e=>activeIds.has(e.id))).length,[locationGroups,activeIds]);
@@ -713,7 +717,7 @@ export default function OsmEventMap(){
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;leafletRef.current=null;},[]);
 
- const advancedFilterCount=[homeCategory,audience,radiusKm>0,periodMode!=='week',eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
+ const advancedFilterCount=[homeCategory,audience,placeFilter,radiusKm>0,periodMode!=='week',eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
   {value:'municipality',label:'Pašvaldības',glyph:'📅'},
@@ -737,7 +741,7 @@ export default function OsmEventMap(){
   setFrom(next.from);setTo(next.to);
  }
  function resetFilters(){
-  const params=new URLSearchParams(searchParams.toString());params.delete('category');params.delete('audience');params.delete('event_type');
+  const params=new URLSearchParams(searchParams.toString());params.delete('category');params.delete('audience');params.delete('event_type');params.delete('place');
   router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
   setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(0);setMapStyle('positron');setPeriodMode('week');
   {const filterToday=rigaTodayIso(clockNow);const next=periodDates('week',filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
