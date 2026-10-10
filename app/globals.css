@@ -1991,3 +1991,7 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .admin-register-editor-actions{display:flex;gap:9px;flex-wrap:wrap}
 .meets-organizer-review-focused{outline:2px solid #7c3aed;outline-offset:1px}
 @media(max-width:560px){.admin-register-editor{padding:14px;border-radius:12px}.admin-register-editor-grid{grid-template-columns:1fr}.admin-register-modal-backdrop{padding:8px}.admin-register-editor{max-height:calc(100dvh - 16px)}}
+
+.admin-register-dates{display:grid;gap:3px}
+.admin-register-dates input{min-height:29px;padding:3px 5px;font-size:10px}
+.admin-register-table thead .admin-register-filters th{vertical-align:top}
