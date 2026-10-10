@@ -366,3 +366,84 @@
   padding-inline:1px;
  }
 }
+
+
+/* Personal planner: same compact MEETS icons as the event map. */
+.meets-account-stats>div{min-height:102px;align-content:center}
+.meets-account-stats span{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.meets-account-stats svg,.meets-personal-tabs svg{width:16px;height:16px;vertical-align:middle;flex:none}
+.meets-personal-tabs button{display:inline-flex;align-items:center;gap:6px;justify-content:center}
+.meets-personal-event{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.meets-personal-event-top{display:flex;align-items:flex-start;gap:13px;min-width:0}
+.meets-personal-event-main{min-width:0;flex:1}
+.meets-personal-event-bottom{min-width:0;display:grid;gap:12px}
+.meets-personal-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%}
+.meets-personal-actions button{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ width:100%;min-width:0;min-height:58px;height:58px;padding:5px 2px;gap:5px;
+ background:#f8f4fc;border:1px solid #ddc7ed;color:#6900b6;
+ border-radius:12px;white-space:nowrap;font:600 10.5px/1.15 system-ui,-apple-system,sans-serif
+}
+.meets-personal-actions button svg{width:16px;height:16px;flex:none}
+.meets-personal-actions button.chosen{background:#efe3fa;border-color:#aa81cb;color:#59009e}
+.meets-personal-actions button.chosen:first-child svg{fill:currentColor}
+.meets-personal-actions button:focus-visible,.meets-personal-route summary:focus-visible{
+ outline:3px solid #7f00ff;outline-offset:2px
+}
+.meets-personal-links{display:flex;align-items:center;gap:8px}
+.meets-personal-links .meets-personal-route{position:relative;display:inline-block}
+.meets-personal-route>summary,
+.meets-personal-links .meets-personal-external{
+ display:inline-flex;align-items:center;justify-content:center;gap:6px;
+ min-height:44px;padding:9px 13px;border:1px solid #dfc7ed;background:#f8f4fc;
+ border-radius:11px;color:#6900b6;cursor:pointer;font-size:12px;font-weight:700
+}
+.meets-personal-route>summary{list-style:none}
+.meets-personal-route>summary::-webkit-details-marker{display:none}
+.meets-personal-route-list{
+ position:absolute;bottom:calc(100% + 7px);left:0;z-index:12;
+ display:grid;gap:4px;min-width:148px;background:#fff;padding:5px;
+ border:1px solid #dfc7ed;border-radius:12px;
+ box-shadow:0 10px 24px rgba(45,14,83,.15)
+}
+.meets-personal-route-list>a{display:block;min-height:44px;padding:11px}
+.meets-personal-reminder{display:flex;align-items:center;gap:7px}
+.meets-personal-reminder svg{flex:none;width:16px;height:16px}
+.meets-followed-venues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0 26px}
+.meets-followed-venue{min-width:0;display:grid;gap:12px;align-content:start;
+ border:1px solid #e6d6ee;border-radius:15px;background:#fff;padding:16px}
+.meets-followed-venue-head{display:flex;justify-content:space-between;align-items:start;gap:10px;flex-wrap:wrap}
+.meets-followed-venue-head>div{min-width:0;display:grid;gap:5px}
+.meets-followed-venue-head strong{font-size:15px;overflow-wrap:anywhere}
+.meets-followed-venue-head small{font-size:12px;color:var(--muted)}
+.meets-followed-venue>ul{display:grid;gap:9px;margin:0;padding:0;list-style:none}
+.meets-followed-venue>ul li{display:grid;gap:3px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.meets-followed-venue>ul li strong{font-weight:650;font-size:13px}
+.meets-followed-venue>ul li span{font-size:12px;color:var(--muted)}
+.meets-followed-venue>a{font-size:13px;color:#6900b6;font-weight:750}
+.catalog-card-filters{grid-template-columns:repeat(3,minmax(0,1fr))}
+.catalog-follow-info{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+ border:1px solid #dfc7ed;background:#f8f4fc;border-radius:12px;padding:11px 13px;
+ margin:12px 0;font-size:13px;color:#5b3c74}
+.catalog-follow-info a{color:#6900b6;font-weight:700}
+.catalog-event-card-follow{margin-top:auto}
+.catalog-follow-place{
+ display:inline-flex;align-items:center;justify-content:center;gap:5px;
+ min-height:40px;padding:8px 12px;border:1px solid #dfc7ed;background:#f8f4fc;
+ border-radius:11px;font-size:12px;font-weight:750;color:#6900b6;cursor:pointer
+}
+.catalog-follow-place.following{background:#efe3fa;border-color:#aa81cb}
+.catalog-follow-place:disabled{opacity:.6;cursor:wait}
+.catalog-follow-place:focus-visible{outline:3px solid #7f00ff;outline-offset:2px}
+@media(max-width:700px){
+ .meets-followed-venues{grid-template-columns:1fr}
+ .meets-personal-event{padding:12px}
+ .meets-personal-event-top{gap:9px}
+ .meets-personal-actions{gap:4px}
+ .meets-personal-actions button{font-size:10px;padding:4px 1px}
+ .meets-account-stats>div{min-height:90px;padding:12px}
+ .meets-account-stats strong{font-size:26px}
+ .meets-account-stats span{font-size:11px}
+ .catalog-card-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:340px){.catalog-card-filters{grid-template-columns:1fr}.catalog-card-filters label:nth-child(2){grid-column:auto}}
