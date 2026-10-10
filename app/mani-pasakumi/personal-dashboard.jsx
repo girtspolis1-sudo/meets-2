@@ -27,9 +27,11 @@ function EventCard({event,favorites,plans,visits,reminders,busy,onToggle,onRemin
   document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
  return <article className="meets-personal-event">
-  <div className="meets-account-day"><strong>{event.date_from?.slice(8,10)||'—'}</strong><small>{event.date_from?.slice(5,7)||''}.</small></div>
+  <div className="meets-personal-event-top"><div className="meets-account-day"><strong>{event.date_from?.slice(8,10)||'—'}</strong><small>{event.date_from?.slice(5,7)||''}.</small></div>
   <div className="meets-personal-event-main"><h3>{event.title}</h3>
    <p>{[dateText(event.date_from),event.time_from?.slice(0,5),event.venue_name||event.municipality].filter(Boolean).join(' · ')}</p>
+  </div></div>
+  <div className="meets-personal-event-bottom">
    <div className="meets-personal-actions" role="group" aria-label={'Tavas darbības pasākumam '+event.title}>
     <button className={favorites.includes(event.id)?'chosen':''} disabled={busy} aria-pressed={favorites.includes(event.id)} onClick={()=>onToggle(event.id,'favorite')}><HeartIcon/><span>{favorites.includes(event.id)?'Saglabāts':'Saglabāt'}</span></button>
     <button className={plans.includes(event.id)?'chosen':''} disabled={busy} aria-pressed={plans.includes(event.id)} onClick={()=>onToggle(event.id,'plan')}><PlanIcon/><span>Plānoju</span></button>
