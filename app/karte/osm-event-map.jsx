@@ -711,7 +711,7 @@ export default function OsmEventMap(){
   setFrom(next.from);setTo(next.to);
  }
  function resetFilters(){
-  const params=new URLSearchParams(searchParams.toString());params.delete('category');params.delete('audience');
+  const params=new URLSearchParams(searchParams.toString());params.delete('category');params.delete('audience');params.delete('event_type');
   router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
   setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(0);setMapStyle('positron');setPeriodMode('week');
   {const filterToday=rigaTodayIso(clockNow);const next=periodDates('week',filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
