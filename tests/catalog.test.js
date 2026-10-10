@@ -4,6 +4,7 @@ import {display,filterEvents,filterEventsByColumns,initialFilters,publicEvent,sa
 import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaClockMinutes} from '../lib/event-date.js';
 import {createWorkbook} from '../lib/excel.js';
 import {requestedMapMode} from '../lib/leaflet-runtime.js';
+import {eventMapIcon,groupedMapIcon,GENERAL_EVENT_ICON} from '../lib/event-map-icons.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
 const hasLiveSupabase=process.env.MEETS_LIVE_TESTS==='1'&&Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_PUBLISHABLE_KEY);
@@ -232,4 +233,43 @@ test('discovery separates event kind, audience and civic content without title g
  assert(!matchesHomeCategory({event_type:'government'},''));
  assert(matchesHomeCategory({event_type:'government'},'civic'));
  assert(matchesHomeCategory({event_type:'exhibition'},''));
+});
+
+test('map markers use approved MEETS category icons and generic fallback',()=>{
+ const cases=[
+  [{event_type:'concert'},'🎵'],
+  [{event_type:'performance'},'🎭'],
+  [{event_type:'exhibition'},'🖼️'],
+  [{event_type:'sports_match'},'⚽'],
+  [{event_type:'health'},'🌿'],
+  [{event_type:'market'},'🎉'],
+  [{event_type:'workshop'},'💡'],
+  [{event_type:'community'},'🤝'],
+  [{title:'Nezināms notikums'},GENERAL_EVENT_ICON]
+ ];
+ for(const [event,icon] of cases)assert.equal(eventMapIcon(event).glyph,icon,JSON.stringify(event));
+});
+
+test('map marker sports use named icons and do not label a sports film as football',()=>{
+ const cases=[
+  [{governing_body:'LFF',event_type:'sports_match',title:'Spēle'},'⚽'],
+  [{sport_format:'basketball',title:'LJBL'},'🏀'],
+  [{title:'Rudens velobrauciens',primary_category:'Velobrauciens'},'🚴'],
+  [{title:'Riteņbraukšanas sacensības',event_type:'sports_competition'},'🚴'],
+  [{title:'Volejbola sacensības',event_type:'sports_competition'},'🏐'],
+  [{title:'Handbola spēle',event_type:'sports_match'},'🤾'],
+  [{title:'Hokeja spēle',event_type:'sports_match'},'🏒'],
+  [{title:'Tenisa turnīrs',event_type:'sports_competition'},'🎾'],
+  [{title:'Peldēšanas sacensības',event_type:'sports_competition'},'🏊'],
+  [{title:'Rudens skrējiens',event_type:'sports_competition'},'🏃'],
+  [{title:'Mākslas izstāde par futbolu',event_type:'exhibition'},'🖼️']
+ ];
+ for(const [event,icon] of cases)assert.equal(eventMapIcon(event).glyph,icon,JSON.stringify(event));
+});
+
+test('shared map pins show neutral icon for mixed event types',()=>{
+ const concert={event_type:'concert'},sports={sport_format:'basketball'};
+ assert.equal(groupedMapIcon([concert,concert]).glyph,'🎵');
+ assert.equal(groupedMapIcon([concert,sports]).glyph,GENERAL_EVENT_ICON);
+ assert.equal(groupedMapIcon([]).glyph,GENERAL_EVENT_ICON);
 });
