@@ -31,12 +31,21 @@ async function assertLayout(page,name,width){
 for(const width of cases){
  const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
- await page.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
+ await page.route('**/api/events*',route=>{console.log('Mock event request:',route.request().url());return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)});});
  try{
   await page.goto(base+'/',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.home-landing').waitFor({timeout:30000});
   if(await page.locator('.meets-location-overlay').count())throw Error('Forced location dialog on homepage');
-  await page.locator('.home-nearby-card').first().waitFor({timeout:15000});
+  try{await page.locator('.home-nearby-card').first().waitFor({timeout:9000});}
+  catch{
+   fails++;
+   console.error('Missing home event cards',width,{
+    hero:await page.locator('.home-landing').count(),
+    nearby:await page.locator('.home-nearby').count(),
+    body:(await page.locator('body').innerText()).slice(0,1400),
+    errors:errors.slice(0,3)
+   });
+  }
   await assertLayout(page,'home',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-home.png',fullPage:true});
   await page.goto(base+'/karte?period=week',{waitUntil:'domcontentloaded',timeout:45000});
@@ -69,7 +78,7 @@ for(const width of cases){
   await assertLayout(page,'personal',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-personal.png',fullPage:true});
   if(errors.length){fails++;console.error('Client errors',width,errors.slice(0,3));}
- }catch(error){fails++;console.error('Smoke test failed',width,error.message);}
+ }catch(error){fails++;console.error('Smoke test failed',width,error.message,errors.slice(0,3));try{console.error('Body:',(await page.locator('body').innerText()).slice(0,1000));await page.screenshot({path:'ux-screenshots/'+width+'-failure.png',fullPage:true});}catch{}}
  await page.close();
 }
 await browser.close();
