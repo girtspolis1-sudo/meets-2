@@ -349,6 +349,26 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }
  }
 
+ async function saveUserSubmission(values){
+  if(!values?.id)throw new Error('Nav ieraksta identifikatora.');
+  try{
+   await apiFetch(supabaseUrl,publishableKey,'meets_admin_edit_user_submission',{
+    p_session_token:token,
+    p_id:values.id,
+    p_values:{
+     title:values.title,category:values.category,description:values.description,
+     date_from:values.date_from,date_to:values.date_to,time_from:values.time_from,time_to:values.time_to,
+     venue_name:values.venue_name,address:values.address,
+     latitude:values.latitude,longitude:values.longitude
+    }
+   });
+   await loadEvents();
+   setMessage('Pasākuma labojumi saglabāti.');
+  }catch(error){
+   throw new Error('Pasākuma labojumus neizdevās saglabāt. Pārbaudi datumus, adresi un koordinātas.');
+  }
+ }
+
  async function reviewUserSubmission(item,approve,note,latitude=null,longitude=null){
   setReviewingSubmission(true);setMessage('');
   try{
@@ -782,6 +802,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    today={today}
    onEditEvent={setEditing}
    onOpenSubmission={item=>{setFocusedSubmissionId(item.id);setWorkspaceView('userSubmissions');}}
+   onSaveSubmission={saveUserSubmission}
    onPublish={event=>changeStatus(event,'published')}
    onRefresh={()=>loadEvents()}
    busy={loading}
