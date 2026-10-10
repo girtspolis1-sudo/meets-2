@@ -129,7 +129,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
    {[
     ['map','⌖ Karte'],['recommend','✦ Ieteikumi'],['following','♧ Sekoju'],['visited','✓ Apmeklēti']
    ].map(([key,label])=><button type="button" key={key} aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
-  </div>
+  </div>}
   {tabError&&<p className="meets-inline-error" role="alert">{tabError}</p>}
   {message&&<p className="meets-organizer-success" role="status">{message}</p>}
   {loading?<p className="meets-muted">Ielādē pasākumus…</p>:<>
