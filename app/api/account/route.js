@@ -67,18 +67,19 @@ export async function POST(request){
   const own='?user_id=eq.'+encodeURIComponent(user.id);
   if(action==='dashboard'){
    try{
-    const [interests,reminders,notices,follows,shared,directory,followedEvents]=await Promise.all([
+    const [interests,reminders,notices,follows,shared,directory,followedEvents,savedDetails]=await Promise.all([
      rest('meets_user_interests','GET',own+'&select=category'),
      rest('meets_user_reminders','GET',own+'&select=event_id,lead_minutes'),
      rest('meets_user_notifications','GET',own+'&select=id,event_id,message,created_at,read_at&order=created_at.desc&limit=40'),
      rest('meets_user_follows','GET',own+'&select=target_id,target_kind'),
      rest('meets_shared_lists','GET',own+'&select=share_token,is_enabled'),
      rest('rpc/meets_follow_directory','POST','',{}),
-     rest('rpc/meets_followed_event_ids','POST','',{})
+     rest('rpc/meets_followed_event_ids','POST','',{}),
+     rest('rpc/meets_saved_event_details','POST','',{})
     ]);
     return NextResponse.json({interests:interests||[],reminders:reminders||[],notices:notices||[],
      follows:follows||[],shared:shared?.[0]||null,directory:directory||{organizations:[],venues:[]},
-     followedEvents:Array.isArray(followedEvents)?followedEvents:[]});
+     followedEvents:Array.isArray(followedEvents)?followedEvents:[],savedDetails:Array.isArray(savedDetails)?savedDetails:[]});
    }catch{return NextResponse.json({error:'Personīgos iestatījumus neizdevās ielādēt.'},{status:502});}
   }
   if(action==='interest'){
