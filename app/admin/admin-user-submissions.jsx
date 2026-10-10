@@ -1,8 +1,8 @@
 'use client';
 import {useState} from 'react';
-export default function AdminUserSubmissions({items=[],onReview,busy=false}){
+export default function AdminUserSubmissions({items=[],focusedId='',onReview,busy=false}){
  const [notes,setNotes]=useState({}),[coords,setCoords]=useState({});
- const pending=items.filter(x=>x.status==='pending_review');
+ const pending=items.filter(x=>x.status==='pending_review').sort((a,b)=>Number(b.id===focusedId)-Number(a.id===focusedId));
  return <section className="meets-admin-submissions">
   <div className="admin-sheet-intro"><div><p className="eyebrow">Organizatori</p><h2>Lietotāju pasākumi</h2><p>Jaunus pasākumus kartē publicē tikai pēc datu un koordinātu pārbaudes.</p></div></div>
   <div className="meets-organizer-review-list">
@@ -11,7 +11,7 @@ export default function AdminUserSubmissions({items=[],onReview,busy=false}){
     const lat=coords[item.id]?.latitude??(item.latitude??'');
     const lon=coords[item.id]?.longitude??(item.longitude??'');
     const valid=lat!==''&&lon!==''&&Number.isFinite(Number(lat))&&Number.isFinite(Number(lon))&&Number(lat)>=55&&Number(lat)<=59&&Number(lon)>=20&&Number(lon)<=29;
-    return <article key={item.id} className="meets-organizer-review-card">
+    return <article key={item.id} className={'meets-organizer-review-card'+(item.id===focusedId?' meets-organizer-review-focused':'')}>
      <div className="meets-organizer-review-head"><div><h3>{item.title}</h3><p>{item.organization_name} · {item.date_from} {item.time_from||''}</p></div><span className="meets-organizer-status">Jāpārbauda</span></div>
      <p>{item.description||'Nav apraksta.'}</p>
      <p><strong>⌖ {item.venue_name||'Nav vietas'}</strong> — {item.address||'Nav adreses'}</p>
