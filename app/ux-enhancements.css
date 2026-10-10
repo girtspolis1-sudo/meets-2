@@ -141,3 +141,40 @@
  .meets-wizard-preview dl div{grid-template-columns:1fr;gap:3px}
  .meets-wizard-actions .primary{width:100%;margin-left:0;order:-1}
 }
+
+/* Leaflet markers open a touch-friendly fixed bottom sheet at <=700px */
+.meets-mobile-sheet-layer{display:none}
+@media(max-width:700px){
+ .meets-mobile-sheet-layer{display:block;position:fixed;inset:0;z-index:9999}
+ .meets-mobile-sheet-backdrop{position:absolute;inset:0;background:rgba(20,15,31,.35)}
+ .meets-mobile-event-sheet{
+  position:absolute;bottom:0;left:0;right:0;background:#fff;color:var(--text);
+  border-radius:20px 20px 0 0;border:1px solid #e7deec;
+  box-shadow:0 -15px 45px rgba(33,22,39,.20);max-height:min(78dvh,650px);
+  display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom, 0);
+ }
+ .meets-mobile-sheet-handle{height:5px;width:48px;border-radius:100px;background:#ddd2e5;margin:9px auto 6px;flex:none}
+ .meets-mobile-sheet-title{display:flex;gap:16px;justify-content:space-between;align-items:flex-start;padding:10px 16px 14px;border-bottom:1px solid var(--border)}
+ .meets-mobile-sheet-title strong{font-size:17px;line-height:1.35}
+ .meets-mobile-sheet-title small{display:block;color:var(--muted);margin-top:4px}
+ .meets-mobile-sheet-title button{min-height:44px;min-width:44px;border:0;background:#f3e8ff;border-radius:12px;color:#5b00bd;font-weight:900}
+ .meets-mobile-sheet-events{overflow-y:auto;overscroll-behavior:contain;padding:4px 16px 14px;min-height:0}
+ .meets-mobile-sheet-event{padding:15px 0;border-bottom:1px solid var(--border)}
+ .meets-mobile-sheet-event:last-child{border-bottom:0}
+ .meets-mobile-sheet-event.outside{opacity:.68}
+ .meets-mobile-sheet-event-top{display:flex;gap:10px;justify-content:space-between;align-items:center}
+ .meets-mobile-sheet-event-top small{color:var(--muted);font-size:12px}
+ .meets-mobile-sheet-event h3{font-size:18px;line-height:1.35;margin:10px 0 7px;overflow-wrap:anywhere}
+ .meets-mobile-sheet-meta{color:var(--muted);font-size:13px;line-height:1.4;margin:4px 0}
+ .meets-mobile-sheet-description{color:var(--muted);font-size:13px;line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:9px 0}
+ .meets-mobile-sheet-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+ .meets-mobile-sheet-actions button,.meets-mobile-sheet-actions a{
+  font:700 12px/1.2 Arial,Helvetica,sans-serif;display:inline-flex;align-items:center;justify-content:center;
+  min-height:44px;border:1px solid #dfcbea;border-radius:10px;padding:10px 12px;
+  color:#5b00bd;background:#f9f4ff;text-decoration:none
+ }
+ .meets-mobile-sheet-actions [aria-pressed="true"]{background:#f0e1ff;color:#5300a8}
+ .meets-mobile-sheet-outside-label{display:block;font-size:11px;margin-top:6px;color:var(--muted)}
+ .meets-mobile-sheet-actions button:focus-visible,.meets-mobile-sheet-actions a:focus-visible,.meets-mobile-sheet-title button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+}
