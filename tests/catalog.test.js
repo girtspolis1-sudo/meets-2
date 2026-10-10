@@ -5,7 +5,7 @@ import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaClock
 import {createWorkbook} from '../lib/excel.js';
 import {requestedMapMode} from '../lib/leaflet-runtime.js';
 import {eventMapIcon,groupedMapIcon,GENERAL_EVENT_ICON} from '../lib/event-map-icons.js';
-import {coordinates,navigationLinks,rigaDate,eventOverlapsDate,recommendEvents,icsContent} from '../lib/meets-personal.js';
+import {coordinates,navigationLinks,rigaDate,eventOverlapsDate,recommendEvents,icsContent,distanceKm} from '../lib/meets-personal.js';
 import {readEvents} from '../lib/events-server.js';
 import ExcelJS from 'exceljs';
 const hasLiveSupabase=process.env.MEETS_LIVE_TESTS==='1'&&Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_PUBLISHABLE_KEY);
@@ -284,6 +284,7 @@ test('saved events navigate to Google Maps and Waze safely',()=>{
  assert.equal(navigationLinks({address_raw:'Rīga, Latvija'}).waze,null);
  assert(navigationLinks({address_raw:'Rīga, Latvija'}).google.includes('R%C4%ABga'));
  assert.equal(coordinates({latitude:null,longitude:null}),null);
+ assert.equal(coordinates({latitude:56.9,longitude:24.1,location_precision:'municipality_center'}),null);
  assert.equal(coordinates({latitude:999,longitude:30}),null);
 });
 
@@ -313,4 +314,17 @@ test('Apple/Google/Outlook calendar export uses correct dates and escaped conten
  const timed=icsContent({id:'sample2',title:'Sports',date_from:'2030-04-15',time_from:'18:30'});
  assert(timed.includes('DTSTART;TZID=Europe/Riga:20300415T183000'));
  assert(timed.includes('DTEND;TZID=Europe/Riga:20300415T193000'));
+});
+
+test('nearby personalized recommendations require opted-in location and verified coordinates',()=>{
+ const origin={latitude:56.95,longitude:24.1};
+ assert.equal(distanceKm(origin,origin),0);
+ assert(distanceKm(origin,{latitude:57.0,longitude:24.1})<10);
+ const list=[
+  {id:'near',event_type:'concert',date_from:'2035-06-01',latitude:56.96,longitude:24.11},
+  {id:'far',event_type:'concert',date_from:'2035-06-01',latitude:55.9,longitude:26.7},
+  {id:'fallback',event_type:'concert',date_from:'2035-06-01',latitude:56.95,longitude:24.1,location_precision:'municipality_center'}
+ ];
+ assert.deepEqual(recommendEvents(list,['music'],[],[],9,{origin,radiusKm:30}).map(e=>e.id),['near']);
+ assert.deepEqual(recommendEvents(list,['music'],[],[],9).map(e=>e.id),['near','far','fallback']);
 });
