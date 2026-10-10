@@ -44,12 +44,23 @@ function sourceLinksHtml(e){
  const first=links[0];
  return '<a class="popup-source-link" href="'+esc(first.url)+'" target="_blank" rel="noopener noreferrer">Vairāk oficiālajā lapā ↗</a>';
 }
-function shortDescription(value,limit=280){
+function shortDescription(value,limit=170){
  const text=String(value||'').replace(/\s+/g,' ').trim();
  if(!text)return '';
  if(text.length<=limit)return text;
  const cut=text.lastIndexOf(' ',limit);
  return text.slice(0,cut>limit/2?cut:limit).trimEnd()+'…';
+}
+function navigationLinksHtml(e){
+ const accurate=!['municipality_center','settlement_center','unresolved','approximate'].includes(e.location_precision);
+ const lat=Number(e.latitude),lon=Number(e.longitude);
+ const hasPoint=accurate&&e.latitude!=null&&e.longitude!=null&&insideBalticView(lat,lon);
+ const query=hasPoint?lat+','+lon:String(e.address_raw||e.venue_name||'').trim();
+ if(!query)return '';
+ const google='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
+ const waze=hasPoint?'https://waze.com/ul?ll='+encodeURIComponent(lat+','+lon)+'&navigate=yes':'';
+ return '<a class="popup-navigation-link" href="'+esc(google)+'" target="_blank" rel="noopener noreferrer" aria-label="Atvērt pasākuma maršrutu Google Maps">⌖ Maršruts</a>'+
+   (waze?'<a class="popup-navigation-link" href="'+esc(waze)+'" target="_blank" rel="noopener noreferrer">Waze ↗</a>':'');
 }
 function countryLabel(code){return ({LV:'Latvija',EE:'Igaunija',LT:'Lietuva'})[code]||'';}
 function competitionMeta(e){return [e.competition_season,e.competition_group,e.competition_stage,e.age_group].filter(Boolean).join(' · ');}
@@ -135,9 +146,9 @@ function popupHtml(group,activeIds,isAdminSession,now,favorites){
      (compactMeta?'<small>'+esc(compactMeta)+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>':'')+
      (price?'<span class="popup-event-price">'+esc(price)+'</span>':'')+
      (description?'<div class="popup-description"><p class="popup-event-description">'+esc(summary)+'</p>'+
-      (description.length>280?'<details><summary>Pilns apraksts</summary><p class="popup-event-description">'+esc(description)+'</p></details>':'')+'</div>':
+      (description.length>170?'<details><summary>Pilns apraksts</summary><p class="popup-event-description">'+esc(description)+'</p></details>':'')+'</div>':
       '<p class="popup-event-description popup-description-empty">Apraksts nav norādīts.'+(e.sources?.some(s=>s.url)?' Vairāk informācijas pasākuma avotā.':'')+'</p>')+
-     '<div class="popup-event-actions">'+sourceLinksHtml(e)+
+     '<div class="popup-event-actions">'+sourceLinksHtml(e)+navigationLinksHtml(e)+
      '<button type="button" class="popup-save-calendar" data-event-id="'+esc(e.id)+'" title="Pievienot kalendāram" aria-label="Pievienot kalendāram"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15h8M12 13v4"/></svg></button>'+
      '<button type="button" class="popup-save-favorite" data-event-id="'+esc(e.id)+'" aria-label="'+(favorites.has(String(e.id))?'Noņemt no favorītiem':'Pievienot favorītiem')+'" title="'+(favorites.has(String(e.id))?'Noņemt no favorītiem':'Pievienot favorītiem')+'" aria-pressed="'+(favorites.has(String(e.id))?'true':'false')+'"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>'+editLink+'</div>'+
     '</div>'+
@@ -878,6 +889,7 @@ export default function OsmEventMap(){
    </div>
   </div>
 
+  {!loading&&!error&&activeEvents.length===0&&!audience&&!homeCategory&&<div className="map-no-results" role="status"><strong>Šajos filtros pasākumi nav atrasti.</strong><span>Palielini meklēšanas attālumu vai izvēlies plašāku datumu.</span><div><button type="button" className="button compact" onClick={()=>setRadiusKm(0)}>Visa karte</button><button type="button" className="button compact" onClick={()=>changePeriod('month')}>Šomēnes</button><button type="button" className="button compact" onClick={resetFilters}>Notīrīt filtrus</button></div></div>}
   {audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">Izvēlētajai auditorijai šajā laikā un rādiusā nav pasākumu ar pārbaudītu piemērotību. Izvēlies citu auditoriju vai maini laiku un rādiusu.</p>}
   {homeCategory&&!audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">
    {HOME_CATEGORY_FILTERS[homeCategory].emptyMessage||'Šajā kategorijā izvēlētajā laikā un rādiusā pasākumi nav atrasti. Maini datumu vai rādiusu, vai noņem kategorijas filtru.'}
@@ -886,7 +898,9 @@ export default function OsmEventMap(){
    <strong>{activeEvents.length}</strong> atlasīti pasākumi · <strong>{activeGroupCount}</strong> vietas
    {userLocation&&radiusKm>0?' · '+radiusKm+' km no '+userLocation.label:''}
    {from&&to?' · '+from+'–'+to:''}
-   <button className="text-button" onClick={refresh}>{loading?'Ielādē…':'Pārlasīt'}</button>
+   <button className="text-button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Pārlasīt'}</button>
+   <button className="text-button" type="button" onClick={()=>{navigator.clipboard?.writeText(window.location.href).then(()=>setLocationMessage('Atlases saite nokopēta.'),()=>setLocationMessage('Nokopē saiti no pārlūka adreses joslas.'));}}>↗ Kopīgot atlasi</button>
+   <a className="text-button" href="/pasakumi">Saraksts ↗</a>
   </div>
   {error&&<div className="error-message">{error}</div>}
  </>;
