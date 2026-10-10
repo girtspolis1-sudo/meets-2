@@ -25,7 +25,8 @@ function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt
 function norm(v=''){return String(v).toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
 function markerTimeText(e,now){
  const state=eventDateState(e,rigaTodayIso(now),now);
- if(state.tone==='today'||state.tone==='ended-today')return 'ŠODIEN';
+ if(state.tone==='ended-today')return 'BEIDZIES?';
+ if(state.tone==='today')return 'ŠODIEN';
  if(state.tone==='tomorrow')return 'RĪT';
  if(Number.isFinite(state.days)&&state.days>1)return state.days+' d.';
  return state.badge||'—';
@@ -60,7 +61,8 @@ function popupEventType(e){
  return generic&&generic!=='Sporta spēle'?generic:(generic||'');
 }
 function popupDayLabel(state){
- if(state.tone==='today'||state.tone==='ended-today')return 'ŠODIEN';
+ if(state.tone==='ended-today')return 'BEIDZIES?';
+ if(state.tone==='today')return 'ŠODIEN';
  if(state.tone==='tomorrow')return 'RĪT';
  if(Number.isFinite(state.days)&&state.days>1)return state.days+' DIENAS';
  return state.badge||'—';
@@ -222,12 +224,12 @@ export default function OsmEventMap(){
  const [country,setCountry]=useState('');
  const [from,setFrom]=useState('');
  const [to,setTo]=useState('');
- const [radiusKm,setRadiusKm]=useState(30);
- const [periodMode,setPeriodMode]=useState('week');
+ const [radiusKm,setRadiusKm]=useState(()=>{const q=Number(searchParams.get('radius'));return [0,5,10,25,30,50].includes(q)?q:0;});
+ const [periodMode,setPeriodMode]=useState(()=>['today','tomorrow','3days','week','month','manual'].includes(searchParams.get('period'))?searchParams.get('period'):'week');
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [mapStyle,setMapStyle]=useState('positron');
  const [userLocation,setUserLocation]=useState(DEFAULT_LOCATION);
- const [showLocationChoice,setShowLocationChoice]=useState(false);
+
  const [favorites,setFavorites]=useState(()=>new Set());
  const [locationQuery,setLocationQuery]=useState(DEFAULT_LOCATION.label);
  const [locationResults,setLocationResults]=useState([]);
@@ -247,11 +249,10 @@ export default function OsmEventMap(){
   try{
    const saved=window.localStorage.getItem(LOCATION_CHOICE_KEY);
    if(saved){const location=JSON.parse(saved);if(Number.isFinite(location.lat)&&Number.isFinite(location.lon)&&insideBalticView(location.lat,location.lon)){setUserLocation(location);setLocationQuery(location.label);}}
-   else setShowLocationChoice(true);
-  }catch{setShowLocationChoice(true);}
+  }catch{/* Default to browsing all locations without a permission prompt. */}
   try{const ids=JSON.parse(window.localStorage.getItem(FAVORITES_KEY)||'[]');if(Array.isArray(ids))setFavorites(new Set(ids.map(String)));}catch{/* Browser storage can be disabled. */}
  },[]);
- function chooseRiga(){setUserLocation(DEFAULT_LOCATION);setLocationQuery(DEFAULT_LOCATION.label);setShowLocationChoice(false);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(DEFAULT_LOCATION));}catch{}}
+
  async function toggleFavorite(eventId){
   const id=String(eventId);
   const selected=!favorites.has(id);
@@ -324,7 +325,7 @@ export default function OsmEventMap(){
  useEffect(()=>{
   if(defaultsSetRef.current||!publicFrom)return;
   defaultsSetRef.current=true;
-  const next=periodDates('week',rigaTodayIso(clockNow),publicTo,'','');
+  const next=periodDates(periodMode,rigaTodayIso(clockNow),publicTo,'','');
   setFrom(next.from);setTo(next.to);
  },[publicFrom,publicTo]);
 
@@ -648,7 +649,7 @@ export default function OsmEventMap(){
  function resetFilters(){
   const params=new URLSearchParams(searchParams.toString());params.delete('category');params.delete('audience');
   router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
-  setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(30);setMapStyle('positron');setPeriodMode('week');
+  setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(0);setMapStyle('positron');setPeriodMode('week');
   {const filterToday=rigaTodayIso(clockNow);const next=periodDates('week',filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
@@ -658,7 +659,7 @@ export default function OsmEventMap(){
    pos=>{
     const lat=pos.coords.latitude,lon=pos.coords.longitude;
     if(!insideBalticView(lat,lon)){chooseRiga();setLocationMessage('Atrašanās vieta ir ārpus Baltijas kartes. Izmantots Rīgas centrs.');return;}
-    const chosen={lat,lon,label:'Mana atrašanās vieta',source:'browser'};setUserLocation(chosen);setShowLocationChoice(false);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(chosen));}catch{}
+    const chosen={lat,lon,label:'Mana atrašanās vieta',source:'browser'};setUserLocation(chosen);setRadiusKm(30);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(chosen));}catch{}
     setLocationQuery('Mana atrašanās vieta');setLocationResults([]);setLocationMessage('');
    },
    ()=>{setLocationMessage('Atrašanās vietu neizdevās noteikt. Izmantots Rīgas centrs.');chooseRiga();},
@@ -696,7 +697,6 @@ export default function OsmEventMap(){
  }
 
  return <>
-  {showLocationChoice&&<div className="meets-location-overlay" role="presentation"><section className="meets-location-dialog" role="dialog" aria-modal="true" aria-labelledby="meets-location-title"><span className="meets-location-symbol" aria-hidden="true">📍</span><h2 id="meets-location-title">Pasākumi Tavā tuvumā</h2><p>Vai vēlies noteikt savu atrašanās vietu, lai atrastu tuvākos pasākumus? Lokācija tiek izmantota tikai kartes attēlošanai.</p><div className="meets-location-dialog-actions"><button type="button" onClick={useCurrentLocation} className="meets-location-accept">Noteikt manu atrašanās vietu</button><button type="button" onClick={chooseRiga} className="meets-location-decline">Turpināt ar Rīgas centru</button></div></section></div>}
   <div className="map-shell">
    <div className="map-controls map-controls-overlay" aria-label="Kartes filtri">
     <div className="map-primary-controls">
@@ -760,12 +760,12 @@ export default function OsmEventMap(){
      <label><span>Ko vēlies darīt?</span><select aria-label="Pasākumu grupa" value={homeCategory} onChange={e=>setDiscoveryFilter('category',e.target.value)}>
       <option value="">Visas atpūtas iespējas</option>
       {HOME_GROUP_KEYS.map(key=><option key={key} value={key}>{HOME_CATEGORY_FILTERS[key].title}</option>)}
-      {homeCategory==='family'&&<option value="family">Ģimenēm</option>}
+      
       <option value="civic">Pašvaldības un līdzdalība</option>
      </select></label>
      <label><span>Kam piemērots?</span><select aria-label="Auditorija" value={audience} onChange={e=>setDiscoveryFilter('audience',e.target.value)}>
       <option value="">Jebkura auditorija</option>
-      {Object.entries(AUDIENCE_FILTERS).map(([key,title])=><option key={key} value={key}>{title}</option>)}
+      {Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key))).map(([key,title])=><option key={key} value={key}>{title}</option>)}
      </select></label>
     </div>
 
@@ -832,7 +832,7 @@ export default function OsmEventMap(){
     </div>}
    </div>
 
-   {locationResults.length>0&&<div className="map-location-results" role="listbox" aria-label="Atrastas vietas">
+   {locationResults.length>0&&<div className="map-location-results" role="group" aria-label="Atrastas vietas">
     {locationResults.map(place=><button key={place.id||place.displayName} type="button" onClick={()=>selectLocation(place)}>
      <strong>{place.label||place.displayName}</strong><span>{place.displayName||place.label}</span>
     </button>)}
