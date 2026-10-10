@@ -21,7 +21,7 @@ function EventCard({event,favorites,plans,visits,reminders,busy,onToggle,onRemin
   const str=icsContent(event);if(!str)return;
   const blob=new Blob([str],{type:'text/calendar;charset=utf-8'});
   const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='meets-'+event.id+'.ics';
-  link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
  return <article className="meets-personal-event">
   <div className="meets-account-day"><strong>{event.date_from?.slice(8,10)||'—'}</strong><small>{event.date_from?.slice(5,7)||''}.</small></div>
