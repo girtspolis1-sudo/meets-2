@@ -21,3 +21,7 @@ drop policy if exists "account unfollows locations" on public.meets_user_locatio
 create policy "account unfollows locations" on public.meets_user_location_follows
  for delete to authenticated using (auth.uid()=user_id);
 grant select,insert,delete on public.meets_user_location_follows to authenticated;
+
+-- Public event discovery remains anonymous; personal subscriptions do not.
+revoke all on public.meets_user_location_follows from anon, public;
+grant select, insert, delete on public.meets_user_location_follows to authenticated;
