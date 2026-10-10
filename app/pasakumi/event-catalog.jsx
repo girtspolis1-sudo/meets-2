@@ -30,26 +30,47 @@ export default function EventCatalog(){
  const [followBusy,setFollowBusy]=useState('');
  const [followError,setFollowError]=useState('');
  const [followMessage,setFollowMessage]=useState('');
+ async function currentFollowSession(){
+  const session=JSON.parse(localStorage.getItem('meets_user_session_v1')||'null');
+  if(!session?.access_token)return null;
+  if(session.refresh_token&&session.expires_at&&session.expires_at<Date.now()+120000){
+   const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'refresh',token:session.refresh_token}),cache:'no-store'});
+   const next=await response.json();
+   if(!response.ok||!next.access_token)throw Error('Sesija beigusies. Pieslēdzies atkārtoti.');
+   const refreshed={...next,expires_at:Date.now()+Math.max(60,next.expires_in||3600)*1000};
+   localStorage.setItem('meets_user_session_v1',JSON.stringify(refreshed));
+   setFollowSession(refreshed);return refreshed;
+  }
+  return session;
+ }
  useEffect(()=>{
-  try{
-   const session=JSON.parse(localStorage.getItem('meets_user_session_v1')||'null');
-   if(!session?.access_token)return;
-   setFollowSession(session);
-   fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'locationFollows',token:session.access_token}),cache:'no-store'})
-    .then(async res=>{const result=await res.json();if(!res.ok)throw Error(result.error||'Sekošanu neizdevās ielādēt.');return result;})
-    .then(result=>setFollowedPlaces(result.locations||[]))
-    .catch(e=>setFollowError(e.message));
-  }catch{}
+  let alive=true;
+  (async()=>{
+   try{
+    const session=await currentFollowSession();
+    if(!session||!alive)return;
+    setFollowSession(session);
+    const res=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({action:'locationFollows',token:session.access_token}),cache:'no-store'});
+    const data=await res.json();
+    if(!res.ok)throw Error(data.error||'Sekošanu neizdevās ielādēt.');
+    if(alive)setFollowedPlaces(data.locations||[]);
+   }catch(e){if(alive)setFollowError(e.message);}
+  })();
+  return()=>{alive=false;};
  },[]);
+
  async function togglePlace(place){
   if(!place)return;
   if(!followSession?.access_token){setFollowError('Lai sekotu norises vietai, pieslēdzies MEETS kontam.');return;}
   const exists=followedPlaces.some(p=>p.location_key===place.key);
   setFollowBusy(place.key);setFollowError('');setFollowMessage('');
   try{
+   const session=await currentFollowSession();
+   if(!session)throw Error('Pieslēdzies MEETS kontam.');
    const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'followLocation',token:followSession.access_token,locationKey:place.key,
+    body:JSON.stringify({action:'followLocation',token:session.access_token,locationKey:place.key,
       locationName:place.name,municipality:place.municipality,enabled:!exists}),cache:'no-store'});
    const result=await response.json();if(!response.ok)throw Error(result.error||'Sekošanu neizdevās saglabāt.');
    setFollowedPlaces(prev=>exists?prev.filter(p=>p.location_key!==place.key):[...prev,
