@@ -79,7 +79,7 @@ function CalendarView({events,selectedDate,setSelectedDate,month,setMonth,render
  </div>;
 }
 export default function PersonalDashboard({session,favorites,plans,visits,onToggle,busy,events=[],loading}){
- const [view,setView]=useState('favorites'),[extra,setExtra]=useState(DEFAULT),[tabError,setTabError]=useState(''),[message,setMessage]=useState(''),[saving,setSaving]=useState(false);
+ const [view,setView]=useState('overview'),[moreOpen,setMoreOpen]=useState(false),[extra,setExtra]=useState(DEFAULT),[tabError,setTabError]=useState(''),[message,setMessage]=useState(''),[saving,setSaving]=useState(false);
  const [month,setMonth]=useState(rigaDate().slice(0,7)),[selectedDate,setSelectedDate]=useState(rigaDate()),[mapScope,setMapScope]=useState('all'),[followQuery,setFollowQuery]=useState('');
  const [origin,setOrigin]=useState(null),[radius,setRadius]=useState(30),[locationError,setLocationError]=useState('');
  const token=session.access_token;
@@ -94,6 +94,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
  }
  const eventIndex=useMemo(()=>new Map([...(extra.savedDetails||[]).map(e=>[e.id,e]),...events.map(e=>[e.id,e])]),[events,extra.savedDetails]);
  const saved=[...new Set([...favorites,...plans])].map(id=>eventIndex.get(id)).filter(Boolean).sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from)));
+ const upcoming=saved.filter(e=>String(e.date_to||e.date_from||'')>=rigaDate()).slice(0,3);
  const selectedIds=view==='favorites'?favorites:view==='planned'?plans:view==='visited'?visits:[...new Set([...favorites,...plans])];
  const selected=selectedIds.map(id=>eventIndex.get(id)).filter(Boolean).sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from)));
  const mapEvents=mapScope==='favorites'?favorites.map(id=>eventIndex.get(id)).filter(Boolean):mapScope==='planned'?plans.map(id=>eventIndex.get(id)).filter(Boolean):saved;
@@ -118,15 +119,26 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
    {unread.slice(0,5).map(n=><div key={n.id}><span>{n.message}: {eventIndex.get(n.event_id)?.title||'Saglabātais pasākums'}</span>
     <button disabled={saving} onClick={()=>mutate({action:'readNotice',notificationId:n.id},()=>setExtra(p=>({...p,notices:p.notices.map(x=>x.id===n.id?{...x,read_at:new Date().toISOString()}:x)})))}>Izlasīts</button></div>)}
   </div>}
-  <div className="meets-account-tabs meets-personal-tabs" role="tablist" aria-label="Personīgo pasākumu skati">
+  <div className="meets-account-tabs meets-personal-tabs" role="group" aria-label="Personīgo pasākumu skati">
    {[
-    ['favorites','♡ Favorīti'],['planned','▣ Plānoju'],['calendar','▦ Kalendārs'],
-    ['map','⌖ Karte'],['recommend','✦ Ieteikumi'],['following','♧ Sekoju'],['visited','✓ Apmeklēti']
-   ].map(([key,label])=><button role="tab" key={key} aria-selected={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setTabError('');}}>{label}</button>)}
+    ['overview','⌂ Pārskats'],['favorites','♡ Favorīti'],['planned','▣ Plānoju'],['calendar','▦ Kalendārs']
+   ].map(([key,label])=><button key={key} type="button" aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
+   <button type="button" aria-expanded={moreOpen} aria-controls="meets-extra-views" className={['map','recommend','following','visited'].includes(view)?'active':''} onClick={()=>setMoreOpen(v=>!v)}>Vēl ▾</button>
   </div>
+  {moreOpen&&<div className="meets-account-tabs meets-personal-tabs meets-personal-more" id="meets-extra-views" role="group" aria-label="Papildu skati">
+   {[
+    ['map','⌖ Karte'],['recommend','✦ Ieteikumi'],['following','♧ Sekoju'],['visited','✓ Apmeklēti']
+   ].map(([key,label])=><button type="button" key={key} aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
+  </div>}
   {tabError&&<p className="meets-inline-error" role="alert">{tabError}</p>}
   {message&&<p className="meets-organizer-success" role="status">{message}</p>}
   {loading?<p className="meets-muted">Ielādē pasākumus…</p>:<>
+   {view==='overview'&&<section className="meets-personal-overview">
+    <div className="meets-personal-overview-header"><h2>Tavi tuvākie pasākumi</h2><button type="button" className="button compact" onClick={()=>setView('calendar')}>Kalendārs ↗</button></div>
+    {upcoming.length?cardEvents(upcoming):<div className="meets-account-empty"><span>♡</span><h3>Sāc savu pasākumu plānu</h3><p>Saglabā interesējošos pasākumus kartē. Tos atradīsi šeit.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>}
+    <div className="meets-personal-overview-header"><h2>Atklāj ko jaunu</h2><button type="button" className="button compact" onClick={()=>setView('recommend')}>Mani ieteikumi ↗</button></div>
+    <p className="meets-muted">Iestatot intereses, saņemsi pasākumu ieteikumus. Atgādinājumi pagaidām ir redzami tikai šajā kontā.</p>
+   </section>}
    {['favorites','planned','visited'].includes(view)&&list(selected)}
    {view==='calendar'&&<CalendarView events={saved} selectedDate={selectedDate} setSelectedDate={setSelectedDate} month={month} setMonth={setMonth} renderCards={cardEvents}/>}
    {view==='map'&&<><div className="meets-personal-heading-row"><h2>Manu pasākumu karte</h2>

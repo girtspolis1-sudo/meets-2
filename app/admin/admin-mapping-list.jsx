@@ -11,7 +11,7 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
   if(!q)return true;
   return [group.alias,group.municipality,group.countryCode,...group.sources]
    .some(value=>String(value||'').toLocaleLowerCase('lv').includes(q));
- }),[groups,q]);
+ }).sort((a,b)=>b.events.length-a.events.length),[groups,q]);
 
  const filteredMappings=useMemo(()=>mappings.filter(mapping=>{
   if(!q)return true;
@@ -40,12 +40,16 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
    <label>Meklēt vietu vai aliasu
     <input type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="OC Ventspils, Keila Tervisekeskus…"/>
    </label>
-   <div className="mapping-view-tabs" role="tablist" aria-label="Mapping statusi">
-    <button type="button" role="tab" aria-selected={view==='issues'} className={view==='issues'?'active attention':''} onClick={()=>setView('issues')}>Jālabo <span>{groups.length}</span></button>
+   <div className="mapping-view-tabs" role="group" aria-label="Mapping statusi">
+    <button type="button" aria-pressed={view==='issues'} className={view==='issues'?'active attention':''} onClick={()=>setView('issues')}>Jālabo <span>{groups.length}</span></button>
     <button type="button" role="tab" aria-selected={view==='resolved'} className={view==='resolved'?'active success':''} onClick={()=>setView('resolved')}>Sakārtoti <span>{activeMappings.length}</span></button>
    </div>
   </div>
 
+  {view==='issues'&&<div className="admin-mapping-mobile-cards">{filteredGroups.map(group=><article key={group.key} className="admin-mapping-mobile-card">
+    <div><span className="quality-badge bad">Jālabo</span><strong>{group.alias||'Nav adreses'}</strong><small>{group.municipality||group.countryCode||'Konteksts nav noteikts'} · {group.events.length} pasākumi</small></div>
+    <button type="button" className="button primary compact" onClick={()=>group.alias?onMap(group):onEditEvent(group.events[0])}>Labot vietu ↗</button>
+   </article>)}</div>}
   {view==='issues'&&<div className="table-scroll admin-mapping-table-wrap" role="region" aria-label="Neatpazīto adrešu mapping" tabIndex={0}>
    <table className="events-table admin-mapping-table">
     <thead><tr><th>Statuss</th><th>Ielasītais nosaukums</th><th>Konteksts</th><th>Avoti</th><th>Aktuālie pasākumi</th><th>Kvalitāte</th><th>Darbība</th></tr></thead>
