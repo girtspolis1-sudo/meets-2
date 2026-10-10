@@ -60,7 +60,7 @@ export default async function Home(){
    <div className="home-map-stage">
     <HomeMapPreview events={events}/>
     {['music','sport','family','culture'].map(key=>({...HOME_CATEGORY_FILTERS[key],title:({music:'Mūzika',sport:'Sports',family:'Ģimenēm',culture:'Kultūra'})[key],key,href:key==='family'?'/karte?audience=family':'/karte?category='+key})).map(item=><Link key={item.key} className={'home-float-card '+item.key} href={item.href}>
-     <span className="home-card-thumb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={CATEGORY_ICONS[item.key]||CATEGORY_ICONS.culture}/></svg></span>
+     <span className="home-card-thumb" aria-hidden="true">{item.key==='family'?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={CATEGORY_ICONS.family}/></svg>:item.icon}</span>
      <span><strong>{item.title}</strong><small>Atvērt kartē</small></span>
      <b aria-hidden="true">↗</b>
     </Link>)}
