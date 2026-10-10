@@ -89,11 +89,14 @@ const SORTERS={
  source:(a,b)=>a.source.localeCompare(b.source,'lv')
 };
 
-export default function AdminEventRegister({events=[],submissions=[],sources=[],today,onEditEvent,onOpenSubmission,onPublish,onRefresh,busy=false}){
+export default function AdminEventRegister({events=[],submissions=[],sources=[],today,onEditEvent,onOpenSubmission,onSaveSubmission,onPublish,onRefresh,busy=false}){
  const [name,setName]=useState(''),[kindFilter,setKindFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),
   [reasonFilter,setReasonFilter]=useState(''),[sourceFilter,setSourceFilter]=useState(''),[locationQuery,setLocationQuery]=useState(''),
   [period,setPeriod]=useState('current'),[sort,setSort]=useState('date'),[direction,setDirection]=useState('asc'),
   [page,setPage]=useState(1),[pageSize,setPageSize]=useState(50);
+ const [editingSubmission,setEditingSubmission]=useState(null);
+ const [savingSubmission,setSavingSubmission]=useState(false);
+ const [editError,setEditError]=useState('');
  const rows=useMemo(()=>{
   const sourceIndex=new Map(sources.map(s=>[lower(s.domain),s.map_visible!==false]));
   const catalog=events.map(event=>eventRow(event,today,sourceIndex));
@@ -202,7 +205,10 @@ export default function AdminEventRegister({events=[],submissions=[],sources=[],
        {row.kind==='catalog'?<div className="admin-register-row-buttons">
         <button type="button" className="button compact" onClick={()=>onEditEvent(row.raw)} title="Labot adresi un kartes punktu">✎ Labot</button>
         {row.status==='pending_review'&&!row.expired&&row.reasonCode==='waiting'&&<button type="button" className="button primary compact" onClick={()=>onPublish(row.raw)} disabled={busy}>Publicēt</button>}
-       </div>:<button type="button" className="button compact" onClick={()=>onOpenSubmission(row.raw)} title="Atvērt lietotāja iesnieguma pārbaudi">✎ Pārbaudīt</button>}
+       </div>:<div className="admin-register-row-buttons">
+        <button type="button" className="button compact" onClick={()=>{setEditingSubmission({...row.raw,time_from:String(row.raw.time_from||'').slice(0,5),time_to:String(row.raw.time_to||'').slice(0,5),latitude:row.raw.latitude??'',longitude:row.raw.longitude??''});setEditError('');}} title="Labot lietotāja iesnieguma datus">✎ Labot</button>
+        {row.status==='pending_review'&&<button type="button" className="button primary compact" onClick={()=>onOpenSubmission(row.raw)}>Pārbaudīt</button>}
+       </div>}
       </td>
      </tr>)}
      {!shown.length&&<tr><td colSpan={8} className="admin-register-no-results">Nav ierakstu ar izvēlētajiem filtriem. <button type="button" className="text-button" onClick={reset}>Notīrīt filtrus</button></td></tr>}
@@ -217,5 +223,30 @@ export default function AdminEventRegister({events=[],submissions=[],sources=[],
    <button type="button" className="button compact" onClick={()=>setPage(n=>Math.min(pages,n+1))} disabled={shownPage>=pages}>→</button>
   </div>
   <p className="admin-register-footnote">“Publicēts” ir datubāzes statuss. Ja pasākums jau beidzies vai tā avots izslēgts, iemesla kolonna paskaidro, kāpēc tas nav redzams kartē.</p>
+  {editingSubmission&&<div className="admin-register-modal-backdrop" role="presentation">
+   <form role="dialog" aria-modal="true" aria-labelledby="admin-register-editor-title" className="admin-register-editor" onSubmit={async event=>{
+    event.preventDefault();setSavingSubmission(true);setEditError('');
+    try{await onSaveSubmission(editingSubmission);setEditingSubmission(null);}
+    catch(error){setEditError(error?.message||'Labojumu neizdevās saglabāt.');}
+    finally{setSavingSubmission(false);}
+   }}>
+    <div className="admin-register-editor-heading"><h3 id="admin-register-editor-title">Labot pasākumu</h3><button type="button" className="button compact" onClick={()=>setEditingSubmission(null)} disabled={savingSubmission}>× Aizvērt</button></div>
+    <label>Nosaukums *<input required minLength={3} maxLength={200} value={editingSubmission.title||''} onChange={e=>setEditingSubmission(v=>({...v,title:e.target.value}))}/></label>
+    <div className="admin-register-editor-grid">
+     <label>Tips / kategorija<input maxLength={100} value={editingSubmission.category||''} onChange={e=>setEditingSubmission(v=>({...v,category:e.target.value}))}/></label>
+     <label>Datums no *<input type="date" required value={editingSubmission.date_from||''} onChange={e=>setEditingSubmission(v=>({...v,date_from:e.target.value}))}/></label>
+     <label>Datums līdz<input type="date" min={editingSubmission.date_from||undefined} value={editingSubmission.date_to||''} onChange={e=>setEditingSubmission(v=>({...v,date_to:e.target.value}))}/></label>
+     <label>Sākums<input type="time" value={editingSubmission.time_from||''} onChange={e=>setEditingSubmission(v=>({...v,time_from:e.target.value}))}/></label>
+     <label>Beigas<input type="time" value={editingSubmission.time_to||''} onChange={e=>setEditingSubmission(v=>({...v,time_to:e.target.value}))}/></label>
+     <label>Vietas nosaukums<input maxLength={200} value={editingSubmission.venue_name||''} onChange={e=>setEditingSubmission(v=>({...v,venue_name:e.target.value}))}/></label>
+     <label>Adrese<input maxLength={300} value={editingSubmission.address||''} onChange={e=>setEditingSubmission(v=>({...v,address:e.target.value}))}/></label>
+     <label>Platums<input type="number" step="any" value={editingSubmission.latitude} onChange={e=>setEditingSubmission(v=>({...v,latitude:e.target.value}))}/></label>
+     <label>Garums<input type="number" step="any" value={editingSubmission.longitude} onChange={e=>setEditingSubmission(v=>({...v,longitude:e.target.value}))}/></label>
+    </div>
+    <label>Apraksts<textarea rows={3} value={editingSubmission.description||''} onChange={e=>setEditingSubmission(v=>({...v,description:e.target.value}))}/></label>
+    {editError&&<p role="alert" className="meets-inline-error">{editError}</p>}
+    <div className="admin-register-editor-actions"><button className="button primary" type="submit" disabled={savingSubmission}>{savingSubmission?'Saglabā…':'Saglabāt labojumus'}</button><button type="button" className="button" onClick={()=>setEditingSubmission(null)} disabled={savingSubmission}>Atcelt</button></div>
+   </form>
+  </div>}
  </section>;
 }
