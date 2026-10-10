@@ -2073,3 +2073,83 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
  .home-concept-preview{transition:none;}
  .home-concept-preview:hover{transform:none;}
 }
+
+/* MEETS 2 personal event planner — mobile-first, consistent with branded violet UI */
+.meets-personal-dashboard{display:grid;gap:20px;width:100%;min-width:0}
+.meets-personal-dashboard .meets-account-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.meets-personal-dashboard .meets-account-stats>div{min-width:0}
+.meets-personal-tabs{display:flex!important;flex-wrap:nowrap!important;align-items:stretch;gap:5px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:2px 0 9px;scrollbar-width:thin}
+.meets-personal-tabs button{flex:0 0 auto;white-space:nowrap;min-height:40px;padding:9px 13px}
+.meets-personal-event{display:flex;align-items:flex-start;gap:14px;border:1px solid #e8dded;border-radius:17px;background:#fff;padding:16px;box-shadow:0 4px 14px rgba(39,16,65,.035)}
+.meets-personal-event-main{min-width:0;flex:1;display:grid;gap:8px}
+.meets-personal-event-main h3{font-size:17px;line-height:1.35;margin:0;color:#26152e}
+.meets-personal-event-main>p{color:#75677b;font-size:12px;line-height:1.55;margin:0}
+.meets-personal-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.meets-personal-actions button,.meets-personal-links a,.meets-personal-share-link button,.meets-personal-follow-row button{display:inline-flex;justify-content:center;align-items:center;gap:4px;min-height:32px;padding:6px 10px;border-radius:9px;border:1px solid #e0d4e9;background:#faf7fd;color:#58326c;font-size:12px;line-height:1.3;text-decoration:none;cursor:pointer;font-weight:600}
+.meets-personal-actions button:hover,.meets-personal-links a:hover,.meets-personal-share-link button:hover,.meets-personal-follow-row button:hover{border-color:#9c5be3;background:#f2e8ff}
+.meets-personal-actions button.chosen,.meets-personal-follow-row button.selected{border-color:#c7a6f1;background:#efe3ff;color:#6313bb}
+.meets-personal-links{display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:12px}
+.meets-personal-links a{background:#f0e9fd;color:#5826a9;border-color:#d7c7f3}
+.meets-personal-links small,.meets-personal-links span{font-size:11px;color:#9d5b32}
+.meets-personal-reminder{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;font-weight:600;color:#6f5d7b}
+.meets-personal-reminder select,.meets-personal-heading-row select{border:1px solid #e0d4e9;border-radius:9px;padding:8px;background:#fff;color:#3b2742;min-height:36px;font:inherit;font-size:12px;max-width:100%}
+.meets-personal-heading-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.meets-personal-heading-row h2,.meets-personal-preferences h2,.meets-personal-follows h2,.meets-personal-sharing h2{font-size:20px;line-height:1.25;margin:0}
+.meets-personal-heading-row>span{font-size:12px;color:#786987}
+.meets-personal-calendar{display:grid;gap:18px}
+.meets-personal-calendar-head{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#fff;border:1px solid #e6dcea;border-radius:14px;padding:12px}
+.meets-personal-calendar-head h3{margin:0;font-size:18px;text-transform:capitalize}
+.meets-personal-calendar-head button{border:1px solid #e0d4e9;border-radius:10px;padding:10px 14px;background:#f7f1fc;color:#5e278b;cursor:pointer}
+.meets-personal-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;background:#fff;border:1px solid #e6dcea;border-radius:17px;padding:11px}
+.meets-personal-calendar-weekday{text-align:center;padding:8px 0;font-size:11px;color:#807486;font-weight:700}
+.meets-personal-calendar-grid button{min-width:0;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1px solid transparent;border-radius:10px;background:#faf7fd;color:#31203b;font-size:13px;cursor:pointer}
+.meets-personal-calendar-grid button.other{opacity:.35}
+.meets-personal-calendar-grid button.today{border-color:#c8a1ec}
+.meets-personal-calendar-grid button.selected{background:#7f00ff;color:#fff}
+.meets-personal-calendar-grid button em{min-width:19px;min-height:18px;display:grid;place-items:center;border-radius:6px;background:#e7d3fd;color:#6d20a4;font-size:10px;font-style:normal;font-weight:700}
+.meets-personal-calendar-grid button.selected em{background:#fff;color:#6d20a4}
+.meets-personal-calendar-results{display:grid;gap:12px}
+.meets-personal-calendar-results h3{font-size:16px;margin:0;text-transform:capitalize}
+.meets-personal-map-wrap{display:grid;gap:8px}
+.meets-personal-map{height:380px;min-height:280px;border-radius:20px;border:1px solid #e1d5e9;overflow:hidden;background:#eff1f1}
+.meets-personal-pin{display:grid;place-items:center;background:#fff;box-shadow:0 3px 10px rgba(37,21,50,.22);border:2px solid #8d39e8;border-radius:14px 14px 14px 2px;transform:rotate(-45deg);font-size:20px}
+.meets-personal-pin span{transform:rotate(45deg)}
+.meets-personal-popup{display:grid;gap:8px;max-width:225px}
+.meets-personal-popup strong{font-size:13px}
+.meets-personal-popup p{margin:0;font-size:12px;color:#6f6178}
+.meets-personal-popup-links{display:flex;gap:10px;flex-wrap:wrap}
+.meets-personal-popup-links a{font-size:12px;color:#601eb1}
+.meets-personal-preferences,.meets-personal-follows,.meets-personal-sharing{display:grid;gap:16px}
+.meets-personal-interest-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.meets-personal-interest-grid button{display:flex;align-items:center;min-width:0;gap:9px;text-align:left;border:1px solid #e4d8ec;border-radius:14px;padding:12px;background:#fff;cursor:pointer;color:#2d2033}
+.meets-personal-interest-grid button span{font-size:26px;flex:none}
+.meets-personal-interest-grid button strong{font-size:12px;font-weight:650}
+.meets-personal-interest-grid button em{font-size:13px;margin-left:auto;font-style:normal;color:#7f00ff}
+.meets-personal-interest-grid button.selected{background:#f6eeff;border-color:#a96ee6}
+.meets-personal-follows>input{display:block;width:100%;max-width:430px;border:1px solid #e0d4e9;border-radius:10px;padding:12px;font-size:14px}
+.meets-personal-follow-list{display:grid;gap:8px}
+.meets-personal-follow-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;border:1px solid #e6dcea;border-radius:13px;background:#fff}
+.meets-personal-follow-row>span{min-width:0;font-size:13px}
+.meets-personal-follow-row strong{overflow-wrap:anywhere}
+.meets-personal-follow-row small{display:block;color:#83758b;margin-top:3px;font-size:11px}
+.meets-personal-follow-row button{flex:none}
+.meets-personal-sharing{margin-top:14px;border:1px solid #e6dcea;border-radius:16px;background:#fff;padding:18px}
+.meets-personal-sharing .meets-muted{font-size:12px;margin:6px 0 0}
+.meets-personal-sharing>.button{justify-self:start}
+.meets-personal-share-link{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.meets-personal-share-link input{flex:1;min-width:180px;border:1px solid #e0d4e9;border-radius:9px;padding:10px;background:#faf7fd;color:#352240;font-size:12px}
+.meets-personal-disclaimer{color:#786987;font-size:11px;line-height:1.5;margin:0}
+.meets-personal-notices{display:grid;gap:10px;background:#f7f1ff;border:1px solid #dcbff7;padding:14px;border-radius:13px;color:#5d2a8b;font-size:13px}
+.meets-personal-notices>div{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.meets-personal-notices button{border:1px solid #d9c5eb;border-radius:9px;background:#fff;padding:7px 9px;cursor:pointer;color:#652b95}
+@media(max-width:600px){
+ .meets-personal-event{padding:12px;gap:9px}
+ .meets-personal-event-main h3{font-size:15px}
+ .meets-personal-actions button{font-size:11px;padding:6px 8px}
+ .meets-personal-dashboard .meets-account-stats{gap:7px}
+ .meets-personal-calendar-grid{gap:3px;padding:6px}
+ .meets-personal-calendar-grid button{font-size:11px}
+ .meets-personal-interest-grid{grid-template-columns:1fr}
+ .meets-personal-map{height:330px}
+ .meets-personal-sharing{padding:13px}
+}
