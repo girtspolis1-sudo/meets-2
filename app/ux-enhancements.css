@@ -178,3 +178,16 @@
  .meets-mobile-sheet-outside-label{display:block;font-size:11px;margin-top:6px;color:var(--muted)}
  .meets-mobile-sheet-actions button:focus-visible,.meets-mobile-sheet-actions a:focus-visible,.meets-mobile-sheet-title button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 }
+
+/* Admin mapping: actionable cards on narrow screens, desktop table unchanged */
+.admin-mapping-mobile-cards{display:none}
+@media(max-width:700px){
+ .admin-mapping-workspace .admin-mapping-table-wrap{display:none}
+ .admin-mapping-mobile-cards{display:grid;gap:10px;margin-top:14px}
+ .admin-mapping-mobile-card{display:flex;align-items:flex-start;flex-direction:column;gap:12px;
+  border:1px solid #e7deec;border-radius:14px;padding:15px;background:#fff}
+ .admin-mapping-mobile-card>div{display:grid;gap:7px;min-width:0}
+ .admin-mapping-mobile-card strong{font-size:15px;overflow-wrap:anywhere}
+ .admin-mapping-mobile-card small{color:var(--muted)}
+ .admin-mapping-mobile-card .button{width:100%;justify-content:center}
+}
