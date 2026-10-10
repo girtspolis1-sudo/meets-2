@@ -20,7 +20,7 @@ export default function MobileEventSheet({group,activeIds,favorites,onFavorite,o
   };
   document.addEventListener('keydown',keys);
   return()=>{document.removeEventListener('keydown',keys);old?.focus?.();};
- },[group.key,onClose]);
+ },[group.key]);
  const events=[...group.events].sort((a,b)=>{
   const selectedA=activeIds.has(a.id)?0:1,selectedB=activeIds.has(b.id)?0:1;
   return selectedA-selectedB||String(a.date_from).localeCompare(String(b.date_from))||
