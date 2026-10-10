@@ -1,10 +1,11 @@
 import {NextResponse} from 'next/server';
+import {placeFromEvent} from '../../../lib/location-follow.js';
 export const dynamic='force-dynamic';
 const BASE=()=>process.env.SUPABASE_URL;
 const KEY=()=>process.env.SUPABASE_PUBLISHABLE_KEY;
 export async function POST(request){
  try{
-  const {action,email,token,password,eventId,category,enabled,leadMinutes,targetKind,targetId,notificationId}=await request.json();
+  const {action,email,token,password,eventId,category,enabled,leadMinutes,targetKind,targetId,notificationId,locationKey,locationName,municipality}=await request.json();
   if(!BASE()||!KEY())return NextResponse.json({error:'Kontu serviss nav konfigurēts.'},{status:503});
   const authUrl=BASE()+'/auth/v1/';
   const head={apikey:KEY(),'Content-Type':'application/json'};
@@ -45,7 +46,7 @@ export async function POST(request){
    if(!res.ok)return NextResponse.json({error:'Sesija beigusies.'},{status:401});
    const value=await res.json();return NextResponse.json({access_token:value.access_token,refresh_token:value.refresh_token,expires_in:value.expires_in,user:{id:value.user?.id,email:value.user?.email}});
   }
-  if(!['list','add','remove','plan','unplan','visit','unvisit','dashboard','interest','reminder','follow','share','unshare','readNotice'].includes(action)||typeof token!=='string')return NextResponse.json({error:'Nederīgs pieprasījums.'},{status:400});
+  if(!['list','add','remove','plan','unplan','visit','unvisit','dashboard','interest','reminder','follow','followLocation','locationFollows','share','unshare','readNotice'].includes(action)||typeof token!=='string')return NextResponse.json({error:'Nederīgs pieprasījums.'},{status:400});
   const me=await fetch(authUrl+'user',{headers:{...head,Authorization:'Bearer '+token},cache:'no-store'});
   if(!me.ok)return NextResponse.json({error:'Jāpiesakās atkārtoti.'},{status:401});
   const user=await me.json();if(!user.id)return NextResponse.json({error:'Nav lietotāja.'},{status:401});
@@ -67,7 +68,7 @@ export async function POST(request){
   const own='?user_id=eq.'+encodeURIComponent(user.id);
   if(action==='dashboard'){
    try{
-    const [interests,reminders,notices,follows,shared,directory,followedEvents,savedDetails]=await Promise.all([
+    const [interests,reminders,notices,follows,shared,directory,followedEvents,savedDetails,locationFollows]=await Promise.all([
      rest('meets_user_interests','GET',own+'&select=category'),
      rest('meets_user_reminders','GET',own+'&select=event_id,lead_minutes'),
      rest('meets_user_notifications','GET',own+'&select=id,event_id,message,created_at,read_at&order=created_at.desc&limit=40'),
@@ -75,12 +76,32 @@ export async function POST(request){
      rest('meets_shared_lists','GET',own+'&select=share_token,is_enabled'),
      rest('rpc/meets_follow_directory','POST','',{}),
      rest('rpc/meets_followed_event_ids','POST','',{}),
-     rest('rpc/meets_saved_event_details','POST','',{})
+     rest('rpc/meets_saved_event_details','POST','',{}),
+     rest('meets_user_location_follows','GET',own+'&select=location_key,location_name,municipality,created_at&order=created_at.desc')
     ]);
     return NextResponse.json({interests:interests||[],reminders:reminders||[],notices:notices||[],
      follows:follows||[],shared:shared?.[0]||null,directory:directory||{organizations:[],venues:[]},
-     followedEvents:Array.isArray(followedEvents)?followedEvents:[],savedDetails:Array.isArray(savedDetails)?savedDetails:[]});
+     followedEvents:Array.isArray(followedEvents)?followedEvents:[],savedDetails:Array.isArray(savedDetails)?savedDetails:[],locationFollows:locationFollows||[]});
    }catch{return NextResponse.json({error:'Personīgos iestatījumus neizdevās ielādēt.'},{status:502});}
+  }
+  if(action==='locationFollows'){
+   try{const follows=await rest('meets_user_location_follows','GET',own+'&select=location_key,location_name,municipality,created_at&order=created_at.desc');return NextResponse.json({locations:follows||[]});}
+   catch{return NextResponse.json({error:'Sekotās vietas neizdevās ielādēt.'},{status:502});}
+  }
+  if(action==='followLocation'){
+   if(typeof enabled!=='boolean'||typeof locationKey!=='string'||locationKey.length>450||
+     typeof locationName!=='string'||typeof municipality!=='string')return NextResponse.json({error:'Nederīga norises vieta.'},{status:400});
+   const name=locationName.trim(),municipalityName=municipality.trim();
+   const place=placeFromEvent({venue_name:name,municipality:municipalityName,country_code:locationKey.split('|')[0]});
+   if(!place||place.key!==locationKey||name.length>160||municipalityName.length>140)return NextResponse.json({error:'Nederīga norises vieta.'},{status:400});
+   try{
+    if(enabled){
+     const current=await rest('meets_user_location_follows','GET',own+'&select=location_key&limit=101');
+     if(current?.length>=100&&!current.some(item=>item.location_key===locationKey))return NextResponse.json({error:'Var sekot ne vairāk kā 100 vietām.'},{status:400});
+     await rest('meets_user_location_follows','POST','',{user_id:user.id,location_key:locationKey,location_name:name,municipality:municipalityName});
+    }else await rest('meets_user_location_follows','DELETE',own+'&location_key=eq.'+encodeURIComponent(locationKey));
+    return NextResponse.json({ok:true});
+   }catch{return NextResponse.json({error:'Sekošanu norises vietai neizdevās saglabāt.'},{status:400});}
   }
   if(action==='interest'){
    const kinds=['music','stage','culture','sport','active','markets','learning','community'];
