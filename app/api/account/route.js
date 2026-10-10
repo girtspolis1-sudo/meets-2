@@ -103,7 +103,7 @@ export async function POST(request){
    catch{return NextResponse.json({error:'Atgādinājumu neizdevās saglabāt.'},{status:400});}
   }
   if(action==='follow'){
-   if(!['organization','venue'].includes(targetKind)||!uuid.test(targetId||'')||typeof enabled!=='boolean')
+   if(!['organization','venue','source'].includes(targetKind)||!uuid.test(targetId||'')||typeof enabled!=='boolean')
     return NextResponse.json({error:'Nederīgs sekošanas ieraksts.'},{status:400});
    try{await rest('meets_user_follows',enabled?'POST':'DELETE',
     enabled?'':own+'&target_kind=eq.'+targetKind+'&target_id=eq.'+targetId,
