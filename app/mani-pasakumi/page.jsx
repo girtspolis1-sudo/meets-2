@@ -6,20 +6,42 @@ import {useEvents} from '../../lib/use-events.js';
 
 const SESSION='meets_user_session_v1';
 const LOCAL='meets_favorites_v1';
+const FAVORITE_OWNER='meets_favorites_owner_v1';
 async function rpc(body){const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw Error(data.error||'Darbība neizdevās.');return data;}
 function getSession(){try{return JSON.parse(localStorage.getItem(SESSION)||'null');}catch{return null;}}
-function saveSession(s){try{localStorage.setItem(SESSION,JSON.stringify(s));window.dispatchEvent(new Event('meets-user-changed'));}catch{}}
+function saveSession(s){try{const item=s?.access_token?{...s,expires_at:Date.now()+Math.max(60,s.expires_in||3600)*1000}:s;localStorage.setItem(SESSION,JSON.stringify(item));window.dispatchEvent(new Event('meets-user-changed'));}catch{}}
 function getLocal(){try{const ids=JSON.parse(localStorage.getItem(LOCAL)||'[]');return Array.isArray(ids)?ids:[];}catch{return [];}}
 export default function MyEvents(){
  const [session,setSession]=useState(null),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirmPassword,setConfirmPassword]=useState(''),[mode,setMode]=useState('register'),[showPassword,setShowPassword]=useState(false),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[favorites,setFavorites]=useState([]),[plans,setPlans]=useState([]),[visits,setVisits]=useState([]);
  const {data,loading}=useEvents();
  async function load(account){
   const result=await rpc({action:'list',token:account.access_token});
-  const local=getLocal();const merged=new Set(result.favorites);
+  const owner=localStorage.getItem(FAVORITE_OWNER);
+  const local=owner&&owner!==account.user?.id?[]:getLocal();const merged=new Set(result.favorites);
   for(const eventId of local){if(!merged.has(eventId)){try{await rpc({action:'add',token:account.access_token,eventId});merged.add(eventId);}catch{}}}
-  setFavorites([...merged]);setPlans(result.plans);setVisits(result.visits||[]);try{localStorage.setItem(LOCAL,JSON.stringify([...merged]));}catch{}
+  setFavorites([...merged]);setPlans(result.plans);setVisits(result.visits||[]);try{localStorage.setItem(FAVORITE_OWNER,account.user?.id||'');localStorage.setItem(LOCAL,JSON.stringify([...merged]));}catch{}
  }
  useEffect(()=>{let active=true;(async()=>{let existing=getSession();if(!existing)return;try{await load(existing);if(active)setSession(existing);}catch{try{const renewed=await rpc({action:'refresh',token:existing.refresh_token});existing=renewed;saveSession(renewed);await load(renewed);if(active)setSession(renewed);}catch{saveSession(null);}}})();return()=>{active=false;};},[]);
+ useEffect(()=>{
+  if(!session)return;
+  let refreshing=false,alive=true;
+  async function ensureFresh(){
+   if(refreshing)return;
+   const current=getSession();if(!current?.refresh_token)return;
+   if(current.expires_at&&current.expires_at-Date.now()>3*60*1000)return;
+   refreshing=true;
+   try{
+    const value=await rpc({action:'refresh',token:current.refresh_token});
+    if(alive){saveSession(value);setSession(getSession());}
+   }catch{ /* Keep the current view; protected operations will require a fresh login. */ }
+   finally{refreshing=false;}
+  }
+  ensureFresh();
+  const timer=setInterval(ensureFresh,2*60*1000);
+  const visible=()=>{if(document.visibilityState==='visible')ensureFresh();};
+  document.addEventListener('visibilitychange',visible);
+  return()=>{alive=false;clearInterval(timer);document.removeEventListener('visibilitychange',visible);};
+ },[Boolean(session)]);
  async function authenticate(event){
   event.preventDefault();setError('');setNotice('');
   if(mode==='register'&&password!==confirmPassword){setError('Paroles nesakrīt.');return;}
