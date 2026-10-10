@@ -1,0 +1,179 @@
+'use client';
+import {useCallback,useEffect,useMemo,useState} from 'react';
+import Link from 'next/link';
+import PersonalMap from './personal-map.jsx';
+import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,eventGroup} from '../../lib/home-category-filters.js';
+import {coordinates,navigationLinks,rigaDate,eventOverlapsDate,recommendEvents,icsContent} from '../../lib/meets-personal.js';
+
+const DEFAULT={interests:[],reminders:[],notices:[],follows:[],shared:null,directory:{organizations:[],venues:[]},followedEvents:[]};
+async function request(body){
+ const res=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
+ const data=await res.json();if(!res.ok)throw new Error(data.error||'Darbība neizdevās.');return data;
+}
+function dateText(value){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return 'Datums nav norādīts';
+ return new Intl.DateTimeFormat('lv-LV',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'));
+}
+function EventCard({event,favorites,plans,visits,reminders,busy,onToggle,onReminder}){
+ const nav=navigationLinks(event);
+ const lead=reminders.find(x=>x.event_id===event.id)?.lead_minutes||0;
+ function downloadCalendar(){
+  const str=icsContent(event);if(!str)return;
+  const blob=new Blob([str],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='meets-'+event.id+'.ics';
+  link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }
+ return <article className="meets-personal-event">
+  <div className="meets-account-day"><strong>{event.date_from?.slice(8,10)||'—'}</strong><small>{event.date_from?.slice(5,7)||''}.</small></div>
+  <div className="meets-personal-event-main"><h3>{event.title}</h3>
+   <p>{[dateText(event.date_from),event.time_from?.slice(0,5),event.venue_name||event.municipality].filter(Boolean).join(' · ')}</p>
+   <div className="meets-personal-actions">
+    <button className={favorites.includes(event.id)?'chosen':''} disabled={busy} aria-pressed={favorites.includes(event.id)} onClick={()=>onToggle(event.id,'favorite')}>{favorites.includes(event.id)?'♥ Patīk':'♡ Patīk'}</button>
+    <button className={plans.includes(event.id)?'chosen':''} disabled={busy} aria-pressed={plans.includes(event.id)} onClick={()=>onToggle(event.id,'plan')}>{plans.includes(event.id)?'✓ Plānoju':'▣ Plānoju'}</button>
+    <button className={visits.includes(event.id)?'chosen':''} disabled={busy} aria-pressed={visits.includes(event.id)} onClick={()=>onToggle(event.id,'visit')}>{visits.includes(event.id)?'✓ Apmeklēts':'Apmeklēts'}</button>
+    <button onClick={downloadCalendar} title="Saglabāt Apple, Google vai Outlook kalendāram">＋ Kalendārā</button>
+   </div>
+   <div className="meets-personal-links">
+    {nav.google?<a href={nav.google} target="_blank" rel="noopener noreferrer">⌖ Google Maps ↗</a>:<span>Nav adreses navigācijai</span>}
+    {nav.waze&&<a href={nav.waze} target="_blank" rel="noopener noreferrer">↗ Waze</a>}
+    {!coordinates(event)&&<small>Precīza lokācija nav verificēta</small>}
+   </div>
+   <label className="meets-personal-reminder">♧ Atgādinājums
+    <select value={String(lead)} disabled={busy} onChange={e=>onReminder(event.id,Number(e.target.value))}>
+     <option value="0">Izslēgts</option><option value="1440">1 dienu iepriekš</option><option value="120">2 stundas iepriekš</option>
+    </select>
+   </label>
+  </div>
+ </article>;
+}
+function CalendarView({events,selectedDate,setSelectedDate,month,setMonth,renderCards}){
+ const [year,mm]=month.split('-').map(Number);
+ const start=new Date(Date.UTC(year,mm-1,1));
+ const begin=(start.getUTCDay()+6)%7;
+ const days=new Date(Date.UTC(year,mm,0)).getUTCDate();
+ const monthStart=new Date(Date.UTC(year,mm-1,1-begin));
+ const boxes=Array.from({length:Math.ceil((begin+days)/7)*7},(_,i)=>{
+  const d=new Date(monthStart);d.setUTCDate(d.getUTCDate()+i);return d.toISOString().slice(0,10);
+ });
+ const monthName=new Intl.DateTimeFormat('lv-LV',{month:'long',year:'numeric',timeZone:'UTC'}).format(start);
+ const today=rigaDate();
+ const selection=events.filter(e=>eventOverlapsDate(e,selectedDate));
+ function move(delta){
+  const dt=new Date(Date.UTC(year,mm-1+delta,1));setMonth(dt.toISOString().slice(0,7));setSelectedDate(dt.toISOString().slice(0,10));
+ }
+ return <div className="meets-personal-calendar">
+  <div className="meets-personal-calendar-head"><button onClick={()=>move(-1)} aria-label="Iepriekšējais mēnesis">←</button><h3>{monthName}</h3><button onClick={()=>move(1)} aria-label="Nākamais mēnesis">→</button></div>
+  <div className="meets-personal-calendar-grid">
+   {['P','O','T','C','P','S','Sv'].map((d,i)=><span className="meets-personal-calendar-weekday" key={i}>{d}</span>)}
+   {boxes.map(day=>{
+    const count=events.filter(e=>eventOverlapsDate(e,day)).length;
+    return <button key={day} className={[day.slice(0,7)===month?'':'other',day===today?'today':'',day===selectedDate?'selected':''].join(' ')}
+     aria-label={dateText(day)+(count?' — '+count+' pasākumi':'')} aria-pressed={day===selectedDate} onClick={()=>setSelectedDate(day)}>
+     <span>{Number(day.slice(-2))}</span>{!!count&&<em>{count}</em>}
+    </button>;
+   })}
+  </div>
+  <div className="meets-personal-calendar-results"><h3>{dateText(selectedDate)}</h3>
+   {selection.length?renderCards(selection):<p className="meets-muted">Šajā dienā nav saglabātu pasākumu.</p>}
+  </div>
+ </div>;
+}
+export default function PersonalDashboard({session,favorites,plans,visits,onToggle,busy,events=[],loading}){
+ const [view,setView]=useState('favorites'),[extra,setExtra]=useState(DEFAULT),[tabError,setTabError]=useState(''),[message,setMessage]=useState(''),[saving,setSaving]=useState(false);
+ const [month,setMonth]=useState(rigaDate().slice(0,7)),[selectedDate,setSelectedDate]=useState(rigaDate()),[mapScope,setMapScope]=useState('all'),[followQuery,setFollowQuery]=useState('');
+ const token=session.access_token;
+ const reload=useCallback(async()=>{const result=await request({action:'dashboard',token});setExtra({...DEFAULT,...result});},[token]);
+ useEffect(()=>{let cancelled=false;async function load(){try{const result=await request({action:'dashboard',token});if(!cancelled)setExtra({...DEFAULT,...result});}catch(e){if(!cancelled)setTabError(e.message);}}
+ load();const timer=setInterval(()=>{if(document.visibilityState==='visible')load();},60000);
+ return()=>{cancelled=true;clearInterval(timer);};},[token]);
+ async function mutate(payload,onSuccess){
+  setSaving(true);setTabError('');setMessage('');
+  try{const value=await request({token,...payload});onSuccess?.(value);setMessage('Saglabāts.');}
+  catch(e){setTabError(e.message);}finally{setSaving(false);}
+ }
+ const eventIndex=useMemo(()=>new Map(events.map(e=>[e.id,e])),[events]);
+ const saved=[...new Set([...favorites,...plans])].map(id=>eventIndex.get(id)).filter(Boolean).sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from)));
+ const selectedIds=view==='favorites'?favorites:view==='planned'?plans:view==='visited'?visits:[...new Set([...favorites,...plans])];
+ const selected=selectedIds.map(id=>eventIndex.get(id)).filter(Boolean).sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from)));
+ const mapEvents=mapScope==='favorites'?favorites.map(id=>eventIndex.get(id)).filter(Boolean):mapScope==='planned'?plans.map(id=>eventIndex.get(id)).filter(Boolean):saved;
+ const recommended=useMemo(()=>recommendEvents(events,extra.interests,favorites,plans,9),[events,extra.interests,favorites,plans]);
+ const following=extra.followedEvents.map(id=>eventIndex.get(id)).filter(Boolean).sort((a,b)=>a.date_from.localeCompare(b.date_from));
+ const unread=extra.notices.filter(n=>!n.read_at);
+ const shared=extra.shared?.is_enabled&&extra.shared.share_token?'/saraksts/'+extra.shared.share_token:'';
+ const shareUrl=shared?typeof window!=='undefined'?window.location.origin+shared:'https://meets-2.vercel.app'+shared:'';
+ const cardEvents=items=><div className="meets-account-list">{items.map(event=><EventCard key={event.id} event={event} favorites={favorites} plans={plans} visits={visits} reminders={extra.reminders} busy={busy||saving} onToggle={onToggle}
+  onReminder={(id,minutes)=>mutate({action:'reminder',eventId:id,enabled:minutes>0,leadMinutes:minutes||1440},()=>{
+   setExtra(p=>({...p,reminders:minutes?[...p.reminders.filter(x=>x.event_id!==id),{event_id:id,lead_minutes:minutes}]:p.reminders.filter(x=>x.event_id!==id)}));
+  })}/>)}</div>;
+ const list=items=>items.length?cardEvents(items):<div className="meets-account-empty"><span>♡</span><h3>Šeit vēl nav saglabātu pasākumu</h3><p>Atver karti un atzīmē interesējošos pasākumus ar sirsniņu.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>;
+ async function copy(){if(!shareUrl)return;try{await navigator.clipboard.writeText(shareUrl);setMessage('Saite nokopēta.');}catch{setMessage('Saite ir laukā — iezīmē un kopē to.');}}
+ return <div className="meets-personal-dashboard">
+  <div className="meets-account-stats">
+   <div><strong>{favorites.length}</strong><span>♡ Favorīti</span></div>
+   <div><strong>{plans.length}</strong><span>▣ Plānoju</span></div>
+   <div><strong>{visits.length}</strong><span>✓ Apmeklēti</span></div>
+  </div>
+  {!!unread.length&&<div className="meets-personal-notices" role="status"><strong>🔔 {unread.length} atgādinājumi</strong>
+   {unread.slice(0,5).map(n=><div key={n.id}><span>{n.message}: {eventIndex.get(n.event_id)?.title||'Saglabātais pasākums'}</span>
+    <button disabled={saving} onClick={()=>mutate({action:'readNotice',notificationId:n.id},()=>setExtra(p=>({...p,notices:p.notices.map(x=>x.id===n.id?{...x,read_at:new Date().toISOString()}:x)})))}>Izlasīts</button></div>)}
+  </div>}
+  <div className="meets-account-tabs meets-personal-tabs" role="tablist" aria-label="Personīgo pasākumu skati">
+   {[
+    ['favorites','♡ Favorīti'],['planned','▣ Plānoju'],['calendar','▦ Kalendārs'],
+    ['map','⌖ Karte'],['recommend','✦ Ieteikumi'],['following','♧ Sekoju'],['visited','✓ Apmeklēti']
+   ].map(([key,label])=><button role="tab" key={key} aria-selected={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setTabError('');}}>{label}</button>)}
+  </div>
+  {tabError&&<p className="meets-inline-error" role="alert">{tabError}</p>}
+  {message&&<p className="meets-organizer-success" role="status">{message}</p>}
+  {loading?<p className="meets-muted">Ielādē pasākumus…</p>:<>
+   {['favorites','planned','visited'].includes(view)&&list(selected)}
+   {view==='calendar'&&<CalendarView events={saved} selectedDate={selectedDate} setSelectedDate={setSelectedDate} month={month} setMonth={setMonth} renderCards={cardEvents}/>}
+   {view==='map'&&<><div className="meets-personal-heading-row"><h2>Manu pasākumu karte</h2>
+    <select aria-label="Kartes pasākumu veids" value={mapScope} onChange={e=>setMapScope(e.target.value)}>
+     <option value="all">Visi saglabātie</option><option value="favorites">Tikai favorīti</option><option value="planned">Tikai plānotie</option></select>
+    </div><PersonalMap events={mapEvents}/>{!!mapEvents.length&&cardEvents(mapEvents)}</>}
+   {view==='recommend'&&<section className="meets-personal-preferences">
+    <h2>Manas intereses</h2><p className="meets-muted">Atzīmē tēmas, kas tevi interesē. Ieteikumi tiek atlasīti no publiskiem pasākumiem, nevis automātiski uzminēti.</p>
+    <div className="meets-personal-interest-grid">{HOME_GROUP_KEYS.map(key=>{
+     const choice=HOME_CATEGORY_FILTERS[key],selected=extra.interests.some(x=>x.category===key);
+     return <button type="button" key={key} className={selected?'selected':''} disabled={saving}
+      aria-pressed={selected} onClick={()=>mutate({action:'interest',category:key,enabled:!selected},()=>setExtra(p=>({...p,interests:selected?p.interests.filter(x=>x.category!==key):[...p.interests,{category:key}]})))}>
+      <span>{choice.icon}</span><strong>{choice.title}</strong>{selected&&<em>✓</em>}
+     </button>;
+    })}</div>
+    <div className="meets-personal-heading-row"><h2>Tev varētu patikt</h2><span>{recommended.length} ieteikumi</span></div>
+    {recommended.length?cardEvents(recommended):<p className="meets-muted">Izvēlies intereses, lai šeit parādītos piemēroti pasākumi. <Link href="/karte">Apskatīt visus pasākumus ↗</Link></p>}
+   </section>}
+   {view==='following'&&<section className="meets-personal-follows">
+    <h2>Seko organizatoriem un norises vietām</h2>
+    <p className="meets-muted">Šeit pieejami MEETS organizatori un vietas, kam ir publicēti pasākumi. Sekošana jaunumus parāda tavā kontā.</p>
+    <input aria-label="Meklēt organizatorus vai norises vietas" placeholder="Meklēt organizatoru vai vietu…" value={followQuery} onChange={e=>setFollowQuery(e.target.value)}/>
+    <div className="meets-personal-follow-list">
+     {[
+      ...(extra.directory.organizations||[]).map(x=>({...x,kind:'organization'})),
+      ...(extra.directory.venues||[]).map(x=>({...x,kind:'venue'}))
+     ].filter(x=>x.name.toLocaleLowerCase('lv').includes(followQuery.toLocaleLowerCase('lv'))).map(x=>{
+      const active=extra.follows.some(f=>f.target_id===x.id&&f.target_kind===x.kind);
+      return <div className="meets-personal-follow-row" key={x.kind+x.id}>
+       <span>{x.kind==='venue'?'⌖':'♙'} <strong>{x.name}</strong><small>{x.kind==='venue'?'Norises vieta':'Organizators'}</small></span>
+       <button disabled={saving} className={active?'selected':''} onClick={()=>mutate({action:'follow',targetId:x.id,targetKind:x.kind,enabled:!active},async()=>{
+        setExtra(p=>({...p,follows:active?p.follows.filter(f=>!(f.target_id===x.id&&f.target_kind===x.kind)):[...p.follows,{target_id:x.id,target_kind:x.kind}]}));
+        try{await reload();}catch{}
+       })}>{active?'✓ Sekoju':'+ Sekot'}</button>
+      </div>;
+     })}
+    </div>
+    {!extra.directory.organizations?.length&&!extra.directory.venues?.length&&<p className="meets-muted">Pagaidām nav publicētu MEETS organizatoru profilu. Šeit tie parādīsies pēc pirmo organizatoru pasākumu apstiprināšanas.</p>}
+    <h2>Jaunie pasākumi no sekotajiem</h2>{following.length?cardEvents(following):<p className="meets-muted">Pagaidām nav jaunu publicētu pasākumu no izvēlētajiem organizatoriem un vietām.</p>}
+   </section>}
+  </>}
+  <section className="meets-personal-sharing">
+   <div><h2>↗ Dalīties ar manu favorītu sarakstu</h2>
+    <p className="meets-muted">Tavs saraksts ir privāts, līdz ieslēdz kopīgošanu. Saite rāda tikai publiskus, aktuālus favorītus — ne tavu e-pastu.</p></div>
+   {shared?<div className="meets-personal-share-link"><input readOnly aria-label="Kopīgojamā saite" value={shareUrl} onClick={e=>e.target.select()}/><button disabled={saving} onClick={copy}>Kopēt</button>
+    <button disabled={saving} onClick={()=>mutate({action:'unshare'},()=>setExtra(p=>({...p,shared:{...p.shared,is_enabled:false}})))}>Izslēgt</button></div>:
+    <button className="button" disabled={saving} onClick={()=>mutate({action:'share'},r=>setExtra(p=>({...p,shared:{share_token:r.token,is_enabled:true}})))}>Izveidot privātu kopīgošanas saiti</button>}
+  </section>
+  <p className="meets-personal-disclaimer">Atgādinājumi tiek saglabāti MEETS kontā un ir redzami, arī atverot lapu vēlāk. E-pasta un tālruņa push paziņojumi pagaidām nav ieslēgti.</p>
+ </div>;
+}
