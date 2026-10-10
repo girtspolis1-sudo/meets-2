@@ -30,7 +30,7 @@ export default function EventCatalog(){
   }
   setColumnFilters(filters);
   const chosen=p.get('period');
-  setPeriod(['today','week','month'].includes(chosen)?chosen:'all');
+  setPeriod(['today','tomorrow','3days','week','month'].includes(chosen)?chosen:'all');
   const radius=Number(p.get('radius')||0);
   setShared({
    group:p.get('category')||'',
@@ -82,6 +82,8 @@ export default function EventCatalog(){
   const start=String(event.date_from||'');
   const end=String(event.date_to||start);
   if(period==='today')return start<=today&&end>=today;
+  if(period==='tomorrow'){const d=addIsoDays(today,1);return start<=d&&end>=d;}
+  if(period==='3days'){const d=addIsoDays(today,2);return start<=d&&end>=today;}
   if(period==='week'){
    const date=new Date(today+'T12:00:00Z');
    const last=addIsoDays(today,(7-date.getUTCDay())%7);
@@ -170,15 +172,16 @@ export default function EventCatalog(){
   if(columnFilters.municipality)p.set('municipality',columnFilters.municipality);
   if(columnFilters.country_code)p.set('country',columnFilters.country_code);
   if(columnFilters.price_status)p.set('price',columnFilters.price_status);
+  if(columnFilters.event_type)p.set('event_type',columnFilters.event_type);
   if(shared.radius)p.set('radius',String(shared.radius));
   if(period!=='all')p.set('period',period);
-  else if(shared.from||shared.to){p.set('period','manual');if(shared.from)p.set('from',shared.from);if(shared.to)p.set('to',shared.to);}
+  else{p.set('period','manual');p.set('from',shared.from||rigaTodayIso());p.set('to',shared.to||data?.window?.to||addIsoDays(rigaTodayIso(),90));}
   if(sharedOrigin&&!['browser'].includes(sharedOrigin.source)){
    p.set('lat',String(Number(sharedOrigin.lat.toFixed(4))));
    p.set('lon',String(Number(sharedOrigin.lon.toFixed(4))));
   }
   return '/karte'+(p.size?'?'+p.toString():'');
- },[shared,sharedOrigin,columnFilters,period]);
+ },[shared,sharedOrigin,columnFilters,period,data?.window?.to]);
  const selectedEvent=rows.find(event=>event.id===selected);
 
  return <>
@@ -197,7 +200,7 @@ export default function EventCatalog(){
   <div className="catalog-view-switch" role="group" aria-label="Pasākumu attēlošanas veids"><button type="button" aria-pressed={viewMode==='cards'} className={viewMode==='cards'?'active':''} onClick={()=>setViewMode('cards')}>▦ Kartītes</button><button type="button" aria-pressed={viewMode==='table'} className={viewMode==='table'?'active':''} onClick={()=>setViewMode('table')}>☷ Tabula un Excel</button><a href={mapHref} className="catalog-map-shortcut">⌖ Skatīt kartē ↗</a></div>
   {viewMode==='cards'&&<div className="catalog-card-filters" aria-label="Atlasīt pasākumus">
    <label>Periods<select value={period} onChange={e=>{setPeriod(e.target.value);setPage(0);}}>
-    <option value="all">Visi aktuālie</option><option value="today">Šodien</option><option value="week">Šonedēļ</option><option value="month">Šomēnes</option>
+    <option value="all">Visi aktuālie</option><option value="today">Šodien</option><option value="tomorrow">Rīt</option><option value="3days">3 dienas</option><option value="week">Šonedēļ</option><option value="month">Šomēnes</option>
    </select></label>
    <label>Meklēt pasākumu{filterControl('title','Pasākums')}</label>
    <label>Pašvaldība{filterControl('municipality','Pašvaldība')}</label>
