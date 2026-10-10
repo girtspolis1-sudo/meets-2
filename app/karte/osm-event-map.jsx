@@ -216,6 +216,7 @@ export default function OsmEventMap(){
  const pathname=usePathname();
  const homeCategory=homeCategoryKey(searchParams.get('category'));
  const audience=audienceKey(searchParams.get('audience'));
+ const eventTypeFilter=searchParams.get('event_type')||'';
  function setDiscoveryFilter(key,value){
   const params=new URLSearchParams(searchParams.toString());
   if(value)params.set(key,value);else params.delete(key);
@@ -403,6 +404,7 @@ export default function OsmEventMap(){
 
  const matchesEvent=useMemo(()=>e=>{
   if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
+  if(eventTypeFilter&&e.event_type!==eventTypeFilter)return false;
   if(eventTypes.length&&!eventTypes.includes(sourceType(e)))return false;
   if(competition&&e.competition_key!==competition)return false;
   if(category&&e.primary_category!==category)return false;
@@ -418,12 +420,13 @@ export default function OsmEventMap(){
    if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radiusKm)return false;
   }
   return true;
- },[homeCategory,audience,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
+ },[homeCategory,audience,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
 
  const catalogHref=useMemo(()=>{
   const params=new URLSearchParams();
   if(homeCategory)params.set('category',homeCategory);
   if(audience)params.set('audience',audience);
+  if(eventTypeFilter)params.set('event_type',eventTypeFilter);
   if(eventTypes.length)params.set('types',eventTypes.join(','));
   if(competition)params.set('competition',competition);
   if(category)params.set('subcategory',category);
@@ -432,14 +435,14 @@ export default function OsmEventMap(){
   if(municipality)params.set('municipality',municipality);
   if(country)params.set('country',country);
   if(radiusKm)params.set('radius',String(radiusKm));
-  if(periodMode!=='week')params.set('period',periodMode);
+  params.set('period',periodMode);
   if(periodMode==='manual'){if(from)params.set('from',from);if(to)params.set('to',to);}
   if(['search','events','shared'].includes(userLocation?.source)&&insideBalticView(userLocation.lat,userLocation.lon)){
    params.set('lat',String(Number(userLocation.lat.toFixed(4))));
    params.set('lon',String(Number(userLocation.lon.toFixed(4))));
   }
   return '/pasakumi'+(params.size?'?'+params.toString():'');
- },[homeCategory,audience,eventTypes,competition,category,eventSearch,price,municipality,country,radiusKm,periodMode,from,to,userLocation]);
+ },[homeCategory,audience,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,radiusKm,periodMode,from,to,userLocation]);
  const activeEvents=useMemo(()=>events.filter(matchesEvent),[events,matchesEvent]);
  const activeIds=useMemo(()=>new Set(activeEvents.map(e=>e.id)),[activeEvents]);
  const mapEvents=useMemo(()=>events.filter(e=>matchesHomeCategory(e,homeCategory)&&matchesAudience(e,audience)&&Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))&&isSupportedMapEvent(e)&&insideBalticView(Number(e.latitude),Number(e.longitude))),[events,homeCategory,audience]);
