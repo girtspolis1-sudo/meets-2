@@ -5,7 +5,7 @@ import PersonalMap from './personal-map.jsx';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,eventGroup} from '../../lib/home-category-filters.js';
 import {coordinates,navigationLinks,rigaDate,eventOverlapsDate,recommendEvents,icsContent} from '../../lib/meets-personal.js';
 
-const DEFAULT={interests:[],reminders:[],notices:[],follows:[],shared:null,directory:{organizations:[],venues:[]},followedEvents:[]};
+const DEFAULT={interests:[],reminders:[],notices:[],follows:[],shared:null,directory:{organizations:[],venues:[]},followedEvents:[],savedDetails:[]};
 async function request(body){
  const res=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
  const data=await res.json();if(!res.ok)throw new Error(data.error||'Darbība neizdevās.');return data;
@@ -91,7 +91,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
   try{const value=await request({token,...payload});onSuccess?.(value);setMessage('Saglabāts.');}
   catch(e){setTabError(e.message);}finally{setSaving(false);}
  }
- const eventIndex=useMemo(()=>new Map(events.map(e=>[e.id,e])),[events]);
+ const eventIndex=useMemo(()=>new Map([...(extra.savedDetails||[]).map(e=>[e.id,e]),...events.map(e=>[e.id,e])]),[events,extra.savedDetails]);
  const saved=[...new Set([...favorites,...plans])].map(id=>eventIndex.get(id)).filter(Boolean).sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from)));
  const selectedIds=view==='favorites'?favorites:view==='planned'?plans:view==='visited'?visits:[...new Set([...favorites,...plans])];
  const selected=selectedIds.map(id=>eventIndex.get(id)).filter(Boolean).sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from)));
