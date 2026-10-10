@@ -45,15 +45,15 @@ export async function POST(request){
    if(!res.ok)return NextResponse.json({error:'Sesija beigusies.'},{status:401});
    const value=await res.json();return NextResponse.json({access_token:value.access_token,refresh_token:value.refresh_token,user:{id:value.user?.id,email:value.user?.email}});
   }
-  if(!['list','add','remove','plan','unplan','dashboard','interest','reminder','follow','share','unshare','readNotice'].includes(action)||typeof token!=='string')return NextResponse.json({error:'Nederīgs pieprasījums.'},{status:400});
+  if(!['list','add','remove','plan','unplan','visit','unvisit','dashboard','interest','reminder','follow','share','unshare','readNotice'].includes(action)||typeof token!=='string')return NextResponse.json({error:'Nederīgs pieprasījums.'},{status:400});
   const me=await fetch(authUrl+'user',{headers:{...head,Authorization:'Bearer '+token},cache:'no-store'});
   if(!me.ok)return NextResponse.json({error:'Jāpiesakās atkārtoti.'},{status:401});
   const user=await me.json();if(!user.id)return NextResponse.json({error:'Nav lietotāja.'},{status:401});
   const headers={...head,Authorization:'Bearer '+token,Prefer:'return=minimal'};
   if(action==='list'){
-   const [fav,plans]=await Promise.all(['meets_favorites','meets_event_plans'].map(table=>fetch(BASE()+'/rest/v1/'+table+'?select=event_id&user_id=eq.'+encodeURIComponent(user.id),{headers,cache:'no-store'})));
-   if(!fav.ok||!plans.ok)return NextResponse.json({error:'Neizdevās nolasīt saglabātos pasākumus.'},{status:502});
-   return NextResponse.json({favorites:(await fav.json()).map(x=>x.event_id),plans:(await plans.json()).map(x=>x.event_id),email:user.email});
+   const [fav,plans,visits]=await Promise.all(['meets_favorites','meets_event_plans','meets_event_visits'].map(table=>fetch(BASE()+'/rest/v1/'+table+'?select=event_id&user_id=eq.'+encodeURIComponent(user.id),{headers,cache:'no-store'})));
+   if(!fav.ok||!plans.ok||!visits.ok)return NextResponse.json({error:'Neizdevās nolasīt saglabātos pasākumus.'},{status:502});
+   return NextResponse.json({favorites:(await fav.json()).map(x=>x.event_id),plans:(await plans.json()).map(x=>x.event_id),visits:(await visits.json()).map(x=>x.event_id),email:user.email});
   }
   const rest=async(table,method='GET',query='',value=null)=>{
    const res=await fetch(BASE()+'/rest/v1/'+table+query,{method,
@@ -117,8 +117,8 @@ export async function POST(request){
    catch{return NextResponse.json({error:'Paziņojumu neizdevās atzīmēt.'},{status:400});}
   }
   if(typeof eventId!=='string'||! /^[0-9a-f-]{36}$/i.test(eventId))return NextResponse.json({error:'Nederīgs pasākums.'},{status:400});
-  const table=action==='plan'||action==='unplan'?'meets_event_plans':'meets_favorites';
-  const adding=action==='add'||action==='plan';
+  const table=['plan','unplan'].includes(action)?'meets_event_plans':['visit','unvisit'].includes(action)?'meets_event_visits':'meets_favorites';
+  const adding=['add','plan','visit'].includes(action);
   const res=await fetch(BASE()+'/rest/v1/'+table+(adding?'':'?user_id=eq.'+user.id+'&event_id=eq.'+eventId),{method:adding?'POST':'DELETE',headers:{...headers,...(adding?{Prefer:'resolution=ignore-duplicates,return=minimal'}:{})},...(adding?{body:JSON.stringify({user_id:user.id,event_id:eventId})}:{}) ,cache:'no-store'});
   if(!res.ok)return NextResponse.json({error:'Saglabāšana neizdevās.'},{status:400});
   return NextResponse.json({ok:true});
