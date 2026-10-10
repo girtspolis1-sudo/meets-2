@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import HomeNearby from './home-nearby.jsx';
 
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS} from '../lib/home-category-filters.js';
 
@@ -40,5 +41,6 @@ export default function Home(){
     </Link>)}
    </div>
   </section>
+  <HomeNearby/>
  </>;
 }
