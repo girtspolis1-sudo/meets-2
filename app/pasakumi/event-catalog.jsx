@@ -3,6 +3,8 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} from '../../lib/catalog.js';
 import {useEvents} from '../../lib/use-events.js';
 import {navigationLinks} from '../../lib/meets-personal.js';
+import {placeFromEvent,placesFromEvents} from '../../lib/location-follow.js';
+import Link from 'next/link';
 import {rigaTodayIso,addIsoDays} from '../../lib/event-date.js';
 import {eventGroup,matchesAudience,sourceType} from '../../lib/home-category-filters.js';
 
@@ -22,8 +24,53 @@ export default function EventCatalog(){
  const [period,setPeriod]=useState('all');
  const [shared,setShared]=useState({});
  const [sharedOrigin,setSharedOrigin]=useState(null);
+ const [placeFilter,setPlaceFilter]=useState('');
+ const [followedPlaces,setFollowedPlaces]=useState([]);
+ const [followSession,setFollowSession]=useState(null);
+ const [followBusy,setFollowBusy]=useState('');
+ const [followError,setFollowError]=useState('');
+ const [followMessage,setFollowMessage]=useState('');
+ useEffect(()=>{
+  try{
+   const session=JSON.parse(localStorage.getItem('meets_user_session_v1')||'null');
+   if(!session?.access_token)return;
+   setFollowSession(session);
+   fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'locationFollows',token:session.access_token}),cache:'no-store'})
+    .then(async res=>{const result=await res.json();if(!res.ok)throw Error(result.error||'Sekošanu neizdevās ielādēt.');return result;})
+    .then(result=>setFollowedPlaces(result.locations||[]))
+    .catch(e=>setFollowError(e.message));
+  }catch{}
+ },[]);
+ async function togglePlace(place){
+  if(!place)return;
+  if(!followSession?.access_token){setFollowError('Lai sekotu norises vietai, pieslēdzies MEETS kontam.');return;}
+  const exists=followedPlaces.some(p=>p.location_key===place.key);
+  setFollowBusy(place.key);setFollowError('');setFollowMessage('');
+  try{
+   const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'followLocation',token:followSession.access_token,locationKey:place.key,
+      locationName:place.name,municipality:place.municipality,enabled:!exists}),cache:'no-store'});
+   const result=await response.json();if(!response.ok)throw Error(result.error||'Sekošanu neizdevās saglabāt.');
+   setFollowedPlaces(prev=>exists?prev.filter(p=>p.location_key!==place.key):[...prev,
+    {location_key:place.key,location_name:place.name,municipality:place.municipality}]);
+   setFollowMessage(exists?'Vieta noņemta no sekotajām.':'Tagad seko vietai “'+place.name+'”.');
+  }catch(e){setFollowError(e.message);}finally{setFollowBusy('');}
+ }
+ const followButton=event=>{
+  const place=placeFromEvent(event);
+  if(!place)return null;
+  const isFollowing=followedPlaces.some(x=>x.location_key===place.key);
+  return <button type="button" className={'catalog-follow-place'+(isFollowing?' following':'')}
+   disabled={!!followBusy} aria-pressed={isFollowing}
+   title={'Sekot visiem pasākumiem vietā: '+place.name}
+   onClick={()=>togglePlace(place)}>
+   <span aria-hidden="true">{isFollowing?'✓':'＋'}</span> {followBusy===place.key?'Saglabā…':isFollowing?'Sekoju vietai':'Sekot vietai'}
+  </button>;
+ };
  useEffect(()=>{
   const p=new URLSearchParams(window.location.search);
+  setPlaceFilter(p.get('place')||'');
   const filters={};
   for(const [from,to] of [['q','title'],['price','price_status'],['municipality','municipality'],['country','country_code'],['subcategory','primary_category']]){
    if(p.get(from))filters[to]=p.get(from);
@@ -53,6 +100,7 @@ export default function EventCatalog(){
  },[]);
 
  const rows=data?.events||[];
+ const availablePlaces=useMemo(()=>placesFromEvents(rows),[rows]);
  const options=useMemo(()=>({
   municipalities:[...new Set(rows.map(event=>event.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),
   countries:[...new Set(rows.map(event=>event.country_code).filter(Boolean))].sort(),
@@ -63,6 +111,7 @@ export default function EventCatalog(){
  }),[rows]);
 
  const filtered=useMemo(()=>filterEventsByColumns(rows,columnFilters).filter(event=>{
+  if(placeFilter&&placeFromEvent(event)?.key!==placeFilter)return false;
   if(shared.group&&eventGroup(event)!==shared.group)return false;
   if(shared.audience&&!matchesAudience(event,shared.audience))return false;
   if(shared.types?.length&&!shared.types.includes(sourceType(event)))return false;
@@ -100,13 +149,13 @@ export default function EventCatalog(){
   if(!av)return bv?1:0;
   if(!bv)return -1;
   return String(av).localeCompare(String(bv),'lv',{numeric:true})*direction||a.id.localeCompare(b.id);
- }),[rows,columnFilters,sort,direction,period,shared,sharedOrigin]);
+ }),[rows,columnFilters,sort,direction,period,shared,sharedOrigin,placeFilter]);
 
  const pages=Math.max(1,Math.ceil(filtered.length/pageSize));
  const current=Math.min(page,pages-1);
  const visible=filtered.slice(current*pageSize,(current+1)*pageSize);
  const activeFilterCount=Object.values(columnFilters).filter(value=>String(value||'').trim()).length;
- const sharedFilterCount=[shared.group,shared.audience,shared.types?.length,shared.competition,shared.radius>0,shared.from,shared.to].filter(Boolean).length;
+ const sharedFilterCount=[placeFilter,shared.group,shared.audience,shared.types?.length,shared.competition,shared.radius>0,shared.from,shared.to].filter(Boolean).length;
 
  function changeColumn(key,value){
   setColumnFilters(filters=>({...filters,[key]:value}));
@@ -174,6 +223,7 @@ export default function EventCatalog(){
   if(columnFilters.country_code)p.set('country',columnFilters.country_code);
   if(columnFilters.price_status)p.set('price',columnFilters.price_status);
   if(columnFilters.event_type)p.set('event_type',columnFilters.event_type);
+  if(placeFilter)p.set('place',placeFilter);
   if(shared.radius)p.set('radius',String(shared.radius));
   if(period!=='all')p.set('period',period);
   else{p.set('period','manual');p.set('from',shared.from||rigaTodayIso());p.set('to',shared.to||data?.window?.to||addIsoDays(rigaTodayIso(),90));}
@@ -182,7 +232,7 @@ export default function EventCatalog(){
    p.set('lon',String(Number(sharedOrigin.lon.toFixed(4))));
   }
   return '/karte'+(p.size?'?'+p.toString():'');
- },[shared,sharedOrigin,columnFilters,period,data?.window?.to]);
+ },[shared,sharedOrigin,columnFilters,period,data?.window?.to,placeFilter]);
  const selectedEvent=rows.find(event=>event.id===selected);
 
  return <>
@@ -207,11 +257,19 @@ export default function EventCatalog(){
    <label>Pašvaldība{filterControl('municipality','Pašvaldība')}</label>
    <label>Veids{filterControl('event_type','Tips')}</label>
    <label>Maksa{filterControl('price_status','Maksa')}</label>
+   <label>Norises vieta<select value={placeFilter} onChange={e=>{setPlaceFilter(e.target.value);setPage(0);}} aria-label="Filtrēt pēc norises vietas"><option value="">Visas vietas</option>{availablePlaces.map(place=><option key={place.key} value={place.key}>{place.name} · {place.municipality} ({place.count})</option>)}</select></label>
   </div>}
   {sharedFilterCount>0&&<p className="catalog-active-map-filters" role="status">Pielietota atlase no kartes — {sharedFilterCount} papildu kritēriji. Izmanto <strong>Notīrīt filtrus</strong>, lai redzētu visus pasākumus.</p>}
+  <div className="catalog-follow-info">
+   <span>⌖ Seko norises vietai un vienuviet redzi tur gaidāmos pasākumus.</span>
+   <Link href="/mani-pasakumi">Manas sekotās vietas ↗</Link>
+  </div>
+  {(followError||followMessage)&&<p className={followError?'meets-inline-error':'meets-organizer-success'} role="status">
+   {followError||followMessage} {followError&&!followSession&&<Link href="/mani-pasakumi">Pieslēgties ↗</Link>}
+  </p>}
   <div className="result-toolbar">
    <p aria-live="polite"><strong>{filtered.length}</strong> no {rows.length} ierakstiem{activeFilterCount||period!=='all'||sharedFilterCount?<> · <strong>{activeFilterCount+(period!=='all'?1:0)+sharedFilterCount}</strong> aktīvi filtri</>:null}</p>
-   <button className="text-button" disabled={!activeFilterCount&&period==='all'&&!sharedFilterCount} onClick={()=>{setColumnFilters({});setPeriod('all');setShared({});setSharedOrigin(null);setPage(0);}}>Notīrīt filtrus</button>
+   <button className="text-button" disabled={!activeFilterCount&&period==='all'&&!sharedFilterCount} onClick={()=>{setColumnFilters({});setPeriod('all');setPlaceFilter('');setShared({});setSharedOrigin(null);setPage(0);}}>Notīrīt filtrus</button>
    <label className="sort-label">Kārtot pēc<select value={sort} onChange={event=>{setSort(event.target.value);setPage(0);}}><option value="date_from">Datuma</option><option value="title">Nosaukuma</option><option value="municipality">Pašvaldības</option></select></label>
    <button className="button direction-button" onClick={()=>{setDirection(value=>-value);setPage(0);}} aria-label={direction===1?'Kārtot dilstoši':'Kārtot augoši'}>{direction===1?'↑':'↓'}</button>
    {viewMode==='table'&&<button className="button primary" disabled={!data||!filtered.length||exporting} onClick={exportExcel}>{exporting?'Gatavo Excel…':`Lejupielādēt Excel (${filtered.length})`}</button>}
@@ -233,6 +291,7 @@ export default function EventCatalog(){
      <div className="catalog-event-card-top"><time dateTime={event.date_from}>{display(event,'date_from')||'Datums nav norādīts'}</time><span>{display(event,'event_type')||event.primary_category||'Pasākums'}</span></div>
      <h2>{event.title}</h2><p className="catalog-event-card-location">⌖ {event.venue_name||event.address_raw||event.municipality||'Norises vieta nav zināma'}</p>
      <p className="catalog-event-card-time">{display(event,'time')||'Laiks nav norādīts'} · {display(event,'price_status')||'Maksa nav norādīta'}</p>
+     <div className="catalog-event-card-follow">{followButton(event)}</div>
      <div className="catalog-event-card-actions"><button className="button compact primary" type="button" onClick={()=>setSelected(event.id)}>Par pasākumu</button><a className="button compact" href={'/karte?q='+encodeURIComponent(event.title)}>Kartē ↗</a>{nav.google&&<a className="button compact" href={nav.google} rel="noopener noreferrer" target="_blank" aria-label={'Maršruts uz '+event.title}>Maršruts ↗</a>}</div>
     </article>})}</div>}
     {viewMode==='table'&&<div className="table-scroll" role="region" aria-label="Pasākumu tabula — ritināma horizontāli" tabIndex={0}>
@@ -269,6 +328,7 @@ export default function EventCatalog(){
       <span><b>Veids</b>{display(event,'event_type')||event.primary_category||'Nav norādīts'}</span>
       <span><b>Maksa</b>{display(event,'price_status')}</span>
      </div>
+     <div className="catalog-event-card-follow">{followButton(event)}</div>
      <button className="button compact mobile-event-open" onClick={()=>setSelected(event.id)}>Skatīt pasākumu</button>
     </article>)}</div>}
    </>}
@@ -279,16 +339,16 @@ export default function EventCatalog(){
    <button className="button" disabled={current===pages-1} onClick={()=>setPage(current+1)}>Nākamā →</button>
   </nav>}
 
-  {selectedEvent&&<EventDetails event={selectedEvent} close={()=>setSelected(null)}/>}
+  {selectedEvent&&<EventDetails event={selectedEvent} close={()=>setSelected(null)} followButton={followButton}/>}
  </>;
 }
 
-function EventDetails({event,close}){
+function EventDetails({event,close,followButton}){
  const dialog=useRef(null);
  useEffect(()=>{dialog.current.showModal();},[]);
  return <dialog ref={dialog} className="event-dialog" onCancel={close} onClose={close}>
   <div className="detail-header"><h2>{event.title}</h2><button className="button" onClick={close} autoFocus>Aizvērt ✕</button></div>
-  <div className="catalog-detail-actions"><a className="button primary" href={'/karte?q='+encodeURIComponent(event.title)}>Atvērt kartē ↗</a>{navigationLinks(event).google&&<a className="button" target="_blank" rel="noopener noreferrer" href={navigationLinks(event).google}>Google Maps ↗</a>}{navigationLinks(event).waze&&<a className="button" target="_blank" rel="noopener noreferrer" href={navigationLinks(event).waze}>Waze ↗</a>}</div>
+  <div className="catalog-detail-actions">{followButton(event)}<a className="button primary" href={'/karte?q='+encodeURIComponent(event.title)}>Atvērt kartē ↗</a>{navigationLinks(event).google&&<a className="button" target="_blank" rel="noopener noreferrer" href={navigationLinks(event).google}>Google Maps ↗</a>}{navigationLinks(event).waze&&<a className="button" target="_blank" rel="noopener noreferrer" href={navigationLinks(event).waze}>Waze ↗</a>}</div>
   <dl>{[...columns,...detailColumns].filter(([key])=>key!=='title').map(([key,label])=><div key={key}>
    <dt>{label}</dt>
    <dd>{key==='source_url'
