@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
+import {rigaDate} from '../../lib/meets-personal.js';
 
 const SESSION='meets_user_session_v1';
 const EMPTY={id:'',organization_id:'',venue_id:'',title:'',description:'',category:'Cits',date_from:'',date_to:'',time_from:'',time_to:'',venue_name:'',address:'',price_status:'free',schedule_kind:'once',recurrence_note:'',status:'draft'};
@@ -43,6 +44,7 @@ export default function OrganizerPage({initialKind='organizer'}){
  function advanceDraft(){
   if(draftStep===0&&draft.title.trim().length<3){setError('Ievadi pasākuma nosaukumu (vismaz 3 rakstzīmes).');return;}
   if(draftStep===1&&(!draft.date_from||(!draft.venue_id&&(!draft.venue_name.trim()||!draft.address.trim())))){setError('Norādi pasākuma datumu un norises vietas nosaukumu ar adresi.');return;}
+  if(draftStep===1&&draft.date_to&&draft.date_to<draft.date_from){setError('Beigu datums nevar būt pirms pasākuma sākuma datuma.');return;}
   setError('');setDraftStep(step=>Math.min(2,step+1));
  }
  return <section className="meets-organizer-page">
@@ -80,7 +82,7 @@ export default function OrganizerPage({initialKind='organizer'}){
      {!submissions.length&&<p className="meets-muted">Vēl nav iesniegtu pasākumu.</p>}</>:
     <form className="meets-organizer-form meets-organizer-wizard" onSubmit={e=>{e.preventDefault();if(draftStep!==2)return;perform('saveEvent',{...draft,organization_id:orgId,status:'pending_review'},()=>{setEditing(false);setDraftStep(0);setDraft(EMPTY);});}}>
      <h2>{draft.id?'Labot pasākumu':'Jauns pasākums'}</h2>
-     <p className="meets-muted">Aizpildi informāciju trīs soļos. Melnrakstu vari saglabāt jebkurā brīdī.</p>
+     <p className="meets-muted">Aizpildi informāciju trīs soļos. Melnrakstu var saglabāt pēc pasākuma nosaukuma un datuma norādīšanas.</p>
      <ol className="meets-wizard-progress" aria-label="Pasākuma reģistrēšanas soļi">{['Informācija','Datums un vieta','Pārbaude'].map((label,i)=><li key={label} aria-current={draftStep===i?'step':undefined} className={draftStep===i?'active':i<draftStep?'done':''}><span>{i<draftStep?'✓':i+1}</span>{label}</li>)}</ol>
      {draftStep===0&&<div className="meets-wizard-step">
       <div className="meets-schedule-choice"><label>Pasākuma veids<select value={draft.schedule_kind||'once'} onChange={e=>setDraft({...draft,schedule_kind:e.target.value})}><option value="once">Vienreizējs</option><option value="recurring">Regulārs / atkārtojas</option><option value="ongoing">Pastāvīgs / ilgstošs</option></select></label>
@@ -91,7 +93,7 @@ export default function OrganizerPage({initialKind='organizer'}){
      </div>}
      {draftStep===1&&<div className="meets-wizard-step">
       <div className="meets-organizer-grid">
-       <label>Datums no *<input type="date" value={draft.date_from} min={new Date().toISOString().slice(0,10)} onChange={e=>setDraft({...draft,date_from:e.target.value})}/></label>
+       <label>Datums no *<input type="date" value={draft.date_from} min={rigaDate()} onChange={e=>setDraft({...draft,date_from:e.target.value})}/></label>
        <label>Datums līdz<input type="date" min={draft.date_from||undefined} value={draft.date_to||''} onChange={e=>setDraft({...draft,date_to:e.target.value})}/></label>
        <label>Sākuma laiks<input type="time" value={draft.time_from||''} onChange={e=>setDraft({...draft,time_from:e.target.value})}/></label>
        <label>Beigu laiks<input type="time" value={draft.time_to||''} onChange={e=>setDraft({...draft,time_to:e.target.value})}/></label>
@@ -117,7 +119,7 @@ export default function OrganizerPage({initialKind='organizer'}){
      </section>}
      <div className="meets-organizer-buttons meets-wizard-actions">
       {draftStep>0&&<button className="button" type="button" disabled={busy} onClick={()=>{setDraftStep(s=>s-1);setError('');}}>← Atpakaļ</button>}
-      <button className="button" type="button" disabled={busy} onClick={()=>perform('saveEvent',{...draft,organization_id:orgId,status:'draft'},()=>{setEditing(false);setDraftStep(0);setDraft(EMPTY);})}>Saglabāt melnrakstu</button>
+      <button className="button" type="button" disabled={busy||draft.title.trim().length<3||!draft.date_from} onClick={()=>perform('saveEvent',{...draft,organization_id:orgId,status:'draft'},()=>{setEditing(false);setDraftStep(0);setDraft(EMPTY);})}>Saglabāt melnrakstu</button>
       {draftStep<2?<button className="button primary" type="button" disabled={busy} onClick={advanceDraft}>Turpināt →</button>:<button className="button primary" disabled={busy} type="submit">Iesniegt pārbaudei →</button>}
       <button className="button" type="button" disabled={busy} onClick={()=>{setEditing(false);setDraftStep(0);}}>Atcelt</button>
      </div>
