@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} from '../../lib/catalog.js';
 import {useEvents} from '../../lib/use-events.js';
+import {navigationLinks} from '../../lib/meets-personal.js';
 
 const pageSize=50;
 const mobileFilterKeys=new Set(['date_from','title','municipality','event_type','primary_category','price_status']);
@@ -15,6 +16,7 @@ export default function EventCatalog(){
  const [exporting,setExporting]=useState(false);
  const [exportStatus,setExportStatus]=useState('');
  const [selected,setSelected]=useState(null);
+ const [viewMode,setViewMode]=useState('cards');
 
  const rows=data?.events||[];
  const options=useMemo(()=>({
@@ -104,21 +106,22 @@ export default function EventCatalog(){
    <button className="button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Pārlasīt datus'}</button>
   </div>
 
-  <p className="data-note"><strong>Publiskais pasākumu saraksts.</strong> Redzami tikai <code>published</code> pasākumi, kas nav beigušies un sākas ne vēlāk kā 3 mēnešus uz priekšu. Filtri atrodas tieši tabulas galvenes otrajā rindā un darbojas katrai kolonnai atsevišķi.{data?.window?<> Periods: <strong>{data.window.from}–{data.window.to}</strong>.</>:null}</p>
+  <p className="catalog-availability-note">Redzami tikai aktuālie publicētie pasākumi nākamo trīs mēnešu periodā. Atlasīto rezultātu var pārskatīt kartītēs vai detalizētā tabulā.</p>
 
   {error&&<div className="error-message" role="alert">{error} {data&&'Zemāk saglabāti pēdējie veiksmīgi ielādētie dati.'}</div>}
 
+  <div className="catalog-view-switch" role="group" aria-label="Pasākumu attēlošanas veids"><button type="button" aria-pressed={viewMode==='cards'} className={viewMode==='cards'?'active':''} onClick={()=>setViewMode('cards')}>▦ Kartītes</button><button type="button" aria-pressed={viewMode==='table'} className={viewMode==='table'?'active':''} onClick={()=>setViewMode('table')}>☷ Tabula un Excel</button><a href="/karte" className="catalog-map-shortcut">⌖ Skatīt kartē ↗</a></div>
   <div className="result-toolbar">
    <p aria-live="polite"><strong>{filtered.length}</strong> no {rows.length} ierakstiem{activeFilterCount?<> · <strong>{activeFilterCount}</strong> aktīvi kolonu filtri</>:null}</p>
    <button className="text-button" disabled={!activeFilterCount} onClick={()=>{setColumnFilters({});setPage(0);}}>Notīrīt filtrus</button>
    <label className="sort-label">Kārtot pēc<select value={sort} onChange={event=>{setSort(event.target.value);setPage(0);}}><option value="date_from">Datuma</option><option value="title">Nosaukuma</option><option value="municipality">Pašvaldības</option></select></label>
    <button className="button direction-button" onClick={()=>{setDirection(value=>-value);setPage(0);}} aria-label={direction===1?'Kārtot dilstoši':'Kārtot augoši'}>{direction===1?'↑':'↓'}</button>
-   <button className="button primary" disabled={!data||!filtered.length||exporting} onClick={exportExcel}>{exporting?'Gatavo Excel…':`Lejupielādēt Excel (${filtered.length})`}</button>
+   {viewMode==='table'&&<button className="button primary" disabled={!data||!filtered.length||exporting} onClick={exportExcel}>{exporting?'Gatavo Excel…':`Lejupielādēt Excel (${filtered.length})`}</button>}
   </div>
 
   <p role="status" className="sync-text">{exportStatus}</p>
 
-  <details className="mobile-table-filters">
+  <details className="mobile-table-filters" open={undefined}>
    <summary>Filtrēt pasākumus{activeFilterCount?` (${activeFilterCount})`:''}</summary>
    <div className="mobile-filter-grid">
     {columns.filter(([key])=>mobileFilterKeys.has(key)).map(([key,label])=><label key={key}>{label}{filterControl(key,label)}</label>)}
@@ -128,7 +131,13 @@ export default function EventCatalog(){
   {data&&filtered.length===0
    ?<div className="empty"><h2>Nav atrastu pasākumu</h2><p>{rows.length?'Pamēģini mainīt vai notīrīt tabulas kolonu filtrus.':'Pašlaik nav publicētu pasākumu. Tiklīdz pasākums tiks publicēts, tas parādīsies šeit.'}</p></div>
    :<>
-    <div className="table-scroll" role="region" aria-label="Pasākumu tabula — ritināma horizontāli" tabIndex={0}>
+    {viewMode==='cards'&&<div className="catalog-card-grid">{visible.map(event=>{const nav=navigationLinks(event);return <article className="catalog-event-card" key={event.id}>
+     <div className="catalog-event-card-top"><time dateTime={event.date_from}>{display(event,'date_from')||'Datums nav norādīts'}</time><span>{display(event,'event_type')||event.primary_category||'Pasākums'}</span></div>
+     <h2>{event.title}</h2><p className="catalog-event-card-location">⌖ {event.venue_name||event.address_raw||event.municipality||'Norises vieta nav zināma'}</p>
+     <p className="catalog-event-card-time">{display(event,'time')||'Laiks nav norādīts'} · {display(event,'price_status')||'Maksa nav norādīta'}</p>
+     <div className="catalog-event-card-actions"><button className="button compact primary" type="button" onClick={()=>setSelected(event.id)}>Par pasākumu</button><a className="button compact" href={'/karte?q='+encodeURIComponent(event.title)}>Kartē ↗</a>{nav.google&&<a className="button compact" href={nav.google} rel="noopener noreferrer" target="_blank" aria-label={'Maršruts uz '+event.title}>Maršruts ↗</a>}</div>
+    </article>})}</div>}
+    {viewMode==='table'&&<div className="table-scroll" role="region" aria-label="Pasākumu tabula — ritināma horizontāli" tabIndex={0}>
      <table className="events-table catalog-events-table">
       <caption>Atlasītie pasākumi. Otrajā galvenes rindā vari filtrēt katru kolonnu atsevišķi. Nospied nosaukumu, lai redzētu visu norises informāciju.</caption>
       <thead>
@@ -148,9 +157,9 @@ export default function EventCatalog(){
        </td>)}
       </tr>)}</tbody>
      </table>
-    </div>
+    </div>}
 
-    <div className="mobile-events">{visible.map(event=><article key={event.id} className="mobile-event">
+    {viewMode==='table'&&<div className="mobile-events">{visible.map(event=><article key={event.id} className="mobile-event">
      <div className="mobile-event-meta">
       <div><strong>{display(event,'date_from')}</strong><span>{display(event,'time')}</span></div>
       <span className={`badge ${event.status}`}>{display(event,'status')}</span>
@@ -163,7 +172,7 @@ export default function EventCatalog(){
       <span><b>Maksa</b>{display(event,'price_status')}</span>
      </div>
      <button className="button compact mobile-event-open" onClick={()=>setSelected(event.id)}>Skatīt pasākumu</button>
-    </article>)}</div>
+    </article>)}</div>}
    </>}
 
   {data&&filtered.length>0&&<nav className="pagination" aria-label="Saraksta lapas">
@@ -181,6 +190,7 @@ function EventDetails({event,close}){
  useEffect(()=>{dialog.current.showModal();},[]);
  return <dialog ref={dialog} className="event-dialog" onCancel={close} onClose={close}>
   <div className="detail-header"><h2>{event.title}</h2><button className="button" onClick={close} autoFocus>Aizvērt ✕</button></div>
+  <div className="catalog-detail-actions"><a className="button primary" href={'/karte?q='+encodeURIComponent(event.title)}>Atvērt kartē ↗</a>{navigationLinks(event).google&&<a className="button" target="_blank" rel="noopener noreferrer" href={navigationLinks(event).google}>Google Maps ↗</a>}{navigationLinks(event).waze&&<a className="button" target="_blank" rel="noopener noreferrer" href={navigationLinks(event).waze}>Waze ↗</a>}</div>
   <dl>{[...columns,...detailColumns].filter(([key])=>key!=='title').map(([key,label])=><div key={key}>
    <dt>{label}</dt>
    <dd>{key==='source_url'
