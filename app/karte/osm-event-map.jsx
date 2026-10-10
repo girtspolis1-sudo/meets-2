@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
+import MobileEventSheet from './mobile-event-sheet.jsx';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
 import {groupedMapIcon} from '../../lib/event-map-icons.js';
@@ -249,6 +250,7 @@ export default function OsmEventMap(){
  const [mapReady,setMapReady]=useState(false);
  const [mapMode,setMapMode]=useState('loading');
  const [mapError,setMapError]=useState('');
+ const [mobileGroupKey,setMobileGroupKey]=useState('');
  const [mapRetry,setMapRetry]=useState(0);
  const [isAdminSession,setIsAdminSession]=useState(false);
  const [clockNow,setClockNow]=useState(()=>new Date());
@@ -422,6 +424,7 @@ export default function OsmEventMap(){
  const activeIds=useMemo(()=>new Set(activeEvents.map(e=>e.id)),[activeEvents]);
  const mapEvents=useMemo(()=>events.filter(e=>matchesHomeCategory(e,homeCategory)&&matchesAudience(e,audience)&&Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))&&isSupportedMapEvent(e)&&insideBalticView(Number(e.latitude),Number(e.longitude))),[events,homeCategory,audience]);
  const locationGroups=useMemo(()=>groupEvents(mapEvents),[mapEvents]);
+ const mobileSheetGroup=useMemo(()=>locationGroups.find(g=>g.key===mobileGroupKey)||null,[locationGroups,mobileGroupKey]);
  const activeGroupCount=useMemo(()=>locationGroups.filter(g=>g.events.some(e=>activeIds.has(e.id))).length,[locationGroups,activeIds]);
 
  useEffect(()=>{
@@ -616,6 +619,11 @@ export default function OsmEventMap(){
     if(scrollContainer)scrollContainer.scrollTop=scrollTop;
    };
    marker.on('popupopen',()=>{
+    if(window.innerWidth<=700){
+     marker.closePopup();
+     setMobileGroupKey(group.key);
+     return;
+    }
     const actions=event=>{const button=event.target.closest('button[data-event-id]');if(!button)return;const item=group.events.find(e=>String(e.id)===button.dataset.eventId);if(!item)return;if(button.classList.contains('popup-save-calendar'))calendarDownload(item);if(button.classList.contains('popup-save-favorite')){toggleFavorite(item.id);const selected=button.getAttribute('aria-pressed')!=='true';button.setAttribute('aria-pressed',String(selected));button.setAttribute('aria-label',selected?'Noņemt no favorītiem':'Pievienot favorītiem');button.title=selected?'Noņemt no favorītiem':'Pievienot favorītiem';}};
     popupContent.addEventListener('click',actions);
     const popup=marker.getPopup();
@@ -890,6 +898,7 @@ export default function OsmEventMap(){
   </div>
 
   {!loading&&!error&&activeEvents.length===0&&!audience&&!homeCategory&&<div className="map-no-results" role="status"><strong>Šajos filtros pasākumi nav atrasti.</strong><span>Palielini meklēšanas attālumu vai izvēlies plašāku datumu.</span><div><button type="button" className="button compact" onClick={()=>setRadiusKm(0)}>Visa karte</button><button type="button" className="button compact" onClick={()=>changePeriod('month')}>Šomēnes</button><button type="button" className="button compact" onClick={resetFilters}>Notīrīt filtrus</button></div></div>}
+  {mobileSheetGroup&&<MobileEventSheet group={mobileSheetGroup} activeIds={activeIds} favorites={favorites} onFavorite={toggleFavorite} onCalendar={calendarDownload} onClose={()=>setMobileGroupKey('')}/>}
   {audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">Izvēlētajai auditorijai šajā laikā un rādiusā nav pasākumu ar pārbaudītu piemērotību. Izvēlies citu auditoriju vai maini laiku un rādiusu.</p>}
   {homeCategory&&!audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">
    {HOME_CATEGORY_FILTERS[homeCategory].emptyMessage||'Šajā kategorijā izvēlētajā laikā un rādiusā pasākumi nav atrasti. Maini datumu vai rādiusu, vai noņem kategorijas filtru.'}
