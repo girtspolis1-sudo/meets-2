@@ -64,7 +64,31 @@ for(const width of cases){
   if(!sheet||sheet.x<0||sheet.x+sheet.width>width+2||sheet.y+sheet.height>844+2){
    fails++;console.error('Mobile event sheet outside viewport',width,sheet);
   }
-  await page.getByRole('button',{name:/Saglabāt|Saglabāts/}).first().click();
+  const actions=page.locator('.meets-mobile-sheet-event').first().locator('.meets-event-action-grid');
+  await actions.waitFor();
+  const layout=await actions.evaluate(el=>{
+   const tiles=[...el.children],rects=tiles.map(x=>x.getBoundingClientRect());
+   const wrap=el.getBoundingClientRect();
+   return {count:rects.length,widths:rects.map(r=>r.width),heights:rects.map(r=>r.height),
+    tops:rects.map(r=>r.top),right:Math.max(...rects.map(r=>r.right)),
+    parentRight:wrap.right,icons:tiles.map(x=>x.querySelector('svg')?.getBoundingClientRect().width)};
+  });
+  if(layout.count!==4||Math.max(...layout.widths)-Math.min(...layout.widths)>1||
+   Math.max(...layout.heights)-Math.min(...layout.heights)>1||
+   Math.max(...layout.tops)-Math.min(...layout.tops)>1||
+   layout.right>layout.parentRight+1||layout.icons.some(size=>size!==14)){
+   fails++;console.error('Four equal actions do not fit a single row',width,layout);
+  }else console.log('PASS four equal event actions',width,layout.widths);
+  await actions.locator('details > summary').click();
+  const navigationChoices=await actions.locator('.meets-event-action-choices a').allTextContents();
+  if(!navigationChoices.some(x=>x.includes('Google Maps'))||!navigationChoices.some(x=>x.includes('Waze'))){
+   fails++;console.error('Missing route links',width,navigationChoices);
+  }
+  await actions.locator('details > summary').click();
+  await actions.getByRole('button',{name:'Saglabāt pasākumu'}).click();
+  if((await actions.getByRole('button',{name:'Noņemt no saglabātajiem'}).count())!==1){
+   fails++;console.error('Favorite save state not reflected',width);
+  }
   await page.getByRole('button',{name:'Aizvērt pasākumu informāciju'}).click();
   await assertLayout(page,'map',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-map.png',fullPage:true});
