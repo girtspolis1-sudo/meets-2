@@ -43,7 +43,7 @@ export async function POST(request){
    if(typeof token!=='string'||!token)return NextResponse.json({error:'Nav sesijas.'},{status:401});
    const res=await fetch(authUrl+'token?grant_type=refresh_token',{method:'POST',headers:head,body:JSON.stringify({refresh_token:token}),cache:'no-store'});
    if(!res.ok)return NextResponse.json({error:'Sesija beigusies.'},{status:401});
-   const value=await res.json();return NextResponse.json({access_token:value.access_token,refresh_token:value.refresh_token,user:{id:value.user?.id,email:value.user?.email}});
+   const value=await res.json();return NextResponse.json({access_token:value.access_token,refresh_token:value.refresh_token,expires_in:value.expires_in,user:{id:value.user?.id,email:value.user?.email}});
   }
   if(!['list','add','remove','plan','unplan','visit','unvisit','dashboard','interest','reminder','follow','share','unshare','readNotice'].includes(action)||typeof token!=='string')return NextResponse.json({error:'Nederīgs pieprasījums.'},{status:400});
   const me=await fetch(authUrl+'user',{headers:{...head,Authorization:'Bearer '+token},cache:'no-store'});
