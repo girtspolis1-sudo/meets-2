@@ -106,6 +106,7 @@ export default function EventCatalog(){
  const current=Math.min(page,pages-1);
  const visible=filtered.slice(current*pageSize,(current+1)*pageSize);
  const activeFilterCount=Object.values(columnFilters).filter(value=>String(value||'').trim()).length;
+ const sharedFilterCount=[shared.group,shared.audience,shared.types?.length,shared.competition,shared.radius>0,shared.from,shared.to].filter(Boolean).length;
 
  function changeColumn(key,value){
   setColumnFilters(filters=>({...filters,[key]:value}));
@@ -207,9 +208,10 @@ export default function EventCatalog(){
    <label>Veids{filterControl('event_type','Tips')}</label>
    <label>Maksa{filterControl('price_status','Maksa')}</label>
   </div>}
+  {sharedFilterCount>0&&<p className="catalog-active-map-filters" role="status">Pielietota atlase no kartes — {sharedFilterCount} papildu kritēriji. Izmanto <strong>Notīrīt filtrus</strong>, lai redzētu visus pasākumus.</p>}
   <div className="result-toolbar">
-   <p aria-live="polite"><strong>{filtered.length}</strong> no {rows.length} ierakstiem{activeFilterCount||period!=='all'?<> · <strong>{activeFilterCount+(period!=='all'?1:0)}</strong> aktīvi filtri</>:null}</p>
-   <button className="text-button" disabled={!activeFilterCount&&period==='all'} onClick={()=>{setColumnFilters({});setPeriod('all');setPage(0);}}>Notīrīt filtrus</button>
+   <p aria-live="polite"><strong>{filtered.length}</strong> no {rows.length} ierakstiem{activeFilterCount||period!=='all'||sharedFilterCount?<> · <strong>{activeFilterCount+(period!=='all'?1:0)+sharedFilterCount}</strong> aktīvi filtri</>:null}</p>
+   <button className="text-button" disabled={!activeFilterCount&&period==='all'&&!sharedFilterCount} onClick={()=>{setColumnFilters({});setPeriod('all');setShared({});setSharedOrigin(null);setPage(0);}}>Notīrīt filtrus</button>
    <label className="sort-label">Kārtot pēc<select value={sort} onChange={event=>{setSort(event.target.value);setPage(0);}}><option value="date_from">Datuma</option><option value="title">Nosaukuma</option><option value="municipality">Pašvaldības</option></select></label>
    <button className="button direction-button" onClick={()=>{setDirection(value=>-value);setPage(0);}} aria-label={direction===1?'Kārtot dilstoši':'Kārtot augoši'}>{direction===1?'↑':'↓'}</button>
    {viewMode==='table'&&<button className="button primary" disabled={!data||!filtered.length||exporting} onClick={exportExcel}>{exporting?'Gatavo Excel…':`Lejupielādēt Excel (${filtered.length})`}</button>}
