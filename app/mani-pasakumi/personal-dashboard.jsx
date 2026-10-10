@@ -81,6 +81,7 @@ function CalendarView({events,selectedDate,setSelectedDate,month,setMonth,render
 export default function PersonalDashboard({session,favorites,plans,visits,onToggle,busy,events=[],loading}){
  const [view,setView]=useState('favorites'),[extra,setExtra]=useState(DEFAULT),[tabError,setTabError]=useState(''),[message,setMessage]=useState(''),[saving,setSaving]=useState(false);
  const [month,setMonth]=useState(rigaDate().slice(0,7)),[selectedDate,setSelectedDate]=useState(rigaDate()),[mapScope,setMapScope]=useState('all'),[followQuery,setFollowQuery]=useState('');
+ const [origin,setOrigin]=useState(null),[radius,setRadius]=useState(30),[locationError,setLocationError]=useState('');
  const token=session.access_token;
  const reload=useCallback(async()=>{const result=await request({action:'dashboard',token});setExtra({...DEFAULT,...result});},[token]);
  useEffect(()=>{let cancelled=false;async function load(){try{const result=await request({action:'dashboard',token});if(!cancelled)setExtra({...DEFAULT,...result});}catch(e){if(!cancelled)setTabError(e.message);}}
@@ -96,7 +97,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
  const selectedIds=view==='favorites'?favorites:view==='planned'?plans:view==='visited'?visits:[...new Set([...favorites,...plans])];
  const selected=selectedIds.map(id=>eventIndex.get(id)).filter(Boolean).sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from)));
  const mapEvents=mapScope==='favorites'?favorites.map(id=>eventIndex.get(id)).filter(Boolean):mapScope==='planned'?plans.map(id=>eventIndex.get(id)).filter(Boolean):saved;
- const recommended=useMemo(()=>recommendEvents(events,extra.interests,favorites,plans,9),[events,extra.interests,favorites,plans]);
+ const recommended=useMemo(()=>recommendEvents(events,extra.interests,favorites,plans,9,{origin,radiusKm:radius}),[events,extra.interests,favorites,plans,origin,radius]);
  const following=extra.followedEvents.map(id=>eventIndex.get(id)).filter(Boolean).sort((a,b)=>a.date_from.localeCompare(b.date_from));
  const unread=extra.notices.filter(n=>!n.read_at);
  const shared=extra.shared?.is_enabled&&extra.shared.share_token?'/saraksts/'+extra.shared.share_token:'';
@@ -142,6 +143,24 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
      </button>;
     })}</div>
     <div className="meets-personal-heading-row"><h2>Tev varētu patikt</h2><span>{recommended.length} ieteikumi</span></div>
+    <div className="meets-personal-radius-filter">
+     <button type="button" className="button" onClick={()=>{
+      setLocationError('');
+      if(!navigator.geolocation){setLocationError('Šajā ierīcē atrašanās vietas noteikšana nav pieejama.');return;}
+      navigator.geolocation.getCurrentPosition(
+       pos=>setOrigin({latitude:pos.coords.latitude,longitude:pos.coords.longitude}),
+       ()=>setLocationError('Atrašanās vietu neizdevās noteikt. Vari turpināt pārlūkot visu Latviju.'),
+       {enableHighAccuracy:false,timeout:10000,maximumAge:300000}
+      );
+     }}>⌖ {origin?'Atrašanās vieta noteikta':'Ieteikumi man tuvumā'}</button>
+     {origin&&<><label>Attālums
+      <select aria-label="Ieteikumu attālums" value={radius} onChange={e=>setRadius(Number(e.target.value))}>
+       <option value={10}>10 km</option><option value={30}>30 km</option><option value={50}>50 km</option><option value={100}>100 km</option>
+      </select></label>
+      <button type="button" className="button" onClick={()=>{setOrigin(null);setLocationError('');}}>Visa Latvija</button></>}
+    </div>
+    {locationError&&<p role="status" className="meets-muted">{locationError}</p>}
+    {origin&&<p className="meets-muted">Atlasīti tikai pasākumi ar precīzu kartes punktu {radius} km rādiusā. Atrašanās vieta netiek saglabāta tavā kontā.</p>}
     {recommended.length?cardEvents(recommended):<p className="meets-muted">Izvēlies intereses, lai šeit parādītos piemēroti pasākumi. <Link href="/karte">Apskatīt visus pasākumus ↗</Link></p>}
    </section>}
    {view==='following'&&<section className="meets-personal-follows">
