@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import HomeLocationChoice from './home-location-choice.jsx';
 
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS} from '../lib/home-category-filters.js';
 
@@ -9,14 +8,13 @@ const HOME_CATEGORIES=HOME_GROUP_KEYS.map(key=>({
 
 export default function Home(){
  return <>
-  <HomeLocationChoice/>
   <section className="home-landing home-landing-rich">
    <div className="home-copy">
     <p className="eyebrow">Tavs nākamais piedzīvojums</p>
     <h1>Satiekamies<br/><em>kaut kur tepat.</em></h1>
     <p className="lead">Kultūra, sports un mazi atklājumi visā Latvijā.<br/>{' '}Vienuviet, tuvāk tev.</p>
     <div className="actions">
-     <Link className="button primary" href="/karte">Atvērt karti <span aria-hidden="true">↗</span></Link>
+     <Link className="button primary" href="/karte?period=week">Atvērt karti <span aria-hidden="true">↗</span></Link>
      <Link className="button" href="/pasakumi">Pārlūkot pasākumus</Link>
     </div>
 
@@ -33,7 +31,7 @@ export default function Home(){
   <section className="home-category-strip" aria-label="Populārākās pasākumu kategorijas">
    <div className="home-category-title">
     <h2>Atrodi sev<br/>tuvāko notikumu</h2>
-    <i aria-hidden="true"/><Link className="button" href="/karte?audience=family">Ar ģimeni ↗</Link>
+    <i aria-hidden="true"/><Link className="button" href="/karte?period=week">Šonedēļ ↗</Link>
    </div>
    <div className="home-category-list">
     {HOME_CATEGORIES.map(item=><Link key={item.key} className={'home-category-pill '+item.key} href={item.href}>
