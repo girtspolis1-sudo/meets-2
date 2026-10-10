@@ -1978,3 +1978,16 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .admin-register-footnote{font-size:11px;line-height:1.5;color:#64748b;padding:0 5px;margin:0}
 @media(max-width:800px){.admin-register-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-register-table{min-width:1180px}.admin-register-heading{padding:12px}.admin-register-toolbar .admin-register-counter{margin-left:0}}
 @media(max-width:390px){.admin-register-heading h2{font-size:17px}.admin-register-stats strong{font-size:21px}.admin-register-stats>div{padding:10px}.admin-register-toolbar label{flex:1 1 115px}.admin-register-toolbar select{width:100%}.admin-register-scroll{max-height:65vh}}
+
+/* In-place editing for user-submitted events from admin register */
+.admin-register-modal-backdrop{position:fixed;inset:0;z-index:1300;display:grid;place-items:center;background:rgba(15,23,42,.5);padding:14px}
+.admin-register-editor{width:min(740px,100%);max-height:calc(100dvh - 28px);overflow-y:auto;background:#fff;border-radius:16px;border:1px solid #d5dbe3;box-shadow:0 20px 65px rgba(0,0,0,.25);padding:22px;display:grid;gap:13px}
+.admin-register-editor-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.admin-register-editor-heading h3{font-size:19px;margin:0}
+.admin-register-editor label{display:grid;gap:5px;color:#334155;font-size:12px;font-weight:600;min-width:0}
+.admin-register-editor input,.admin-register-editor textarea{font:inherit;font-size:13px;width:100%;max-width:100%;min-height:40px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;padding:8px 10px}
+.admin-register-editor textarea{resize:vertical}
+.admin-register-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.admin-register-editor-actions{display:flex;gap:9px;flex-wrap:wrap}
+.meets-organizer-review-focused{outline:2px solid #7c3aed;outline-offset:1px}
+@media(max-width:560px){.admin-register-editor{padding:14px;border-radius:12px}.admin-register-editor-grid{grid-template-columns:1fr}.admin-register-modal-backdrop{padding:8px}.admin-register-editor{max-height:calc(100dvh - 16px)}}
