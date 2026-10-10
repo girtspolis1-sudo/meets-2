@@ -3,6 +3,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} from '../../lib/catalog.js';
 import {useEvents} from '../../lib/use-events.js';
 import {navigationLinks} from '../../lib/meets-personal.js';
+import {rigaTodayIso,addIsoDays} from '../../lib/event-date.js';
 
 const pageSize=50;
 const mobileFilterKeys=new Set(['date_from','title','municipality','event_type','primary_category','price_status']);
@@ -17,6 +18,7 @@ export default function EventCatalog(){
  const [exportStatus,setExportStatus]=useState('');
  const [selected,setSelected]=useState(null);
  const [viewMode,setViewMode]=useState('cards');
+ const [period,setPeriod]=useState('all');
 
  const rows=data?.events||[];
  const options=useMemo(()=>({
@@ -28,13 +30,29 @@ export default function EventCatalog(){
   mapStatuses:[...new Set(rows.map(event=>display(event,'map_status')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv'))
  }),[rows]);
 
- const filtered=useMemo(()=>filterEventsByColumns(rows,columnFilters).sort((a,b)=>{
+ const filtered=useMemo(()=>filterEventsByColumns(rows,columnFilters).filter(event=>{
+  if(period==='all')return true;
+  const today=rigaTodayIso();
+  const start=String(event.date_from||'');
+  const end=String(event.date_to||start);
+  if(period==='today')return start<=today&&end>=today;
+  if(period==='week'){
+   const date=new Date(today+'T12:00:00Z');
+   const last=addIsoDays(today,(7-date.getUTCDay())%7);
+   return start<=last&&end>=today;
+  }
+  if(period==='month'){
+   const last=new Date(Date.UTC(Number(today.slice(0,4)),Number(today.slice(5,7)),0)).toISOString().slice(0,10);
+   return start<=last&&end>=today;
+  }
+  return true;
+ }).sort((a,b)=>{
   const av=sort==='date_from'?a.date_from:display(a,sort);
   const bv=sort==='date_from'?b.date_from:display(b,sort);
   if(!av)return bv?1:0;
   if(!bv)return -1;
   return String(av).localeCompare(String(bv),'lv',{numeric:true})*direction||a.id.localeCompare(b.id);
- }),[rows,columnFilters,sort,direction]);
+ }),[rows,columnFilters,sort,direction,period]);
 
  const pages=Math.max(1,Math.ceil(filtered.length/pageSize));
  const current=Math.min(page,pages-1);
@@ -111,9 +129,18 @@ export default function EventCatalog(){
   {error&&<div className="error-message" role="alert">{error} {data&&'Zemāk saglabāti pēdējie veiksmīgi ielādētie dati.'}</div>}
 
   <div className="catalog-view-switch" role="group" aria-label="Pasākumu attēlošanas veids"><button type="button" aria-pressed={viewMode==='cards'} className={viewMode==='cards'?'active':''} onClick={()=>setViewMode('cards')}>▦ Kartītes</button><button type="button" aria-pressed={viewMode==='table'} className={viewMode==='table'?'active':''} onClick={()=>setViewMode('table')}>☷ Tabula un Excel</button><a href="/karte" className="catalog-map-shortcut">⌖ Skatīt kartē ↗</a></div>
+  {viewMode==='cards'&&<div className="catalog-card-filters" aria-label="Atlasīt pasākumus">
+   <label>Periods<select value={period} onChange={e=>{setPeriod(e.target.value);setPage(0);}}>
+    <option value="all">Visi aktuālie</option><option value="today">Šodien</option><option value="week">Šonedēļ</option><option value="month">Šomēnes</option>
+   </select></label>
+   <label>Meklēt pasākumu{filterControl('title','Pasākums')}</label>
+   <label>Pašvaldība{filterControl('municipality','Pašvaldība')}</label>
+   <label>Veids{filterControl('event_type','Tips')}</label>
+   <label>Maksa{filterControl('price_status','Maksa')}</label>
+  </div>}
   <div className="result-toolbar">
-   <p aria-live="polite"><strong>{filtered.length}</strong> no {rows.length} ierakstiem{activeFilterCount?<> · <strong>{activeFilterCount}</strong> aktīvi kolonu filtri</>:null}</p>
-   <button className="text-button" disabled={!activeFilterCount} onClick={()=>{setColumnFilters({});setPage(0);}}>Notīrīt filtrus</button>
+   <p aria-live="polite"><strong>{filtered.length}</strong> no {rows.length} ierakstiem{activeFilterCount||period!=='all'?<> · <strong>{activeFilterCount+(period!=='all'?1:0)}</strong> aktīvi filtri</>:null}</p>
+   <button className="text-button" disabled={!activeFilterCount&&period==='all'} onClick={()=>{setColumnFilters({});setPeriod('all');setPage(0);}}>Notīrīt filtrus</button>
    <label className="sort-label">Kārtot pēc<select value={sort} onChange={event=>{setSort(event.target.value);setPage(0);}}><option value="date_from">Datuma</option><option value="title">Nosaukuma</option><option value="municipality">Pašvaldības</option></select></label>
    <button className="button direction-button" onClick={()=>{setDirection(value=>-value);setPage(0);}} aria-label={direction===1?'Kārtot dilstoši':'Kārtot augoši'}>{direction===1?'↑':'↓'}</button>
    {viewMode==='table'&&<button className="button primary" disabled={!data||!filtered.length||exporting} onClick={exportExcel}>{exporting?'Gatavo Excel…':`Lejupielādēt Excel (${filtered.length})`}</button>}
@@ -121,15 +148,15 @@ export default function EventCatalog(){
 
   <p role="status" className="sync-text">{exportStatus}</p>
 
-  <details className="mobile-table-filters" open={undefined}>
-   <summary>Filtrēt pasākumus{activeFilterCount?` (${activeFilterCount})`:''}</summary>
+  {viewMode==='table'&&<details className="mobile-table-filters">
+   <summary>Filtrēt pasākumus{activeFilterCount||period!=='all'?` (${activeFilterCount+(period!=='all'?1:0)})`:''}</summary>
    <div className="mobile-filter-grid">
     {columns.filter(([key])=>mobileFilterKeys.has(key)).map(([key,label])=><label key={key}>{label}{filterControl(key,label)}</label>)}
    </div>
-  </details>
+  </details>}
 
   {data&&filtered.length===0
-   ?<div className="empty"><h2>Nav atrastu pasākumu</h2><p>{rows.length?'Pamēģini mainīt vai notīrīt tabulas kolonu filtrus.':'Pašlaik nav publicētu pasākumu. Tiklīdz pasākums tiks publicēts, tas parādīsies šeit.'}</p></div>
+   ?<div className="empty"><h2>Nav atrastu pasākumu</h2><p>{rows.length?'Pamēģini mainīt datumu, kategoriju vai noņemt aktīvos filtrus.':'Pašlaik nav publicētu pasākumu. Tiklīdz pasākums tiks publicēts, tas parādīsies šeit.'}</p></div>
    :<>
     {viewMode==='cards'&&<div className="catalog-card-grid">{visible.map(event=>{const nav=navigationLinks(event);return <article className="catalog-event-card" key={event.id}>
      <div className="catalog-event-card-top"><time dateTime={event.date_from}>{display(event,'date_from')||'Datums nav norādīts'}</time><span>{display(event,'event_type')||event.primary_category||'Pasākums'}</span></div>
