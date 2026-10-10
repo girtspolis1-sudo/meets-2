@@ -57,7 +57,7 @@ export async function POST(request){
   }
   const rest=async(table,method='GET',query='',value=null)=>{
    const res=await fetch(BASE()+'/rest/v1/'+table+query,{method,
-    headers:{...headers,...(table.startsWith('rpc/')?{Prefer:'return=representation'}:method==='POST'?{Prefer:'resolution=merge-duplicates,return=minimal'}:{})},
+    headers:{...headers,...(table.startsWith('rpc/')?{Prefer:'return=representation'}:method==='POST'?{Prefer:'resolution=ignore-duplicates,return=minimal'}:{})},
     ...(value!==null?{body:JSON.stringify(value)}:{}),cache:'no-store'});
    if(!res.ok)throw new Error('Datus neizdevās saglabāt vai ielādēt.');
    if(res.status===204)return null;
@@ -92,8 +92,13 @@ export async function POST(request){
   if(action==='reminder'){
    if(!uuid.test(eventId||'')||typeof enabled!=='boolean'||![120,1440].includes(leadMinutes))
     return NextResponse.json({error:'Nederīgi atgādinājuma iestatījumi.'},{status:400});
-   try{await rest('meets_user_reminders',enabled?'POST':'DELETE',enabled?'':own+'&event_id=eq.'+eventId,
-     enabled?{user_id:user.id,event_id:eventId,lead_minutes:leadMinutes}:null);
+   try{
+    if(!enabled)await rest('meets_user_reminders','DELETE',own+'&event_id=eq.'+eventId);
+    else{
+     const found=await rest('meets_user_reminders','GET',own+'&event_id=eq.'+eventId+'&select=event_id');
+     if(found?.length)await rest('meets_user_reminders','PATCH',own+'&event_id=eq.'+eventId,{lead_minutes:leadMinutes});
+     else await rest('meets_user_reminders','POST','',{user_id:user.id,event_id:eventId,lead_minutes:leadMinutes});
+    }
     return NextResponse.json({ok:true});}
    catch{return NextResponse.json({error:'Atgādinājumu neizdevās saglabāt.'},{status:400});}
   }
