@@ -107,7 +107,7 @@ for(const width of cases){
     else followed=followed.filter(x=>x.location_key!==body.locationKey);
     return route.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'});
    }
-   if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:'{"favorites":[],"plans":[],"visits":[]}'});
+   if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({favorites:[mockEvent.id],plans:[],visits:[]})});
    if(body.action==='dashboard')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
     interests:[],reminders:[],notices:[],follows:[],shared:null,
     directory:{organizations:[],venues:[],sources:[]},followedEvents:[],savedDetails:[],locationFollows:followed
