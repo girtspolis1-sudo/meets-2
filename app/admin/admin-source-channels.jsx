@@ -11,6 +11,14 @@ function sourceGroup(source){
  return 'other';
 }
 
+function formatSyncTimestamp(value){
+ if(!value)return 'Vēl nav';
+ const parsed=new Date(value);if(Number.isNaN(parsed.getTime()))return '—';
+ return new Intl.DateTimeFormat('lv-LV',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Riga'}).format(parsed);
+}
+function sourceSyncLabel(value){
+ return ({accepted:'Veiksmīga',fallback:'Atjaunošana noraidīta',running:'Notiek',})[value]||'Nav veikta';
+}
 function groupLabel(key){
  return ({
   municipality:'Pašvaldību avoti',
@@ -44,6 +52,13 @@ export default function AdminSourceChannels({sources,events,onToggle,onEdit,onPu
  }
  const rows=Array.isArray(sources)?sources:[];
  const enabled=rows.filter(source=>source.map_visible!==false).length;
+ const municipalitySources=rows.filter(source=>source.municipality_id);
+ const activeSources=municipalitySources.filter(source=>source.weekly_last_status==='accepted').length;
+ const fallbackSources=municipalitySources.filter(source=>source.weekly_last_status==='fallback').length;
+ const latestActive=municipalitySources.reduce((date,source)=>{
+  const value=source.weekly_active_at;
+  return value&&(!date||Date.parse(value)>Date.parse(date))?value:date;
+ },null);
  const groups=['municipality','basketball','football','athletics','other']
   .map(key=>({key,label:groupLabel(key),items:rows.filter(source=>sourceGroup(source)===key)}))
   .filter(group=>group.items.length);
@@ -57,6 +72,13 @@ export default function AdminSourceChannels({sources,events,onToggle,onEdit,onPu
    </div>
    <span className="quality-badge ok">{enabled} no {rows.length} ieslēgti</span>
   </div>
+
+  {!!municipalitySources.length&&<div className="source-sync-summary">
+   <div><span>Pēdējā aktīvā datu kopija</span><strong>{formatSyncTimestamp(latestActive)}</strong></div>
+   <div><span>Veiksmīga nedēļas ielāde</span><strong>{activeSources} / {municipalitySources.length}</strong></div>
+   <div><span>Izmantota iepriekšējā kopija</span><strong>{fallbackSources}</strong></div>
+   <small>Katram avotam glabājam līdz 2 pēdējām veiksmīgajām datu kopijām. Noraidītās ielādes nemaina aktīvos pasākumus.</small>
+  </div>}
 
   {groups.map(group=><div className="source-channel-group" key={group.key}>
    <div className="source-channel-group-head">
@@ -75,11 +97,16 @@ export default function AdminSourceChannels({sources,events,onToggle,onEdit,onPu
        </div>
        <a href={source.calendar_url||('https://'+source.domain)} target="_blank" rel="noreferrer">{source.domain} ↗</a>
        <small>Aktuāli: {source.current_event_count??0} · publicēti: {source.published_event_count??0} · kopā sasaistīti: {source.event_count??0}</small>
-       {source.municipality_id&&source.last_read_at&&<small className="source-channel-refresh-meta">
-        ↻ Pārlasīts: {new Intl.DateTimeFormat('lv-LV',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Riga'}).format(new Date(source.last_read_at))}
-        {' · '}Jauni: <strong>{source.last_result?.new??0}</strong>
-        {source.last_status==='partial'&&<span className="source-channel-refresh-warning"> · Avotā notikumi nav atrasti</span>}
-       </small>}
+       {source.municipality_id&&<div className="source-channel-sync-details">
+        <small><b>Aktīvā kopija:</b> {formatSyncTimestamp(source.weekly_active_at||source.last_read_at)}
+          {' · '}<b>{source.weekly_active_count??'—'}</b> pasākumi
+          {' · '}Rezerves kopijas: <b>{source.weekly_backup_count??0}/2</b></small>
+        <small><b>Pēdējais mēģinājums:</b> {formatSyncTimestamp(source.weekly_last_attempt||source.last_attempt_at)}
+          {' · '}<span className={source.weekly_last_status==='fallback'?'source-channel-refresh-warning':'source-channel-success'}>{sourceSyncLabel(source.weekly_last_status)}</span>
+          {source.weekly_last_status==='accepted'&&<> · Jauni: <b>{source.weekly_last_added??0}</b></>}
+        </small>
+        {source.weekly_last_status==='fallback'&&<small className="source-channel-refresh-warning">{source.weekly_last_detail||'Saglabāta iepriekšējā datu kopija'}</small>}
+       </div>}
       </div>
       <label className="source-channel-switch">
        <input
