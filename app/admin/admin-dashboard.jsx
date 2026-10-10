@@ -173,7 +173,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [search,setSearch]=useState('');
  const [status,setStatus]=useState('');
  const [quality,setQuality]=useState('');
- const [workspaceView,setWorkspaceView]=useState('register');
+ const [workspaceView,setWorkspaceView]=useState('overview');
  const [focusedSubmissionId,setFocusedSubmissionId]=useState('');
  const [editing,setEditing]=useState(null);
  const [mappingEditing,setMappingEditing]=useState(null);
@@ -751,11 +751,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  }
 
  return <>
-  <div className="admin-workspace-tabs" role="tablist" aria-label="Admin darba skati">
+  <div className="admin-workspace-tabs" role="group" aria-label="Admin darba skati">
    <button
     type="button"
-    role="tab"
-    aria-selected={workspaceView==='register'}
+    type="button"
+    aria-pressed={workspaceView==='register'}
     className={workspaceView==='register'?'active':''}
     onClick={()=>setWorkspaceView('register')}
    >Ierakstu reģistrs <span>{events.length+userSubmissions.filter(item=>item.status!=='published'||!item.event_id).length}</span></button>
