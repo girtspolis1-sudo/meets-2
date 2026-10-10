@@ -2000,3 +2000,16 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .source-channel-refresh-meta{display:block;color:#475569;margin-top:4px;font-size:11px;line-height:1.4}
 .source-channel-refresh-meta strong{font-variant-numeric:tabular-nums;color:#166534}
 .source-channel-refresh-warning{color:#9a3412}
+
+/* Municipality weekly import status + rollback diagnostics */
+.source-sync-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;background:#fff;border:1px solid #cbd5e1;border-radius:12px;padding:13px 15px}
+.source-sync-summary>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.source-sync-summary>div span{font-size:11px;color:#64748b}
+.source-sync-summary>div strong{font-size:15px;color:#1e293b;overflow-wrap:anywhere}
+.source-sync-summary>small{grid-column:1/-1;font-size:11px;color:#64748b;line-height:1.5}
+.source-channel-sync-details{display:grid;gap:5px;margin-top:7px;padding:9px;border-radius:9px;background:#f8fafc;border:1px solid #e2e8f0}
+.source-channel-sync-details small{display:block;font-size:11px;color:#475569;line-height:1.5;overflow-wrap:anywhere}
+.source-channel-sync-details small b{font-weight:650;color:#334155}
+.source-channel-refresh-warning{color:#b45309!important;font-weight:650}
+.source-channel-success{color:#166534;font-weight:650}
+@media(max-width:700px){.source-sync-summary{grid-template-columns:1fr}.source-sync-summary>small{grid-column:1}}
