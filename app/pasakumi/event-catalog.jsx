@@ -4,6 +4,7 @@ import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} fro
 import {useEvents} from '../../lib/use-events.js';
 import {navigationLinks} from '../../lib/meets-personal.js';
 import {rigaTodayIso,addIsoDays} from '../../lib/event-date.js';
+import {eventGroup,matchesAudience,sourceType} from '../../lib/home-category-filters.js';
 
 const pageSize=50;
 const mobileFilterKeys=new Set(['date_from','title','municipality','event_type','primary_category','price_status']);
@@ -19,6 +20,37 @@ export default function EventCatalog(){
  const [selected,setSelected]=useState(null);
  const [viewMode,setViewMode]=useState('cards');
  const [period,setPeriod]=useState('all');
+ const [shared,setShared]=useState({});
+ const [sharedOrigin,setSharedOrigin]=useState(null);
+ useEffect(()=>{
+  const p=new URLSearchParams(window.location.search);
+  const filters={};
+  for(const [from,to] of [['q','title'],['price','price_status'],['municipality','municipality'],['country','country_code'],['subcategory','primary_category']]){
+   if(p.get(from))filters[to]=p.get(from);
+  }
+  setColumnFilters(filters);
+  const chosen=p.get('period');
+  setPeriod(['today','week','month'].includes(chosen)?chosen:'all');
+  const radius=Number(p.get('radius')||0);
+  setShared({
+   group:p.get('category')||'',
+   audience:p.get('audience')||'',
+   types:(p.get('types')||'').split(',').filter(Boolean),
+   competition:p.get('competition')||'',
+   radius:Number.isFinite(radius)&&radius>=0&&radius<=100?radius:0,
+   from:p.get('from')||'',to:p.get('to')||''
+  });
+  if(p.has('lat')&&p.has('lon')){
+   const lat=Number(p.get('lat')),lon=Number(p.get('lon'));
+   if(Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=53.5&&lat<=60.8&&lon>=16&&lon<=31.5){
+    setSharedOrigin({lat,lon});return;
+   }
+  }
+  try{
+   const raw=JSON.parse(localStorage.getItem('meets_location_choice_v1')||'null');
+   if(Number.isFinite(raw?.lat)&&Number.isFinite(raw?.lon))setSharedOrigin(raw);
+  }catch{}
+ },[]);
 
  const rows=data?.events||[];
  const options=useMemo(()=>({
@@ -31,6 +63,20 @@ export default function EventCatalog(){
  }),[rows]);
 
  const filtered=useMemo(()=>filterEventsByColumns(rows,columnFilters).filter(event=>{
+  if(shared.group&&eventGroup(event)!==shared.group)return false;
+  if(shared.audience&&!matchesAudience(event,shared.audience))return false;
+  if(shared.types?.length&&!shared.types.includes(sourceType(event)))return false;
+  if(shared.competition&&event.competition_key!==shared.competition)return false;
+  if(shared.from&&String(event.date_to||event.date_from||'')<shared.from)return false;
+  if(shared.to&&String(event.date_from||'')>shared.to)return false;
+  if(shared.radius>0){
+   const center=sharedOrigin||{lat:56.9496,lon:24.1052};
+   const lat=Number(event.latitude),lon=Number(event.longitude);
+   if(!Number.isFinite(lat)||!Number.isFinite(lon))return false;
+   const deg=Math.PI/180,dLat=(lat-center.lat)*deg,dLon=(lon-center.lon)*deg;
+   const a=Math.sin(dLat/2)**2+Math.cos(center.lat*deg)*Math.cos(lat*deg)*Math.sin(dLon/2)**2;
+   if(6371*2*Math.asin(Math.min(1,Math.sqrt(a)))>shared.radius)return false;
+  }
   if(period==='all')return true;
   const today=rigaTodayIso();
   const start=String(event.date_from||'');
@@ -52,7 +98,7 @@ export default function EventCatalog(){
   if(!av)return bv?1:0;
   if(!bv)return -1;
   return String(av).localeCompare(String(bv),'lv',{numeric:true})*direction||a.id.localeCompare(b.id);
- }),[rows,columnFilters,sort,direction,period]);
+ }),[rows,columnFilters,sort,direction,period,shared,sharedOrigin]);
 
  const pages=Math.max(1,Math.ceil(filtered.length/pageSize));
  const current=Math.min(page,pages-1);
@@ -113,6 +159,26 @@ export default function EventCatalog(){
   }
  }
 
+ const mapHref=useMemo(()=>{
+  const p=new URLSearchParams();
+  if(shared.group)p.set('category',shared.group);
+  if(shared.audience)p.set('audience',shared.audience);
+  if(shared.types?.length)p.set('types',shared.types.join(','));
+  if(shared.competition)p.set('competition',shared.competition);
+  if(columnFilters.primary_category)p.set('subcategory',columnFilters.primary_category);
+  if(columnFilters.title)p.set('q',columnFilters.title);
+  if(columnFilters.municipality)p.set('municipality',columnFilters.municipality);
+  if(columnFilters.country_code)p.set('country',columnFilters.country_code);
+  if(columnFilters.price_status)p.set('price',columnFilters.price_status);
+  if(shared.radius)p.set('radius',String(shared.radius));
+  if(period!=='all')p.set('period',period);
+  else if(shared.from||shared.to){p.set('period','manual');if(shared.from)p.set('from',shared.from);if(shared.to)p.set('to',shared.to);}
+  if(sharedOrigin&&!['browser'].includes(sharedOrigin.source)){
+   p.set('lat',String(Number(sharedOrigin.lat.toFixed(4))));
+   p.set('lon',String(Number(sharedOrigin.lon.toFixed(4))));
+  }
+  return '/karte'+(p.size?'?'+p.toString():'');
+ },[shared,sharedOrigin,columnFilters,period]);
  const selectedEvent=rows.find(event=>event.id===selected);
 
  return <>
@@ -128,7 +194,7 @@ export default function EventCatalog(){
 
   {error&&<div className="error-message" role="alert">{error} {data&&'Zemāk saglabāti pēdējie veiksmīgi ielādētie dati.'}</div>}
 
-  <div className="catalog-view-switch" role="group" aria-label="Pasākumu attēlošanas veids"><button type="button" aria-pressed={viewMode==='cards'} className={viewMode==='cards'?'active':''} onClick={()=>setViewMode('cards')}>▦ Kartītes</button><button type="button" aria-pressed={viewMode==='table'} className={viewMode==='table'?'active':''} onClick={()=>setViewMode('table')}>☷ Tabula un Excel</button><a href="/karte" className="catalog-map-shortcut">⌖ Skatīt kartē ↗</a></div>
+  <div className="catalog-view-switch" role="group" aria-label="Pasākumu attēlošanas veids"><button type="button" aria-pressed={viewMode==='cards'} className={viewMode==='cards'?'active':''} onClick={()=>setViewMode('cards')}>▦ Kartītes</button><button type="button" aria-pressed={viewMode==='table'} className={viewMode==='table'?'active':''} onClick={()=>setViewMode('table')}>☷ Tabula un Excel</button><a href={mapHref} className="catalog-map-shortcut">⌖ Skatīt kartē ↗</a></div>
   {viewMode==='cards'&&<div className="catalog-card-filters" aria-label="Atlasīt pasākumus">
    <label>Periods<select value={period} onChange={e=>{setPeriod(e.target.value);setPage(0);}}>
     <option value="all">Visi aktuālie</option><option value="today">Šodien</option><option value="week">Šonedēļ</option><option value="month">Šomēnes</option>
