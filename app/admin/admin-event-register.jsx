@@ -90,7 +90,7 @@ const SORTERS={
 };
 
 export default function AdminEventRegister({events=[],submissions=[],sources=[],today,onEditEvent,onOpenSubmission,onSaveSubmission,onPublish,onRefresh,busy=false}){
- const [name,setName]=useState(''),[kindFilter,setKindFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),
+ const [name,setName]=useState(''),[dateFrom,setDateFrom]=useState(''),[dateTo,setDateTo]=useState(''),[kindFilter,setKindFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),
   [reasonFilter,setReasonFilter]=useState(''),[sourceFilter,setSourceFilter]=useState(''),[locationQuery,setLocationQuery]=useState(''),
   [period,setPeriod]=useState('current'),[sort,setSort]=useState('date'),[direction,setDirection]=useState('asc'),
   [page,setPage]=useState(1),[pageSize,setPageSize]=useState(50);
@@ -110,6 +110,8 @@ export default function AdminEventRegister({events=[],submissions=[],sources=[],
  const filtered=useMemo(()=>{
   const result=rows.filter(row=>{
    if(period==='current'&&row.expired)return false;
+   if(dateFrom&&dateEnd(row.raw)<dateFrom)return false;
+   if(dateTo&&row.date_from>dateTo)return false;
    if(name&&!matches(row.title,name))return false;
    if(kindFilter&&row.type!==kindFilter)return false;
    if(sourceFilter&&!(row.kind==='submission'?sourceFilter==='Lietotāja iesniegums':linkedSources(row.raw).some(s=>s.source===sourceFilter)))return false;
@@ -123,7 +125,7 @@ export default function AdminEventRegister({events=[],submissions=[],sources=[],
   });
   result.sort((a,b)=>(SORTERS[sort]||SORTERS.date)(a,b)*(direction==='asc'?1:-1)||a.id.localeCompare(b.id));
   return result;
- },[rows,period,name,kindFilter,sourceFilter,locationQuery,reasonFilter,statusFilter,sort,direction]);
+ },[rows,period,dateFrom,dateTo,name,kindFilter,sourceFilter,locationQuery,reasonFilter,statusFilter,sort,direction]);
  const pages=Math.max(1,Math.ceil(filtered.length/pageSize));
  const shownPage=Math.min(page,pages);
  const shown=filtered.slice((shownPage-1)*pageSize,shownPage*pageSize);
@@ -132,10 +134,10 @@ export default function AdminEventRegister({events=[],submissions=[],sources=[],
   unpublished:rows.filter(r=>r.status!=='published'&&!r.expired).length,
   problems:rows.filter(r=>r.reasonCode==='location'&&!r.expired).length
  }),[rows]);
- useEffect(()=>{setPage(1);},[name,kindFilter,sourceFilter,locationQuery,reasonFilter,statusFilter,period,pageSize]);
+ useEffect(()=>{setPage(1);},[name,dateFrom,dateTo,kindFilter,sourceFilter,locationQuery,reasonFilter,statusFilter,period,pageSize]);
  function changeSort(key){if(sort===key)setDirection(d=>d==='asc'?'desc':'asc');else{setSort(key);setDirection('asc');}}
  const sortButton=(key,label)=><button type="button" className="admin-register-sort" onClick={()=>changeSort(key)} aria-label={'Kārtot pēc '+label} aria-sort={sort===key?direction==='asc'?'ascending':'descending':undefined}>{label}<span aria-hidden="true">{sort===key?(direction==='asc'?'↑':'↓'):'↕'}</span></button>;
- function reset(){setName('');setKindFilter('');setStatusFilter('');setReasonFilter('');setSourceFilter('');setLocationQuery('');setPeriod('current');setSort('date');setDirection('asc');}
+ function reset(){setName('');setDateFrom('');setDateTo('');setKindFilter('');setStatusFilter('');setReasonFilter('');setSourceFilter('');setLocationQuery('');setPeriod('current');setSort('date');setDirection('asc');}
  return <section className="admin-register">
   <div className="admin-register-heading">
    <div><p className="eyebrow">Admin · Ierakstu reģistrs</p><h2>Visi pasākumi vienā tabulā</h2><p>Kolonnu filtri, publicēšanas statuss un precīzs iemesls.</p></div>
@@ -172,7 +174,7 @@ export default function AdminEventRegister({events=[],submissions=[],sources=[],
       <th className="admin-register-action-heading">Darbības</th>
      </tr>
      <tr className="admin-register-filters">
-      <th><span className="admin-register-empty-filter">No / līdz</span></th>
+      <th><div className="admin-register-dates"><input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} aria-label="Pasākumi no datuma" title="No datuma"/><input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} aria-label="Pasākumi līdz datumam" title="Līdz datumam"/></div></th>
       <th><input type="search" value={name} onChange={e=>setName(e.target.value)} placeholder="Meklēt nosaukumu…" aria-label="Filtrēt pēc pasākuma nosaukuma"/></th>
       <th><select value={kindFilter} onChange={e=>setKindFilter(e.target.value)} aria-label="Filtrēt pēc pasākuma tipa"><option value="">Visi tipi</option>{types.map(t=><option key={t} value={t}>{t}</option>)}</select></th>
       <th><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} aria-label="Filtrēt pēc publicēšanas statusa">
