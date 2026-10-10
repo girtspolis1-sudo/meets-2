@@ -57,7 +57,7 @@ export async function POST(request){
   }
   const rest=async(table,method='GET',query='',value=null)=>{
    const res=await fetch(BASE()+'/rest/v1/'+table+query,{method,
-    headers:{...headers,...(method==='POST'?{Prefer:'resolution=merge-duplicates,return=minimal'}:{})},
+    headers:{...headers,...(table.startsWith('rpc/')?{Prefer:'return=representation'}:method==='POST'?{Prefer:'resolution=merge-duplicates,return=minimal'}:{})},
     ...(value!==null?{body:JSON.stringify(value)}:{}),cache:'no-store'});
    if(!res.ok)throw new Error('Datus neizdevās saglabāt vai ielādēt.');
    if(res.status===204)return null;
