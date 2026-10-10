@@ -262,7 +262,7 @@ export default function EventCatalog(){
   {sharedFilterCount>0&&<p className="catalog-active-map-filters" role="status">Pielietota atlase no kartes — {sharedFilterCount} papildu kritēriji. Izmanto <strong>Notīrīt filtrus</strong>, lai redzētu visus pasākumus.</p>}
   <div className="catalog-follow-info">
    <span>⌖ Seko norises vietai un vienuviet redzi tur gaidāmos pasākumus.</span>
-   <Link href="/mani-pasakumi">Manas sekotās vietas ↗</Link>
+   <Link href="/mani-pasakumi?view=following">Manas sekotās vietas ↗</Link>
   </div>
   {(followError||followMessage)&&<p className={followError?'meets-inline-error':'meets-organizer-success'} role="status">
    {followError||followMessage} {followError&&!followSession&&<Link href="/mani-pasakumi">Pieslēgties ↗</Link>}
