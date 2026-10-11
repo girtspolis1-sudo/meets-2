@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {readEvents} from '../../../lib/events-server.js';
-import {navigationLinks} from '../../../lib/meets-personal.js';
+import EventQuickActions from '../../components/event-quick-actions.jsx';
 
 export const dynamic='force-dynamic';
 export const metadata={title:'Kopīgotie pasākumi · MEETS'};
@@ -30,11 +30,10 @@ export default async function SharedEventsPage({params}){
    <p className="meets-muted">Tikai publiski pieejami pasākumi. Personīgā konta dati nav redzami.</p></div>
    <Link href="/karte" className="button primary">Izpētīt karti ↗</Link></div>
   {events.length?<div className="meets-account-list">{events.map(e=>{
-   const nav=navigationLinks(e);
    return <article className="meets-account-event" key={e.id}>
     <div className="meets-account-day"><strong>{e.date_from?.slice(8,10)}</strong><small>{e.date_from?.slice(5,7)}.</small></div>
     <div className="meets-account-event-body"><h3>{e.title}</h3><p>{[e.time_from?.slice(0,5),e.venue_name||e.municipality].filter(Boolean).join(' · ')}</p>
-     <div className="meets-personal-links">{nav.google&&<a href={nav.google} target="_blank" rel="noopener noreferrer">⌖ Google Maps</a>}{nav.waze&&<a href={nav.waze} target="_blank" rel="noopener noreferrer">↗ Waze</a>}</div>
+     <EventQuickActions event={e}/>
     </div>
    </article>;
   })}</div>:<div className="meets-account-empty"><span>♡</span><h3>Saraksts nav pieejams vai pašlaik ir tukšs</h3><p>Iespējams, kopīgošana ir izslēgta vai saglabātie pasākumi jau beigušies.</p><Link className="button primary" href="/karte">Atvērt MEETS karti</Link></div>}
