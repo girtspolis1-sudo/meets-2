@@ -139,8 +139,8 @@ export default function LocationMapPicker({latitude,longitude,onPick}){
     <button type="button" className="button" disabled={searching} onClick={search}>{searching?'Meklē…':'Meklēt'}</button>
    </div>
   </div>
-  {results.length>0&&<div className="meets-location-results" role="list" aria-label="Atrastas vietas">
-   {results.map(item=><button type="button" role="listitem" key={item.id} onClick={()=>selectResult(item)}>
+  {results.length>0&&<div className="meets-location-results" aria-label="Atrastas vietas">
+   {results.map(item=><button type="button" key={item.id} onClick={()=>selectResult(item)}>
     <strong>{item.label}</strong><span>{item.displayName}</span>
    </button>)}
   </div>}
