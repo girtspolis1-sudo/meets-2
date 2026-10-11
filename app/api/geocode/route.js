@@ -12,8 +12,13 @@ function osmUrl(item){
 export async function POST(request){
  try{
   const body=await request.json();
+  const reverse=body?.reverse===true;
   const query=String(body?.query||'').trim();
-  if(query.length<2){
+  const latitude=Number(body?.latitude),longitude=Number(body?.longitude);
+  if(reverse&&(!Number.isFinite(latitude)||!Number.isFinite(longitude)||latitude<53.5||latitude>60.8||longitude<16||longitude>31.5)){
+   return Response.json({error:'Izvēlies punktu Baltijas kartē.'},{status:400});
+  }
+  if(!reverse&&query.length<2){
    return Response.json({error:'Ievadi vismaz 2 rakstzīmes.'},{status:400});
   }
 
@@ -32,7 +37,10 @@ export async function POST(request){
    'accept-language':'lv,en'
   });
 
-  const response=await fetch('https://nominatim.openstreetmap.org/search?'+params.toString(),{
+  const endpoint=reverse?
+   'https://nominatim.openstreetmap.org/reverse?'+new URLSearchParams({lat:String(latitude),lon:String(longitude),format:'jsonv2',zoom:'18','accept-language':'lv,en'}).toString():
+   'https://nominatim.openstreetmap.org/search?'+params.toString();
+  const response=await fetch(endpoint,{
    headers:{
     'User-Agent':'MEETS-2/1.0 (+https://meets-2.vercel.app; contact: girts.polis@icloud.com)',
     'Accept':'application/json'
@@ -46,6 +54,10 @@ export async function POST(request){
   }
 
   const raw=await response.json();
+  if(reverse){
+   const displayName=String(raw?.display_name||'').slice(0,300);
+   return Response.json({address:displayName,attribution:'© OpenStreetMap contributors'},{headers:{'Cache-Control':'private, max-age=0, must-revalidate'}});
+  }
   const seen=new Set();
   const results=[];
   for(const item of Array.isArray(raw)?raw:[]){

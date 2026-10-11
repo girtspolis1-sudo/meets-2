@@ -204,6 +204,70 @@ try{
  await assertLayout(desktop,'desktop-map',1280);
 }catch(error){fails++;console.error('Desktop popup failed',error.message);}
 await desktop.close();
+// Organizer registration: search-first selection and map confirmation on compact phones.
+for(const width of [320,390]){
+ const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+ const orgId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb51';
+ const venueId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb52';
+ await page.addInitScript(()=>{
+  localStorage.setItem('meets_user_session_v1',JSON.stringify({access_token:'organizer-test',user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51'}}));
+ });
+ await page.route('**/api/organizer',route=>{
+  const body=route.request().postDataJSON()||{};
+  if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+   organizations:[{id:orgId,name:'MEETS Testa organizācija',kind:'organizer',owner_id:orgId}],
+   venues:[{id:venueId,organization_id:orgId,name:'MEETS Sporta halle',address:'Sporta iela 1, Rīga',latitude:56.9496,longitude:24.1052,directions:'',description:''}],
+   submissions:[]})});
+  return route.fulfill({status:200,contentType:'application/json',body:'{"item":{}}'});
+ });
+ await page.route('**/api/venue-catalog*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+  locations:[{id:'public:1',name:'Rīgas koncertzāle',address:'Koncertu iela 2, Rīga',latitude:56.96,longitude:24.12}]})}));
+ await page.route('**/api/geocode',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({address:'Rīga, Latvija',results:[]})}));
+ try{
+  await page.goto(base+'/organizators',{waitUntil:'domcontentloaded',timeout:45000});
+  await page.getByRole('button',{name:/Vietas/}).click();
+  const picker=page.locator('.meets-location-picker').first();
+  await picker.waitFor();
+  if(await page.locator('.meets-organizer-location-details').count()){
+   fails++;console.error('Venue details appeared before location selection',width);
+  }
+  await picker.getByRole('button',{name:/Izvēlēties punktu kartē/}).click();
+  const dialog=page.locator('.meets-pin-dialog');
+  await dialog.waitFor();
+  if(!(await dialog.isVisible())||(await dialog.getByRole('button',{name:'Apstiprināt šo vietu'}).isEnabled())){
+   fails++;console.error('Map picker should start without selected point',width);
+  }
+  await dialog.getByRole('button',{name:'Aizvērt karti'}).click();
+  await picker.getByRole('searchbox',{name:'Meklē vietu vai adresi'}).fill('Rīgas koncertzāle');
+  const match=picker.getByRole('button',{name:/Rīgas koncertzāle/}).first();
+  await match.waitFor({timeout:15000});
+  await match.click();
+  await dialog.waitFor();
+  await dialog.getByRole('button',{name:'Apstiprināt šo vietu'}).click();
+  await page.locator('.meets-organizer-location-details').waitFor();
+  if(!(await picker.getByRole('button',{name:/Mainīt atrašanās vietu/}).count())){
+   fails++;console.error('Confirmed venue missing edit map control',width);
+  }
+  await assertLayout(page,'organizer-venue',width);
+  await page.screenshot({path:'ux-screenshots/'+width+'-organizer-venue.png',fullPage:true});
+  await page.getByRole('button',{name:/Pasākumi \(/}).click();
+  await page.getByRole('button',{name:/Jauns pasākums/}).click();
+  await page.locator('.meets-wizard-step input[placeholder="Kā sauc pasākumu?"]').fill('MEETS testa koncerts');
+  await page.getByRole('button',{name:'Turpināt →'}).click();
+  await page.locator('.meets-wizard-step .meets-location-picker').waitFor();
+  const eventPicker=page.locator('.meets-wizard-step .meets-location-picker');
+  await eventPicker.getByRole('searchbox',{name:'Meklē vietu vai adresi'}).fill('MEETS Sporta halle');
+  await eventPicker.getByRole('button',{name:/MEETS Sporta halle/}).click();
+  await page.locator('.meets-pin-dialog').getByRole('button',{name:'Apstiprināt šo vietu'}).click();
+  await page.locator('.meets-location-existing-info').waitFor();
+  await assertLayout(page,'organizer-event',width);
+  await page.screenshot({path:'ux-screenshots/'+width+'-organizer-event.png',fullPage:true});
+ }catch(error){
+  fails++;console.error('Organizer UX smoke failed',width,error.message);
+  try{await page.screenshot({path:'ux-screenshots/'+width+'-organizer-failure.png',fullPage:true});}catch{}
+ }
+ await page.close();
+}
 await browser.close();
 if(fails){console.error('UX smoke failures:',fails);process.exit(1);}
 console.log('PASS: mobile smoke checks at 320px and 390px');
