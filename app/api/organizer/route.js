@@ -10,6 +10,17 @@ async function api(table,token,method='GET',body=null,query=''){
  if(!res.ok)throw Error('Darbība neizdevās. Pārbaudi ievadītos datus un piekļuves tiesības.');
  return res.json();
 }
+function parseCoordinates(input){
+ const latitude=input.latitude===''||input.latitude==null?null:Number(input.latitude);
+ const longitude=input.longitude===''||input.longitude==null?null:Number(input.longitude);
+ if((latitude===null)!==(longitude===null)||
+    latitude!==null&&(!Number.isFinite(latitude)||!Number.isFinite(longitude)||Math.abs(latitude)>90||Math.abs(longitude)>180)){
+  return {error:'Koordinātām jānorāda korekts platums un garums.'};
+ }
+ return {latitude,longitude};
+}
+const MAP_POINT_ADDRESS='Norises vieta atzīmēta kartē';
+
 export async function POST(request){
  try{
   const data=await request.json();
@@ -54,11 +65,13 @@ export async function POST(request){
   if(canEdit!==true)return NextResponse.json({error:'Nav tiesību veikt izmaiņas šajā organizācijā.'},{status:403});
   if(action==='createVenue'||action==='updateVenue'){
    const name=String(data.name||'').trim(),address=String(data.address||'').trim();
-   if(name.length<2||name.length>160||address.length<5||address.length>300)return NextResponse.json({error:'Norādi vietas nosaukumu un pilnu adresi.'},{status:400});
-   const latitude=data.latitude===''||data.latitude==null?null:Number(data.latitude);
-   const longitude=data.longitude===''||data.longitude==null?null:Number(data.longitude);
-   if((latitude===null)!==(longitude===null)||latitude!==null&&(!Number.isFinite(latitude)||!Number.isFinite(longitude)))return NextResponse.json({error:'Koordinātām jānorāda gan platums, gan garums.'},{status:400});
-   const payload={organization_id:data.organization_id,name,address,latitude,longitude,directions:String(data.directions||'').slice(0,2000),description:String(data.description||'').slice(0,4000)};
+   const coordinates=parseCoordinates(data);
+   if(coordinates.error)return NextResponse.json({error:coordinates.error},{status:400});
+   const {latitude,longitude}=coordinates;
+   if(name.length<2||name.length>160||address.length>300||(!address&&latitude===null)||(address&&address.length<5)){
+    return NextResponse.json({error:'Norādi vietas nosaukumu un adresi vai atzīmē punktu kartē.'},{status:400});
+   }
+   const payload={organization_id:data.organization_id,name,address:address||MAP_POINT_ADDRESS,latitude,longitude,directions:String(data.directions||'').slice(0,2000),description:String(data.description||'').slice(0,4000)};
    if(action==='updateVenue'&&!UUID.test(data.venue_id||''))return NextResponse.json({error:'Nederīgs vietas ieraksts.'},{status:400});
    const result=await api(TABLES.venues,token,action==='updateVenue'?'PATCH':'POST',payload,action==='updateVenue'?'?id=eq.'+data.venue_id+'&organization_id=eq.'+data.organization_id:'');
    if(!result.length)return NextResponse.json({error:'Vietu nevar labot.'},{status:404});
@@ -74,7 +87,10 @@ export async function POST(request){
     const found=await api(TABLES.venues,token,'GET',null,'?select=*&id=eq.'+data.venue_id+'&organization_id=eq.'+data.organization_id);
     venue=found[0];if(!venue)return NextResponse.json({error:'Norises vieta nav pieejama.'},{status:400});
    }
-   const payload={organization_id:data.organization_id,author_id:user.id,venue_id:venue?.id||null,title,description:String(data.description||'').slice(0,6000),schedule_kind:['once','recurring','ongoing'].includes(data.schedule_kind)?data.schedule_kind:'once',recurrence_note:String(data.recurrence_note||'').slice(0,300),category:String(data.category||'Cits').slice(0,100),date_from,date_to:data.date_to||null,time_from:data.time_from||null,time_to:data.time_to||null,venue_name:venue?.name||String(data.venue_name||'').slice(0,200),address:venue?.address||String(data.address||'').slice(0,300),latitude:venue?.latitude??null,longitude:venue?.longitude??null,price_status:['free','paid','mixed','unknown'].includes(data.price_status)?data.price_status:'unknown',status:data.status};
+   const coordinates=venue?{latitude:venue.latitude??null,longitude:venue.longitude??null}:parseCoordinates(data);
+   if(coordinates.error)return NextResponse.json({error:coordinates.error},{status:400});
+   const rawAddress=String(venue?.address||data.address||'').trim().slice(0,300);
+   const payload={organization_id:data.organization_id,author_id:user.id,venue_id:venue?.id||null,title,description:String(data.description||'').slice(0,6000),schedule_kind:['once','recurring','ongoing'].includes(data.schedule_kind)?data.schedule_kind:'once',recurrence_note:String(data.recurrence_note||'').slice(0,300),category:String(data.category||'Cits').slice(0,100),date_from,date_to:data.date_to||null,time_from:data.time_from||null,time_to:data.time_to||null,venue_name:venue?.name||String(data.venue_name||'').trim().slice(0,200),address:rawAddress||(coordinates.latitude!==null?MAP_POINT_ADDRESS:''),latitude:coordinates.latitude,longitude:coordinates.longitude,price_status:['free','paid','mixed','unknown'].includes(data.price_status)?data.price_status:'unknown',status:data.status};
    if(payload.status==='pending_review'&&(!payload.venue_name||!payload.address))return NextResponse.json({error:'Iesniegšanai norādi norises vietu un adresi.'},{status:400});
    let result;
    if(data.id){
