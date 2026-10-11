@@ -68,7 +68,7 @@ export default function OrganizerPage({initialKind='organizer'}){
      <h2>{venue.id?'Labot norises vietu':'+ Norises vieta'}</h2><div className="meets-organizer-grid"><label>Nosaukums *<input value={venue.name} onChange={e=>setVenue({...venue,name:e.target.value})} required/></label><label>Adrese *<input value={venue.address} onChange={e=>setVenue({...venue,address:e.target.value})} required placeholder="Iela, pilsēta, Latvija"/></label></div>
      <VenueLocationPicker latitude={venue.latitude} longitude={venue.longitude} existingVenues={venues.filter(v=>v.id!==venue.id)}
       onSelect={place=>setVenue(current=>({...current,latitude:place.latitude,longitude:place.longitude,
-       name:current.name||place.name||'',address:place.address||current.address}))}/>
+       name:current.name||place.name||'',address:place.reverse?(current.address||place.address||''):(place.address||current.address)}))}/>
      <label>Kā nokļūt<textarea value={venue.directions} onChange={e=>setVenue({...venue,directions:e.target.value})} placeholder="Ieeja, stāvvieta, transports…"/></label><label>Vietas apraksts<textarea value={venue.description} onChange={e=>setVenue({...venue,description:e.target.value})}/></label><div className="meets-organizer-buttons"><button className="button primary" disabled={busy}>Saglabāt vietu</button>{venue.id&&<button className="button" type="button" onClick={()=>setVenue({name:'',address:'',latitude:'',longitude:'',directions:'',description:''})}>Atcelt</button>}</div></form>
     <div className="meets-account-list">{venues.map(v=><div key={v.id} className="meets-organizer-item"><div><strong>⌖ {v.name}</strong><span>{v.address}</span></div><button className="button" onClick={()=>{setVenue({...v,latitude:v.latitude??'',longitude:v.longitude??''});window.scrollTo({top:0,behavior:'smooth'});}}>Labot</button></div>)}</div>
    </>}
@@ -111,7 +111,7 @@ export default function OrganizerPage({initialKind='organizer'}){
        </div>
        <VenueLocationPicker latitude={draft.latitude} longitude={draft.longitude} existingVenues={venues}
         onSelect={place=>setDraft(current=>({...current,latitude:place.latitude,longitude:place.longitude,
-         venue_name:current.venue_name||place.name||'',address:place.address||current.address,
+         venue_name:current.venue_name||place.name||'',address:place.reverse?(current.address||place.address||''):(place.address||current.address),
          venue_id:place.venueId||''}))}/>
       </>}
       <label>Dalības maksa<select value={draft.price_status} onChange={e=>setDraft({...draft,price_status:e.target.value})}><option value="free">Bezmaksas</option><option value="paid">Maksas</option><option value="mixed">Daļēji maksas</option><option value="unknown">Nav zināms</option></select></label>
