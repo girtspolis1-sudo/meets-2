@@ -34,7 +34,7 @@ async function copyLink(value){
 
 // Used by event cards, saved events, and shared lists. A controlled favorite
 // prop preserves the existing map/account flow; guests can still save locally.
-export default function EventQuickActions({event,saved,onSave,onCalendar,compact=false}){
+export default function EventQuickActions({event,saved,onSave,onCalendar,compact=false,disabledFavorite=false}){
  const [localSaved,setLocalSaved]=useState(false);
  const [busy,setBusy]=useState(false);
  const [menu,setMenu]=useState('');
@@ -58,7 +58,7 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
  },[event.id]);
 
  async function favorite(){
-  if(busy)return;
+  if(busy||disabledFavorite)return;
   if(controlled){onSave(event.id);return;}
   const next=!isSaved;
   setBusy(true);setStatus('');
@@ -114,7 +114,7 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
   <div className="meets-event-action-grid meets-circle-actions" role="group" aria-label={'Pasākuma darbības: '+(event.title||'Pasākums')}>
    <button type="button" className="meets-circle-action" aria-pressed={isSaved}
     aria-label={isSaved?'Noņemt no saglabātajiem':'Saglabāt pasākumu'}
-    title={isSaved?'Noņemt no saglabātajiem':'Saglabāt'} disabled={busy}
+    title={isSaved?'Noņemt no saglabātajiem':'Saglabāt'} disabled={busy||disabledFavorite}
     onClick={favorite}><Icon name="heart"/></button>
    <button type="button" className="meets-circle-action" aria-label="Pievienot kalendāram"
     title="Kalendārā" onClick={calendar}><Icon name="calendar"/></button>
