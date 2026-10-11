@@ -134,7 +134,7 @@ export default function VenueLocationPicker({latitude,longitude,onSelect,existin
    longitude:valid?Number(place.longitude):'',
    name:place.name||place.label||'',
    address:place.address||place.displayName||'',
-   ...(place.venueId?{venueId:place.venueId}:{})
+   ...(place.venueId&&valid?{venueId:place.venueId}:{})
   });
   setResults([]);setSearchError('');
  }
