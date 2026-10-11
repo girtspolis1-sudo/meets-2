@@ -115,9 +115,10 @@ export default function VenueLocationPicker({latitude,longitude,onSelect,existin
   }finally{if(seq===requestRef.current)setSearching(false);}
  }
  function selectPlace(place){
+  const valid=validPoint(place.latitude,place.longitude);
   onSelect?.({
-   latitude:Number(place.latitude),
-   longitude:Number(place.longitude),
+   latitude:valid?Number(place.latitude):'',
+   longitude:valid?Number(place.longitude):'',
    name:place.name||place.label||'',
    address:place.address||place.displayName||'',
    ...(place.venueId?{venueId:place.venueId}:{})
