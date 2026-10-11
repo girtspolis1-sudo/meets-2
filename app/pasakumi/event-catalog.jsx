@@ -363,6 +363,7 @@ export default function EventCatalog(){
       <span><b>Maksa</b>{display(event,'price_status')}</span>
      </div>
      <div className="catalog-event-card-follow">{followButton(event)}</div>
+     <EventQuickActions event={event}/>
      <button className="button compact mobile-event-open" onClick={()=>setSelected(event.id)}>Skatīt pasākumu</button>
     </article>)}</div>}
    </>}
