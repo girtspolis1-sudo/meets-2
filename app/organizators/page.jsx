@@ -13,6 +13,12 @@ async function call(action,values={}){
  const result=await response.json();if(!response.ok)throw Error(result.error||'Neizdevās saglabāt.');return result;
 }
 const CATEGORIES=['Mūzika un dejas','Sports','Ģimenēm','Kultūra','Izstādes','Tirdziņi','Cits'];
+function hasLocationPoint(value){
+ const latitude=value?.latitude,longitude=value?.longitude;
+ return latitude!==''&&latitude!=null&&longitude!==''&&longitude!=null&&
+  Number.isFinite(Number(latitude))&&Number.isFinite(Number(longitude))&&
+  Math.abs(Number(latitude))<=90&&Math.abs(Number(longitude))<=180;
+}
 export default function OrganizerPage({initialKind='organizer'}){
  const [items,setItems]=useState({organizations:[],venues:[],submissions:[]});
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -44,7 +50,7 @@ export default function OrganizerPage({initialKind='organizer'}){
  function edit(item){setDraft({...EMPTY,...item});setDraftStep(0);setEditing(true);setPanel('events');}
  function advanceDraft(){
   if(draftStep===0&&draft.title.trim().length<3){setError('Ievadi pasākuma nosaukumu (vismaz 3 rakstzīmes).');return;}
-  if(draftStep===1&&(!draft.date_from||(!draft.venue_id&&(!draft.venue_name.trim()||!draft.address.trim())))){setError('Norādi pasākuma datumu un norises vietas nosaukumu ar adresi.');return;}
+  if(draftStep===1&&(!draft.date_from||(!draft.venue_id&&(!draft.venue_name.trim()||(!draft.address.trim()&&!hasLocationPoint(draft)))))){setError('Norādi pasākuma datumu, norises vietas nosaukumu un adresi vai punktu kartē.');return;}
   if(draftStep===1&&draft.date_to&&draft.date_to<draft.date_from){setError('Beigu datums nevar būt pirms pasākuma sākuma datuma.');return;}
   if(draftStep===1&&!draft.venue_id&&((draft.latitude!==''&&draft.latitude!=null)!==(draft.longitude!==''&&draft.longitude!=null))){setError('Norādi abas koordinātas vai atzīmē vietu kartē.');return;}
   setError('');setDraftStep(step=>Math.min(2,step+1));
@@ -65,7 +71,7 @@ export default function OrganizerPage({initialKind='organizer'}){
    {panel==='newOrg'&&<form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('createOrganization',{name:orgName,kind:orgKind},()=>{setOrgName('');setPanel('events');});}}><h2>Jauna organizācija</h2><label>Nosaukums<input required minLength={2} value={orgName} onChange={e=>setOrgName(e.target.value)}/></label><label>Tips<select value={orgKind} onChange={e=>setOrgKind(e.target.value)}><option value="organizer">Organizators</option><option value="venue">Vietas pārvaldnieks</option></select></label><button disabled={busy} className="button primary">Izveidot</button></form>}
    {panel==='venues'&&<>
     <form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform(venue.id?'updateVenue':'createVenue',{...venue,venue_id:venue.id,organization_id:orgId},()=>setVenue({name:'',address:'',latitude:'',longitude:'',directions:'',description:''}));}}>
-     <h2>{venue.id?'Labot norises vietu':'+ Norises vieta'}</h2><div className="meets-organizer-grid"><label>Nosaukums *<input value={venue.name} onChange={e=>setVenue({...venue,name:e.target.value})} required/></label><label>Adrese *<input value={venue.address} onChange={e=>setVenue({...venue,address:e.target.value})} required placeholder="Iela, pilsēta, Latvija"/></label></div>
+     <h2>{venue.id?'Labot norises vietu':'+ Norises vieta'}</h2><div className="meets-organizer-grid"><label>Nosaukums *<input value={venue.name} onChange={e=>setVenue({...venue,name:e.target.value})} required/></label><label>Adrese (vai punkts kartē)<input value={venue.address} onChange={e=>setVenue({...venue,address:e.target.value})} required={!hasLocationPoint(venue)} placeholder="Iela, pilsēta, Latvija"/></label></div>
      <VenueLocationPicker latitude={venue.latitude} longitude={venue.longitude} existingVenues={venues.filter(v=>v.id!==venue.id)}
       onSelect={place=>setVenue(current=>({...current,latitude:place.latitude,longitude:place.longitude,
        name:current.name||place.name||'',address:place.reverse?(current.address||place.address||''):(place.address||current.address)}))}/>
@@ -107,7 +113,7 @@ export default function OrganizerPage({initialKind='organizer'}){
       {!draft.venue_id&&<>
        <div className="meets-organizer-grid">
         <label>Vietas nosaukums *<input value={draft.venue_name||''} onChange={e=>setDraft({...draft,venue_name:e.target.value})} placeholder="Norises vieta"/></label>
-        <label>Adrese *<input value={draft.address||''} onChange={e=>setDraft({...draft,address:e.target.value})} placeholder="Iela, pilsēta, Latvija"/></label>
+        <label>Adrese (vai punkts kartē)<input value={draft.address||''} onChange={e=>setDraft({...draft,address:e.target.value})} placeholder="Iela, pilsēta, Latvija"/></label>
        </div>
        <VenueLocationPicker latitude={draft.latitude} longitude={draft.longitude} existingVenues={venues}
         onSelect={place=>setDraft(current=>({...current,latitude:place.latitude,longitude:place.longitude,
