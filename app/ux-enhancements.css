@@ -622,3 +622,44 @@
   width:44px;min-width:44px;height:44px;min-height:44px
  }
 }
+
+
+/* Venue / event registration: searchable map location and manual pin placement */
+.meets-location-picker{display:grid;gap:12px;min-width:0;padding:15px;border:1px solid #ddd6fe;border-radius:15px;background:#fbfaff}
+.meets-location-picker-title{display:grid;gap:3px}
+.meets-location-picker-title strong{font-size:15px;color:#301956}
+.meets-location-picker-title span,.meets-location-picker-hint,.meets-location-picker-credit{font-size:12px;color:#64748b;line-height:1.45}
+.meets-location-picker-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.meets-location-picker-tabs button{min-width:0;min-height:44px;padding:9px 7px;border:1px solid #d9d3e5;border-radius:11px;background:#fff;font-size:13px;font-weight:750;color:#475569}
+.meets-location-picker-tabs button.active{border-color:#ab8ae8;background:#eee7ff;color:#5b21b6}
+.meets-location-picker-tabs button:focus-visible{outline:3px solid #8b5cf6;outline-offset:2px}
+.meets-location-picker-search{display:grid;gap:9px;min-width:0}
+.meets-location-picker-search-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.meets-organizer-form .meets-location-picker-search-row input{min-width:0;width:100%}
+.meets-organizer-form .meets-location-picker-search-row .button{min-height:44px;padding:9px 14px;justify-self:stretch;gap:0}
+.meets-location-picker-results{max-height:200px;overflow-y:auto;display:grid;gap:5px;padding:6px;border:1px solid #e2e8f0;border-radius:11px;background:#fff}
+.meets-location-picker-results>small{font-size:11px;font-weight:800;color:#64748b;padding:3px 5px}
+.meets-location-picker-results button{display:grid;gap:3px;width:100%;min-width:0;text-align:left;padding:10px 11px;border:1px solid transparent;border-radius:9px;background:#f8fafc;color:#334155}
+.meets-location-picker-results button:hover,.meets-location-picker-results button:focus-visible{background:#f3e8ff;border-color:#c4b5fd}
+.meets-location-picker-results button strong{font-size:13px;font-weight:750;line-height:1.35;overflow-wrap:anywhere}
+.meets-location-picker-results button span{font-size:11px;line-height:1.4;color:#64748b;overflow-wrap:anywhere}
+.meets-location-picker-map{height:315px;width:100%;max-width:100%;min-width:0;border:1px solid #d7cfdf;border-radius:12px;overflow:hidden;background:#ebe9ee;isolation:isolate;z-index:0}
+.meets-location-picker-map .leaflet-control-attribution{font-size:10px}
+.meets-location-picker-hint{margin:0}
+.meets-location-picker-message{margin:0;padding:8px 10px;border:1px solid #f2d5aa;background:#fffbeb;color:#8a561c;border-radius:9px;font-size:12px;line-height:1.45}
+.meets-location-picker-selected{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0;padding:10px 11px;border:1px solid #c4e5ce;border-radius:10px;background:#f0fdf4;color:#166534;font-size:12px;line-height:1.5}
+.meets-location-picker-selected strong{font-variant-numeric:tabular-nums}
+.meets-location-picker-selected button{margin-left:auto;min-height:32px;border:0;background:transparent;text-decoration:underline;text-underline-offset:2px;font-size:12px;font-weight:700;color:#166534}
+.meets-location-picker-manual{padding:7px 9px;border:1px solid #e2e8f0;background:#fff;border-radius:9px}
+.meets-location-picker-manual summary{cursor:pointer;min-height:24px;font-size:12px;font-weight:700;color:#475569}
+.meets-location-picker-manual .meets-organizer-grid{margin-top:12px}
+.meets-location-picker-credit{font-size:10px}
+.meets-location-picker-preview{display:block;margin-top:3px;color:#64748b;font-size:11px}
+@media(max-width:570px){
+ .meets-location-picker{padding:11px;gap:10px}
+ .meets-location-picker-tabs button{font-size:12px;min-height:44px}
+ .meets-location-picker-map{height:265px}
+ .meets-location-picker-search-row{grid-template-columns:minmax(0,1fr) 80px;gap:6px}
+ .meets-organizer-form .meets-location-picker-search-row .button{padding:8px 7px;font-size:12px}
+ .meets-location-picker-selected button{margin-left:0}
+}
