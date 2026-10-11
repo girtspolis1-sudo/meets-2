@@ -31,6 +31,7 @@ async function assertLayout(page,name,width){
 for(const width of cases){
  const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ await page.addInitScript(()=>{Object.defineProperty(navigator,'share',{value:undefined,configurable:true});});
  await page.route('**/api/events*',route=>{console.log('Mock event request:',route.request().url());return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)});});
  try{
   await page.goto(base+'/',{waitUntil:'domcontentloaded',timeout:45000});
@@ -73,18 +74,31 @@ for(const width of cases){
     tops:rects.map(r=>r.top),right:Math.max(...rects.map(r=>r.right)),
     parentRight:wrap.right,icons:tiles.map(x=>x.querySelector('svg')?.getBoundingClientRect().width)};
   });
-  if(layout.count!==4||Math.max(...layout.widths)-Math.min(...layout.widths)>1||
+  if(layout.count!==5||Math.max(...layout.widths)-Math.min(...layout.widths)>1||
    Math.max(...layout.heights)-Math.min(...layout.heights)>1||
    Math.max(...layout.tops)-Math.min(...layout.tops)>1||
-   layout.right>layout.parentRight+1||layout.icons.some(size=>size!==14)){
-   fails++;console.error('Four equal actions do not fit a single row',width,layout);
-  }else console.log('PASS four equal event actions',width,layout.widths);
-  await actions.locator('details > summary').click();
-  const navigationChoices=await actions.locator('.meets-event-action-choices a').allTextContents();
+   layout.right>layout.parentRight+1||layout.icons.some(size=>size!==20)){
+   fails++;console.error('Five circular actions do not fit a single row',width,layout);
+  }else console.log('PASS five circular event actions',width,layout.widths);
+  await actions.getByRole('button',{name:'Maršruts'}).click();
+  const navigationChoices=await page.locator('.meets-mobile-sheet-event').first().locator('.meets-circle-options a').allTextContents();
   if(!navigationChoices.some(x=>x.includes('Google Maps'))||!navigationChoices.some(x=>x.includes('Waze'))){
    fails++;console.error('Missing route links',width,navigationChoices);
   }
-  await actions.locator('details > summary').click();
+  await actions.getByRole('button',{name:'Maršruts'}).click();
+  await actions.getByRole('button',{name:'Dalīties ar pasākumu'}).click();
+  const sharing=page.locator('.meets-mobile-sheet-event').first().locator('.meets-circle-options');
+  await sharing.waitFor();
+  const names=await sharing.locator('a').allTextContents();
+  if(!['WhatsApp','Messenger','Telegram','Facebook','X'].every(n=>names.includes(n))||
+   !(await sharing.getByRole('button',{name:/Kopēt saiti/}).count())){
+   fails++;console.error('Missing social sharing targets',width,names);
+  }
+  const whatsapp=await sharing.getByRole('link',{name:'WhatsApp'}).getAttribute('href');
+  if(!whatsapp?.includes(encodeURIComponent(mockEvent.id))){
+   fails++;console.error('Share URL missing event ID',width,whatsapp);
+  }
+  await actions.getByRole('button',{name:'Dalīties ar pasākumu'}).click();
   await actions.getByRole('button',{name:'Saglabāt pasākumu'}).click();
   if((await actions.getByRole('button',{name:'Noņemt no saglabātajiem'}).count())!==1){
    fails++;console.error('Favorite save state not reflected',width);
@@ -95,6 +109,17 @@ for(const width of cases){
   await page.goto(base+'/pasakumi',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.catalog-view-switch').waitFor({timeout:30000});
   if(!(await page.getByRole('button',{name:/Kartītes/}).getAttribute('aria-pressed'))?.includes('true')){fails++;console.error('Card view is not active by default');}
+  const catalogCircles=page.locator('.catalog-event-card .meets-circle-actions').first();
+  await catalogCircles.waitFor();
+  if(await catalogCircles.locator(':scope > *').count()!==5){
+   fails++;console.error('Catalog lacks five circular actions',width);
+  }
+  await page.goto(base+'/pasakumi?event='+mockEvent.id,{waitUntil:'domcontentloaded',timeout:45000});
+  await page.locator('.event-dialog[open]').waitFor({timeout:20000});
+  if(!(await page.locator('.event-dialog .meets-circle-actions').count())){
+   fails++;console.error('Shareable catalog deep link lacks event actions',width);
+  }
+  await page.getByRole('button',{name:'Aizvērt ✕'}).click();
   await assertLayout(page,'catalog',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-catalog.png',fullPage:true});
   // Exercise account location following without touching real user records or production data.
@@ -138,13 +163,13 @@ for(const width of cases){
   const accountEvents=await page.locator('.meets-followed-venue').first().innerText();
   if(!accountEvents.includes('MEETS pārbaudes koncerts')){fails++;console.error('Followed venue misses upcoming event',width);}
   await page.getByRole('button',{name:'Pārskats'}).click();
-  const accountActions=page.locator('.meets-personal-actions').first();
+  const accountActions=page.locator('.meets-personal-event .meets-circle-actions').first();
   if(await accountActions.count()){
    const stats=await accountActions.evaluate(element=>{
     const rects=[...element.querySelectorAll('button')].map(btn=>btn.getBoundingClientRect());
     return {count:rects.length,widths:rects.map(r=>r.width),tops:rects.map(r=>r.top),right:Math.max(...rects.map(r=>r.right)),max:element.getBoundingClientRect().right};
    });
-   if(stats.count!==4||Math.max(...stats.widths)-Math.min(...stats.widths)>1||
+   if(stats.count!==5||Math.max(...stats.widths)-Math.min(...stats.widths)>1||
      Math.max(...stats.tops)-Math.min(...stats.tops)>1||stats.right>stats.max+1){
     fails++;console.error('Personal event buttons not equal in one row',width,stats);
    }
