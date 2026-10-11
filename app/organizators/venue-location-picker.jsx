@@ -59,10 +59,10 @@ export default function VenueLocationPicker({latitude,longitude,onSelect,existin
     }).addTo(map);
     map.on('click',event=>{
      if(modeRef.current!=='map')return;
-     onSelectRef.current?.({
-      latitude:Number(event.latlng.lat.toFixed(6)),
-      longitude:Number(event.latlng.lng.toFixed(6))
-     });
+     const latitude=Number(event.latlng.lat.toFixed(6));
+     const longitude=Number(event.latlng.lng.toFixed(6));
+     onSelectRef.current?.({latitude,longitude});
+     reversePoint(latitude,longitude);
     });
     // A circle marker needs no external icon assets and works with the raster fallback.
     if(isSelected){
@@ -98,6 +98,19 @@ export default function VenueLocationPicker({latitude,longitude,onSelect,existin
   if(!map.getBounds().contains(center)||map.getZoom()<13)map.setView(center,15);
  },[latitude,longitude,hasPoint]);
 
+ async function reversePoint(latitude,longitude){
+  const seq=++requestRef.current;
+  try{
+   const response=await fetch('/api/geocode',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({reverse:true,latitude,longitude})});
+   const data=await response.json();
+   if(seq===requestRef.current&&response.ok&&data.address){
+    onSelectRef.current?.({latitude,longitude,address:data.address,reverse:true});
+   }
+  }catch{
+   // Selecting the pin remains possible without a geocoding connection.
+  }
+ }
  async function searchLocations(){
   const text=query.trim();
   if(text.length<2){setSearchError('Ievadi vismaz 2 rakstzīmes.');return;}
