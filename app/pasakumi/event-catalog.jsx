@@ -2,7 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} from '../../lib/catalog.js';
 import {useEvents} from '../../lib/use-events.js';
-import {navigationLinks} from '../../lib/meets-personal.js';
+import EventQuickActions from '../components/event-quick-actions.jsx';
 import {placeFromEvent,placesFromEvents} from '../../lib/location-follow.js';
 import Link from 'next/link';
 import {rigaTodayIso,addIsoDays} from '../../lib/event-date.js';
@@ -255,6 +255,18 @@ export default function EventCatalog(){
   return '/karte'+(p.size?'?'+p.toString():'');
  },[shared,sharedOrigin,columnFilters,period,data?.window?.to,placeFilter]);
  const selectedEvent=rows.find(event=>event.id===selected);
+ useEffect(()=>{
+  const id=new URLSearchParams(window.location.search).get('event');
+  if(id&&rows.some(event=>event.id===id))setSelected(id);
+ },[rows]);
+ function closeDetails(){
+  setSelected(null);
+  const url=new URL(window.location.href);
+  if(url.searchParams.has('event')){
+   url.searchParams.delete('event');
+   window.history.replaceState(null,'',url.pathname+url.search+url.hash);
+  }
+ }
 
  return <>
   <div className="catalog-toolbar">
@@ -308,12 +320,13 @@ export default function EventCatalog(){
   {data&&filtered.length===0
    ?<div className="empty"><h2>Nav atrastu pasākumu</h2><p>{rows.length?'Pamēģini mainīt datumu, kategoriju vai noņemt aktīvos filtrus.':'Pašlaik nav publicētu pasākumu. Tiklīdz pasākums tiks publicēts, tas parādīsies šeit.'}</p></div>
    :<>
-    {viewMode==='cards'&&<div className="catalog-card-grid">{visible.map(event=>{const nav=navigationLinks(event);return <article className="catalog-event-card" key={event.id}>
+    {viewMode==='cards'&&<div className="catalog-card-grid">{visible.map(event=>{return <article className="catalog-event-card" key={event.id}>
      <div className="catalog-event-card-top"><time dateTime={event.date_from}>{display(event,'date_from')||'Datums nav norādīts'}</time><span>{display(event,'event_type')||event.primary_category||'Pasākums'}</span></div>
      <h2>{event.title}</h2><p className="catalog-event-card-location">⌖ {event.venue_name||event.address_raw||event.municipality||'Norises vieta nav zināma'}</p>
      <p className="catalog-event-card-time">{display(event,'time')||'Laiks nav norādīts'} · {display(event,'price_status')||'Maksa nav norādīta'}</p>
-     <div className="catalog-event-card-follow">{followButton(event)}</div>
-     <div className="catalog-event-card-actions"><button className="button compact primary" type="button" onClick={()=>setSelected(event.id)}>Par pasākumu</button><a className="button compact" href={'/karte?q='+encodeURIComponent(event.title)}>Kartē ↗</a>{nav.google&&<a className="button compact" href={nav.google} rel="noopener noreferrer" target="_blank" aria-label={'Maršruts uz '+event.title}>Maršruts ↗</a>}</div>
+     <EventQuickActions event={event}/>
+      <div className="catalog-event-card-follow">{followButton(event)}</div>
+     <div className="catalog-event-card-actions"><button className="button compact primary" type="button" onClick={()=>setSelected(event.id)}>Par pasākumu</button><a className="button compact" href={'/karte?q='+encodeURIComponent(event.title)}>Kartē ↗</a></div>
     </article>})}</div>}
     {viewMode==='table'&&<div className="table-scroll" role="region" aria-label="Pasākumu tabula — ritināma horizontāli" tabIndex={0}>
      <table className="events-table catalog-events-table">
@@ -350,6 +363,7 @@ export default function EventCatalog(){
       <span><b>Maksa</b>{display(event,'price_status')}</span>
      </div>
      <div className="catalog-event-card-follow">{followButton(event)}</div>
+     <EventQuickActions event={event}/>
      <button className="button compact mobile-event-open" onClick={()=>setSelected(event.id)}>Skatīt pasākumu</button>
     </article>)}</div>}
    </>}
@@ -360,7 +374,7 @@ export default function EventCatalog(){
    <button className="button" disabled={current===pages-1} onClick={()=>setPage(current+1)}>Nākamā →</button>
   </nav>}
 
-  {selectedEvent&&<EventDetails event={selectedEvent} close={()=>setSelected(null)} followButton={followButton}/>}
+  {selectedEvent&&<EventDetails event={selectedEvent} close={closeDetails} followButton={followButton}/>}
  </>;
 }
 
@@ -369,7 +383,8 @@ function EventDetails({event,close,followButton}){
  useEffect(()=>{dialog.current.showModal();},[]);
  return <dialog ref={dialog} className="event-dialog" onCancel={close} onClose={close}>
   <div className="detail-header"><h2>{event.title}</h2><button className="button" onClick={close} autoFocus>Aizvērt ✕</button></div>
-  <div className="catalog-detail-actions">{followButton(event)}<a className="button primary" href={'/karte?q='+encodeURIComponent(event.title)}>Atvērt kartē ↗</a>{navigationLinks(event).google&&<a className="button" target="_blank" rel="noopener noreferrer" href={navigationLinks(event).google}>Google Maps ↗</a>}{navigationLinks(event).waze&&<a className="button" target="_blank" rel="noopener noreferrer" href={navigationLinks(event).waze}>Waze ↗</a>}</div>
+  <EventQuickActions event={event}/>
+  <div className="catalog-detail-actions">{followButton(event)}<a className="button primary" href={'/karte?q='+encodeURIComponent(event.title)}>Atvērt kartē ↗</a></div>
   <dl>{[...columns,...detailColumns].filter(([key])=>key!=='title').map(([key,label])=><div key={key}>
    <dt>{label}</dt>
    <dd>{key==='source_url'

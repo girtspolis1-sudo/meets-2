@@ -2,10 +2,11 @@
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
 import PersonalMap from './personal-map.jsx';
+import EventQuickActions from '../components/event-quick-actions.jsx';
 import {PlanIcon,HeartIcon,CheckIcon,CalendarIcon,RouteIcon,ExternalIcon,BellIcon} from './event-icons.jsx';
 import {eventsAtPlace} from '../../lib/location-follow.js';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,eventGroup} from '../../lib/home-category-filters.js';
-import {coordinates,navigationLinks,rigaDate,eventOverlapsDate,recommendEvents,icsContent} from '../../lib/meets-personal.js';
+import {coordinates,rigaDate,eventOverlapsDate,recommendEvents,icsContent} from '../../lib/meets-personal.js';
 
 const DEFAULT={interests:[],reminders:[],notices:[],follows:[],locationFollows:[],shared:null,directory:{organizations:[],venues:[],sources:[]},followedEvents:[],savedDetails:[]};
 async function request(body){
@@ -17,8 +18,6 @@ function dateText(value){
  return new Intl.DateTimeFormat('lv-LV',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'));
 }
 function EventCard({event,favorites,plans,visits,reminders,busy,onToggle,onReminder}){
- const nav=navigationLinks(event);
- const official=event.sources?.find(s=>s.url?.startsWith('https://')||s.url?.startsWith('http://'))?.url;
  const lead=reminders.find(x=>x.event_id===event.id)?.lead_minutes||0;
  function downloadCalendar(){
   const str=icsContent(event);if(!str)return;
@@ -32,20 +31,17 @@ function EventCard({event,favorites,plans,visits,reminders,busy,onToggle,onRemin
    <p>{[dateText(event.date_from),event.time_from?.slice(0,5),event.venue_name||event.municipality].filter(Boolean).join(' · ')}</p>
   </div></div>
   <div className="meets-personal-event-bottom">
-   <div className="meets-personal-actions" role="group" aria-label={'Tavas darbības pasākumam '+event.title}>
-    <button className={favorites.includes(event.id)?'chosen':''} disabled={busy} aria-pressed={favorites.includes(event.id)} onClick={()=>onToggle(event.id,'favorite')}><HeartIcon/><span>{favorites.includes(event.id)?'Saglabāts':'Saglabāt'}</span></button>
-    <button className={plans.includes(event.id)?'chosen':''} disabled={busy} aria-pressed={plans.includes(event.id)} onClick={()=>onToggle(event.id,'plan')}><PlanIcon/><span>Plānoju</span></button>
-    <button className={visits.includes(event.id)?'chosen':''} disabled={busy} aria-pressed={visits.includes(event.id)} onClick={()=>onToggle(event.id,'visit')}><CheckIcon/><span>Apmeklēts</span></button>
-    <button type="button" onClick={downloadCalendar} title="Saglabāt Apple, Google vai Outlook kalendāram"><CalendarIcon/><span>Kalendārā</span></button>
+   <EventQuickActions event={event} saved={favorites.includes(event.id)}
+    disabledFavorite={busy} onSave={id=>onToggle(id,'favorite')} onCalendar={downloadCalendar}/>
+   <div className="meets-personal-status-actions" role="group" aria-label="Pasākuma statuss">
+    <button type="button" className={plans.includes(event.id)?'chosen':''} disabled={busy}
+     aria-pressed={plans.includes(event.id)} onClick={()=>onToggle(event.id,'plan')}>
+     <PlanIcon/> Plānoju</button>
+    <button type="button" className={visits.includes(event.id)?'chosen':''} disabled={busy}
+     aria-pressed={visits.includes(event.id)} onClick={()=>onToggle(event.id,'visit')}>
+     <CheckIcon/> Apmeklēts</button>
    </div>
-   <div className="meets-personal-links">
-    {nav.google?<details className="meets-personal-route"><summary><RouteIcon/> Maršruts</summary><div className="meets-personal-route-list">
-     <a href={nav.google} target="_blank" rel="noopener noreferrer">Google Maps ↗</a>
-     {nav.waze&&<a href={nav.waze} target="_blank" rel="noopener noreferrer">Waze ↗</a>}
-    </div></details>:<span>Nav adreses navigācijai</span>}
-    {official&&<a href={official} className="meets-personal-external" target="_blank" rel="noopener noreferrer"><ExternalIcon/> Lapa</a>}
-    {!coordinates(event)&&<small>Precīza lokācija nav verificēta</small>}
-   </div>
+   {!coordinates(event)&&<small className="meets-personal-location-warning">Precīza lokācija nav verificēta</small>}
    <label className="meets-personal-reminder"><BellIcon/> Atgādinājums
     <select value={String(lead)} disabled={busy} onChange={e=>onReminder(event.id,Number(e.target.value))}>
      <option value="0">Izslēgts</option><option value="1440">1 dienu iepriekš</option><option value="120">2 stundas iepriekš</option>
