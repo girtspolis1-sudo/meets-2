@@ -2,9 +2,10 @@
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import {rigaDate} from '../../lib/meets-personal.js';
+import VenueLocationPicker from './venue-location-picker.jsx';
 
 const SESSION='meets_user_session_v1';
-const EMPTY={id:'',organization_id:'',venue_id:'',title:'',description:'',category:'Cits',date_from:'',date_to:'',time_from:'',time_to:'',venue_name:'',address:'',price_status:'free',schedule_kind:'once',recurrence_note:'',status:'draft'};
+const EMPTY={id:'',organization_id:'',venue_id:'',title:'',description:'',category:'Cits',date_from:'',date_to:'',time_from:'',time_to:'',venue_name:'',address:'',latitude:'',longitude:'',price_status:'free',schedule_kind:'once',recurrence_note:'',status:'draft'};
 async function call(action,values={}){
  let session;try{session=JSON.parse(localStorage.getItem(SESSION)||'null');}catch{}
  if(!session?.access_token)throw Error('Pieslēdzies sadaļā “Mani pasākumi”.');
@@ -45,6 +46,7 @@ export default function OrganizerPage({initialKind='organizer'}){
   if(draftStep===0&&draft.title.trim().length<3){setError('Ievadi pasākuma nosaukumu (vismaz 3 rakstzīmes).');return;}
   if(draftStep===1&&(!draft.date_from||(!draft.venue_id&&(!draft.venue_name.trim()||!draft.address.trim())))){setError('Norādi pasākuma datumu un norises vietas nosaukumu ar adresi.');return;}
   if(draftStep===1&&draft.date_to&&draft.date_to<draft.date_from){setError('Beigu datums nevar būt pirms pasākuma sākuma datuma.');return;}
+  if(draftStep===1&&!draft.venue_id&&((draft.latitude!==''&&draft.latitude!=null)!==(draft.longitude!==''&&draft.longitude!=null))){setError('Norādi abas koordinātas vai atzīmē vietu kartē.');return;}
   setError('');setDraftStep(step=>Math.min(2,step+1));
  }
  return <section className="meets-organizer-page">
@@ -63,7 +65,10 @@ export default function OrganizerPage({initialKind='organizer'}){
    {panel==='newOrg'&&<form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('createOrganization',{name:orgName,kind:orgKind},()=>{setOrgName('');setPanel('events');});}}><h2>Jauna organizācija</h2><label>Nosaukums<input required minLength={2} value={orgName} onChange={e=>setOrgName(e.target.value)}/></label><label>Tips<select value={orgKind} onChange={e=>setOrgKind(e.target.value)}><option value="organizer">Organizators</option><option value="venue">Vietas pārvaldnieks</option></select></label><button disabled={busy} className="button primary">Izveidot</button></form>}
    {panel==='venues'&&<>
     <form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform(venue.id?'updateVenue':'createVenue',{...venue,venue_id:venue.id,organization_id:orgId},()=>setVenue({name:'',address:'',latitude:'',longitude:'',directions:'',description:''}));}}>
-     <h2>{venue.id?'Labot norises vietu':'+ Norises vieta'}</h2><div className="meets-organizer-grid"><label>Nosaukums *<input value={venue.name} onChange={e=>setVenue({...venue,name:e.target.value})} required/></label><label>Adrese *<input value={venue.address} onChange={e=>setVenue({...venue,address:e.target.value})} required placeholder="Iela, pilsēta, Latvija"/></label><label>Platums (neobligāti)<input inputMode="decimal" value={venue.latitude} onChange={e=>setVenue({...venue,latitude:e.target.value})}/></label><label>Garums (neobligāti)<input inputMode="decimal" value={venue.longitude} onChange={e=>setVenue({...venue,longitude:e.target.value})}/></label></div>
+     <h2>{venue.id?'Labot norises vietu':'+ Norises vieta'}</h2><div className="meets-organizer-grid"><label>Nosaukums *<input value={venue.name} onChange={e=>setVenue({...venue,name:e.target.value})} required/></label><label>Adrese *<input value={venue.address} onChange={e=>setVenue({...venue,address:e.target.value})} required placeholder="Iela, pilsēta, Latvija"/></label></div>
+     <VenueLocationPicker latitude={venue.latitude} longitude={venue.longitude} existingVenues={venues.filter(v=>v.id!==venue.id)}
+      onSelect={place=>setVenue(current=>({...current,latitude:place.latitude,longitude:place.longitude,
+       name:current.name||place.name||'',address:place.address||current.address}))}/>
      <label>Kā nokļūt<textarea value={venue.directions} onChange={e=>setVenue({...venue,directions:e.target.value})} placeholder="Ieeja, stāvvieta, transports…"/></label><label>Vietas apraksts<textarea value={venue.description} onChange={e=>setVenue({...venue,description:e.target.value})}/></label><div className="meets-organizer-buttons"><button className="button primary" disabled={busy}>Saglabāt vietu</button>{venue.id&&<button className="button" type="button" onClick={()=>setVenue({name:'',address:'',latitude:'',longitude:'',directions:'',description:''})}>Atcelt</button>}</div></form>
     <div className="meets-account-list">{venues.map(v=><div key={v.id} className="meets-organizer-item"><div><strong>⌖ {v.name}</strong><span>{v.address}</span></div><button className="button" onClick={()=>{setVenue({...v,latitude:v.latitude??'',longitude:v.longitude??''});window.scrollTo({top:0,behavior:'smooth'});}}>Labot</button></div>)}</div>
    </>}
@@ -98,11 +103,17 @@ export default function OrganizerPage({initialKind='organizer'}){
        <label>Sākuma laiks<input type="time" value={draft.time_from||''} onChange={e=>setDraft({...draft,time_from:e.target.value})}/></label>
        <label>Beigu laiks<input type="time" value={draft.time_to||''} onChange={e=>setDraft({...draft,time_to:e.target.value})}/></label>
       </div>
-      <label>Norises vieta<select value={draft.venue_id||''} onChange={e=>setDraft({...draft,venue_id:e.target.value})}><option value="">Jauna / mainīga vieta</option>{venues.map(v=><option key={v.id} value={v.id}>{v.name} — {v.address}</option>)}</select></label>
-      {!draft.venue_id&&<div className="meets-organizer-grid">
-       <label>Vietas nosaukums *<input value={draft.venue_name||''} onChange={e=>setDraft({...draft,venue_name:e.target.value})} placeholder="Norises vieta"/></label>
-       <label>Adrese *<input value={draft.address||''} onChange={e=>setDraft({...draft,address:e.target.value})} placeholder="Iela, pilsēta, Latvija"/></label>
-      </div>}
+      <label>Norises vieta<select value={draft.venue_id||''} onChange={e=>setDraft(current=>({...current,venue_id:e.target.value,latitude:'',longitude:''}))}><option value="">Jauna / mainīga vieta</option>{venues.map(v=><option key={v.id} value={v.id}>{v.name} — {v.address}</option>)}</select></label>
+      {!draft.venue_id&&<>
+       <div className="meets-organizer-grid">
+        <label>Vietas nosaukums *<input value={draft.venue_name||''} onChange={e=>setDraft({...draft,venue_name:e.target.value})} placeholder="Norises vieta"/></label>
+        <label>Adrese *<input value={draft.address||''} onChange={e=>setDraft({...draft,address:e.target.value})} placeholder="Iela, pilsēta, Latvija"/></label>
+       </div>
+       <VenueLocationPicker latitude={draft.latitude} longitude={draft.longitude} existingVenues={venues}
+        onSelect={place=>setDraft(current=>({...current,latitude:place.latitude,longitude:place.longitude,
+         venue_name:current.venue_name||place.name||'',address:place.address||current.address,
+         venue_id:place.venueId||''}))}/>
+      </>}
       <label>Dalības maksa<select value={draft.price_status} onChange={e=>setDraft({...draft,price_status:e.target.value})}><option value="free">Bezmaksas</option><option value="paid">Maksas</option><option value="mixed">Daļēji maksas</option><option value="unknown">Nav zināms</option></select></label>
      </div>}
      {draftStep===2&&<section className="meets-wizard-step meets-wizard-preview" aria-label="Pasākuma priekšskatījums">
@@ -111,7 +122,8 @@ export default function OrganizerPage({initialKind='organizer'}){
        <div><dt>Kategorija</dt><dd>{draft.category}</dd></div>
        <div><dt>Datums</dt><dd>{draft.date_from}{draft.date_to&&draft.date_to!==draft.date_from?' – '+draft.date_to:''}</dd></div>
        <div><dt>Laiks</dt><dd>{draft.time_from||'Nav norādīts'}{draft.time_to?' – '+draft.time_to:''}</dd></div>
-       <div><dt>Norises vieta</dt><dd>{draft.venue_id?venues.find(v=>v.id===draft.venue_id)?.name||'Izvēlēta vieta':[draft.venue_name,draft.address].filter(Boolean).join(' · ')}</dd></div>
+       <div><dt>Norises vieta</dt><dd>{draft.venue_id?venues.find(v=>v.id===draft.venue_id)?.name||'Izvēlēta vieta':[draft.venue_name,draft.address].filter(Boolean).join(' · ')}
+        {!draft.venue_id&&draft.latitude!==''&&draft.latitude!=null&&draft.longitude!==''&&draft.longitude!=null&&<small className="meets-location-picker-preview">Kartes punkts: {Number(draft.latitude).toFixed(6)}, {Number(draft.longitude).toFixed(6)}</small>}</dd></div>
        <div><dt>Maksa</dt><dd>{({free:'Bezmaksas',paid:'Maksas',mixed:'Daļēji maksas',unknown:'Nav zināms'})[draft.price_status]}</dd></div>
       </dl>
       {draft.description&&<p>{draft.description}</p>}
