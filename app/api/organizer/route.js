@@ -11,6 +11,18 @@ function coordinates(input){
  if(latitude!==null&&(!Number.isFinite(latitude)||!Number.isFinite(longitude)||latitude<-90||latitude>90||longitude<-180||longitude>180))throw Error('Nepareizas kartes koordinātas.');
  return {latitude,longitude};
 }
+function normalizeVenue(value){
+ return String(value||'').toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+}
+function duplicatesVenue(a,b){
+ const sameName=normalizeVenue(a.name)===normalizeVenue(b.name);
+ if(!sameName)return false;
+ const sameAddress=normalizeVenue(a.address)===normalizeVenue(b.address)&&normalizeVenue(a.address).length>=5;
+ const aLat=Number(a.latitude),aLon=Number(a.longitude),bLat=Number(b.latitude),bLon=Number(b.longitude);
+ const close=a.latitude!=null&&a.longitude!=null&&b.latitude!=null&&b.longitude!=null&&
+  Math.abs(aLat-bLat)<=0.0006&&Math.abs(aLon-bLon)<=0.001;
+ return sameAddress||close;
+}
 async function api(table,token,method='GET',body=null,query=''){
  const headers={apikey:KEY(),Authorization:'Bearer '+token,'Content-Type':'application/json',Prefer:'return=representation'};
  const res=await fetch(BASE()+'/rest/v1/'+table+query,{method,headers,...(body?{body:JSON.stringify(body)}:{}),cache:'no-store'});
@@ -66,6 +78,9 @@ export async function POST(request){
    const locationAddress=address.length>=5?address:`Kartē atzīmēta vieta (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`;
    const payload={organization_id:data.organization_id,name,address:locationAddress,latitude,longitude,directions:String(data.directions||'').slice(0,2000),description:String(data.description||'').slice(0,4000)};
    if(action==='updateVenue'&&!UUID.test(data.venue_id||''))return NextResponse.json({error:'Nederīgs vietas ieraksts.'},{status:400});
+   const owned=await api(TABLES.venues,token,'GET',null,'?select=id,name,address,latitude,longitude&organization_id=eq.'+data.organization_id);
+   const duplicate=owned.find(item=>item.id!==data.venue_id&&duplicatesVenue(payload,item));
+   if(duplicate)return NextResponse.json({error:'Šī vieta organizācijā jau ir reģistrēta. Izvēlies to no vietu saraksta vai labo esošo ierakstu.',existingVenueId:duplicate.id},{status:409});
    const result=await api(TABLES.venues,token,action==='updateVenue'?'PATCH':'POST',payload,action==='updateVenue'?'?id=eq.'+data.venue_id+'&organization_id=eq.'+data.organization_id:'');
    if(!result.length)return NextResponse.json({error:'Vietu nevar labot.'},{status:404});
    return NextResponse.json({item:result[0]});
