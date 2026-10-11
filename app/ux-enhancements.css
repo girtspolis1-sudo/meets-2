@@ -615,3 +615,10 @@
 @media(prefers-reduced-motion:reduce){
  .meets-event-action-grid.meets-circle-actions .meets-circle-action{transition:none}
 }
+
+@media(max-width:340px){
+ .meets-personal-event .meets-event-action-grid.meets-circle-actions{gap:1px}
+ .meets-personal-event .meets-event-action-grid.meets-circle-actions > .meets-circle-action{
+  width:44px;min-width:44px;height:44px;min-height:44px
+ }
+}
