@@ -23,7 +23,7 @@ function hasLocationPoint(value){
 export default function OrganizerPage({initialKind='organizer'}){
  const [items,setItems]=useState({organizations:[],venues:[],submissions:[]});
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
- const [panel,setPanel]=useState('events'),[orgName,setOrgName]=useState(''),[orgKind,setOrgKind]=useState(initialKind);
+ const [panel,setPanel]=useState(initialKind==='venue'?'venues':'events'),[orgName,setOrgName]=useState(''),[orgKind,setOrgKind]=useState(initialKind);
  const [orgId,setOrgId]=useState(''),[venue,setVenue]=useState(EMPTY_VENUE);
  const [draft,setDraft]=useState(EMPTY),[editing,setEditing]=useState(false),[draftStep,setDraftStep]=useState(0);
  const [team,setTeam]=useState([]),[inviteRole,setInviteRole]=useState('editor'),[inviteLink,setInviteLink]=useState(''),[currentUserId,setCurrentUserId]=useState('');
@@ -85,16 +85,16 @@ export default function OrganizerPage({initialKind='organizer'}){
   <div className="meets-account-heading"><div><p className="eyebrow">MEETS</p><h1>Organizatora kabinets</h1><p className="meets-muted">Pasākumi, vietas un komanda.</p></div><Link className="button" href="/registre-pasakumu">Reģistrēt pasākumu ↗</Link></div>
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}
   {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
-  {!organizations.length?<form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('createOrganization',{name:orgName,kind:orgKind},()=>{setOrgName('');setPanel('events');});}}>
+  {!organizations.length?<form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('createOrganization',{name:orgName,kind:orgKind},()=>{setOrgName('');setPanel(orgKind==='venue'?'venues':'events');});}}>
    <h2>Izveido organizatora profilu</h2><p className="meets-muted">Sāc ar organizāciju vai pastāvīgu norises vietu.</p>
    <label>Profila nosaukums<input required minLength={2} maxLength={160} value={orgName} onChange={e=>setOrgName(e.target.value)} placeholder="Organizācija, klubs vai norises vieta"/></label>
    <label>Profila tips<select value={orgKind} onChange={e=>setOrgKind(e.target.value)}><option value="organizer">Pasākumu organizators</option><option value="venue">Pastāvīgas vietas pārvaldnieks</option></select></label>
    <button className="button primary" disabled={busy} type="submit">Izveidot →</button>
   </form>:<>
-   <div className="meets-organizer-bar"><select aria-label="Organizācija" value={orgId} onChange={e=>{setOrgId(e.target.value);setEditing(false);}}>{organizations.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select>
+   <div className="meets-organizer-bar"><select aria-label="Organizācija" value={orgId} onChange={e=>{setOrgId(e.target.value);setEditing(false);setVenue({...EMPTY_VENUE});setDraft({...EMPTY});}}>{organizations.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select>
     <button className="button" onClick={()=>setPanel('newOrg')}>+ Organizācija</button></div>
    <div className="meets-account-tabs" role="group" aria-label="Organizatora darba sadaļas"><button type="button" aria-pressed={panel==='events'} className={panel==='events'?'active':''} onClick={()=>setPanel('events')}>▣ Pasākumi ({submissions.length})</button><button type="button" aria-pressed={panel==='venues'} className={panel==='venues'?'active':''} onClick={()=>setPanel('venues')}>⌖ Vietas ({venues.length})</button><button type="button" aria-pressed={panel==='team'} className={panel==='team'?'active':''} onClick={()=>setPanel('team')}>♙ Komanda</button></div>
-   {panel==='newOrg'&&<form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('createOrganization',{name:orgName,kind:orgKind},()=>{setOrgName('');setPanel('events');});}}><h2>Jauna organizācija</h2><label>Nosaukums<input required minLength={2} value={orgName} onChange={e=>setOrgName(e.target.value)}/></label><label>Tips<select value={orgKind} onChange={e=>setOrgKind(e.target.value)}><option value="organizer">Organizators</option><option value="venue">Vietas pārvaldnieks</option></select></label><button disabled={busy} className="button primary">Izveidot</button></form>}
+   {panel==='newOrg'&&<form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('createOrganization',{name:orgName,kind:orgKind},()=>{setOrgName('');setPanel(orgKind==='venue'?'venues':'events');});}}><h2>Jauna organizācija</h2><label>Nosaukums<input required minLength={2} value={orgName} onChange={e=>setOrgName(e.target.value)}/></label><label>Tips<select value={orgKind} onChange={e=>setOrgKind(e.target.value)}><option value="organizer">Organizators</option><option value="venue">Vietas pārvaldnieks</option></select></label><button disabled={busy} className="button primary">Izveidot</button></form>}
    {panel==='venues'&&<>
     <form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform(venue.id?'updateVenue':'createVenue',{...venue,venue_id:venue.id,organization_id:orgId},()=>setVenue({...EMPTY_VENUE}));}}>
      <h2>{venue.id?'Labot norises vietu':'+ Norises vieta'}</h2>
