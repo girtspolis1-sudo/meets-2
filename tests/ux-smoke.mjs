@@ -180,6 +180,30 @@ for(const width of cases){
  }catch(error){fails++;console.error('Smoke test failed',width,error.message,errors.slice(0,3));try{console.error('Body:',(await page.locator('body').innerText()).slice(0,1000));await page.screenshot({path:'ux-screenshots/'+width+'-failure.png',fullPage:true});}catch{}}
  await page.close();
 }
+// Desktop Leaflet popups are generated as HTML, so test them separately from React panels.
+const desktop=await browser.newPage({viewport:{width:1280,height:900},deviceScaleFactor:1});
+await desktop.addInitScript(()=>{Object.defineProperty(navigator,'share',{value:undefined,configurable:true});});
+await desktop.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
+try{
+ await desktop.goto(base+'/karte?period=week',{waitUntil:'domcontentloaded',timeout:45000});
+ const marker=desktop.locator('.event-drop-marker-wrap').first();
+ await marker.waitFor({timeout:20000});
+ await marker.click({force:true});
+ const popup=desktop.locator('.leaflet-popup-content .meets-circle-actions').first();
+ await popup.waitFor({timeout:15000});
+ const count=await popup.locator(':scope > *').count();
+ if(count!==5){fails++;console.error('Desktop popup requires five action icons, got',count);}
+ const icons=await popup.locator('svg').count();
+ if(icons!==5){fails++;console.error('Desktop popup requires five SVG icons, got',icons);}
+ await popup.getByRole('button',{name:'Dalīties ar pasākumu'}).click();
+ const panel=desktop.locator('.leaflet-popup-content .meets-popup-share-options').first();
+ if(await panel.isHidden()){fails++;console.error('Desktop sharing fallback did not open');}
+ const telegram=await panel.getByRole('link',{name:'Telegram'}).getAttribute('href');
+ if(!telegram?.includes(encodeURIComponent(mockEvent.id))){fails++;console.error('Desktop sharing URL wrong',telegram);}
+ await desktop.screenshot({path:'ux-screenshots/desktop-map-actions.png',fullPage:true});
+ await assertLayout(desktop,'desktop-map',1280);
+}catch(error){fails++;console.error('Desktop popup failed',error.message);}
+await desktop.close();
 await browser.close();
 if(fails){console.error('UX smoke failures:',fails);process.exit(1);}
 console.log('PASS: mobile smoke checks at 320px and 390px');
