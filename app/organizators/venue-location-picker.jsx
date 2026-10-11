@@ -250,8 +250,7 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
   const point=selected?value:NO_POINT;
   preview({...point,name:value.name||'',address:value.address||''});
  }
- function submitManualAddress(event){
-  event.preventDefault();
+ function submitManualAddress(){
   if(manualValue.trim().length<5){setSearchError('Ievadi pilnu adresi vai atzīmē punktu kartē.');return;}
   commit({name:'',address:manualValue.trim(),...NO_POINT});
   setManualAddress(false);
@@ -309,10 +308,10 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
    <button type="button" className="meets-location-manual-link" onClick={()=>setManualAddress(current=>!current)}>
     {manualAddress?'Atcelt adreses ievadīšanu':'Nevari atrast vietu? Ievadi adresi manuāli'}
    </button>
-   {manualAddress&&<form className="meets-location-manual-address" onSubmit={submitManualAddress}>
-    <label>Adrese<input aria-label="Adrese manuāli" value={manualValue} onChange={event=>setManualValue(event.target.value)} placeholder="Iela, pilsēta, Latvija" required minLength={5}/></label>
-    <button type="submit">Turpināt ar šo adresi</button>
-   </form>}
+   {manualAddress&&<div className="meets-location-manual-address">
+    <label>Adrese<input aria-label="Adrese manuāli" value={manualValue} onChange={event=>setManualValue(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();submitManualAddress();}}} placeholder="Iela, pilsēta, Latvija" minLength={5}/></label>
+    <button type="button" onClick={submitManualAddress}>Turpināt ar šo adresi</button>
+   </div>}
   </>}
   {pinOpen&&<PinMapDialog initial={pinStart} onClose={()=>setPinOpen(false)} onConfirm={commit}/>}
  </section>;
