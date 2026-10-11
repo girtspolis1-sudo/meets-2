@@ -166,10 +166,10 @@ for(const width of cases){
   const accountActions=page.locator('.meets-personal-event .meets-circle-actions').first();
   if(await accountActions.count()){
    const stats=await accountActions.evaluate(element=>{
-    const rects=[...element.querySelectorAll('button')].map(btn=>btn.getBoundingClientRect());
+    const rects=[...element.children].map(child=>child.getBoundingClientRect());
     return {count:rects.length,widths:rects.map(r=>r.width),tops:rects.map(r=>r.top),right:Math.max(...rects.map(r=>r.right)),max:element.getBoundingClientRect().right};
    });
-   if(stats.count!==5||Math.max(...stats.widths)-Math.min(...stats.widths)>1||
+   if(stats.count!==5||Math.min(...stats.widths)<43.5||Math.max(...stats.widths)-Math.min(...stats.widths)>1||
      Math.max(...stats.tops)-Math.min(...stats.tops)>1||stats.right>stats.max+1){
     fails++;console.error('Personal event buttons not equal in one row',width,stats);
    }
