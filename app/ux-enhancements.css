@@ -447,3 +447,171 @@
  .catalog-card-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:340px){.catalog-card-filters{grid-template-columns:1fr}.catalog-card-filters label:nth-child(2){grid-column:auto}}
+
+
+/* Five identical icon-only circular event actions, shared across all MEETS surfaces. */
+.meets-event-actions-wrapper{
+ width:100%;min-width:0;max-width:100%;
+ margin:10px 0 6px;
+}
+.meets-event-action-grid.meets-circle-actions,
+.meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions{
+ display:grid;
+ grid-template-columns:repeat(5,minmax(0,1fr));
+ align-items:center;
+ gap:8px;
+ width:100%;
+ max-width:340px;
+ min-width:0;
+ padding:0;
+ margin:10px 0;
+}
+.meets-event-action-grid.meets-circle-actions > .meets-circle-action,
+.meets-event-action-grid.meets-circle-actions > .meets-popup-route > .meets-circle-action,
+.meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions > .meets-circle-action{
+ box-sizing:border-box;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ justify-self:center;
+ width:min(48px,100%);
+ min-width:0;
+ height:48px;
+ min-height:48px;
+ aspect-ratio:1;
+ margin:0;
+ padding:0;
+ border-radius:50%;
+ border:1.5px solid #ddc2f4;
+ background:#f9f5ff;
+ color:#6900bf;
+ cursor:pointer;
+ font:inherit;
+ text-decoration:none;
+ flex:none;
+ transition:background .14s ease,border-color .14s ease;
+}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action svg,
+.meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions .meets-circle-action svg{
+ display:block;
+ width:20px;
+ height:20px;
+ min-width:20px;
+ flex:none;
+ stroke-width:1.8;
+}
+.meets-event-action-grid.meets-circle-actions > .meets-popup-route{
+ position:relative;
+ width:100%;
+ min-width:0;
+ display:grid;
+ justify-items:center;
+}
+.meets-event-action-grid.meets-circle-actions .meets-popup-route summary{list-style:none}
+.meets-event-action-grid.meets-circle-actions .meets-popup-route summary::-webkit-details-marker{display:none}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action:is(:hover,:focus-visible),
+.meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-expanded="true"]{
+ background:#f0e5ff;
+ border-color:#b68adc;
+}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-pressed="true"]{
+ background:#eedfff;
+ border-color:#a67bda;
+ color:#5e00b3;
+}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-pressed="true"] svg{
+ fill:currentColor;
+}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action:focus-visible{
+ outline:3px solid #7f00ff;
+ outline-offset:2px;
+}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action:is(:disabled,.disabled){
+ opacity:.38;
+ cursor:not-allowed;
+}
+.meets-circle-options{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:6px;
+ width:100%;
+ min-width:0;
+ margin-top:8px;
+ padding:10px;
+ background:#fff;
+ border:1px solid #e6d4f4;
+ border-radius:12px;
+ box-shadow:0 3px 18px rgba(64,28,98,.07);
+}
+.meets-circle-options[hidden]{display:none}
+.meets-circle-options a,
+.meets-circle-options button{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ overflow-wrap:anywhere;
+ min-width:0;
+ min-height:44px;
+ border-radius:9px;
+ border:1px solid #e6d4f4;
+ padding:9px 8px;
+ font:650 12px/1.3 system-ui,sans-serif;
+ background:#f8f3fc;
+ color:#5f00a9;
+ text-decoration:none;
+ cursor:pointer;
+}
+.meets-circle-options a:hover,
+.meets-circle-options button:hover{background:#eadfff}
+.meets-circle-options a:focus-visible,
+.meets-circle-options button:focus-visible{
+ outline:3px solid #7f00ff;
+ outline-offset:2px;
+}
+.meets-circle-feedback{font-size:12px;color:#5f00a9;overflow-wrap:anywhere;margin:6px 0}
+.meets-event-popup .popup-event-actions.meets-circle-actions .popup-save-calendar,
+.meets-event-popup .popup-event-actions.meets-circle-actions .popup-save-favorite{
+ width:min(48px,100%);height:48px;min-height:48px;padding:0;border-radius:50%;
+}
+.meets-popup-route .meets-event-action-choices{
+ position:absolute;
+ top:calc(100% + 8px);
+ bottom:auto;
+ left:50%;
+ right:auto;
+ transform:translateX(-50%);
+ z-index:20;
+}
+.meets-popup-share-options{position:relative;margin-top:8px}
+.meets-personal-status-actions{
+ display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+}
+.meets-personal-status-actions button{
+ display:inline-flex;align-items:center;justify-content:center;gap:6px;
+ border-radius:10px;min-height:44px;padding:8px 13px;
+ border:1px solid #e2cfe9;color:#6a3291;background:#faf6fe;
+ font:700 12px/1.3 system-ui,sans-serif;cursor:pointer;
+}
+.meets-personal-status-actions button svg{width:16px;height:16px}
+.meets-personal-status-actions button.chosen{background:#eee0fa;color:#5e00b3;border-color:#b994e3}
+.meets-personal-location-warning{color:#95663a;font-size:12px}
+.meets-account-event-body .meets-event-actions-wrapper{margin-top:10px}
+.catalog-event-card .meets-event-actions-wrapper{margin-top:auto}
+.catalog-detail-actions{margin-top:12px}
+@media(max-width:390px){
+ .meets-event-action-grid.meets-circle-actions,
+ .meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions{gap:4px}
+ .meets-event-action-grid.meets-circle-actions > .meets-circle-action,
+ .meets-event-action-grid.meets-circle-actions > .meets-popup-route > .meets-circle-action{
+  width:min(46px,100%);height:46px;min-height:46px;
+ }
+ .meets-event-popup .popup-event-actions.meets-circle-actions .popup-save-calendar,
+ .meets-event-popup .popup-event-actions.meets-circle-actions .popup-save-favorite{
+  height:46px;min-height:46px;width:min(46px,100%)
+ }
+ .meets-circle-options{padding:7px;gap:5px}
+}
+@media(prefers-reduced-motion:reduce){
+ .meets-event-action-grid.meets-circle-actions .meets-circle-action{transition:none}
+}
