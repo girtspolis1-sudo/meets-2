@@ -32,7 +32,7 @@ function SimpleEventFlow(){
  useEffect(()=>{
   let active=true;
   const draft=safeSavedDraft();
-  if(draft)setForm(draft);
+  if(draft){setForm(draft);setSaveVenue(draft.save_venue===true);}
   setRestored(true);
   (async()=>{
    let session=savedSession();
@@ -61,13 +61,13 @@ function SimpleEventFlow(){
     }else{
      const venueId=params.get('venue');
      const venue=result.venues?.find(v=>v.id===venueId&&v.organization_id===chosen);
-     if(venue&&!draft)setForm(f=>({...f,venue_id:venue.id,venue_name:venue.name,address:venue.address||'',latitude:venue.latitude??'',longitude:venue.longitude??''}));
+     if(venue)setForm(f=>({...f,venue_id:venue.id,venue_name:venue.name,address:venue.address||'',latitude:venue.latitude??'',longitude:venue.longitude??''}));
     }
    }catch{if(active)setAccount(null);}
   })();
   return()=>{active=false;};
  },[refreshKey]);
- useEffect(()=>{if(restored&&stage!=='done'){try{localStorage.setItem(EVENT_DRAFT_KEY,JSON.stringify(form));}catch{}}},[form,restored,stage]);
+ useEffect(()=>{if(restored&&stage!=='done'){try{localStorage.setItem(EVENT_DRAFT_KEY,JSON.stringify({...form,save_venue:saveVenue}));}catch{}}},[form,saveVenue,restored,stage]);
  function update(field,value){setForm(before=>({...before,[field]:value}));setError('');}
  function choose(place){
   const owned=venues.find(v=>v.id===place.venueId&&v.organization_id===orgId);
@@ -143,7 +143,8 @@ function SimpleEventFlow(){
      <option value="free">Bezmaksas</option><option value="paid">Maksas</option><option value="mixed">Daļēji maksas</option><option value="unknown">Nav zināms</option></select></label>
    </div>
    <div className="quick-flow-actions"><button className="button primary" type="submit">Priekšskatīt un turpināt →</button>
-    <button type="button" className="button" onClick={()=>{localStorage.setItem(EVENT_DRAFT_KEY,JSON.stringify(form));setNotice('Melnraksts saglabāts šajā ierīcē.');}}>Saglabāt melnrakstu</button></div>
+    <button type="button" className="button" onClick={()=>{localStorage.setItem(EVENT_DRAFT_KEY,JSON.stringify({...form,save_venue:saveVenue}));setNotice('Melnraksts saglabāts šajā ierīcē.');}}>Saglabāt melnrakstu</button>
+    <button type="button" className="button" onClick={()=>{if(window.confirm('Notīrīt aizpildīto formu?')){setForm({...DEFAULT});setSaveVenue(false);localStorage.removeItem(EVENT_DRAFT_KEY);setNotice('Forma notīrīta.');}}}>Notīrīt</button></div>
    <p className="quick-flow-note">Melnraksts tiek saglabāts šīs pārlūkprogrammas atmiņā arī, ja vēl neesi pieslēdzies.</p>
   </form>}
   {stage==='preview'&&<div className="quick-flow-card quick-flow-preview">
