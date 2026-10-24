@@ -268,6 +268,70 @@ for(const width of [320,390]){
  }
  await page.close();
 }
+
+// First-time user: event form first, sign-in only after preview, without losing data.
+for(const width of [320,390]){
+ const p=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+ const day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Riga'}).format(new Date(Date.now()+86400000));
+ const errors=[];p.on('pageerror',e=>errors.push(String(e)));
+ await p.route('**/api/venue-catalog*',r=>r.fulfill({status:200,contentType:'application/json',body:'{"locations":[]}'}));
+ try{
+  await p.goto(base+'/registre-pasakumu',{waitUntil:'domcontentloaded'});
+  if(!(await p.getByRole('link',{name:/Pievienot pasākumu/}).count())||!(await p.getByRole('link',{name:/Pievienot vietu/}).count())){
+   fails++;console.error('Entry choice missing on phone',width);
+  }
+  await p.getByRole('link',{name:/Pievienot pasākumu/}).first().click();
+  const form=p.locator('.quick-flow-card');
+  await form.getByPlaceholder('Piemēram, Ģimenes sporta diena').fill('MEETS mobilais pasākums');
+  await form.locator('input[type=date]').first().fill(day);
+  await form.getByRole('button',{name:/Nevari atrast vietu/}).click();
+  await form.getByRole('textbox',{name:'Adrese manuāli'}).fill('Sporta iela 1, Rīga');
+  await form.getByRole('button',{name:'Turpināt ar šo adresi'}).click();
+  await form.getByRole('textbox',{name:/Norises vietas nosaukums/}).fill('MEETS Sporta zāle');
+  await form.getByRole('button',{name:/Priekšskatīt un turpināt/}).click();
+  if(!(await p.getByText('MEETS mobilais pasākums').count())){fails++;console.error('Preview lost event title',width);}
+  await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
+  if(!(await p.getByRole('heading',{name:'Pieslēgties un turpināt'}).count())){fails++;console.error('Anonymous event flow should request login at end',width);}
+  const stored=await p.evaluate(()=>JSON.parse(localStorage.getItem('meets_event_draft_v2')||'{}'));
+  if(stored.title!=='MEETS mobilais pasākums'||stored.venue_name!=='MEETS Sporta zāle'){fails++;console.error('Draft lost when requesting login',width);}
+  await assertLayout(p,'quick-event',width);
+  await p.screenshot({path:'ux-screenshots/'+width+'-quick-event.png',fullPage:true});
+  if(width===390){
+   let submitted=null;
+   await p.route('**/api/account',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+    access_token:'mock-user-session',refresh_token:'mock-refresh',expires_in:3600,
+    user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',email:'test@example.com'}
+   })}));
+   await p.route('**/api/organizer',route=>{
+    const body=route.request().postDataJSON()||{};
+    if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+     organizations:[{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',name:'Testa organizators'}],
+     venues:[],submissions:[]})});
+    if(body.action==='saveEvent'){
+     submitted=body;
+     return route.fulfill({status:200,contentType:'application/json',body:'{"item":{"id":"9847198c-66d5-4bd1-8f2e-3b2f3a86bb51","status":"pending_review"}}'});
+    }
+    return route.fulfill({status:400,contentType:'application/json',body:'{"error":"Unsupported mock"}'});
+   });
+   await p.getByRole('textbox',{name:'E-pasts'}).fill('test@example.com');
+   await p.getByLabel('Parole',{exact:true}).fill('example-password');
+   await p.getByRole('button',{name:'Pieslēgties →'}).click();
+   await p.getByRole('button',{name:/Iesniegt pārbaudei/}).waitFor({timeout:12000});
+   await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
+   await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei!'}).waitFor({timeout:12000});
+   if(submitted?.venue_name!=='MEETS Sporta zāle'||submitted?.status!=='pending_review'||submitted?.date_from!==day){
+    fails++;console.error('New event submission lost data after in-place login',submitted);
+   }
+  }
+  await p.goto(base+'/registre-vietu',{waitUntil:'domcontentloaded'});
+  await p.locator('.meets-location-picker').waitFor({timeout:12000});
+  await assertLayout(p,'quick-venue',width);
+  await p.screenshot({path:'ux-screenshots/'+width+'-quick-venue.png',fullPage:true});
+  if(errors.length){fails++;console.error('Quick entry JS errors',width,errors.slice(0,3));}
+ }catch(e){fails++;console.error('Quick flow mobile smoke failed',width,e.message,errors.slice(0,3));}
+ await p.close();
+}
+
 await browser.close();
 if(fails){console.error('UX smoke failures:',fails);process.exit(1);}
 console.log('PASS: mobile smoke checks at 320px and 390px');

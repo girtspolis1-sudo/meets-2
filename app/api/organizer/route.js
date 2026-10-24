@@ -1,3 +1,5 @@
+import {validateQuickEvent} from '../../../lib/event-entry.js';
+import {rigaDate} from '../../../lib/meets-personal.js';
 import {NextResponse} from 'next/server';
 export const dynamic='force-dynamic';
 const BASE=()=>process.env.SUPABASE_URL;
@@ -90,6 +92,8 @@ export async function POST(request){
    if(title.length<3||title.length>200||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date_from))return NextResponse.json({error:'Norādi pasākuma nosaukumu un datumu.'},{status:400});
    if(data.date_to&&data.date_to<date_from)return NextResponse.json({error:'Beigu datums nevar būt pirms sākuma datuma.'},{status:400});
    if(!['draft','pending_review'].includes(data.status))return NextResponse.json({error:'Nepareizs pasākuma statuss.'},{status:400});
+   if(data.status==='pending_review'&&data.schedule_kind==='recurring')
+    return NextResponse.json({error:'Atkārtotu norises reižu publicēšana vēl nav pieejama. Izveido katru norises reizi kā atsevišķu pasākumu, izmantojot Kopēt.'},{status:400});
    let venue=null;
    if(data.venue_id){if(!UUID.test(data.venue_id))return NextResponse.json({error:'Nepareiza norises vieta.'},{status:400});
     const found=await api(TABLES.venues,token,'GET',null,'?select=*&id=eq.'+data.venue_id+'&organization_id=eq.'+data.organization_id);
@@ -99,7 +103,26 @@ export async function POST(request){
    const enteredAddress=venue?.address||String(data.address||'').trim().slice(0,300);
    const locationAddress=enteredAddress||(point.latitude!==null&&point.longitude!==null?`Kartē atzīmēta vieta (${Number(point.latitude).toFixed(6)}, ${Number(point.longitude).toFixed(6)})`:'');
    const payload={organization_id:data.organization_id,author_id:user.id,venue_id:venue?.id||null,title,description:String(data.description||'').slice(0,6000),schedule_kind:['once','recurring','ongoing'].includes(data.schedule_kind)?data.schedule_kind:'once',recurrence_note:String(data.recurrence_note||'').slice(0,300),category:String(data.category||'Cits').slice(0,100),date_from,date_to:data.date_to||null,time_from:data.time_from||null,time_to:data.time_to||null,venue_name:venue?.name||String(data.venue_name||'').slice(0,200),address:locationAddress,...point,price_status:['free','paid','mixed','unknown'].includes(data.price_status)?data.price_status:'unknown',status:data.status};
-   if(payload.status==='pending_review'&&(!payload.venue_name||!payload.address))return NextResponse.json({error:'Iesniegšanai norādi norises vietu un adresi.'},{status:400});
+   if(payload.status==='pending_review'){
+    const problem=validateQuickEvent(payload);
+    if(problem)return NextResponse.json({error:problem},{status:400});
+    if(String(payload.date_to||payload.date_from)<rigaDate())return NextResponse.json({error:'Pasākuma beigu datums jau ir pagājis.'},{status:400});
+   }
+   // Saving a new venue is opt-in; do not claim ownership of catalog places.
+   // Owner-scoped RLS and meets_org_can_edit() remain the authorization boundary.
+   if(data.save_venue===true&&!venue){
+    const name=payload.venue_name.trim();
+    if(name.length<2||name.length>160||!payload.address)
+     return NextResponse.json({error:'Lai saglabātu vietu, norādi nosaukumu un adresi vai kartes punktu.'},{status:400});
+    const existing=await api(TABLES.venues,token,'GET',null,'?select=id,name,address,latitude,longitude&organization_id=eq.'+data.organization_id);
+    const duplicate=existing.find(item=>duplicatesVenue({name,address:payload.address,...point},item));
+    if(duplicate)payload.venue_id=duplicate.id;
+    else {
+     const created=await api(TABLES.venues,token,'POST',{organization_id:data.organization_id,name,address:payload.address,latitude:point.latitude,longitude:point.longitude,directions:'',description:''});
+     if(!created?.[0]?.id)return NextResponse.json({error:'Norises vietu neizdevās saglabāt.'},{status:409});
+     payload.venue_id=created[0].id;
+    }
+   }
    let result;
    if(data.id){
     if(!UUID.test(data.id))return NextResponse.json({error:'Nederīgs ieraksts.'},{status:400});
