@@ -8,6 +8,7 @@ const items=[
  {href:'/karte',label:'Karte'},
  {href:'/pasakumi',label:'Pasākumi'},
  {href:'/mani-pasakumi',label:'♡ Mani pasākumi'},
+ {href:'/mani-registri',label:'▤ Mani reģistri'},
  {href:'/registre-pasakumu',label:'＋ Reģistrēt pasākumu'}
 ];
 
