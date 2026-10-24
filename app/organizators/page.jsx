@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import {rigaDate} from '../../lib/meets-personal.js';
+import {EVENT_CATEGORIES} from '../../lib/event-entry.js';
 import VenueLocationPicker from './venue-location-picker.jsx';
 
 const SESSION='meets_user_session_v1';
@@ -13,7 +14,7 @@ async function call(action,values={}){
  const response=await fetch('/api/organizer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token:session.access_token,...values})});
  const result=await response.json();if(!response.ok)throw Error(result.error||'Neizdevās saglabāt.');return result;
 }
-const CATEGORIES=['Mūzika un dejas','Sports','Ģimenēm','Kultūra','Izstādes','Tirdziņi','Cits'];
+const CATEGORIES=EVENT_CATEGORIES;
 function hasLocationPoint(value){
  const latitude=value?.latitude,longitude=value?.longitude;
  return latitude!==''&&latitude!=null&&longitude!==''&&longitude!=null&&
@@ -82,7 +83,7 @@ export default function OrganizerPage({initialKind='organizer'}){
   setError('');setDraftStep(step=>Math.min(2,step+1));
  }
  return <section className="meets-organizer-page">
-  <div className="meets-account-heading"><div><p className="eyebrow">MEETS</p><h1>Organizatora kabinets</h1><p className="meets-muted">Pasākumi, vietas un komanda.</p></div><Link className="button" href="/registre-pasakumu">Reģistrēt pasākumu ↗</Link></div>
+  <div className="meets-account-heading"><div><p className="eyebrow">MEETS</p><h1>Organizatora kabinets</h1><p className="meets-muted">Pasākumi, vietas un komanda.</p></div><Link className="button" href="/registre-pasakumu/vienkarsi">+ Pievienot pasākumu ↗</Link></div>
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}
   {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
   {!organizations.length?<form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('createOrganization',{name:orgName,kind:orgKind},()=>{setOrgName('');setPanel(orgKind==='venue'?'venues':'events');});}}>
@@ -121,7 +122,7 @@ export default function OrganizerPage({initialKind='organizer'}){
       </div>
      </>}
     </form>
-    <div className="meets-account-list">{venues.map(v=><div key={v.id} className="meets-organizer-item"><div><strong>⌖ {v.name}</strong><span>{v.address}</span></div><button type="button" className="button" onClick={()=>{setVenue({...v,latitude:v.latitude??'',longitude:v.longitude??''});window.scrollTo({top:0,behavior:'smooth'});}}>Labot</button></div>)}</div>
+    <div className="meets-account-list">{venues.map(v=><div key={v.id} className="meets-organizer-item"><div><strong>⌖ {v.name}</strong><span>{v.address}</span></div><div className="meets-organizer-buttons"><Link className="button" href={'/registre-pasakumu/vienkarsi?venue='+v.id+'&org='+orgId}>+ Pasākums</Link><button type="button" className="button" onClick={()=>{setVenue({...v,latitude:v.latitude??'',longitude:v.longitude??''});window.scrollTo({top:0,behavior:'smooth'});}}>Labot</button></div></div>)}</div>
    </>}
    {panel==='team'&&<div className="meets-organizer-form"><h2>Komanda</h2>
     <p className="meets-muted">Uzaicini kolēģi ar privātu saiti. Saites derīgums — 7 dienas. Kolēģim jābūt savam MEETS kontam.</p>
@@ -134,7 +135,7 @@ export default function OrganizerPage({initialKind='organizer'}){
    </div>}
    {panel==='events'&&<>
     {!editing?<><button className="button primary" onClick={()=>{setDraft({...EMPTY,organization_id:orgId});setDraftStep(0);setEditing(true);}}>+ Jauns pasākums</button>
-     <div className="meets-account-list">{submissions.map(item=><div key={item.id} className="meets-organizer-item"><div><strong>{item.title}</strong><span>{item.date_from} · {item.venue_name||'Vieta nav norādīta'}</span>{item.status==='rejected'&&item.admin_note&&<small className="meets-organizer-rejection">Jālabo: {item.admin_note}</small>}</div><span className="meets-organizer-status">{({draft:'Melnraksts',pending_review:'Pārbaudē',published:'Publicēts',rejected:'Jālabo'})[item.status]}</span>{['draft','rejected'].includes(item.status)&&<button className="button" onClick={()=>edit(item)}>Labot</button>}</div>)}</div>
+     <div className="meets-account-list">{submissions.map(item=><div key={item.id} className="meets-organizer-item"><div><strong>{item.title}</strong><span>{item.date_from} · {item.venue_name||'Vieta nav norādīta'}</span>{item.status==='rejected'&&item.admin_note&&<small className="meets-organizer-rejection">Jālabo: {item.admin_note}</small>}</div><span className="meets-organizer-status">{({draft:'Melnraksts',pending_review:'Pārbaudē',published:'Publicēts',rejected:'Jālabo'})[item.status]}</span>{['draft','rejected'].includes(item.status)&&<button className="button" onClick={()=>edit(item)}>Labot</button>}<Link className="button" href={'/registre-pasakumu/vienkarsi?copy='+item.id+'&org='+orgId}>Kopēt</Link></div>)}</div>
      {!submissions.length&&<p className="meets-muted">Vēl nav iesniegtu pasākumu.</p>}</>:
     <form className="meets-organizer-form meets-organizer-wizard" onSubmit={e=>{e.preventDefault();if(draftStep!==2)return;perform('saveEvent',{...draft,organization_id:orgId,status:'pending_review'},()=>{setEditing(false);setDraftStep(0);setDraft(EMPTY);});}}>
      <h2>{draft.id?'Labot pasākumu':'Jauns pasākums'}</h2>
