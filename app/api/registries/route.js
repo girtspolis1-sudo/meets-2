@@ -7,7 +7,7 @@ const KEY=()=>process.env.SUPABASE_PUBLISHABLE_KEY;
 const TABLE='meets_embed_registries';
 function reply(error,status=400){return NextResponse.json({error},{status,headers:{'Cache-Control':'no-store'}});}
 async function rest(table,token,method='GET',query='',payload){
- const headers={apikey:KEY(),Authorization:'Bearer '+token,'Content-Type':'application/json',Prefer:'return=representation'};
+ const headers={apikey:KEY(),Authorization:'Bearer '+token,'Content-Type':'application/json',Prefer:query.includes('on_conflict=')?'resolution=merge-duplicates,return=representation':'return=representation'};
  const response=await fetch(BASE()+'/rest/v1/'+table+query,{method,headers,cache:'no-store',
   ...(payload===undefined?{}:{body:JSON.stringify(payload)})});
  if(!response.ok)throw Error('Datus neizdevās saglabāt vai nolasīt.');
