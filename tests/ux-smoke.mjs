@@ -296,6 +296,33 @@ for(const width of [320,390]){
   if(stored.title!=='MEETS mobilais pasākums'||stored.venue_name!=='MEETS Sporta zāle'){fails++;console.error('Draft lost when requesting login',width);}
   await assertLayout(p,'quick-event',width);
   await p.screenshot({path:'ux-screenshots/'+width+'-quick-event.png',fullPage:true});
+  if(width===390){
+   let submitted=null;
+   await p.route('**/api/account',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+    access_token:'mock-user-session',refresh_token:'mock-refresh',expires_in:3600,
+    user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',email:'test@example.com'}
+   })}));
+   await p.route('**/api/organizer',route=>{
+    const body=route.request().postDataJSON()||{};
+    if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+     organizations:[{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',name:'Testa organizators'}],
+     venues:[],submissions:[]})});
+    if(body.action==='saveEvent'){
+     submitted=body;
+     return route.fulfill({status:200,contentType:'application/json',body:'{"item":{"id":"9847198c-66d5-4bd1-8f2e-3b2f3a86bb51","status":"pending_review"}}'});
+    }
+    return route.fulfill({status:400,contentType:'application/json',body:'{"error":"Unsupported mock"}'});
+   });
+   await p.getByRole('textbox',{name:'E-pasts'}).fill('test@example.com');
+   await p.getByLabel('Parole',{exact:true}).fill('example-password');
+   await p.getByRole('button',{name:'Pieslēgties →'}).click();
+   await p.getByRole('button',{name:/Iesniegt pārbaudei/}).waitFor({timeout:12000});
+   await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
+   await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei!'}).waitFor({timeout:12000});
+   if(submitted?.venue_name!=='MEETS Sporta zāle'||submitted?.status!=='pending_review'||submitted?.date_from!==day){
+    fails++;console.error('New event submission lost data after in-place login',submitted);
+   }
+  }
   await p.goto(base+'/registre-vietu',{waitUntil:'domcontentloaded'});
   await p.locator('.meets-location-picker').waitFor({timeout:12000});
   await assertLayout(p,'quick-venue',width);
