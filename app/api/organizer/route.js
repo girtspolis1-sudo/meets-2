@@ -92,6 +92,8 @@ export async function POST(request){
    if(title.length<3||title.length>200||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date_from))return NextResponse.json({error:'Norādi pasākuma nosaukumu un datumu.'},{status:400});
    if(data.date_to&&data.date_to<date_from)return NextResponse.json({error:'Beigu datums nevar būt pirms sākuma datuma.'},{status:400});
    if(!['draft','pending_review'].includes(data.status))return NextResponse.json({error:'Nepareizs pasākuma statuss.'},{status:400});
+   if(data.status==='pending_review'&&data.schedule_kind==='recurring')
+    return NextResponse.json({error:'Atkārtotu norises reižu publicēšana vēl nav pieejama. Izveido katru norises reizi kā atsevišķu pasākumu, izmantojot Kopēt.'},{status:400});
    let venue=null;
    if(data.venue_id){if(!UUID.test(data.venue_id))return NextResponse.json({error:'Nepareiza norises vieta.'},{status:400});
     const found=await api(TABLES.venues,token,'GET',null,'?select=*&id=eq.'+data.venue_id+'&organization_id=eq.'+data.organization_id);
