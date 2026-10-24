@@ -13,7 +13,7 @@ export default function Authentication({onSuccess}){
    if(!response.ok)throw Error(data.error||'Neizdevās pieslēgties.');
    if(!data.access_token){setError('Konts izveidots. Pārbaudi e-pasta apstiprināšanas ziņu un pēc tam pieslēdzies.');setMode('login');return;}
    localStorage.setItem(SESSION,JSON.stringify({...data,expires_at:Date.now()+(data.expires_in||3600)*1000}));
-   window.dispatchEvent(new Event('meets-user-changed'));onSuccess(data);
+   window.dispatchEvent(new Event('meets-user-changed'));await onSuccess(data);
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
  return <div className="quick-flow-auth"><h2>{mode==='register'?'Izveidot MEETS kontu':'Pieslēgties un turpināt'}</h2>
