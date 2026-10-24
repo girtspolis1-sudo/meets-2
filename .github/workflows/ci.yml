@@ -44,7 +44,8 @@ jobs:
   mobile-ux-smoke:
     name: mobile-ux-smoke
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 does not support ubuntu-26.04 yet.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       SUPABASE_URL: https://ci.invalid
