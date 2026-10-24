@@ -5,6 +5,7 @@ import {useSearchParams} from 'next/navigation';
 import {Suspense} from 'react';
 import VenueLocationPicker from '../../organizators/venue-location-picker.jsx';
 import Authentication from '../../components/account-auth-flow.jsx';
+import {rigaDate} from '../../../lib/meets-personal.js';
 import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
 
 const SESSION='meets_user_session_v1';
@@ -118,7 +119,7 @@ function SimpleEventFlow(){
   {stage==='edit'&&<form className="quick-flow-card" onSubmit={e=>{e.preventDefault();preview();}}>
    {orgs.length>1&&<label>Organizators<select value={orgId} onChange={e=>switchOrg(e.target.value)}>{orgs.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select></label>}
    <label>Pasākuma nosaukums *<input required minLength={3} maxLength={200} autoComplete="off" value={form.title} placeholder="Piemēram, Ģimenes sporta diena" onChange={e=>update('title',e.target.value)}/></label>
-   <div className="quick-flow-two"><label>Datums *<input required type="date" value={form.date_from} onChange={e=>update('date_from',e.target.value)}/></label>
+   <div className="quick-flow-two"><label>Datums *<input required type="date" min={rigaDate()} value={form.date_from} onChange={e=>update('date_from',e.target.value)}/></label>
     <label>Sākums<input type="time" value={form.time_from} onChange={e=>update('time_from',e.target.value)}/></label></div>
    <details className="quick-flow-details"><summary>Vairāku dienu pasākums vai beigu laiks</summary>
     <div className="quick-flow-two"><label>Beigu datums<input type="date" min={form.date_from||undefined} value={form.date_to} onChange={e=>update('date_to',e.target.value)}/></label>
