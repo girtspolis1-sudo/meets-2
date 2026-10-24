@@ -1,4 +1,5 @@
 import {validateQuickEvent} from '../../../lib/event-entry.js';
+import {rigaDate} from '../../../lib/meets-personal.js';
 import {NextResponse} from 'next/server';
 export const dynamic='force-dynamic';
 const BASE=()=>process.env.SUPABASE_URL;
@@ -103,6 +104,7 @@ export async function POST(request){
    if(payload.status==='pending_review'){
     const problem=validateQuickEvent(payload);
     if(problem)return NextResponse.json({error:problem},{status:400});
+    if(String(payload.date_to||payload.date_from)<rigaDate())return NextResponse.json({error:'Pasākuma beigu datums jau ir pagājis.'},{status:400});
    }
    // Saving a new venue is opt-in; do not claim ownership of catalog places.
    // Owner-scoped RLS and meets_org_can_edit() remain the authorization boundary.
