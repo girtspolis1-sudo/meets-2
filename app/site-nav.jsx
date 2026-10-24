@@ -9,7 +9,7 @@ const items=[
  {href:'/pasakumi',label:'Pasākumi'},
  {href:'/mani-pasakumi',label:'♡ Mani pasākumi'},
  {href:'/mani-registri',label:'▤ Mani reģistri'},
- {href:'/registre-pasakumu',label:'＋ Reģistrēt pasākumu'}
+ {href:'/registre-pasakumu/vienkarsi',label:'＋ Pievienot pasākumu'}
 ];
 
 export default function SiteNav(){
