@@ -133,7 +133,13 @@ export default function EventCatalog(){
   mapStatuses:[...new Set(rows.map(event=>display(event,'map_status')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv'))
  }),[rows]);
 
- const filtered=useMemo(()=>filterEventsByColumns(rows,columnFilters).filter(event=>{
+ const filtered=useMemo(()=>{
+ const query=String(columnFilters.title||'').trim().toLocaleLowerCase('lv');
+ const otherFilters={...columnFilters};
+ delete otherFilters.title;
+ return filterEventsByColumns(rows,otherFilters).filter(event=>{
+  if(query&&![event.title,event.venue_name,event.address_raw,event.settlement,event.municipality]
+   .some(value=>String(value||'').toLocaleLowerCase('lv').includes(query)))return false;
   if(placeFilter&&placeFromEvent(event)?.key!==placeFilter)return false;
   if(shared.group&&eventGroup(event)!==shared.group)return false;
   if(shared.audience&&!matchesAudience(event,shared.audience))return false;
@@ -173,6 +179,7 @@ export default function EventCatalog(){
   if(!bv)return -1;
   return String(av).localeCompare(String(bv),'lv',{numeric:true})*direction||a.id.localeCompare(b.id);
  }),[rows,columnFilters,sort,direction,period,shared,sharedOrigin,placeFilter]);
+ },[rows,columnFilters,sort,direction,period,shared,sharedOrigin,placeFilter]);
 
  const pages=Math.max(1,Math.ceil(filtered.length/pageSize));
  const current=Math.min(page,pages-1);
