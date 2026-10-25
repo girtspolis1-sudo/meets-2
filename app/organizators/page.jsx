@@ -158,7 +158,10 @@ export default function OrganizerPage(){
   e.preventDefault();
   await perform('createOrganization',{name:newOrg.name,description:newOrg.description,kind:'organizer'},(result)=>{
    const id=result.item?.id;if(!id)return;
-   setNewOrg({name:'',description:''});setCreating(false);setOrgId(id);setPanel('overview');replaceUrl(id,'overview');
+   setNewOrg({name:'',description:''});setCreating(false);setOrgId(id);setPanel('overview');
+   const returnTo=new URLSearchParams(window.location.search).get('return');
+   if(returnTo&&returnTo.startsWith('/')){const join=returnTo.includes('?')?'&':'?';window.location.assign(returnTo+join+'org='+encodeURIComponent(id));return;}
+   replaceUrl(id,'overview');
   });
  }
  async function saveProfile(e){
