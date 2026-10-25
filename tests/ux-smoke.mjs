@@ -154,10 +154,10 @@ for(const width of cases){
    expires_at:Date.now()+3600000,user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',email:'test@example.com'}
   })));
   await page.reload({waitUntil:'domcontentloaded'});
-  const followButton=page.locator('.catalog-event-card .catalog-follow-place').first();
+  const followButton=page.locator('.catalog-event-card .meets-place-favorite button').first();
   await followButton.waitFor({timeout:15000});
   await followButton.click();
-  await page.getByText('Tagad seko vietai', {exact:false}).waitFor({timeout:10000});
+  await page.getByText('Vieta pievienota iecienītajām.', {exact:false}).waitFor({timeout:10000});
   if((await followButton.getAttribute('aria-pressed'))!=='true'){
    fails++;console.error('Catalog venue follow state was not updated',width);
   }
@@ -430,7 +430,8 @@ for(const width of [360,390,768,1440]){
   await page.getByRole('heading',{name:'Brīvdienu idejas'}).waitFor({timeout:15000});
   await page.locator('#playlist-search').fill('MEETS pārbaudes');
   await page.getByRole('button',{name:'+ Pievienot'}).first().click();
-  if((await page.locator('.meets-collection-event').count())<1){fails++;console.error('Manual collection did not receive the event',width);}
+  try{await page.locator('.meets-collection-event').first().waitFor({timeout:10000});}
+  catch(e){fails++;console.error('Manual collection did not receive the event',width,e.message);}
   await assertLayout(page,'personal-playlist',width);
   await page.getByRole('button',{name:/Visi saraksti/}).click();
   await page.getByRole('button',{name:/Iecienītās vietas/}).click();
