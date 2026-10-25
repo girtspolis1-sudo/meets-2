@@ -398,7 +398,7 @@ for(const width of [320,390,1280]){
  try{
   await page.goto(base+'/profils',{waitUntil:'domcontentloaded',timeout:45000});
   await page.getByRole('heading',{name:'Mans profils'}).waitFor({timeout:15000});
-  await page.getByText('Mārupes pasākumi').first().waitFor({timeout:12000});
+  await page.locator('.meets-profile-hero-info strong').getByText('Mārupes pasākumi').waitFor({timeout:12000});
   const stats=page.locator('.meets-profile-stats');
   if((await stats.locator('.meets-profile-stat').count())!==5){fails++;console.error('Profile stats count wrong',width);}
   if(width<=760){
