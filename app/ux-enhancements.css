@@ -449,7 +449,7 @@
 @media(max-width:340px){.catalog-card-filters{grid-template-columns:1fr}.catalog-card-filters label:nth-child(2){grid-column:auto}}
 
 
-/* Five identical icon-only circular event actions, shared across all MEETS surfaces. */
+/* Compact icon-only event actions. React surfaces use six actions; legacy map popup keeps five. */
 .meets-event-actions-wrapper{
  width:100%;min-width:0;max-width:100%;
  margin:10px 0 6px;
@@ -457,14 +457,18 @@
 .meets-event-action-grid.meets-circle-actions,
 .meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions{
  display:grid;
- grid-template-columns:repeat(5,minmax(0,1fr));
+ grid-template-columns:repeat(6,minmax(0,1fr));
  align-items:center;
  gap:8px;
  width:100%;
- max-width:340px;
+ max-width:360px;
  min-width:0;
  padding:0;
  margin:10px 0;
+}
+.meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions{
+ grid-template-columns:repeat(5,minmax(0,1fr));
+ max-width:340px;
 }
 .meets-event-action-grid.meets-circle-actions > .meets-circle-action,
 .meets-event-action-grid.meets-circle-actions > .meets-popup-route > .meets-circle-action,

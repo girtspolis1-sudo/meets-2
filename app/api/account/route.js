@@ -40,6 +40,12 @@ export async function POST(request){
    }
    return NextResponse.json({access_token:value.access_token,refresh_token:value.refresh_token,expires_in:value.expires_in,user:{id:value.user?.id,email:value.user?.email}});
   }
+  if(action==='logout'){
+   if(typeof token!=='string'||!token)return NextResponse.json({ok:true});
+   const res=await fetch(authUrl+'logout',{method:'POST',headers:{...head,Authorization:'Bearer '+token},cache:'no-store'});
+   // The browser will always clear its local session, including if token is already expired.
+   return NextResponse.json({ok:res.ok||res.status===401});
+  }
   if(action==='refresh'){
    if(typeof token!=='string'||!token)return NextResponse.json({error:'Nav sesijas.'},{status:401});
    const res=await fetch(authUrl+'token?grant_type=refresh_token',{method:'POST',headers:head,body:JSON.stringify({refresh_token:token}),cache:'no-store'});

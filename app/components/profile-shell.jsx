@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {usePathname,useSearchParams} from 'next/navigation';
-import {Suspense,useEffect,useState} from 'react';
+import {Suspense,useEffect,useMemo,useState} from 'react';
 
 const symbols={
  home:<><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>,
@@ -13,17 +13,33 @@ const symbols={
  plus:<path d="M12 5v14M5 12h14"/>,
  arrow:<path d="m9 18 6-6-6-6"/>,
  settings:<><circle cx="12" cy="12" r="3"/><path d="M5 12H3m18 0h-2M12 5V3m0 18v-2M6.5 6.5 5 5m14 14-1.5-1.5M17.5 6.5 19 5M5 19l1.5-1.5"/></>,
- logout:<><path d="M10 17l5-5-5-5M15 12H3M13 3h5a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-5"/></>
+ logout:<><path d="M10 17l5-5-5-5M15 12H3M13 3h5a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-5"/></>,
+ users:<><circle cx="9" cy="8" r="3"/><path d="M3 20c.5-4 2.5-6 6-6s5.5 2 6 6M16 5.5a3 3 0 0 1 0 5.8M17 14c2.4.5 3.7 2.3 4 5"/></>,
+ building:<><path d="M4 21V5l8-3 8 3v16M8 9h2M14 9h2M8 13h2M14 13h2M10 21v-4h4v4"/></>,
+ eye:<><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></>
 };
 export function ProfileIcon({name,size=19}){
  return <svg aria-hidden="true" viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{symbols[name]||symbols.home}</svg>;
 }
-const sections=[
- {title:'MANS MEETS',links:[{href:'/profils',label:'Pārskats',icon:'home'},{href:'/mani-pasakumi',label:'Saglabātie pasākumi',icon:'heart'},{href:'/mani-registri',label:'Mani reģistri',icon:'list'}]},
- {title:'ORGANIZĒŠANA',links:[{href:'/organizators',label:'Mani pasākumi',icon:'calendar'},{href:'/organizators?panel=venues',label:'Norises vietas',icon:'pin'}]}
+const personalLinks=[
+ {href:'/profils',label:'Pārskats',icon:'home'},
+ {href:'/mani-pasakumi',label:'Saglabātie pasākumi',icon:'heart'},
+ {href:'/mani-registri',label:'Mani saraksti',icon:'list'},
+ {href:'/sekosana',label:'Sekošana',icon:'eye'},
+ {href:'/profils#iestatijumi',label:'Konta iestatījumi',icon:'settings'}
 ];
+const organizerPanels=[
+ {panel:'overview',label:'Pārskats',icon:'home'},
+ {panel:'events',label:'Pasākumi',icon:'calendar'},
+ {panel:'venues',label:'Norises vietas',icon:'pin'},
+ {panel:'lists',label:'Publiskie saraksti',icon:'list'},
+ {panel:'team',label:'Komanda',icon:'users'},
+ {panel:'profile',label:'Organizatora profils',icon:'building'}
+];
+
 const INITIALS=(name='')=>String(name).trim().slice(0,1).toLocaleUpperCase('lv')||'M';
-function Inner({children,session,displayName='',subtitle=''}) {
+
+function Inner({children,session,displayName='',subtitle='',activeOrganization=null,mode=''}) {
  const pathname=usePathname(),params=useSearchParams();
  const [identity,setIdentity]=useState(session||null);
  useEffect(()=>{
@@ -33,20 +49,24 @@ function Inner({children,session,displayName='',subtitle=''}) {
   return()=>window.removeEventListener('meets-user-changed',read);
  },[]);
  useEffect(()=>{if(session?.access_token)setIdentity(session);},[session]);
+
  const email=identity?.user?.email||'';
  const title=displayName||email?.split('@')[0]||'MEETS lietotājs';
- const active=(href)=>{
-  if(href==='/organizators?panel=venues')return pathname==='/organizators'&&params.get('panel')==='venues';
-  if(href==='/organizators')return pathname==='/organizators'&&params.get('panel')!=='venues';
+ const organizerMode=mode==='organizer'||pathname==='/organizators'||pathname.startsWith('/registre-pasakumu')||pathname==='/registre-vietu';
+ const orgId=params.get('org')||activeOrganization?.id||'';
+ const panel=params.get('panel')||'overview';
+ const organizerLinks=useMemo(()=>organizerPanels.map(item=>({
+  ...item,
+  href:'/organizators?panel='+item.panel+(orgId?'&org='+encodeURIComponent(orgId):'')
+ })),[orgId]);
+ const eventHref='/registre-pasakumu/vienkarsi'+(orgId?'?org='+encodeURIComponent(orgId):'');
+
+ const activePersonal=(href)=>{
+  if(href.includes('#'))return pathname===href.split('#')[0]&&typeof window!=='undefined'&&window.location.hash===href.split('#')[1];
   return pathname===href;
  };
- const nav=sections.map(section=><div key={section.title} className="meets-profile-nav-group">
-   <span className="meets-profile-nav-label">{section.title}</span>
-   {section.links.map(item=><Link key={item.href} href={item.href} aria-current={active(item.href)?'page':undefined}
-     className={'meets-profile-nav-link'+(active(item.href)?' active':'')}>
-    <ProfileIcon name={item.icon}/><span>{item.label}</span>{active(item.href)&&<ProfileIcon name="arrow" size={14}/>}
-   </Link>)}
-  </div>);
+ const activeOrganizer=(item)=>pathname==='/organizators'&&panel===item.panel;
+
  return <div className="meets-profile-shell">
   <aside className="meets-profile-aside" aria-label="Profila navigācija">
    <Link href="/profils" className="meets-profile-aside-brand" aria-label="MEETS profils"><span className="meets-profile-brand-mark">M</span><span>MEETS <strong>PROFILS</strong></span></Link>
@@ -54,15 +74,43 @@ function Inner({children,session,displayName='',subtitle=''}) {
     <div className="meets-profile-avatar" aria-hidden="true">{INITIALS(displayName||email)}</div>
     <div><strong>{title}</strong><small>{email||subtitle||'Tavs pasākumu centrs'}</small></div>
    </div>
-   <nav className="meets-profile-nav" aria-label="Mana MEETS sadaļas">{nav}</nav>
+
+   <div className="meets-profile-mode-switch" role="group" aria-label="Profila režīms">
+    <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}>Mans MEETS</Link>
+    <Link href={orgId?'/organizators?org='+encodeURIComponent(orgId):'/organizators'} aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}>Organizēšana</Link>
+   </div>
+
+   {!organizerMode?<nav className="meets-profile-nav" aria-label="Mans MEETS">
+    <div className="meets-profile-nav-group"><span className="meets-profile-nav-label">MANS MEETS</span>
+     {personalLinks.map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined}
+       className={'meets-profile-nav-link'+(activePersonal(item.href)?' active':'')}>
+      <ProfileIcon name={item.icon}/><span>{item.label}</span>{activePersonal(item.href)&&<ProfileIcon name="arrow" size={14}/>}
+     </Link>)}
+    </div>
+   </nav>:<nav className="meets-profile-nav" aria-label="Organizēšana">
+    {activeOrganization&&<div className="meets-profile-active-org"><small>Aktīvais organizators</small><strong>{activeOrganization.name}</strong></div>}
+    <div className="meets-profile-nav-group"><span className="meets-profile-nav-label">ORGANIZĒŠANA</span>
+     <Link href="/organizators" className={'meets-profile-nav-link'+(!orgId&&pathname==='/organizators'?' active':'')}>
+      <ProfileIcon name="building"/><span>Organizatori</span>
+     </Link>
+     {orgId&&organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined}
+       className={'meets-profile-nav-link'+(activeOrganizer(item)?' active':'')}>
+      <ProfileIcon name={item.icon}/><span>{item.label}</span>{activeOrganizer(item)&&<ProfileIcon name="arrow" size={14}/>}
+     </Link>)}
+    </div>
+   </nav>}
+
    <div className="meets-profile-aside-footer">
-    <Link className="meets-profile-aside-action" href="/registre-pasakumu/vienkarsi"><ProfileIcon name="plus"/> Pievienot pasākumu</Link>
+    {organizerMode?<Link className="meets-profile-aside-action" href={eventHref}><ProfileIcon name="plus"/> Jauns pasākums</Link>:
+     <Link className="meets-profile-aside-action" href="/karte"><ProfileIcon name="map"/> Atrast pasākumu</Link>}
     <Link className="meets-profile-secondary-link" href="/karte"><ProfileIcon name="map"/> Atvērt karti</Link>
    </div>
   </aside>
+
   <div className="meets-profile-content">
-   <nav className="meets-profile-mobile-tabs" aria-label="Profila sadaļas">
-    {[...sections[0].links,...sections[1].links].map(item=><Link key={item.href} href={item.href} aria-current={active(item.href)?'page':undefined} className={active(item.href)?'active':''}>{item.label}</Link>)}
+   <nav className="meets-profile-mobile-tabs" aria-label={organizerMode?'Organizēšanas sadaļas':'Mans MEETS sadaļas'}>
+    {!organizerMode?personalLinks.slice(0,4).map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.label}</Link>):
+     <><Link href="/organizators" className={!orgId?'active':''}>Organizatori</Link>{orgId&&organizerLinks.slice(0,4).map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined} className={activeOrganizer(item)?'active':''}>{item.label}</Link>)}</>}
    </nav>
    <div className="meets-profile-slot">{children}</div>
   </div>
