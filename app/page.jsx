@@ -7,9 +7,10 @@ export default function Home(){
  return <div className="meets-discovery-home">
   <section className="meets-discovery-hero" aria-labelledby="meets-welcome-title">
    <div className="meets-hero-message">
-    <span className="eyebrow">MEETS · Pasākumi tev tuvumā</span>
-    <h1 id="meets-welcome-title">Atklāj notikumus,<br/><em>kas iedvesmo.</em></h1>
-    <p>Koncerti, sports, kultūra un kopīgi piedzīvojumi — atrodi savu nākamo pasākumu.</p>
+    <span className="eyebrow">LATVIJAS PASĀKUMI VIENUVIET</span>
+    <h1 id="meets-welcome-title">Atrodi pasākumus,<br/><em>kas iedvesmo.</em></h1>
+    <p>Atrodi sev piemērotus pasākumus tuvumā un visā Latvijā — koncertus, kultūru, sportu un citus piedzīvojumus.</p>
+    <div className="meets-hero-ctas"><Link className="meets-hero-cta-primary" href="/pasakumi">Skatīt pasākumus <span aria-hidden="true">→</span></Link><Link className="meets-hero-cta-secondary" href="/karte">Atvērt karti <span aria-hidden="true">↗</span></Link></div>
     <form action="/pasakumi" method="get" role="search" className="meets-hero-search">
      <label className="sr-only" htmlFor="meets-home-search">Meklēt pasākumu, vietu vai intereses</label>
      <span aria-hidden="true">⌕</span>
@@ -29,6 +30,12 @@ export default function Home(){
     </Link>
    </div>
   </section>
+  <nav className="meets-minimal-benefits" aria-label="MEETS iespējas">
+   <Link href="/karte"><span className="meets-minimal-benefit-icon" aria-hidden="true">⌖</span><span><strong>Pasākumi tuvumā</strong><small>Atrodi notikumus savā apkārtnē</small></span></Link>
+   <Link href="/pasakumi"><span className="meets-minimal-benefit-icon" aria-hidden="true">✧</span><span><strong>Dažādas kategorijas</strong><small>Izvēlies sev interesējošo</small></span></Link>
+   <Link href="/mani-pasakumi"><span className="meets-minimal-benefit-icon" aria-hidden="true">♡</span><span><strong>Saglabā iecienītos</strong><small>Atgriezies pie saviem favorītiem</small></span></Link>
+   <Link href="/sekosana"><span className="meets-minimal-benefit-icon" aria-hidden="true">♧</span><span><strong>Seko, kas interesē</strong><small>Organizatori un norises vietas</small></span></Link>
+  </nav>
   <HomeFeatured/>
   <section className="meets-discovery-categories" aria-labelledby="all-categories-heading">
    <header className="meets-home-section-header"><div><p className="eyebrow">Atrodi pēc intereses</p><h2 id="all-categories-heading">Visas kategorijas</h2></div><Link href="/karte">Skatīt kartē →</Link></header>

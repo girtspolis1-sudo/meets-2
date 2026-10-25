@@ -51,6 +51,8 @@ for(const width of cases){
   if(!await homeCard.getByRole('link',{name:/Skatīt vairāk/}).count()) {fails++;console.error('Home card CTA missing',width);}
   if(!await page.getByRole('navigation',{name:'Mobilā ātrā navigācija'}).isVisible()) {fails++;console.error('Mobile bottom navigation missing',width);}
   if(!await homeCard.getByRole('button',{name:'Saglabāt pasākumu'}).count()) {fails++;console.error('Card favorite missing',width);}
+  if(!(await page.getByRole('link',{name:/Skatīt pasākumus/}).count())){fails++;console.error('Missing primary hero CTA',width);}
+  if((await page.getByRole('navigation',{name:'MEETS iespējas'}).locator('a').count())!==4){fails++;console.error('Missing functional home benefit links',width);}
   await assertLayout(page,'home',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-home.png',fullPage:true});
   await page.goto(base+'/karte?period=week',{waitUntil:'domcontentloaded',timeout:45000});
@@ -395,6 +397,9 @@ for(const width of [360,390,768,1440]){
   if(width<768){
    if(!(await page.locator('.meets-profile-mobile-tabs').isVisible())){fails++;console.error('Mobile profile navigation not visible',width);}
   }else if(!(await page.locator('.meets-profile-aside').isVisible())){fails++;console.error('Desktop profile sidebar not visible',width);}
+  if(width<761&&!await page.getByRole('button',{name:'Iziet no MEETS konta'}).isVisible()){
+   fails++;console.error('Mobile logout action not visible',width);
+  }
   await assertLayout(page,'signed-profile',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-signed-profile.png',fullPage:true});
   await page.goto(base+'/organizators?panel=venues',{waitUntil:'domcontentloaded',timeout:45000});
