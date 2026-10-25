@@ -39,7 +39,7 @@ const organizerPanels=[
 
 const INITIALS=(name='')=>String(name).trim().slice(0,1).toLocaleUpperCase('lv')||'M';
 
-function Inner({children,session,displayName='',subtitle='',activeOrganization=null}) {
+function Inner({children,session,displayName='',subtitle='',activeOrganization=null,mode=''}) {
  const pathname=usePathname(),params=useSearchParams();
  const [identity,setIdentity]=useState(session||null);
  useEffect(()=>{
@@ -52,7 +52,7 @@ function Inner({children,session,displayName='',subtitle='',activeOrganization=n
 
  const email=identity?.user?.email||'';
  const title=displayName||email?.split('@')[0]||'MEETS lietotājs';
- const organizerMode=pathname==='/organizators'||pathname.startsWith('/registre-pasakumu')||pathname==='/registre-vietu';
+ const organizerMode=mode==='organizer'||pathname==='/organizators'||pathname.startsWith('/registre-pasakumu')||pathname==='/registre-vietu';
  const orgId=params.get('org')||activeOrganization?.id||'';
  const panel=params.get('panel')||'overview';
  const organizerLinks=useMemo(()=>organizerPanels.map(item=>({
