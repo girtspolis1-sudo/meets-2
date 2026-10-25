@@ -97,8 +97,11 @@ export async function POST(request){
    let slots=[],pricing;
    try{
     slots=recurring?cleanSlots(data.recurrence_slots):[];
-    if(recurring)countOccurrences(date_from,String(data.date_to||''),slots);
-    pricing=cleanPrice(String(data.price_status||'unknown'),data.price_min,data.price_max);
+    if(recurring&&data.status==='pending_review')countOccurrences(date_from,String(data.date_to||''),slots);
+    const incompleteDraft=data.status==='draft'&&['paid','mixed'].includes(data.price_status)&&
+      (data.price_min==null||data.price_min===''||data.price_max==null||data.price_max==='');
+    pricing=incompleteDraft?{price_min:null,price_max:null}:
+      cleanPrice(String(data.price_status||'unknown'),data.price_min,data.price_max);
    }catch(error){return NextResponse.json({error:error.message},{status:400});}
    let venue=null;
    if(data.venue_id){if(!UUID.test(data.venue_id))return NextResponse.json({error:'Nepareiza norises vieta.'},{status:400});
