@@ -12,7 +12,6 @@ import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,co
 import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
 
 const SESSION='meets_user_session_v1';
-const DRAFT_PREFIX='meets_event_draft_v3';
 const DEFAULT={...QUICK_EVENT_EMPTY,recurrence_note:''};
 
 function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION)||'null');}catch{return null;}}
