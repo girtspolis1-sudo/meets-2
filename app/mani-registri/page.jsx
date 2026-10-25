@@ -61,7 +61,7 @@ function ListsInner(){
  const canEdit=!orgId||activeOrg?.role!=='viewer';
 
  function update(patch){setEditing(v=>({...v,...patch}));}
- function filter(field,value){setEditing(v=>({...v,filters:{...v.filters,[field]:value}});}
+ function filter(field,value){setEditing(v=>({...v,filters:{...v.filters,[field]:value}}));}
  function changeManual(id,action){setEditing(v=>{const included=new Set(v.included_event_ids||[]),excluded=new Set(v.excluded_event_ids||[]);if(action==='include'){included.add(id);excluded.delete(id);}if(action==='exclude'){excluded.add(id);included.delete(id);}if(action==='restore'){excluded.delete(id);included.delete(id);}return {...v,included_event_ids:[...included],excluded_event_ids:[...excluded]};});}
  async function perform(action,values={},onSuccess){
   setBusy(true);setError('');setNotice('');
