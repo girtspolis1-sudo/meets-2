@@ -384,6 +384,7 @@ function EventDetails({event,close,followButton}){
  useEffect(()=>{dialog.current.showModal();},[]);
  return <dialog ref={dialog} className="event-dialog" onCancel={close} onClose={close}>
   <div className="detail-header"><h2>{event.title}</h2><button className="button" onClick={close} autoFocus>Aizvērt ✕</button></div>
+  {event.cover_image_url&&<img src={event.cover_image_url} alt="" className="catalog-detail-cover"/>}
   <EventQuickActions event={event}/>
   <div className="catalog-detail-actions">{followButton(event)}<a className="button primary" href={'/karte?q='+encodeURIComponent(event.title)}>Atvērt kartē ↗</a></div>
   <dl>{[...columns,...detailColumns].filter(([key])=>key!=='title').map(([key,label])=><div key={key}>
