@@ -3,6 +3,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} from '../../lib/catalog.js';
 import {useEvents} from '../../lib/use-events.js';
 import EventQuickActions from '../components/event-quick-actions.jsx';
+import DiscoveryEventCard from '../components/discovery-event-card.jsx';
 import {placeFromEvent,placesFromEvents} from '../../lib/location-follow.js';
 import Link from 'next/link';
 import {rigaTodayIso,addIsoDays} from '../../lib/event-date.js';
@@ -320,15 +321,10 @@ export default function EventCatalog(){
   {data&&filtered.length===0
    ?<div className="empty"><h2>Nav atrastu pasākumu</h2><p>{rows.length?'Pamēģini mainīt datumu, kategoriju vai noņemt aktīvos filtrus.':'Pašlaik nav publicētu pasākumu. Tiklīdz pasākums tiks publicēts, tas parādīsies šeit.'}</p></div>
    :<>
-    {viewMode==='cards'&&<div className="catalog-card-grid">{visible.map(event=>{return <article className="catalog-event-card" key={event.id}>
-     {event.cover_image_url&&<img src={event.cover_image_url} alt="" loading="lazy" className="catalog-event-cover"/>}
-     <div className="catalog-event-card-top"><time dateTime={event.date_from}>{display(event,'date_from')||'Datums nav norādīts'}</time><span>{display(event,'event_type')||event.primary_category||'Pasākums'}</span></div>
-     <h2>{event.title}</h2><p className="catalog-event-card-location">⌖ {event.venue_name||event.address_raw||event.municipality||'Norises vieta nav zināma'}</p>
-     <p className="catalog-event-card-time">{display(event,'time')||'Laiks nav norādīts'} · {event.price_status==='free'?'Bezmaksas':event.price_min!=null&&event.price_max!=null?Number(event.price_min)===Number(event.price_max)?event.price_min+' €':event.price_min+'–'+event.price_max+' €':display(event,'price_status')||'Maksa nav norādīta'}</p>
-     <EventQuickActions event={event}/>
-      <div className="catalog-event-card-follow">{followButton(event)}</div>
-     <div className="catalog-event-card-actions"><button className="button compact primary" type="button" onClick={()=>setSelected(event.id)}>Par pasākumu</button><a className="button compact" href={'/karte?q='+encodeURIComponent(event.title)}>Kartē ↗</a></div>
-    </article>})}</div>}
+    {viewMode==='cards'&&<div className="catalog-card-grid meets-catalog-image-grid">{visible.map(event=>
+     <DiscoveryEventCard key={event.id} event={event} onOpen={setSelected} actions
+       footer={<div className="catalog-event-card-follow">{followButton(event)}</div>}/>
+    )}</div>}
     {viewMode==='table'&&<div className="table-scroll" role="region" aria-label="Pasākumu tabula — ritināma horizontāli" tabIndex={0}>
      <table className="events-table catalog-events-table">
       <caption>Atlasītie pasākumi. Otrajā galvenes rindā vari filtrēt katru kolonnu atsevišķi. Nospied nosaukumu, lai redzētu visu norises informāciju.</caption>
