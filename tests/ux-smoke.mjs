@@ -425,7 +425,7 @@ for(const width of [360,390,768,1440]){
   await page.locator('#new-playlist').fill('Brīvdienu idejas');
   await page.getByRole('button',{name:/Izveidot sarakstu/}).click();
   await page.getByRole('heading',{name:'Brīvdienu idejas'}).waitFor({timeout:15000});
-  await page.locator('#playlist-search').fill('Ģimen');
+  await page.locator('#playlist-search').fill('MEETS pārbaudes');
   await page.getByRole('button',{name:'+ Pievienot'}).first().click();
   if((await page.locator('.meets-collection-event').count())<1){fails++;console.error('Manual collection did not receive the event',width);}
   await assertLayout(page,'personal-playlist',width);
