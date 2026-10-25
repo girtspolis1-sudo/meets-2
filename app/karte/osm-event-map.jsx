@@ -130,7 +130,7 @@ function popupActionIcon(name){
   external:'<path d="M13 5h6v6M19 5l-9 9"/><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
   share:'<circle cx="18" cy="5" r="2.2"/><circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="m8 11 8-5m-8 8 8 4"/>'
  };
- return '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(icons[name]||'')+'</svg>';
+ return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(icons[name]||'')+'</svg>';
 }
 function popupActionsHtml(e,favorites,editLink){
  const id=esc(e.id),saved=favorites.has(String(e.id));
@@ -144,18 +144,19 @@ function popupActionsHtml(e,favorites,editLink){
  const shareUrl=eventShareUrl(e,window.location.origin);
  const targets=eventShareTargets(e,shareUrl);
  const favoriteLabel=saved?'Noņemt no saglabātajiem':'Saglabāt pasākumu';
- const button=(name,label,extra='')=>'<button type="button" class="meets-circle-action '+extra+'" data-event-id="'+id+'" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+popupActionIcon(name)+'</button>';
+ const button=(name,label,extra='',short=label)=>'<button type="button" class="meets-circle-action '+extra+'" data-event-id="'+id+'" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+popupActionIcon(name)+'<small class="meets-quiet-label">'+esc(short)+'</small></button>';
  const social=[['WhatsApp',targets.whatsapp],['Messenger',targets.messenger],
   ['Telegram',targets.telegram],['Facebook',targets.facebook],['X',targets.x]]
   .map(([name,url])=>'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">'+esc(name)+'</a>').join('');
  return '<div class="popup-event-actions meets-event-action-grid meets-circle-actions" role="group" aria-label="Pasākuma darbības">'+
-  '<button type="button" class="meets-circle-action popup-save-favorite" data-event-id="'+id+'" aria-label="'+favoriteLabel+'" title="'+favoriteLabel+'" aria-pressed="'+saved+'">'+popupActionIcon('heart')+'</button>'+
-  button('calendar','Pievienot kalendāram','popup-save-calendar')+
-  (google?'<details class="meets-popup-route"><summary class="meets-circle-action" aria-label="Maršruts" title="Maršruts">'+popupActionIcon('pin')+'</summary><div class="meets-event-action-choices"><a target="_blank" rel="noopener noreferrer" href="'+esc(google)+'">Google Maps ↗</a>'+(waze?'<a target="_blank" rel="noopener noreferrer" href="'+esc(waze)+'">Waze ↗</a>':'')+'</div></details>'
-   :'<button type="button" class="meets-circle-action" disabled aria-label="Nav adreses maršrutam" title="Nav adreses maršrutam">'+popupActionIcon('pin')+'</button>')+
-  (official?'<a class="meets-circle-action" href="'+esc(official)+'" aria-label="Oficiālā pasākuma lapa" title="Oficiālā lapa" target="_blank" rel="noopener noreferrer">'+popupActionIcon('external')+'</a>'
-   :'<span class="meets-circle-action disabled" aria-label="Nav oficiālās saites" title="Nav oficiālās saites">'+popupActionIcon('external')+'</span>')+
-  button('share','Dalīties ar pasākumu','popup-share-event')+
+  '<button type="button" class="meets-circle-action popup-save-favorite" data-event-id="'+id+'" aria-label="'+favoriteLabel+'" title="'+favoriteLabel+'" aria-pressed="'+saved+'">'+popupActionIcon('heart')+'<small class="meets-quiet-label">Favorīts</small></button>'+
+  '<a class="meets-circle-action" href="/pasakumi?event='+encodeURIComponent(e.id)+'" aria-label="Pievienot pasākumu sarakstam" title="Pievienot sarakstam">'+popupActionIcon('external')+'<small class="meets-quiet-label">Saraksts</small></a>'+
+  button('calendar','Pievienot kalendāram','popup-save-calendar','Kalendārs')+
+  (google?'<details class="meets-popup-route"><summary class="meets-circle-action" aria-label="Maršruts" title="Maršruts">'+popupActionIcon('pin')+'<small class="meets-quiet-label">Norādes</small></summary><div class="meets-event-action-choices"><a target="_blank" rel="noopener noreferrer" href="'+esc(google)+'">Google Maps ↗</a>'+(waze?'<a target="_blank" rel="noopener noreferrer" href="'+esc(waze)+'">Waze ↗</a>':'')+'</div></details>'
+   :'<button type="button" class="meets-circle-action" disabled aria-label="Nav adreses maršrutam" title="Nav adreses maršrutam">'+popupActionIcon('pin')+'<small class="meets-quiet-label">Norādes</small></button>')+
+  (official?'<a class="meets-circle-action" href="'+esc(official)+'" aria-label="Oficiālā pasākuma lapa" title="Oficiālā lapa" target="_blank" rel="noopener noreferrer">'+popupActionIcon('external')+'<small class="meets-quiet-label">Atvērt</small></a>'
+   :'<span class="meets-circle-action disabled" aria-label="Nav oficiālās saites" title="Nav oficiālās saites">'+popupActionIcon('external')+'<small class="meets-quiet-label">Atvērt</small></span>')+
+  button('share','Dalīties ar pasākumu','popup-share-event','Dalīties')+
   '</div><div class="meets-circle-options meets-popup-share-options" hidden>'+social+
   '<button type="button" class="popup-share-copy" data-event-id="'+id+'">Kopēt saiti ⧉</button></div>'+
 
