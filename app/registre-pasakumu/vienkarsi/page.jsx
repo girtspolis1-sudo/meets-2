@@ -178,10 +178,10 @@ function SimpleEventFlow(){
     <label>Cena no, EUR *<input required type="number" min="0" step="0.01" value={form.price_min} onChange={e=>update('price_min',e.target.value)}/></label>
     <label>Cena līdz, EUR *<input required type="number" min="0" step="0.01" value={form.price_max} onChange={e=>update('price_max',e.target.value)}/></label>
    </div>}
-   <label>Pasākuma attēls (JPG, PNG, WebP līdz 5 MB)
+   <label>Pasākuma attēls (JPG, PNG, WebP līdz 4 MB)
     <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{
      const file=e.target.files?.[0];if(!file){setImageFile(null);setImagePreview('');return;}
-     if(file.size>5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){
+     if(file.size>4*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){
       setError('Atļauti tikai JPG, PNG, WebP attēli līdz 5 MB.');e.target.value='';return;
      }
      setImageFile(file);setImagePreview(URL.createObjectURL(file));setError('');
