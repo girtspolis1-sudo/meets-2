@@ -6,6 +6,8 @@ import {Suspense} from 'react';
 import VenueLocationPicker from '../../organizators/venue-location-picker.jsx';
 import Authentication from '../../components/account-auth-flow.jsx';
 import {rigaDate} from '../../../lib/meets-personal.js';
+import WeeklySchedule from '../../components/weekly-schedule.jsx';
+import {countOccurrences,cleanPrice} from '../../../lib/event-schedule.js';
 import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
 
 const SESSION='meets_user_session_v1';
@@ -82,13 +84,20 @@ function SimpleEventFlow(){
  function preview(){
   const message=validateQuickEvent(form);
   if(message){setError(message);return;}
+  try{
+   cleanPrice(form.price_status,form.price_min,form.price_max);
+   if(form.schedule_kind==='recurring')countOccurrences(form.date_from,form.date_to,form.recurrence_slots);
+  }catch(e){setError(e.message);return;}
   setError('');setStage('preview');window.scrollTo({top:0,behavior:'smooth'});
  }
  function startAuth(){setStage('auth');window.scrollTo({top:0,behavior:'smooth'});}
  async function save(status='pending_review'){
   if(!account)return startAuth();
-  const message=validateQuickEvent(form);
-  if(message){setError(message);setStage('edit');return;}
+  const problem=validateQuickEvent(form);
+  if(problem){setError(problem);setStage('edit');return;}
+  try{cleanPrice(form.price_status,form.price_min,form.price_max);
+   if(form.schedule_kind==='recurring')countOccurrences(form.date_from,form.date_to,form.recurrence_slots);
+  }catch(e){setError(e.message);setStage('edit');return;}
   setBusy(true);setError('');
   try{
    let chosen=orgId;
@@ -96,14 +105,25 @@ function SimpleEventFlow(){
     const created=await call('createOrganization',{name:'Mani pasākumi',kind:'organizer'});
     chosen=created.item.id;setOrgId(chosen);setOrgs(o=>[created.item,...o]);
    }
-   const result=await call('saveEvent',{...form,organization_id:chosen,venue_id:venues.some(v=>v.id===form.venue_id&&v.organization_id===chosen)?form.venue_id:null,
-     save_venue:saveVenue, schedule_kind:form.date_to&&form.date_to!==form.date_from?'ongoing':'once',status});
-   setSubmitted(result.item);setStage('done');
+   const fields={...form,organization_id:chosen,
+    venue_id:venues.some(v=>v.id===form.venue_id&&v.organization_id===chosen)?form.venue_id:null,
+    save_venue:saveVenue,schedule_kind:form.schedule_kind==='recurring'?'recurring':form.date_to&&form.date_to!==form.date_from?'ongoing':'once'};
+   let id=savedId;
+   if(imageFile){
+    // The image is uploaded only to the owner's draft; afterward submission goes to moderation.
+    const draft=await call('saveEvent',{...fields,...(id?{id}:{}),status:'draft'});
+    id=draft.item.id;setSavedId(id);
+    const payload=new FormData();payload.append('token',account.access_token);payload.append('submission_id',id);payload.append('file',imageFile);
+    const response=await fetch('/api/event-image',{method:'POST',body:payload});
+    const body=await response.json();if(!response.ok)throw Error(body.error||'Attēla augšupielāde neizdevās.');
+   }
+   const result=await call('saveEvent',{...fields,...(id?{id}:{}),status});
+   setSubmitted(result.item);setStage('done');setSavedId('');
    try{localStorage.removeItem(EVENT_DRAFT_KEY);}catch{}
   }catch(e){setError(e.message);if(/sesija|Pieslēdzies/i.test(e.message))setStage('auth');}
   finally{setBusy(false);}
  }
- function restart(){setForm({...DEFAULT});setSubmitted(null);setSaveVenue(false);setStage('edit');setError('');setNotice('');localStorage.removeItem(EVENT_DRAFT_KEY);}
+ function restart(){setForm({...DEFAULT});setSubmitted(null);setSaveVenue(false);setImageFile(null);setImagePreview('');setSavedId('');setStage('edit');setError('');setNotice('');localStorage.removeItem(EVENT_DRAFT_KEY);}
  const venueChosen=Boolean(form.venue_id||form.address||isCoordinatePair(form));
  return <section className="meets-organizer-page quick-flow">
   <div className="meets-account-heading">
@@ -119,13 +139,24 @@ function SimpleEventFlow(){
   {stage==='edit'&&<form className="quick-flow-card" onSubmit={e=>{e.preventDefault();preview();}}>
    {orgs.length>1&&<label>Organizators<select value={orgId} onChange={e=>switchOrg(e.target.value)}>{orgs.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select></label>}
    <label>Pasākuma nosaukums *<input required minLength={3} maxLength={200} autoComplete="off" value={form.title} placeholder="Piemēram, Ģimenes sporta diena" onChange={e=>update('title',e.target.value)}/></label>
-   <div className="quick-flow-two"><label>Datums *<input required type="date" min={rigaDate()} value={form.date_from} onChange={e=>update('date_from',e.target.value)}/></label>
-    <label>Sākums<input type="time" value={form.time_from} onChange={e=>update('time_from',e.target.value)}/></label></div>
-   <details className="quick-flow-details"><summary>Vairāku dienu pasākums vai beigu laiks</summary>
-    <div className="quick-flow-two"><label>Beigu datums<input type="date" min={form.date_from||undefined} value={form.date_to} onChange={e=>update('date_to',e.target.value)}/></label>
-     <label>Beigu laiks<input type="time" value={form.time_to} onChange={e=>update('time_to',e.target.value)}/></label></div>
-    <p className="meets-muted">Vairākas dienas nozīmē nepārtrauktu pasākumu. Atsevišķām nodarbībām izmanto paplašināto redaktoru.</p>
-   </details>
+   <label>Pasākuma norise<select value={form.schedule_kind||'once'} onChange={e=>update('schedule_kind',e.target.value)}>
+     <option value="once">Vienreizējs pasākums</option>
+     <option value="ongoing">Vairāku dienu nepārtraukts pasākums</option>
+     <option value="recurring">Atkārtotas nodarbības / notikumi</option>
+    </select></label>
+   {form.schedule_kind==='recurring'?<>
+     <div className="quick-flow-two"><label>Grafiks no *<input required type="date" min={rigaDate()} value={form.date_from} onChange={e=>update('date_from',e.target.value)}/></label>
+     <label>Grafiks līdz *<input required type="date" min={form.date_from||rigaDate()} value={form.date_to} onChange={e=>update('date_to',e.target.value)}/></label></div>
+     <WeeklySchedule slots={form.recurrence_slots||[]} onChange={v=>update('recurrence_slots',v)} dateFrom={form.date_from} dateTo={form.date_to}/>
+   </>:<>
+    <div className="quick-flow-two"><label>Datums *<input required type="date" min={rigaDate()} value={form.date_from} onChange={e=>update('date_from',e.target.value)}/></label>
+     <label>Sākums<input type="time" value={form.time_from} onChange={e=>update('time_from',e.target.value)}/></label></div>
+    <details className="quick-flow-details"><summary>Beigu laiks un datums</summary>
+     <div className="quick-flow-two"><label>Beigu datums<input type="date" min={form.date_from||undefined} value={form.date_to} onChange={e=>update('date_to',e.target.value)}/></label>
+      <label>Beigu laiks<input type="time" value={form.time_to} onChange={e=>update('time_to',e.target.value)}/></label></div>
+     <p className="meets-muted">Izvēlies atkārtošanos, ja pasākums notiek atsevišķās dienās.</p>
+    </details>
+   </>}
    <h2>Kur notiks?</h2>
    <VenueLocationPicker value={{name:form.venue_name,venueId:form.venue_id,address:form.address,latitude:form.latitude,longitude:form.longitude}}
      existingVenues={venues.filter(v=>v.organization_id===orgId)} onSelect={choose}/>
@@ -142,6 +173,21 @@ function SimpleEventFlow(){
     <label>Dalības maksa<select value={form.price_status} onChange={e=>update('price_status',e.target.value)}>
      <option value="free">Bezmaksas</option><option value="paid">Maksas</option><option value="mixed">Daļēji maksas</option><option value="unknown">Nav zināms</option></select></label>
    </div>
+   {['paid','mixed'].includes(form.price_status)&&<div className="quick-flow-two">
+    <label>Cena no, EUR *<input required type="number" min="0" step="0.01" value={form.price_min} onChange={e=>update('price_min',e.target.value)}/></label>
+    <label>Cena līdz, EUR *<input required type="number" min="0" step="0.01" value={form.price_max} onChange={e=>update('price_max',e.target.value)}/></label>
+   </div>}
+   <label>Pasākuma attēls (JPG, PNG, WebP līdz 5 MB)
+    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{
+     const file=e.target.files?.[0];if(!file){setImageFile(null);setImagePreview('');return;}
+     if(file.size>5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){
+      setError('Atļauti tikai JPG, PNG, WebP attēli līdz 5 MB.');e.target.value='';return;
+     }
+     setImageFile(file);setImagePreview(URL.createObjectURL(file));setError('');
+    }}/></label>
+   {imagePreview&&<div><img src={imagePreview} alt="Pasākuma attēla priekšskatījums" className="quick-event-image"/>
+    <button type="button" className="button" onClick={()=>{setImageFile(null);setImagePreview('');}}>Noņemt attēlu</button></div>}
+   <p className="quick-flow-note">Attēls tiks augšupielādēts tikai pēc pieslēgšanās. Publiskā attēla saite būs pieejama cilvēkiem, kuriem tā ir zināma.</p>
    <div className="quick-flow-actions"><button className="button primary" type="submit">Priekšskatīt un turpināt →</button>
     <button type="button" className="button" onClick={()=>{localStorage.setItem(EVENT_DRAFT_KEY,JSON.stringify({...form,save_venue:saveVenue}));setNotice('Melnraksts saglabāts šajā ierīcē.');}}>Saglabāt melnrakstu</button>
     <button type="button" className="button" onClick={()=>{if(window.confirm('Notīrīt aizpildīto formu?')){setForm({...DEFAULT});setSaveVenue(false);localStorage.removeItem(EVENT_DRAFT_KEY);setNotice('Forma notīrīta.');}}}>Notīrīt</button></div>
@@ -154,7 +200,10 @@ function SimpleEventFlow(){
     {form.time_from?' · '+form.time_from:''}{form.time_to?'–'+form.time_to:''}</p>
    <p>⌖ {form.venue_name} · {form.address||'Vieta atzīmēta kartē'}</p>
    <p>{form.description||'Apraksts nav norādīts.'}</p>
-   <div className="quick-flow-tags"><span>{form.category}</span><span>{({free:'Bezmaksas',paid:'Maksas',mixed:'Daļēji maksas',unknown:'Cena nav zināma'})[form.price_status]}</span></div>
+   <div className="quick-flow-tags"><span>{form.category}</span><span>{({free:'Bezmaksas',paid:'Maksas',mixed:'Daļēji maksas',unknown:'Cena nav zināma'})[form.price_status]}
+    {['paid','mixed'].includes(form.price_status)?' · '+form.price_min+'–'+form.price_max+' EUR':''}</span></div>
+   {form.schedule_kind==='recurring'&&<p><strong>Norises reizes:</strong> {countOccurrences(form.date_from,form.date_to,form.recurrence_slots)} atsevišķi pasākumi kartē</p>}
+   {imagePreview&&<img src={imagePreview} alt="" className="quick-event-image"/>
    {saveVenue&&<p className="quick-flow-note">✓ Vietu saglabāsim tavā profilā turpmākai izmantošanai.</p>}
    <p className="meets-muted">Pēc iesniegšanas ieraksts tiks pārbaudīts. Tas nekļūs publisks automātiski.</p>
    <div className="quick-flow-actions"><button className="button" type="button" onClick={()=>setStage('edit')}>← Labot informāciju</button>
