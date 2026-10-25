@@ -34,9 +34,11 @@ export default function MobileEventSheet({group,activeIds,favorites,onFavorite,o
    <div className="meets-mobile-sheet-handle" aria-hidden="true"/>
    <header className="meets-mobile-sheet-title">
     <div className="meets-sheet-venue">
-     <strong>{group.label}</strong>
+     <div className="meets-sheet-venue-heading">
+      <strong>{group.label}</strong>
+      {events[0]&&<div className="meets-sheet-venue-follow"><EventVenueFavorite event={events[0]} compact/></div>}
+     </div>
      <small>{selectedCount} atlasīti · {events.length} kopā</small>
-     {events[0]&&<div className="meets-sheet-venue-follow"><EventVenueFavorite event={events[0]} compact/></div>}
     </div>
     <button type="button" ref={closeRef} onClick={onClose} aria-label="Aizvērt pasākumu informāciju">✕</button>
    </header>
@@ -45,15 +47,16 @@ export default function MobileEventSheet({group,activeIds,favorites,onFavorite,o
      const selected=activeIds.has(event.id);
      const state=eventDateState(event,rigaTodayIso());
      const source=event.sources?.find(x=>x.source)?.source||event.competition_group||'';
-     return <article key={event.id} className={'meets-mobile-sheet-event'+(selected?' is-highlighted':' outside')}>
+     return <article key={event.id} className={'meets-mobile-sheet-event'+(selected?' is-highlighted':' outside')} data-selected={selected}>
       <div className="meets-mobile-sheet-event-top">
        <span className={'event-date-badge '+state.tone}>{state.badge}</span>
        <small>{event.primary_category||event.event_type||'Pasākums'}</small>
+       {selected&&<span className="meets-sheet-filter-status">Atlasīts</span>}
       </div>
       <h3>{event.title}</h3>
       <p className="meets-mobile-sheet-meta meets-sheet-primary-date">{eventDateRangeLabel(event,dateLabel)}{event.time_from?' · '+timeLabel(event):''}</p>
-      {selected&&event.address_raw&&<p className="meets-mobile-sheet-meta meets-sheet-address"><span aria-hidden="true">⌖</span><span>{event.address_raw}</span></p>}
-      {selected&&source&&<p className="meets-mobile-sheet-meta meets-sheet-source">{source}</p>}
+      {event.address_raw&&<p className="meets-mobile-sheet-meta meets-sheet-address"><span aria-hidden="true">⌖</span><span>{event.address_raw}</span></p>}
+      {source&&<p className="meets-mobile-sheet-meta meets-sheet-source">{source}</p>}
       {event.description&&<details className="meets-sheet-description-details"><summary>Apraksts</summary><p>{event.description}</p></details>}
       {selected?<EventQuickActions event={event} quiet saved={favorites.has(String(event.id))}
        onSave={onFavorite} onCalendar={onCalendar}/>:
