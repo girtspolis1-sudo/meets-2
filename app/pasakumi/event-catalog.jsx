@@ -4,6 +4,7 @@ import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} fro
 import {useEvents} from '../../lib/use-events.js';
 import EventQuickActions from '../components/event-quick-actions.jsx';
 import DiscoveryEventCard from '../components/discovery-event-card.jsx';
+import {cardCategory,cardDate,cardDescription,cardGroup,cardImage,cardLocation,cardPrice} from '../../lib/discovery-card.js';
 import {placeFromEvent,placesFromEvents} from '../../lib/location-follow.js';
 import Link from 'next/link';
 import {rigaTodayIso,addIsoDays} from '../../lib/event-date.js';
@@ -377,17 +378,38 @@ export default function EventCatalog(){
 
 function EventDetails({event,close,followButton}){
  const dialog=useRef(null);
- useEffect(()=>{dialog.current.showModal();},[]);
- return <dialog ref={dialog} className="event-dialog" onCancel={close} onClose={close}>
-  <div className="detail-header"><h2>{event.title}</h2><button className="button" onClick={close} autoFocus>Aizvērt ✕</button></div>
-  {event.cover_image_url&&<img src={event.cover_image_url} alt="" className="catalog-detail-cover"/>}
-  <EventQuickActions event={event}/>
-  <div className="catalog-detail-actions">{followButton(event)}<a className="button primary" href={'/karte?q='+encodeURIComponent(event.title)}>Atvērt kartē ↗</a></div>
-  <dl>{[...columns,...detailColumns].filter(([key])=>key!=='title').map(([key,label])=><div key={key}>
-   <dt>{label}</dt>
-   <dd>{key==='source_url'
-    ?event.sources.filter(source=>source.url).map((source,index)=><a className="source-link" href={source.url} target="_blank" rel="noopener noreferrer" key={index}>{source.source||'Avots'} ↗</a>)
-    :display(event,key)||'Nav norādīts'}</dd>
-  </div>)}</dl>
+ useEffect(()=>{const node=dialog.current;node?.showModal();return()=>{if(node?.open)node.close();};},[]);
+ const image=cardImage(event),description=cardDescription(event),price=cardPrice(event);
+ return <dialog ref={dialog} className="event-dialog meets-event-detail-dialog" onCancel={close} onClose={close} aria-label={'Pasākums: '+event.title}>
+  <div className="meets-detail-hero">
+   {image?<img src={image} alt="" className="catalog-detail-cover" loading="eager"/>:
+    <div className={'meets-detail-image-fallback theme-'+cardGroup(event)} aria-hidden="true">✦</div>}
+   <button className="meets-detail-close" type="button" aria-label="Aizvērt ✕" onClick={close} autoFocus>✕</button>
+  </div>
+  <div className="meets-detail-body">
+   <div className="meets-detail-headline"><span className="meets-detail-tag">{cardCategory(event)}</span><h2>{event.title}</h2></div>
+   <div className="meets-detail-key-facts">
+    <p>▦ <strong>{cardDate(event)}</strong></p>
+    <p>⌖ <strong>{cardLocation(event)}</strong></p>
+    {price&&<span className="meets-detail-price">{price}</span>}
+   </div>
+   {description&&<section className="meets-detail-description"><h3>Par pasākumu</h3><p>{description}</p></section>}
+   <div className="meets-detail-follow">{followButton(event)}</div>
+   <div className="meets-detail-primary-actions">
+    <a className="button primary" href={'/karte?event='+encodeURIComponent(event.id)}>Atvērt kartē →</a>
+    {event.sources?.filter(source=>source.url).slice(0,1).map((source,index)=>
+     <a key={index} className="button" href={source.url} target="_blank" rel="noopener noreferrer">Organizatora saite ↗</a>)}
+   </div>
+   <details className="meets-detail-more">
+    <summary>Visa pasākuma informācija</summary>
+    <dl>{[...columns,...detailColumns].filter(([key])=>key!=='title').map(([key,label])=><div key={key}>
+      <dt>{label}</dt>
+      <dd>{key==='source_url'?event.sources?.filter(source=>source.url).map((source,index)=>
+       <a className="source-link" href={source.url} target="_blank" rel="noopener noreferrer" key={index}>{source.source||'Avots'} ↗</a>)
+       :display(event,key)||'Nav norādīts'}</dd>
+     </div>)}</dl>
+   </details>
+   <div className="meets-detail-quick"><h3>Ātrās darbības</h3><EventQuickActions event={event}/></div>
+  </div>
  </dialog>;
 }
