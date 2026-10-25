@@ -17,8 +17,8 @@ export async function POST(request){
  if(!form)return bad('Neizdevās nolasīt attēlu.');
  const token=form.get('token'),id=form.get('submission_id'),file=form.get('file');
  if(typeof token!=='string'||token.length>8000||typeof id!=='string'||!UUID.test(id))return bad('Nepieciešama derīga sesija.',401);
- if(!file||typeof file.arrayBuffer!=='function'||!(file.type in MIME)||file.size<100||file.size>5*1024*1024)
-  return bad('Atļauts PNG, JPG vai WebP attēls līdz 5 MB.');
+ if(!file||typeof file.arrayBuffer!=='function'||!(file.type in MIME)||file.size<100||file.size>4*1024*1024)
+  return bad('Atļauts PNG, JPG vai WebP attēls līdz 4 MB.');
  const auth=await fetch(base+'/auth/v1/user',{headers:{apikey:key,Authorization:'Bearer '+token},cache:'no-store'});
  if(!auth.ok)return bad('Sesija beigusies.',401);
  const user=await auth.json();
