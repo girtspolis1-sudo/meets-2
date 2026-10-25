@@ -8,6 +8,7 @@ import './globals.css';
 import './ux-enhancements.css';
 import './quick-flow.css';
 import './profile-dashboard.css';
+import './organizer-workspace.css';
 
 export const metadata = {
   title: { default: 'MEETS — Pasākumi Latvijā', template: '%s | MEETS' },
