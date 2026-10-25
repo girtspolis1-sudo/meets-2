@@ -113,6 +113,7 @@ for(const width of cases){
   await page.goto(base+'/pasakumi',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.catalog-view-switch').waitFor({timeout:30000});
   if(!(await page.getByRole('button',{name:/Kartītes/}).getAttribute('aria-pressed'))?.includes('true')){fails++;console.error('Card view is not active by default');}
+  await page.locator('.catalog-event-card .meets-card-secondary-actions summary').first().click();
   const catalogCircles=page.locator('.catalog-event-card .meets-circle-actions').first();
   await catalogCircles.waitFor();
   if(await catalogCircles.locator(':scope > *').count()!==6){
