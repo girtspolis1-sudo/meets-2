@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
 import {useEvents} from '../../lib/use-events.js';
+import ProfileShell from '../components/profile-shell.jsx';
 import {HOME_GROUP_KEYS,HOME_CATEGORY_FILTERS} from '../../lib/home-category-filters.js';
 import {cleanRegistryFilters,filterRegistryEvents} from '../../lib/registry-filters.js';
 const KEY='meets_user_session_v1';
@@ -77,10 +78,10 @@ export default function MyRegistries(){
   const html='<iframe src="'+url+'" title="'+item.title.replaceAll('"','&quot;')+'" width="100%" height="620" loading="lazy" style="border:0;border-radius:12px"></iframe>';
   navigator.clipboard.writeText(html).then(()=>setNotice('iframe kods nokopēts.')).catch(()=>setError('Kopēšana neizdevās. Atver publisko saiti.'));
  }
- return <section className="meets-account-page meets-registry-page">
+ const page=<section className="meets-account-page meets-registry-page">
   <div className="meets-account-heading"><div><p className="eyebrow">MEETS · Tavs profils</p><h1>Mani pasākumu reģistri</h1>
    <p className="meets-muted">Izveido savu pasākumu izlasi, saglabā filtrus un ievieto sarakstu savā mājaslapā.</p></div>
-   <Link className="button" href="/mani-pasakumi">← Mani pasākumi</Link></div>
+   <Link className="button" href="/profils">← Mans profils</Link></div>
   <style>{`
    .meets-registry-page{max-width:1080px;margin:0 auto;padding:20px 16px 55px}
    .registry-panel{border:1px solid #e2e5ee;background:#fff;border-radius:17px;padding:22px;margin:16px 0}
@@ -164,4 +165,5 @@ export default function MyRegistries(){
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}
   {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
  </section>;
+ return session?<ProfileShell session={session} displayName={profile}>{page}</ProfileShell>:page;
 }

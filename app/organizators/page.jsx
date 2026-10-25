@@ -5,6 +5,7 @@ import {rigaDate} from '../../lib/meets-personal.js';
 import {EVENT_CATEGORIES} from '../../lib/event-entry.js';
 import VenueLocationPicker from './venue-location-picker.jsx';
 import WeeklySchedule from '../components/weekly-schedule.jsx';
+import ProfileShell from '../components/profile-shell.jsx';
 import {countOccurrences,cleanPrice} from '../../lib/event-schedule.js';
 
 const SESSION='meets_user_session_v1';
@@ -34,6 +35,8 @@ export default function OrganizerPage({initialKind='organizer'}){
  useEffect(()=>{
   try{setCurrentUserId(JSON.parse(localStorage.getItem(SESSION)||'null')?.user?.id||'');}catch{}
   refresh().catch(e=>setError(e.message));
+  const desiredPanel=new URLSearchParams(window.location.search).get('panel');
+  if(['venues','events','team'].includes(desiredPanel))setPanel(desiredPanel);
   const invite=new URLSearchParams(window.location.search).get('invite');
   if(invite){
    call('acceptInvite',{invite_token:invite}).then(()=>{window.history.replaceState(null,'',window.location.pathname);setNotice('Uzaicinājums pieņemts.');refresh();setPanel('team');}).catch(e=>setError(e.message));
@@ -90,7 +93,7 @@ export default function OrganizerPage({initialKind='organizer'}){
   }
   setError('');setDraftStep(step=>Math.min(2,step+1));
  }
- return <section className="meets-organizer-page">
+ return <ProfileShell><section className="meets-organizer-page">
   <div className="meets-account-heading"><div><p className="eyebrow">MEETS</p><h1>Organizatora kabinets</h1><p className="meets-muted">Pasākumi, vietas un komanda.</p></div><Link className="button" href="/registre-pasakumu/vienkarsi">+ Pievienot pasākumu ↗</Link></div>
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}
   {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
@@ -210,5 +213,5 @@ export default function OrganizerPage({initialKind='organizer'}){
     </form>}
    </>}
   </>}
- </section>;
+ </section></ProfileShell>;
 }
