@@ -131,6 +131,16 @@ export async function POST(request){
    return NextResponse.json({item:result});
   }
 
+  if(action==='useVenue'){
+   if(!UUID.test(data.venue_id||''))return NextResponse.json({error:'Nederīga norises vieta.'},{status:400});
+   const found=await api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,is_public&id=eq.'+data.venue_id);
+   const venue=found[0];
+   if(!venue||venue.is_public!==true)return NextResponse.json({error:'Publiskā norises vieta nav pieejama.'},{status:404});
+   if(venue.organization_id===data.organization_id)await linkVenue(token,data.organization_id,venue.id,'managed');
+   else await linkVenue(token,data.organization_id,venue.id,'used');
+   return NextResponse.json({item:venue});
+  }
+
   if(action==='createVenue'||action==='updateVenue'){
    const name=String(data.name||'').trim(),address=String(data.address||'').trim();
    const {latitude,longitude}=coordinates(data);
