@@ -284,3 +284,23 @@ AS $function$
 $function$;
 
 -- Public venue RPC is read-only for anonymous clients. Image insertion requires owning draft.
+
+-- Moderation review also shows exact recurrence, price and image.
+CREATE OR REPLACE FUNCTION public.meets_admin_user_submissions(p_session_token text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+ if not meets_private.admin_session_valid(p_session_token) then raise exception 'Unauthorized'; end if;
+ return coalesce((select jsonb_agg(to_jsonb(x) order by x.created_at desc) from (
+  select s.id,s.organization_id,s.title,s.description,s.category,s.date_from,s.date_to,s.time_from,s.time_to,
+    s.venue_name,s.address,s.latitude,s.longitude,s.status,s.admin_note,s.event_id,s.created_at,
+    s.price_status,s.price_min,s.price_max,s.schedule_kind,s.recurrence_slots,s.cover_image_path,
+    o.name as organization_name
+  from public.meets_submissions s join public.meets_organizations o on o.id=s.organization_id
+  where s.status in ('pending_review','rejected','published')
+ ) x),'[]'::jsonb);
+end $function$
+
