@@ -356,6 +356,67 @@ for(const width of [320,390]){
  await p.close();
 }
 
+
+// Unified logged-in profile, shared navigation and real data-backed dashboard.
+for(const width of [320,390,1280]){
+ const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:width<761,hasTouch:width<761});
+ const faults=[];page.on('pageerror',error=>faults.push(error.message));
+ const ownerId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb51';
+ const venueId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb52';
+ await page.addInitScript(()=>localStorage.setItem('meets_user_session_v1',JSON.stringify({
+  access_token:'mock-profile-access',refresh_token:'mock-profile-refresh',
+  user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',email:'organizer@example.com'}
+ })));
+ await page.route('**/api/account',route=>{
+  const b=route.request().postDataJSON()||{};
+  if(b.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+   favorites:[mockEvent.id],plans:[mockEvent.id],visits:[],email:'organizer@example.com'})});
+  if(b.action==='dashboard')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+   interests:[],reminders:[],notices:[],follows:[],locationFollows:[],shared:null,
+   directory:{organizations:[],venues:[],sources:[]},followedEvents:[],savedDetails:[]})});
+  return route.fulfill({status:200,contentType:'application/json',body:'{}'});
+ });
+ await page.route('**/api/organizer',route=>{
+  const b=route.request().postDataJSON()||{};
+  if(b.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+   organizations:[{id:ownerId,name:'MEETS Testa komanda',owner_id:ownerId,kind:'organizer'}],
+   venues:[{id:venueId,name:'MEETS Sporta zāle',organization_id:ownerId,address:'Sporta iela 1, Rīga',is_public:true,latitude:56.9496,longitude:24.1052}],
+   submissions:[{id:ownerId,title:'Ģimeņu sporta diena',organization_id:ownerId,venue_name:'MEETS Sporta zāle',date_from:today,status:'pending_review'}]})});
+  return route.fulfill({status:200,contentType:'application/json',body:'{"item":{}}'});
+ });
+ await page.route('**/api/registries',route=>{
+  const b=route.request().postDataJSON()||{};
+  if(b.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+   profile:{display_name:'Mārupes pasākumi'},registries:[{
+    id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb53',title:'Ģimeņu pasākumi',
+    description:'Atlasīti pasākumi',filters:{period:'month'},is_published:true,
+    included_event_ids:[],excluded_event_ids:[]}]})});
+  if(b.action==='profile')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({profile:{display_name:b.display_name}})});
+  return route.fulfill({status:400,contentType:'application/json',body:'{"error":"Unsupported"}'});
+ });
+ await page.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
+ try{
+  await page.goto(base+'/profils',{waitUntil:'domcontentloaded',timeout:45000});
+  await page.getByRole('heading',{name:'Mans profils'}).waitFor({timeout:15000});
+  await page.getByText('Mārupes pasākumi').first().waitFor({timeout:12000});
+  const stats=page.locator('.meets-profile-stats');
+  if((await stats.locator('.meets-profile-stat').count())!==5){fails++;console.error('Profile stats count wrong',width);}
+  if(width<=760){
+   if(!(await page.locator('.meets-profile-mobile-tabs').isVisible())){fails++;console.error('Mobile profile navigation not visible',width);}
+  }else if(!(await page.locator('.meets-profile-aside').isVisible())){fails++;console.error('Desktop profile sidebar not visible',width);}
+  await assertLayout(page,'signed-profile',width);
+  await page.screenshot({path:'ux-screenshots/'+width+'-signed-profile.png',fullPage:true});
+  await page.goto(base+'/organizators?panel=venues',{waitUntil:'domcontentloaded',timeout:45000});
+  await page.getByRole('heading',{name:'Organizatora kabinets'}).waitFor({timeout:12000});
+  await assertLayout(page,'signed-organizer',width);
+  if(faults.length){fails++;console.error('Profile JS errors',width,faults.slice(0,3));}
+ }catch(error){
+  fails++;console.error('Signed-in profile smoke failed',width,error.message,faults.slice(0,3));
+  try{console.error('Profile HTML:',(await page.locator('body').innerText()).slice(0,1500));}catch{}
+ }
+ await page.close();
+}
+
 await browser.close();
 if(fails){console.error('UX smoke failures:',fails);process.exit(1);}
 console.log('PASS: mobile smoke checks at 320px and 390px');
