@@ -240,7 +240,8 @@ try{
  await listDialog.waitFor({timeout:10000});
  const listCheckbox=listDialog.getByRole('checkbox',{name:'Brīvdienu saraksts'});
  await listCheckbox.waitFor({timeout:10000});
- await listCheckbox.check();
+ await listCheckbox.click();
+ await desktop.waitForFunction(()=>document.querySelector('.meets-map-list-dialog input[type="checkbox"]')?.checked===true,{timeout:10000});
  if(mapListToggled?.event_id!==mockEvent.id||mapListToggled?.enabled!==true){
   fails++;console.error('Desktop list was not saved to the existing registry API');
  }
