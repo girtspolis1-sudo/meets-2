@@ -68,7 +68,7 @@ for(const width of cases){
   await marker.click({force:true});
   await page.locator('.meets-mobile-event-sheet').waitFor({timeout:10000});
   const nearVenue=page.locator('.meets-mobile-sheet-title .meets-sheet-venue-follow');
-  if(!(await nearVenue.getByRole('button',{name:/Pievienot iecienītajām vietām/}).count())){
+  if(!(await nearVenue.getByRole('button',{name:/Sekot norises vietai/}).count())){
    fails++;console.error('Missing venue follow next to location title',width);
   }
   if(await page.locator('.meets-mobile-sheet-event .meets-place-favorite').count()){
@@ -96,7 +96,7 @@ for(const width of cases){
   if(layout.count!==6||Math.max(...layout.widths)-Math.min(...layout.widths)>1||
    Math.max(...layout.heights)-Math.min(...layout.heights)>1||
    Math.max(...layout.tops)-Math.min(...layout.tops)>1||
-   layout.right>layout.parentRight+1||layout.icons.some(size=>size!==20)){
+   layout.right>layout.parentRight+1||layout.icons.some(size=>size!==18)||Math.min(...layout.widths)<44||Math.min(...layout.heights)<44){
    fails++;console.error('Six circular actions do not fit a single row',width,layout);
   }else console.log('PASS six circular event actions',width,layout.widths);
   await actions.getByRole('button',{name:'Maršruts'}).click();
@@ -167,7 +167,7 @@ for(const width of cases){
   const followButton=page.locator('.catalog-event-card .meets-place-favorite button').first();
   await followButton.waitFor({timeout:15000});
   await followButton.click();
-  await page.getByText('Vieta pievienota iecienītajām.', {exact:false}).waitFor({timeout:10000});
+  await page.getByText('Tagad seko šai norises vietai.', {exact:false}).waitFor({timeout:10000});
   if((await followButton.getAttribute('aria-pressed'))!=='true'){
    fails++;console.error('Catalog venue follow state was not updated',width);
   }
@@ -202,7 +202,22 @@ for(const width of cases){
 }
 // Desktop Leaflet popups are generated as HTML, so test them separately from React panels.
 const desktop=await browser.newPage({viewport:{width:1440,height:900},deviceScaleFactor:1});
-await desktop.addInitScript(()=>{Object.defineProperty(navigator,'share',{value:undefined,configurable:true});});
+await desktop.addInitScript(()=>{
+ Object.defineProperty(navigator,'share',{value:undefined,configurable:true});
+ localStorage.setItem('meets_user_session_v1',JSON.stringify({access_token:'desktop-test-token',user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51'},expires_at:Date.now()+3600000}));
+});
+let mapListToggled=null;
+const desktopList={id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb58',title:'Brīvdienu saraksts',filters:{selection_mode:'manual',period:'all'},included_event_ids:[],excluded_event_ids:[],organization_id:null};
+await desktop.route('**/api/registries',route=>{
+ const body=route.request().postDataJSON()||{};
+ if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({registries:[desktopList]})});
+ if(body.action==='toggleEvent'){
+  mapListToggled=body;
+  desktopList.included_event_ids=body.enabled?[mockEvent.id]:[];
+  return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({registry:desktopList})});
+ }
+ return route.fulfill({status:400,contentType:'application/json',body:'{"error":"Unknown test action"}'});
+});
 await desktop.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
 try{
  await desktop.goto(base+'/karte?period=week',{waitUntil:'domcontentloaded',timeout:45000});
@@ -212,14 +227,26 @@ try{
  const popup=desktop.locator('.leaflet-popup-content .meets-circle-actions').first();
  await popup.waitFor({timeout:15000});
  const count=await popup.locator(':scope > *').count();
- if(count!==5){fails++;console.error('Desktop popup requires five action icons, got',count);}
+ if(count!==6){fails++;console.error('Desktop popup requires six action icons, got',count);}
  const icons=await popup.locator('svg').count();
- if(icons!==5){fails++;console.error('Desktop popup requires five SVG icons, got',icons);}
+ if(icons!==6){fails++;console.error('Desktop popup requires six SVG icons, got',icons);}
  await popup.getByRole('button',{name:'Dalīties ar pasākumu'}).click();
  const panel=desktop.locator('.leaflet-popup-content .meets-popup-share-options').first();
  if(await panel.isHidden()){fails++;console.error('Desktop sharing fallback did not open');}
  const telegram=await panel.getByRole('link',{name:'Telegram'}).getAttribute('href');
  if(!telegram?.includes(encodeURIComponent(mockEvent.id))){fails++;console.error('Desktop sharing URL wrong',telegram);}
+ await popup.getByRole('button',{name:'Pievienot pasākumu sarakstam'}).click();
+ const listDialog=desktop.getByRole('dialog',{name:/Pievienot sarakstam/});
+ await listDialog.waitFor({timeout:10000});
+ const listCheckbox=listDialog.getByRole('checkbox',{name:'Brīvdienu saraksts'});
+ await listCheckbox.waitFor({timeout:10000});
+ await listCheckbox.click();
+ await desktop.waitForFunction(()=>document.querySelector('.meets-map-list-dialog input[type="checkbox"]')?.checked===true,{timeout:10000});
+ if(mapListToggled?.event_id!==mockEvent.id||mapListToggled?.enabled!==true){
+  fails++;console.error('Desktop list was not saved to the existing registry API');
+ }
+ await desktop.keyboard.press('Escape');
+ await listDialog.waitFor({state:'hidden'});
  await desktop.screenshot({path:'ux-screenshots/desktop-map-actions.png',fullPage:true});
  await assertLayout(desktop,'desktop-map',1440);
 }catch(error){fails++;console.error('Desktop popup failed',error.message);}

@@ -28,70 +28,6 @@ export default function EventCatalog(){
  const [shared,setShared]=useState({});
  const [sharedOrigin,setSharedOrigin]=useState(null);
  const [placeFilter,setPlaceFilter]=useState('');
- const [followedPlaces,setFollowedPlaces]=useState([]);
- const [followSession,setFollowSession]=useState(null);
- const [followBusy,setFollowBusy]=useState('');
- const [followError,setFollowError]=useState('');
- const [followMessage,setFollowMessage]=useState('');
- async function currentFollowSession(){
-  const session=JSON.parse(localStorage.getItem('meets_user_session_v1')||'null');
-  if(!session?.access_token)return null;
-  if(session.refresh_token&&session.expires_at&&session.expires_at<Date.now()+120000){
-   const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'refresh',token:session.refresh_token}),cache:'no-store'});
-   const next=await response.json();
-   if(!response.ok||!next.access_token)throw Error('Sesija beigusies. Pieslēdzies atkārtoti.');
-   const refreshed={...next,expires_at:Date.now()+Math.max(60,next.expires_in||3600)*1000};
-   localStorage.setItem('meets_user_session_v1',JSON.stringify(refreshed));
-   setFollowSession(refreshed);return refreshed;
-  }
-  return session;
- }
- useEffect(()=>{
-  let alive=true;
-  (async()=>{
-   try{
-    const session=await currentFollowSession();
-    if(!session||!alive)return;
-    setFollowSession(session);
-    const res=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},
-     body:JSON.stringify({action:'locationFollows',token:session.access_token}),cache:'no-store'});
-    const data=await res.json();
-    if(!res.ok)throw Error(data.error||'Sekošanu neizdevās ielādēt.');
-    if(alive)setFollowedPlaces(data.locations||[]);
-   }catch(e){if(alive)setFollowError(e.message);}
-  })();
-  return()=>{alive=false;};
- },[]);
-
- async function togglePlace(place){
-  if(!place)return;
-  if(!followSession?.access_token){setFollowError('Lai sekotu norises vietai, pieslēdzies MEETS kontam.');return;}
-  const exists=followedPlaces.some(p=>p.location_key===place.key);
-  setFollowBusy(place.key);setFollowError('');setFollowMessage('');
-  try{
-   const session=await currentFollowSession();
-   if(!session)throw Error('Pieslēdzies MEETS kontam.');
-   const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'followLocation',token:session.access_token,locationKey:place.key,
-      locationName:place.name,municipality:place.municipality,enabled:!exists}),cache:'no-store'});
-   const result=await response.json();if(!response.ok)throw Error(result.error||'Sekošanu neizdevās saglabāt.');
-   setFollowedPlaces(prev=>exists?prev.filter(p=>p.location_key!==place.key):[...prev,
-    {location_key:place.key,location_name:place.name,municipality:place.municipality}]);
-   setFollowMessage(exists?'Vieta noņemta no sekotajām.':'Tagad seko vietai “'+place.name+'”.');
-  }catch(e){setFollowError(e.message);}finally{setFollowBusy('');}
- }
- const followButton=event=>{
-  const place=placeFromEvent(event);
-  if(!place)return null;
-  const isFollowing=followedPlaces.some(x=>x.location_key===place.key);
-  return <button type="button" className={'catalog-follow-place'+(isFollowing?' following':'')}
-   disabled={!!followBusy} aria-pressed={isFollowing}
-   title={'Sekot visiem pasākumiem vietā: '+place.name}
-   onClick={()=>togglePlace(place)}>
-   <span aria-hidden="true">{isFollowing?'✓':'＋'}</span> {followBusy===place.key?'Saglabā…':isFollowing?'Sekoju vietai':'Sekot vietai'}
-  </button>;
- };
  useEffect(()=>{
   const p=new URLSearchParams(window.location.search);
   setPlaceFilter(p.get('place')||'');
@@ -307,9 +243,6 @@ export default function EventCatalog(){
    <span>⌖ Seko norises vietai un vienuviet redzi tur gaidāmos pasākumus.</span>
    <Link href="/mani-pasakumi?view=following">Manas sekotās vietas ↗</Link>
   </div>
-  {(followError||followMessage)&&<p className={followError?'meets-inline-error':'meets-organizer-success'} role="status">
-   {followError||followMessage} {followError&&!followSession&&<Link href="/mani-pasakumi">Pieslēgties ↗</Link>}
-  </p>}
   <div className="result-toolbar">
    <p aria-live="polite"><strong>{filtered.length}</strong> no {rows.length} ierakstiem{activeFilterCount||period!=='all'||sharedFilterCount?<> · <strong>{activeFilterCount+(period!=='all'?1:0)+sharedFilterCount}</strong> aktīvi filtri</>:null}</p>
    <button className="text-button" disabled={!activeFilterCount&&period==='all'&&!sharedFilterCount} onClick={()=>{setColumnFilters({});setPeriod('all');setPlaceFilter('');setShared({});setSharedOrigin(null);setPage(0);}}>Notīrīt filtrus</button>
@@ -363,12 +296,11 @@ export default function EventCatalog(){
      </div>
      <button className="event-title" onClick={()=>setSelected(event.id)}>{event.title}</button>
      <div className="mobile-event-facts">
-      <span><b>Vieta</b>{event.venue_name||event.address_raw||'Nav norādīta'}</span>
+      <div className="meets-mobile-table-venue"><span><b>Vieta</b>{event.venue_name||event.address_raw||'Nav norādīta'}</span><EventVenueFavorite event={event} compact/></div>
       <span><b>Pašvaldība</b>{event.municipality||'Nav norādīta'}</span>
       <span><b>Veids</b>{display(event,'event_type')||event.primary_category||'Nav norādīts'}</span>
       <span><b>Maksa</b>{display(event,'price_status')}</span>
      </div>
-     <div className="catalog-event-card-follow">{followButton(event)}</div>
      <EventQuickActions event={event}/>
      <button className="button compact mobile-event-open" onClick={()=>setSelected(event.id)}>Skatīt pasākumu</button>
     </article>)}</div>}
@@ -380,11 +312,11 @@ export default function EventCatalog(){
    <button className="button" disabled={current===pages-1} onClick={()=>setPage(current+1)}>Nākamā →</button>
   </nav>}
 
-  {selectedEvent&&<EventDetails event={selectedEvent} close={closeDetails} followButton={followButton}/>}
+  {selectedEvent&&<EventDetails event={selectedEvent} close={closeDetails}/>}
  </>;
 }
 
-function EventDetails({event,close,followButton}){
+function EventDetails({event,close}){
  const dialog=useRef(null);
  useEffect(()=>{const node=dialog.current;node?.showModal();return()=>{if(node?.open)node.close();};},[]);
  const image=cardImage(event),description=cardDescription(event),price=cardPrice(event);

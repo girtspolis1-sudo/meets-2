@@ -48,16 +48,16 @@ export default function EventVenueFavorite({event,compact=false}){
    });
    setCache(current.access_token,place,!following);
    setFollowing(v=>!v);
-   setStatus(!following?'Vieta pievienota iecienītajām.':'Vieta noņemta no iecienītajām.');
+   setStatus(!following?'Tagad seko šai norises vietai.':'Sekošana norises vietai pārtraukta.');
    window.dispatchEvent(new Event('meets-location-follows-changed'));
   }catch(e){setStatus(e.message);}finally{setBusy(false);}
  }
  return <span className={'meets-place-favorite'+(compact?' compact':'')}>
   <button type="button" className={following?'active':''} aria-pressed={following}
-   aria-label={(following?'Noņemt iecienīto vietu: ':'Pievienot iecienītajām vietām: ')+place.name}
+   aria-label={(following?'Pārtraukt sekošanu vietai: ':'Sekot norises vietai: ')+place.name}
    title={place.name} disabled={!ready||busy} onClick={toggle}>
-   <svg viewBox="0 0 24 24" width="16" height="16" fill={following?'currentColor':'none'}
-    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+   <svg viewBox="0 0 24 24" width="18" height="18" fill={following?'currentColor':'none'}
+    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.6" fill={following?'#fff':'none'}/>
    </svg>
    <span>{following?(compact?'Sekoju':'Sekoju vietai'):(compact?'Sekot':'Sekot vietai')}</span>

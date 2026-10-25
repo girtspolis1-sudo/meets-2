@@ -196,3 +196,447 @@
 .meets-event-popup .popup-event-actions.meets-circle-actions > .meets-circle-action[aria-pressed="true"]{
  background:#ede8ff;border-color:#bcaaf1;color:#5c37c6;
 }
+
+
+/* MEETS event controls — harmonized across catalogue, mobile sheet and map.
+   Secondary actions must remain quieter than the event title, but readable. */
+.meets-event-actions-wrapper{
+ container-type:inline-size;
+ min-width:0;
+ max-width:100%;
+}
+.meets-event-action-grid.meets-circle-actions{
+ width:100%;
+ max-width:none;
+ grid-template-columns:repeat(6,minmax(44px,1fr));
+ gap:4px;
+}
+.meets-event-action-grid.meets-circle-actions > .meets-circle-action,
+.meets-quiet-actions .meets-event-action-grid.meets-circle-actions > .meets-circle-action,
+.meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions > .meets-circle-action,
+.meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions > .meets-popup-route > .meets-circle-action{
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ gap:4px;
+ box-sizing:border-box;
+ justify-self:stretch;
+ width:100%;
+ min-width:44px;
+ max-width:none;
+ min-height:52px;
+ height:auto;
+ aspect-ratio:auto;
+ padding:6px 2px;
+ border-radius:11px;
+ border:1px solid #e1e4ed;
+ background:#fff;
+ color:#697187;
+ font-family:inherit;
+ text-decoration:none;
+}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action svg,
+.meets-quiet-actions .meets-event-action-grid.meets-circle-actions .meets-circle-action svg,
+.meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions .meets-circle-action svg{
+ width:18px;
+ height:18px;
+ min-width:18px;
+ stroke-width:1.5;
+}
+.meets-event-action-grid.meets-circle-actions .meets-quiet-label{
+ display:block;
+ color:inherit;
+ font-size:.6875rem;
+ font-weight:500;
+ line-height:1.25;
+ white-space:nowrap;
+ letter-spacing:0;
+ text-align:center;
+}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action:hover,
+.meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-expanded="true"]{
+ background:#f1edff;
+ border-color:#c6b7f5;
+ color:#5d43c8;
+}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-pressed="true"],
+.meets-quiet-actions .meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-pressed="true"],
+.meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-pressed="true"]{
+ background:#f1edff;
+ border-color:#b9a8ee;
+ color:#5d43c8;
+}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-pressed="true"] svg{
+ fill:currentColor;
+}
+.meets-event-action-grid.meets-circle-actions .meets-circle-action:focus-visible,
+.meets-event-popup .meets-circle-action:focus-visible,
+.meets-place-favorite button:focus-visible{
+ outline:3px solid #5d43c8;
+ outline-offset:2px;
+}
+.meets-event-popup .popup-event-actions.meets-event-action-grid.meets-circle-actions{
+ max-width:390px;
+ grid-template-columns:repeat(6,minmax(44px,1fr));
+ gap:4px;
+ align-items:stretch;
+}
+.meets-event-popup .popup-event-actions.meets-circle-actions .popup-save-calendar,
+.meets-event-popup .popup-event-actions.meets-circle-actions .popup-save-favorite{
+ width:100%;
+ height:auto;
+ min-height:52px;
+ border-radius:11px;
+}
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-popup-route{
+ display:flex;
+ width:100%;
+}
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-popup-route summary{
+ min-height:52px;
+}
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-circle-action,
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-popup-route > .meets-circle-action{
+ background:#fff;
+ border-color:#e1e4ed;
+ color:#697187;
+}
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-circle-action[aria-pressed="true"]{
+ background:#f1edff;
+ border-color:#b9a8ee;
+ color:#5d43c8;
+}
+.meets-circle-options a,.meets-circle-options button{
+ min-height:44px;
+ font-size:.75rem;
+}
+.meets-card-favorite-button{
+ width:44px;
+ height:44px;
+ color:#697187;
+}
+.meets-card-favorite-button.is-saved{
+ color:#5d43c8;
+ background:#f1edff;
+ border-color:#b9a8ee;
+}
+.meets-card-favorite-button.is-saved svg{fill:currentColor}
+.meets-card-favorite-button svg{width:18px;height:18px;stroke-width:1.5}
+.meets-add-to-list,.meets-place-favorite button,
+.meets-place-favorite.compact button,
+.meets-sheet-venue-follow .meets-place-favorite button{
+ min-height:44px;
+ padding:7px 10px;
+ gap:6px;
+ border-radius:11px;
+ border-color:#e1e4ed;
+ font-size:.6875rem;
+ font-weight:600;
+ color:#697187;
+}
+.meets-place-favorite button>span{
+ font-size:.6875rem;
+ font-weight:600;
+}
+.meets-place-favorite button svg,
+.meets-place-favorite.compact button svg{width:18px;height:18px;stroke-width:1.5}
+.meets-place-favorite button.active,.meets-place-favorite.compact button.active{
+ background:#f1edff;
+ border-color:#b9a8ee;
+ color:#5d43c8;
+}
+.meets-place-favorite small{
+ font-size:.6875rem;
+ color:#5d43c8;
+ overflow-wrap:anywhere;
+}
+.meets-list-picker label{
+ min-height:44px;
+ align-items:center;
+}
+.meets-list-picker input[type="checkbox"]{width:18px;height:18px}
+.meets-discovery-card-title-row h3{
+ font-size:1rem;
+ font-weight:700;
+ letter-spacing:-.2px;
+ overflow-wrap:anywhere;
+}
+.meets-discovery-card-facts{
+ gap:8px;
+ font-size:.8125rem;
+ color:#697187;
+}
+.meets-discovery-card-facts>span:first-child{
+ color:#424b66;
+ font-weight:600;
+}
+.meets-discovery-description{font-size:.75rem;color:#697187}
+.meets-discovery-card .meets-card-main-action{
+ min-height:44px;
+}
+.meets-card-secondary-actions summary,
+.meets-sheet-description-details summary,
+.meets-sheet-more-actions summary{
+ display:inline-flex;
+ align-items:center;
+ min-height:44px;
+ font-size:.75rem;
+ font-weight:600;
+ color:#5a6177;
+}
+.meets-card-location-line,.meets-detail-location-line{
+ gap:8px;
+ min-width:0;
+}
+.meets-card-location-line>span,
+.meets-detail-location-line>span{
+ color:#697187;
+ overflow-wrap:anywhere;
+}
+.meets-mobile-table-venue{
+ display:flex;
+ align-items:center;
+ gap:8px;
+ min-width:0;
+ flex-wrap:wrap;
+}
+.meets-mobile-table-venue>span{flex:1 1 150px;min-width:0;overflow-wrap:anywhere}
+.meets-mobile-table-venue b{display:block}
+@container (max-width:305px){
+ .meets-event-action-grid.meets-circle-actions{
+  grid-template-columns:repeat(3,minmax(44px,1fr));
+ }
+}
+@media(max-width:700px){
+ .meets-quiet-event-sheet.meets-mobile-event-sheet{
+  max-height:min(85dvh,700px);
+  max-width:100vw;
+ }
+ .meets-quiet-event-sheet .meets-mobile-sheet-title{
+  align-items:flex-start;
+  gap:8px;
+  padding:9px 12px 12px;
+ }
+ .meets-sheet-venue-heading{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+ }
+ .meets-sheet-venue-heading strong{
+  flex:1 1 145px;
+  min-width:0;
+  overflow-wrap:anywhere;
+  font-size:1rem;
+  font-weight:700;
+ }
+ .meets-sheet-venue-follow{display:flex;margin:0}
+ .meets-quiet-event-sheet .meets-mobile-sheet-title small{
+  font-size:.75rem;
+  color:#697187;
+ }
+ .meets-quiet-event-sheet .meets-mobile-sheet-events{
+  display:grid;
+  align-content:start;
+  gap:12px;
+  padding:10px 12px max(20px,env(safe-area-inset-bottom));
+  overflow-x:hidden;
+ }
+ .meets-quiet-event-sheet .meets-mobile-sheet-event{
+  margin:0;
+  min-width:0;
+  padding:12px;
+  border-radius:12px;
+  background:#fff;
+ }
+ .meets-quiet-event-sheet .meets-mobile-sheet-event.is-highlighted{
+  background:#fbfaff;
+  border-color:#c7b9ef;
+ }
+ .meets-quiet-event-sheet .meets-mobile-sheet-event h3{
+  margin:8px 0;
+  font-size:1.0625rem;
+  font-weight:700;
+  color:#202744;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+ }
+ .meets-quiet-event-sheet .meets-sheet-primary-date{
+  font-size:.8125rem;
+  font-weight:600;
+  color:#3d4763;
+  margin:8px 0 4px;
+ }
+ .meets-quiet-event-sheet .meets-sheet-address,
+ .meets-quiet-event-sheet .meets-sheet-source{
+  font-size:.75rem;
+  font-weight:500;
+  color:#697187;
+  overflow-wrap:anywhere;
+ }
+ .meets-quiet-event-sheet .meets-mobile-sheet-event-top{flex-wrap:wrap}
+ .meets-quiet-event-sheet .meets-mobile-sheet-event-top small{
+  font-size:.75rem;
+  color:#697187;
+ }
+ .meets-sheet-filter-status{
+  font-size:.6875rem;
+  color:#5d43c8;
+  font-weight:600;
+  border-radius:7px;
+  border:1px solid #c7b9ef;
+  background:#f1edff;
+  padding:4px 7px;
+ }
+ .meets-quiet-event-sheet .meets-mobile-sheet-event.outside{opacity:1}
+ .meets-quiet-event-sheet .meets-mobile-sheet-event.outside h3{color:#434c66}
+ .meets-quiet-event-sheet .meets-mobile-sheet-outside-label{
+  font-size:.75rem;
+  color:#697187;
+ }
+ .meets-quiet-actions .meets-event-action-grid.meets-circle-actions{
+  gap:4px;
+  max-width:none;
+  margin:8px 0 0;
+  grid-template-columns:repeat(6,minmax(44px,1fr));
+ }
+ .meets-quiet-actions .meets-event-action-grid.meets-circle-actions > .meets-circle-action{
+  min-height:52px;
+  height:auto;
+  width:100%;
+  max-width:none;
+ }
+ .meets-quiet-event-sheet .meets-mobile-sheet-title > button{min-width:44px;min-height:44px}
+}
+@media(max-width:359px){
+ .meets-quiet-actions .meets-event-action-grid.meets-circle-actions{
+  grid-template-columns:repeat(3,minmax(44px,1fr));
+ }
+}
+
+
+/* Direct event-to-list dialog. Reuse the existing account-backed list component. */
+.meets-map-list-dialog{
+ width:min(92vw,470px);
+ max-width:calc(100vw - 24px);
+ max-height:min(82dvh,730px);
+ overflow-y:auto;
+ margin:auto;
+ padding:20px;
+ border:1px solid #dedfee;
+ border-radius:18px;
+ background:#fff;
+ color:#202744;
+ box-shadow:0 20px 65px rgba(23,31,63,.22);
+ font-family:inherit;
+}
+.meets-map-list-dialog::backdrop{background:rgba(24,28,48,.54)}
+.meets-map-list-dialog-header{
+ display:flex;
+ align-items:flex-start;
+ justify-content:space-between;
+ gap:12px;
+}
+.meets-map-list-dialog-header>div{min-width:0;flex:1}
+.meets-map-list-dialog-header small{
+ display:block;
+ color:#697187;
+ font-size:.75rem;
+ font-weight:600;
+}
+.meets-map-list-dialog-header h2{
+ font-size:1.0625rem;
+ line-height:1.4;
+ font-weight:700;
+ margin:4px 0 8px;
+ overflow-wrap:anywhere;
+}
+.meets-map-list-dialog-header button{
+ flex:none;
+ width:44px;
+ height:44px;
+ border:1px solid #e1e4ed;
+ border-radius:11px;
+ background:#fff;
+ color:#424b66;
+ font-size:1.125rem;
+}
+.meets-map-list-dialog>p{font-size:.8125rem;color:#59647a;margin:0 0 16px}
+.meets-map-list-dialog .meets-card-list-trigger{
+ display:grid;
+ gap:12px;
+ min-width:0;
+}
+.meets-map-list-dialog .meets-add-to-list{justify-self:start;min-height:44px}
+.meets-map-list-dialog .meets-list-picker{
+ position:static;
+ display:grid;
+ gap:10px;
+ overflow-y:auto;
+ max-height:min(52dvh,430px);
+ min-width:0;
+ padding:14px;
+ border:1px solid #e3e5ef;
+ border-radius:13px;
+ background:#fbfbfe;
+ color:#202744;
+ box-shadow:none;
+}
+.meets-map-list-dialog .meets-list-picker>strong{font-size:.875rem}
+.meets-map-list-dialog .meets-list-picker label{
+ display:flex;
+ gap:10px;
+ align-items:center;
+ min-height:44px;
+ padding:8px;
+ border:1px solid #e4e6ee;
+ border-radius:10px;
+ background:#fff;
+ font-size:.8125rem;
+ overflow-wrap:anywhere;
+}
+.meets-map-list-dialog .meets-list-picker form{
+ display:flex;
+ flex-wrap:wrap;
+ gap:8px;
+}
+.meets-map-list-dialog .meets-list-picker input:not([type="checkbox"]){
+ flex:1 1 175px;
+ min-width:0;
+ min-height:44px;
+ padding:10px;
+ border:1px solid #a9aebf;
+ border-radius:10px;
+ color:#202744;
+ background:#fff;
+ font:inherit;
+ font-size:.8125rem;
+}
+.meets-map-list-dialog .meets-list-picker button{
+ min-height:44px;
+ padding:9px 14px;
+ border:1px solid #5d43c8;
+ border-radius:10px;
+ background:#5d43c8;
+ color:#fff;
+ font-size:.8125rem;
+ font-weight:600;
+}
+.meets-map-list-dialog .meets-list-picker button:disabled{opacity:.58}
+.meets-map-list-dialog .meets-list-picker a{
+ font-size:.8125rem;
+ font-weight:600;
+ color:#5037a9;
+ text-decoration:underline;
+ text-underline-offset:3px;
+}
+.meets-map-list-dialog .meets-card-list-status{
+ color:#5037a9;
+ font-size:.75rem;
+ line-height:1.5;
+ overflow-wrap:anywhere;
+}
+@media(max-width:390px){
+ .meets-map-list-dialog{padding:14px}
+}
