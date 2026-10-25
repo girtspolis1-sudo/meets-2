@@ -72,7 +72,7 @@ export default function MyEvents(){
  }
  function logout(){saveSession(null);setSession(null);setFavorites([]);setPlans([]);setVisits([]);setMode('login');setPassword('');setConfirmPassword('');}
  const page=<section className="meets-account-page">
-  <div className="meets-account-heading"><div><p className="eyebrow">Tavs MEETS</p><h1>Mani pasākumi</h1><p className="meets-muted">Saglabā, plāno un atrodi pasākumus vienuviet.</p></div><Link href="/karte" className="button">Karte ↗</Link></div>
+  <div className="meets-account-heading"><div><p className="eyebrow">Tavs MEETS</p><h1>Saglabātie pasākumi</h1><p className="meets-muted">Saglabā, plāno un atrodi pasākumus vienuviet.</p></div><Link href="/karte" className="button">Karte ↗</Link></div>
   {!session?<div className="meets-account-login"><div className="meets-account-symbol">♡</div>
    <h2>{mode==='register'?'Izveidot kontu':'Pieslēgties'}</h2>
    <p className="meets-muted">{mode==='register'?'Reģistrējies un uzreiz saglabā savus pasākumus.':'Ievadi savu e-pastu un paroli.'}</p>
