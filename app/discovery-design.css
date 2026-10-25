@@ -252,3 +252,19 @@ body:not(.admin-environment) .button{border-radius:13px}
 .meets-card-secondary-actions[open]>summary:before{content:'−'}
 .meets-card-secondary-actions>summary::-webkit-details-marker{display:none}
 .meets-card-secondary-actions>.meets-event-actions-wrapper{margin:7px 0 0!important}
+
+/* Keep six personal-event actions at accessible 44px+ on narrow phones. */
+@media(max-width:420px){
+ .meets-personal-event .meets-event-action-grid.meets-circle-actions{
+  gap:2px;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  max-width:100%;
+ }
+ .meets-personal-event .meets-event-action-grid.meets-circle-actions > .meets-circle-action{
+  width:min(46px,100%);
+  min-width:44px;
+  height:46px;
+  min-height:46px;
+ }
+ body:has(.meets-mobile-bottom-nav) footer{padding-bottom:calc(94px + env(safe-area-inset-bottom))}
+}
