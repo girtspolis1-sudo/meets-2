@@ -48,7 +48,6 @@ export default function ProfilePage(){
   const data=await post('/api/registries','profile',account.access_token,{display_name:profileName});
   setState(v=>({...v,registries:{...v.registries,profile:data.profile}}));setNotice('Profila vārds saglabāts.');
  }catch(e){setNotice(e.message);}finally{setSaving(false);}}
- function logout(){localStorage.removeItem(KEY);window.dispatchEvent(new Event('meets-user-changed'));setAccount(null);setState(null);setProfileName('');}
 
  const events=eventData?.events||[],byId=useMemo(()=>new Map(events.map(e=>[e.id,e])),[events]);
  const personal=state?.personal||{},dashboard=state?.dashboard||{},lists=(state?.registries?.registries||[]).filter(x=>!x.organization_id),orgs=state?.organizer?.organizations||[];
@@ -76,7 +75,7 @@ export default function ProfilePage(){
   <div className="meets-profile-stack">
    <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Sekošana</h2><Link href="/sekosana">Atvērt →</Link></div><p className="meets-muted">Tu seko {followOrg} organizatoriem un {followVenue} norises vietām.</p><p className="meets-profile-hint">Jaunie publicētie pasākumi būs redzami sadaļā “Sekošana”.</p></section>
    <section className="meets-profile-panel organizer-activation-card"><div className="meets-profile-panel-header"><h2>Organizēšana</h2></div>{orgs.length?<><p>Tev ir pieeja {orgs.length} organizator{orgs.length===1?'am':'iem'}.</p><Link className="button primary" href="/organizators">Atvērt organizēšanu →</Link></>:<><p>Vai pats organizē pasākumus? Aktivizē organizēšanu tajā pašā MEETS kontā.</p><Link className="button primary" href="/organizators?new=1">Sākt organizēt →</Link></>}</section>
-   <section className="meets-profile-panel" id="iestatijumi"><div className="meets-profile-panel-header"><h2>Konta iestatījumi</h2></div><form className="meets-profile-settings-fields" onSubmit={saveProfile}><label>Profila vārds<input value={profileName} maxLength={100} onChange={e=>setProfileName(e.target.value)} placeholder="Tavs vārds"/></label><label>E-pasts<input value={email} readOnly/></label><button className="button" disabled={saving}>{saving?'Saglabā…':'Saglabāt'}</button></form>{notice&&<p className="meets-profile-hint" role="status">{notice}</p>}<div className="profile-logout-row"><button className="button" type="button" onClick={logout}><ProfileIcon name="logout" size={16}/> Iziet no konta</button></div></section>
+   <section className="meets-profile-panel" id="iestatijumi"><div className="meets-profile-panel-header"><h2>Konta iestatījumi</h2></div><form className="meets-profile-settings-fields" onSubmit={saveProfile}><label>Profila vārds<input value={profileName} maxLength={100} onChange={e=>setProfileName(e.target.value)} placeholder="Tavs vārds"/></label><label>E-pasts<input value={email} readOnly/></label><button className="button" disabled={saving}>{saving?'Saglabā…':'Saglabāt'}</button></form>{notice&&<p className="meets-profile-hint" role="status">{notice}</p>}</section>
   </div></div>
  </div></ProfileShell>;
 }
