@@ -86,7 +86,6 @@ export async function POST(request){
    const found=await rest(TABLE,token,'GET','?id=eq.'+input.id+'&select=id,user_id,organization_id,included_event_ids,excluded_event_ids&limit=1');
    const item=found[0];
    if(!item)return reply('Saraksts nav atrasts vai nav pieejams.',404);
-   if(item.organization_id)return reply('Personiskajā izvēlnē var mainīt tikai savus sarakstus.',403);
    const included=new Set(cleanRegistryIds(item.included_event_ids||[]));
    const excluded=new Set(cleanRegistryIds(item.excluded_event_ids||[]));
    if(input.enabled===false){included.delete(input.event_id);excluded.add(input.event_id);}

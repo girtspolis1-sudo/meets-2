@@ -1,6 +1,7 @@
 'use client';
 import {Suspense,useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
+import PersonalCollections from './personal-collections.jsx';
 import {useSearchParams} from 'next/navigation';
 import {useEvents} from '../../lib/use-events.js';
 import ProfileShell from '../components/profile-shell.jsx';
@@ -112,4 +113,7 @@ function ListsInner(){
  </section>;
  return session?<ProfileShell session={session} displayName={profile} activeOrganization={activeOrg} mode={orgId?'organizer':''}>{page}</ProfileShell>:page;
 }
-export default function MyRegistries(){return <Suspense fallback={<p role="status">Ielādē sarakstus…</p>}><ListsInner/></Suspense>;}
+function RegistryRouter(){const params=useSearchParams();
+ return params.get('org')||params.get('legacy')==='1'?<ListsInner/>:<PersonalCollections/>;
+}
+export default function MyRegistries(){return <Suspense fallback={<p role="status">Ielādē kolekcijas…</p>}><RegistryRouter/></Suspense>;}
