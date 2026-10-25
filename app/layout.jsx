@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import SiteNav from './site-nav.jsx';
 import AdminFooterControl from './admin-footer-control.jsx';
-import HeaderRoleBadge from './header-role-badge.jsx';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './globals.css';
@@ -29,7 +28,6 @@ export default function RootLayout({ children }) {
         <img className="brand-logo" src="/meets-logo-purple.png" alt="MEETS"/>
       </Link>
       <SiteNav/>
-      <HeaderRoleBadge/>
     </header>
     <main id="saturs">{children}</main>
     <footer>
