@@ -3,6 +3,7 @@ import {notFound} from 'next/navigation';
 import {publicVenue} from '../../../lib/public-venues.js';
 import VenueCalendar from './venue-calendar.jsx';
 import CopyVenueEmbed from './copy-embed.jsx';
+import FollowButton from '../../components/follow-button.jsx';
 export const dynamic='force-dynamic';
 export async function generateMetadata({params}){const {id}=await params;const venue=await publicVenue(id);return {title:venue?.name?venue.name+' — MEETS vietas kalendārs':'MEETS norises vieta'};}
 export default async function VenuePage({params}){
@@ -12,7 +13,7 @@ export default async function VenuePage({params}){
   <div className="meets-account-heading"><div><p className="eyebrow">MEETS · Publiska norises vieta</p><h1>{venue.name}</h1>
    <p className="meets-muted">⌖ {venue.address}</p>{venue.description&&<p>{venue.description}</p>}
    {venue.directions&&<p className="meets-muted">Kā nokļūt: {venue.directions}</p>}</div>
-   <Link className="button" href="/karte">MEETS karte ↗</Link></div>
+   <div className="org-head-actions"><FollowButton targetKind="venue" targetId={venue.id} className="button primary"/><Link className="button" href="/karte">MEETS karte ↗</Link></div></div>
   <section className="quick-flow-card" style={{maxWidth:'none'}}>
    <div style={{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap',alignItems:'center'}}>
     <h2>Pasākumu kalendārs</h2>
