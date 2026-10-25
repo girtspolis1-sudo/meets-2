@@ -158,6 +158,7 @@ function popupActionsHtml(e,favorites,editLink){
   button('share','Dalīties ar pasākumu','popup-share-event')+
   '</div><div class="meets-circle-options meets-popup-share-options" hidden>'+social+
   '<button type="button" class="popup-share-copy" data-event-id="'+id+'">Kopēt saiti ⧉</button></div>'+
+  '<a class="meets-popup-venue-link" href="/pasakumi?event='+encodeURIComponent(e.id)+'">♡ Saglabāt vietu vai pievienot sarakstam →</a>'+
   (editLink?'<div class="popup-admin-actions">'+editLink+'</div>':'');
 }
 function popupHtml(group,activeIds,isAdminSession,now,favorites){

@@ -3,6 +3,7 @@ import {useEffect,useRef} from 'react';
 import {dateLabel,timeLabel} from '../../lib/catalog.js';
 import {eventDateRangeLabel,eventDateState,rigaTodayIso} from '../../lib/event-date.js';
 import EventQuickActions from '../components/event-quick-actions.jsx';
+import EventVenueFavorite from '../components/event-venue-favorite.jsx';
 
 export default function MobileEventSheet({group,activeIds,favorites,onFavorite,onCalendar,onClose}){
  const closeRef=useRef(null);
@@ -45,6 +46,7 @@ export default function MobileEventSheet({group,activeIds,favorites,onFavorite,o
       {event.description&&<p className="meets-mobile-sheet-description">{event.description}</p>}
       <EventQuickActions event={event} saved={favorites.has(String(event.id))}
        onSave={onFavorite} onCalendar={onCalendar}/>
+      <div className="meets-map-event-place"><EventVenueFavorite event={event}/></div>
       {!selected&&<small className="meets-mobile-sheet-outside-label">Šis pasākums neatbilst atlasītajiem filtriem.</small>}
      </article>;
     })}

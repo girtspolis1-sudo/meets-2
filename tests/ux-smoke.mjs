@@ -67,6 +67,9 @@ for(const width of cases){
   await marker.waitFor({timeout:15000});
   await marker.click({force:true});
   await page.locator('.meets-mobile-event-sheet').waitFor({timeout:10000});
+  if(!(await page.getByRole('button',{name:/Pievienot iecienītajām vietām/}).count())){
+   fails++;console.error('Missing event venue favorite in mobile map sheet',width);
+  }
   const sheet=await page.locator('.meets-mobile-event-sheet').boundingBox();
   if(!sheet||sheet.x<0||sheet.x+sheet.width>width+2||sheet.y+sheet.height>844+2){
    fails++;console.error('Mobile event sheet outside viewport',width,sheet);
