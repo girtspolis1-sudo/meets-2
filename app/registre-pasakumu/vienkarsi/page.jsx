@@ -19,6 +19,7 @@ function SimpleEventFlow(){
  const params=useSearchParams();
  const [form,setForm]=useState(DEFAULT),[restored,setRestored]=useState(false),[account,setAccount]=useState(null),[orgs,setOrgs]=useState([]),[orgId,setOrgId]=useState(''),[venues,setVenues]=useState([]);
  const [stage,setStage]=useState('edit'),[saveVenue,setSaveVenue]=useState(false),[expanded,setExpanded]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[submitted,setSubmitted]=useState(null);
+ const [imageFile,setImageFile]=useState(null),[imagePreview,setImagePreview]=useState(''),[savedId,setSavedId]=useState('');
  const [refreshKey,setRefreshKey]=useState(0);
  const selectedVenue=venues.find(v=>v.id===form.venue_id&&v.organization_id===orgId);
  async function call(action,payload={},token=account?.access_token){
