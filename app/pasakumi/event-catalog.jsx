@@ -178,7 +178,7 @@ export default function EventCatalog(){
   if(!av)return bv?1:0;
   if(!bv)return -1;
   return String(av).localeCompare(String(bv),'lv',{numeric:true})*direction||a.id.localeCompare(b.id);
- }),[rows,columnFilters,sort,direction,period,shared,sharedOrigin,placeFilter]);
+ });
  },[rows,columnFilters,sort,direction,period,shared,sharedOrigin,placeFilter]);
 
  const pages=Math.max(1,Math.ceil(filtered.length/pageSize));
