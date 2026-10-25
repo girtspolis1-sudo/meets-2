@@ -145,7 +145,7 @@ body:not(.admin-environment) .button{border-radius:13px}
 }
 @media(max-width:760px){
  .header{padding:11px 15px!important;min-height:64px}
- .header nav .meets-nav-desktop,.header nav .meets-nav-mobile{display:none!important}
+ body:not(.admin-environment) .header nav .meets-nav-desktop,body:not(.admin-environment) .header nav .meets-nav-mobile{display:none!important}
  .header .brand-logo{width:132px!important}
  .header nav{margin-left:auto}
  body:not(.admin-environment) main#saturs{padding:0 11px}
@@ -234,3 +234,13 @@ body:not(.admin-environment) .button{border-radius:13px}
  .meets-detail-price{margin-left:0;width:max-content}
  .meets-detail-more dl{grid-template-columns:1fr}
 }
+
+/* Compact personal dashboard rows inspired by the mobile profile mockup. */
+.meets-profile-image-row{min-width:0}
+.meets-profile-event-thumb{width:55px;height:55px;flex:none;object-fit:cover;border-radius:12px;background:#ecebfd}
+.meets-profile-follow-mini{display:grid;gap:5px;margin-top:8px}
+.meets-profile-follow-mini>a{display:flex;align-items:center;gap:8px;border:1px solid #f0eef8;border-radius:12px;padding:9px 10px;min-width:0}
+.meets-profile-follow-mini>a>span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#f0edff;color:#5e4fe1}
+.meets-profile-follow-mini strong{min-width:0;flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meets-profile-follow-mini small{font-size:10px;color:#6354e6;white-space:nowrap}
+@media(max-width:760px){body.admin-environment .meets-mobile-bottom-nav{display:none}}
