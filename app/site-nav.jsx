@@ -42,6 +42,7 @@ export default function SiteNav(){
   finally{
    localStorage.removeItem(SESSION_KEY);
    localStorage.removeItem('meets_favorites_v1');
+   localStorage.removeItem('meets_favorites_owner_v1');
    window.dispatchEvent(new Event('meets-user-changed'));
    window.dispatchEvent(new Event('meets-favorites-changed'));
    window.location.assign('/profils');
@@ -52,6 +53,10 @@ export default function SiteNav(){
  const exit=<button className="meets-header-logout" type="button" onClick={logout} disabled={loggingOut}
   aria-label="Iziet no MEETS konta">{loggingOut?'Iziet…':'Iziet'}</button>;
  return <nav aria-label="Galvenā izvēlne">
+  {signedIn&&<button className="meets-mobile-header-exit" type="button" disabled={loggingOut}
+   onClick={logout} aria-label="Iziet no MEETS konta" title="Iziet no konta">
+   {loggingOut?'…':<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M13 3h5a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-5"/></svg>}
+  </button>}
   <div className="meets-nav-desktop">{visibleItems.map(navLink)}{signedIn&&exit}</div>
   <div className="meets-nav-mobile">{visibleItems.filter(item=>item.href!='/admin').map(navLink)}
    {(isAdmin||signedIn)&&<details className="meets-nav-more">

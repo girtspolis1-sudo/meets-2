@@ -1,46 +1,45 @@
 import Link from 'next/link';
-import HomeNearby from './home-nearby.jsx';
-
+import HomeFeatured from './home-featured.jsx';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS} from '../lib/home-category-filters.js';
 
-const HOME_CATEGORIES=HOME_GROUP_KEYS.map(key=>({
- ...HOME_CATEGORY_FILTERS[key],key,href:'/karte?category='+key
-}));
-
+const GROUPS=HOME_GROUP_KEYS.map(key=>({key,...HOME_CATEGORY_FILTERS[key]}));
 export default function Home(){
- return <>
-  <section className="home-landing home-landing-rich">
-   <div className="home-copy">
-    <p className="eyebrow">Tavs nākamais piedzīvojums</p>
-    <h1>Satiekamies<br/><em>kaut kur tepat.</em></h1>
-    <p className="lead">Kultūra, sports un mazi atklājumi visā Latvijā.<br/>{' '}Vienuviet, tuvāk tev.</p>
-    <div className="actions">
-     <Link className="button primary" href="/karte?period=week">Atvērt karti <span aria-hidden="true">↗</span></Link>
-     <Link className="button" href="/pasakumi">Pārlūkot pasākumus</Link>
+ return <div className="meets-discovery-home">
+  <section className="meets-discovery-hero" aria-labelledby="meets-welcome-title">
+   <div className="meets-hero-message">
+    <span className="eyebrow">LATVIJAS PASĀKUMI VIENUVIET</span>
+    <h1 id="meets-welcome-title">Atrodi pasākumus,<br/><em>kas iedvesmo.</em></h1>
+    <p>Atrodi sev piemērotus pasākumus tuvumā un visā Latvijā — koncertus, kultūru, sportu un citus piedzīvojumus.</p>
+    <div className="meets-hero-ctas"><Link className="meets-hero-cta-primary" href="/pasakumi">Skatīt pasākumus <span aria-hidden="true">→</span></Link><Link className="meets-hero-cta-secondary" href="/karte">Atvērt karti <span aria-hidden="true">↗</span></Link></div>
+    <form action="/pasakumi" method="get" role="search" className="meets-hero-search">
+     <label className="sr-only" htmlFor="meets-home-search">Meklēt pasākumu, vietu vai intereses</label>
+     <span aria-hidden="true">⌕</span>
+     <input id="meets-home-search" name="q" type="search" placeholder="Meklēt pasākumu vai vietu…" maxLength={100}/>
+     <button type="submit" aria-label="Meklēt pasākumus">→</button>
+    </form>
+    <div className="meets-hero-chips" aria-label="Populārākās kategorijas">
+     <Link href="/pasakumi" className="active">Visi</Link>
+     {GROUPS.slice(0,6).map(group=><Link key={group.key} href={'/pasakumi?category='+group.key}>
+      <span aria-hidden="true">{group.icon}</span>{group.title}</Link>)}
     </div>
-
    </div>
-
-   <div className="home-map-stage home-map-stage-concept">
-    <Link className="home-concept-preview" href="/karte" aria-label="Atvērt pilno MEETS pasākumu karti">
-     <img src="/images/meets-home-concept-2.webp" alt="Ilustratīva Latvijas pasākumu karte ar koncertiem, izstādēm, sportu, teātri, tirdziņiem un aktīvo atpūtu" width="320" height="282" decoding="async" fetchPriority="high"/>
+   <div className="meets-hero-original-map">
+    <Link href="/karte" aria-label="Apskatīt pasākumus MEETS kartē">
+     <img src="/images/meets-home-concept-2.webp" alt="MEETS Latvijas pasākumu kartes ilustrācija" width={320} height={282} fetchPriority="high"/>
+     <span>Apskatīt karti <span aria-hidden="true">↗</span></span>
     </Link>
-    <p className="home-concept-note">Ilustratīvs ieskats pasākumos — <Link href="/karte">apskati aktuālos kartē ↗</Link></p>
    </div>
   </section>
-
-  <section className="home-category-strip" aria-label="Populārākās pasākumu kategorijas">
-   <div className="home-category-title">
-    <h2>Atrodi sev<br/>tuvāko notikumu</h2>
-    <i aria-hidden="true"/><Link className="button" href="/karte?period=week">Šonedēļ ↗</Link>
-   </div>
-   <div className="home-category-list">
-    {HOME_CATEGORIES.map(item=><Link key={item.key} className={'home-category-pill '+item.key} href={item.href}>
-     <span aria-hidden="true">{item.icon}</span>
-     <span><strong>{item.title}</strong><small>{item.subtitle}</small></span>
-    </Link>)}
-   </div>
+  <nav className="meets-minimal-benefits" aria-label="MEETS iespējas">
+   <Link href="/karte"><span className="meets-minimal-benefit-icon" aria-hidden="true">⌖</span><span><strong>Pasākumi tuvumā</strong><small>Atrodi notikumus savā apkārtnē</small></span></Link>
+   <Link href="/pasakumi"><span className="meets-minimal-benefit-icon" aria-hidden="true">✧</span><span><strong>Dažādas kategorijas</strong><small>Izvēlies sev interesējošo</small></span></Link>
+   <Link href="/mani-pasakumi"><span className="meets-minimal-benefit-icon" aria-hidden="true">♡</span><span><strong>Saglabā iecienītos</strong><small>Atgriezies pie saviem favorītiem</small></span></Link>
+   <Link href="/sekosana"><span className="meets-minimal-benefit-icon" aria-hidden="true">♧</span><span><strong>Seko, kas interesē</strong><small>Organizatori un norises vietas</small></span></Link>
+  </nav>
+  <HomeFeatured/>
+  <section className="meets-discovery-categories" aria-labelledby="all-categories-heading">
+   <header className="meets-home-section-header"><div><p className="eyebrow">Atrodi pēc intereses</p><h2 id="all-categories-heading">Visas kategorijas</h2></div><Link href="/karte">Skatīt kartē →</Link></header>
+   <div className="meets-all-categories">{GROUPS.map(group=><Link href={'/pasakumi?category='+group.key} key={group.key}><span aria-hidden="true">{group.icon}</span><strong>{group.title}</strong><small>{group.subtitle}</small></Link>)}</div>
   </section>
-  <HomeNearby/>
- </>;
+ </div>;
 }

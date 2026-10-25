@@ -5,6 +5,7 @@ import ProfileShell,{ProfileIcon} from '../components/profile-shell.jsx';
 import Authentication from '../components/account-auth-flow.jsx';
 import {useEvents} from '../../lib/use-events.js';
 import {rigaDate} from '../../lib/meets-personal.js';
+import {cardImage,cardDate,cardLocation} from '../../lib/discovery-card.js';
 
 const KEY='meets_user_session_v1';
 function fromStorage(){try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch{return null;}}
@@ -54,6 +55,8 @@ export default function ProfilePage(){
  const savedIds=[...new Set([...(personal.favorites||[]),...(personal.plans||[])])];
  const upcoming=savedIds.map(id=>byId.get(id)).filter(e=>e&&String(e.date_to||e.date_from)>=rigaDate()).sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from))).slice(0,5);
  const follows=dashboard.follows||[],followOrg=follows.filter(x=>x.target_kind==='organization').length,followVenue=follows.filter(x=>x.target_kind==='venue').length;
+ const followedOrgIds=new Set(follows.filter(x=>x.target_kind==='organization').map(x=>x.target_id));
+ const followedOrgs=(dashboard.directory?.organizations||[]).filter(x=>followedOrgIds.has(x.id)).slice(0,4);
  const display=(state?.registries?.profile?.display_name||'').trim(),email=account?.user?.email||'',nickname=display||email.split('@')[0]||'MEETS lietotājs',initial=(display||email).slice(0,1).toLocaleUpperCase('lv')||'M';
 
  if(loading)return <div className="meets-profile-skeleton" role="status">Ielādē tavu MEETS profilu…</div>;
@@ -66,14 +69,21 @@ export default function ProfilePage(){
 
   <div className="meets-profile-columns"><div className="meets-profile-stack">
    <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Tuvākie saglabātie pasākumi</h2><Link href="/mani-pasakumi">Visi →</Link></div>
-    {upcoming.length?upcoming.map(e=><div className="meets-profile-row" key={e.id}><span className="meets-profile-day"><strong>{e.date_from?.slice(8,10)}</strong><small>{e.date_from?.slice(5,7)}.</small></span><div className="meets-profile-row-meta"><strong>{e.title}</strong><small>{[e.time_from?.slice(0,5),e.venue_name||e.municipality].filter(Boolean).join(' · ')}</small></div><Link href={'/karte?event='+e.id}>Kartē ↗</Link></div>):<div className="meets-profile-empty">Vēl nav gaidāmu saglabātu pasākumu. <Link href="/karte">Atrodi kartē →</Link></div>}
+    {upcoming.length?upcoming.map(e=><div className="meets-profile-row meets-profile-image-row" key={e.id}>
+     {cardImage(e)?<img src={cardImage(e)} alt="" loading="lazy" className="meets-profile-event-thumb"/>:
+       <span className="meets-profile-day"><strong>{e.date_from?.slice(8,10)}</strong><small>{e.date_from?.slice(5,7)}.</small></span>}
+     <div className="meets-profile-row-meta"><strong>{e.title}</strong><small>{cardDate(e)} · {cardLocation(e)}</small></div>
+     <Link href={'/pasakumi?event='+encodeURIComponent(e.id)}>Atvērt →</Link>
+    </div>):<div className="meets-profile-empty">Vēl nav gaidāmu saglabātu pasākumu. <Link href="/karte">Atrodi kartē →</Link></div>}
    </section>
    <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Mani saraksti</h2><Link href="/mani-registri">Pārvaldīt →</Link></div>
     {lists.length?lists.slice(0,4).map(x=><div className="meets-profile-row" key={x.id}><span className="meets-profile-day"><ProfileIcon name="list"/></span><div className="meets-profile-row-meta"><strong>{x.title}</strong><small>{x.is_published?'Publisks':'Privāts'} · {(x.included_event_ids||[]).length} manuāli pievienoti</small></div><Link href={'/mani-registri?edit='+x.id}>Atvērt →</Link></div>):<div className="meets-profile-empty">Vēl nav sarakstu. Pasākuma kartītē izmanto “Pievienot sarakstam”.</div>}
    </section>
   </div>
   <div className="meets-profile-stack">
-   <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Sekošana</h2><Link href="/sekosana">Atvērt →</Link></div><p className="meets-muted">Tu seko {followOrg} organizatoriem un {followVenue} norises vietām.</p><p className="meets-profile-hint">Jaunie publicētie pasākumi būs redzami sadaļā “Sekošana”.</p></section>
+   <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Sekošana</h2><Link href="/sekosana">Atvērt →</Link></div><p className="meets-muted">Tu seko {followOrg} organizatoriem un {followVenue} norises vietām.</p>
+    {followedOrgs.length?<div className="meets-profile-follow-mini">{followedOrgs.map(o=><Link key={o.id} href={'/organizatori/'+o.id}><span aria-hidden="true">✦</span><strong>{o.name}</strong><small>Atvērt →</small></Link>)}</div>:
+      <p className="meets-profile-hint">Atver organizatora profilu un izvēlies “Sekot”, lai saņemtu vienotu viņa publisko pasākumu pārskatu.</p>}</section>
    <section className="meets-profile-panel organizer-activation-card"><div className="meets-profile-panel-header"><h2>Organizēšana</h2></div>{orgs.length?<><p>Tev ir pieeja {orgs.length} organizator{orgs.length===1?'am':'iem'}.</p><Link className="button primary" href="/organizators">Atvērt organizēšanu →</Link></>:<><p>Vai pats organizē pasākumus? Aktivizē organizēšanu tajā pašā MEETS kontā.</p><Link className="button primary" href="/organizators?new=1">Sākt organizēt →</Link></>}</section>
    <section className="meets-profile-panel" id="iestatijumi"><div className="meets-profile-panel-header"><h2>Konta iestatījumi</h2></div><form className="meets-profile-settings-fields" onSubmit={saveProfile}><label>Profila vārds<input value={profileName} maxLength={100} onChange={e=>setProfileName(e.target.value)} placeholder="Tavs vārds"/></label><label>E-pasts<input value={email} readOnly/></label><button className="button" disabled={saving}>{saving?'Saglabā…':'Saglabāt'}</button></form>{notice&&<p className="meets-profile-hint" role="status">{notice}</p>}</section>
   </div></div>

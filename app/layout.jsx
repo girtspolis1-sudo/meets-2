@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import SiteNav from './site-nav.jsx';
+import MobileBottomNav from './mobile-bottom-nav.jsx';
 import AdminFooterControl from './admin-footer-control.jsx';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -8,6 +9,7 @@ import './ux-enhancements.css';
 import './quick-flow.css';
 import './profile-dashboard.css';
 import './organizer-workspace.css';
+import './discovery-design.css';
 
 export const metadata = {
   title: { default: 'MEETS — Pasākumi Latvijā', template: '%s | MEETS' },
@@ -30,6 +32,7 @@ export default function RootLayout({ children }) {
       <SiteNav/>
     </header>
     <main id="saturs">{children}</main>
+    <MobileBottomNav/>
     <footer>
       <img className="footer-logo" src="/meets-logo-purple.png" alt="MEETS"/>
       <p>Pasākumi, kas saved cilvēkus kopā.</p>

@@ -3,6 +3,8 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} from '../../lib/catalog.js';
 import {useEvents} from '../../lib/use-events.js';
 import EventQuickActions from '../components/event-quick-actions.jsx';
+import DiscoveryEventCard from '../components/discovery-event-card.jsx';
+import {cardCategory,cardDate,cardDescription,cardGroup,cardImage,cardLocation,cardPrice} from '../../lib/discovery-card.js';
 import {placeFromEvent,placesFromEvents} from '../../lib/location-follow.js';
 import Link from 'next/link';
 import {rigaTodayIso,addIsoDays} from '../../lib/event-date.js';
@@ -131,7 +133,13 @@ export default function EventCatalog(){
   mapStatuses:[...new Set(rows.map(event=>display(event,'map_status')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv'))
  }),[rows]);
 
- const filtered=useMemo(()=>filterEventsByColumns(rows,columnFilters).filter(event=>{
+ const filtered=useMemo(()=>{
+ const query=String(columnFilters.title||'').trim().toLocaleLowerCase('lv');
+ const otherFilters={...columnFilters};
+ delete otherFilters.title;
+ return filterEventsByColumns(rows,otherFilters).filter(event=>{
+  if(query&&![event.title,event.venue_name,event.address_raw,event.settlement,event.municipality]
+   .some(value=>String(value||'').toLocaleLowerCase('lv').includes(query)))return false;
   if(placeFilter&&placeFromEvent(event)?.key!==placeFilter)return false;
   if(shared.group&&eventGroup(event)!==shared.group)return false;
   if(shared.audience&&!matchesAudience(event,shared.audience))return false;
@@ -170,7 +178,8 @@ export default function EventCatalog(){
   if(!av)return bv?1:0;
   if(!bv)return -1;
   return String(av).localeCompare(String(bv),'lv',{numeric:true})*direction||a.id.localeCompare(b.id);
- }),[rows,columnFilters,sort,direction,period,shared,sharedOrigin,placeFilter]);
+ });
+ },[rows,columnFilters,sort,direction,period,shared,sharedOrigin,placeFilter]);
 
  const pages=Math.max(1,Math.ceil(filtered.length/pageSize));
  const current=Math.min(page,pages-1);
@@ -320,15 +329,10 @@ export default function EventCatalog(){
   {data&&filtered.length===0
    ?<div className="empty"><h2>Nav atrastu pasākumu</h2><p>{rows.length?'Pamēģini mainīt datumu, kategoriju vai noņemt aktīvos filtrus.':'Pašlaik nav publicētu pasākumu. Tiklīdz pasākums tiks publicēts, tas parādīsies šeit.'}</p></div>
    :<>
-    {viewMode==='cards'&&<div className="catalog-card-grid">{visible.map(event=>{return <article className="catalog-event-card" key={event.id}>
-     {event.cover_image_url&&<img src={event.cover_image_url} alt="" loading="lazy" className="catalog-event-cover"/>}
-     <div className="catalog-event-card-top"><time dateTime={event.date_from}>{display(event,'date_from')||'Datums nav norādīts'}</time><span>{display(event,'event_type')||event.primary_category||'Pasākums'}</span></div>
-     <h2>{event.title}</h2><p className="catalog-event-card-location">⌖ {event.venue_name||event.address_raw||event.municipality||'Norises vieta nav zināma'}</p>
-     <p className="catalog-event-card-time">{display(event,'time')||'Laiks nav norādīts'} · {event.price_status==='free'?'Bezmaksas':event.price_min!=null&&event.price_max!=null?Number(event.price_min)===Number(event.price_max)?event.price_min+' €':event.price_min+'–'+event.price_max+' €':display(event,'price_status')||'Maksa nav norādīta'}</p>
-     <EventQuickActions event={event}/>
-      <div className="catalog-event-card-follow">{followButton(event)}</div>
-     <div className="catalog-event-card-actions"><button className="button compact primary" type="button" onClick={()=>setSelected(event.id)}>Par pasākumu</button><a className="button compact" href={'/karte?q='+encodeURIComponent(event.title)}>Kartē ↗</a></div>
-    </article>})}</div>}
+    {viewMode==='cards'&&<div className="catalog-card-grid meets-catalog-image-grid">{visible.map(event=>
+     <DiscoveryEventCard key={event.id} event={event} onOpen={setSelected} actions
+       footer={<div className="catalog-event-card-follow">{followButton(event)}</div>}/>
+    )}</div>}
     {viewMode==='table'&&<div className="table-scroll" role="region" aria-label="Pasākumu tabula — ritināma horizontāli" tabIndex={0}>
      <table className="events-table catalog-events-table">
       <caption>Atlasītie pasākumi. Otrajā galvenes rindā vari filtrēt katru kolonnu atsevišķi. Nospied nosaukumu, lai redzētu visu norises informāciju.</caption>
@@ -381,17 +385,38 @@ export default function EventCatalog(){
 
 function EventDetails({event,close,followButton}){
  const dialog=useRef(null);
- useEffect(()=>{dialog.current.showModal();},[]);
- return <dialog ref={dialog} className="event-dialog" onCancel={close} onClose={close}>
-  <div className="detail-header"><h2>{event.title}</h2><button className="button" onClick={close} autoFocus>Aizvērt ✕</button></div>
-  {event.cover_image_url&&<img src={event.cover_image_url} alt="" className="catalog-detail-cover"/>}
-  <EventQuickActions event={event}/>
-  <div className="catalog-detail-actions">{followButton(event)}<a className="button primary" href={'/karte?q='+encodeURIComponent(event.title)}>Atvērt kartē ↗</a></div>
-  <dl>{[...columns,...detailColumns].filter(([key])=>key!=='title').map(([key,label])=><div key={key}>
-   <dt>{label}</dt>
-   <dd>{key==='source_url'
-    ?event.sources.filter(source=>source.url).map((source,index)=><a className="source-link" href={source.url} target="_blank" rel="noopener noreferrer" key={index}>{source.source||'Avots'} ↗</a>)
-    :display(event,key)||'Nav norādīts'}</dd>
-  </div>)}</dl>
+ useEffect(()=>{const node=dialog.current;node?.showModal();return()=>{if(node?.open)node.close();};},[]);
+ const image=cardImage(event),description=cardDescription(event),price=cardPrice(event);
+ return <dialog ref={dialog} className="event-dialog meets-event-detail-dialog" onCancel={close} onClose={close} aria-label={'Pasākums: '+event.title}>
+  <div className="meets-detail-hero">
+   {image?<img src={image} alt="" className="catalog-detail-cover" loading="eager"/>:
+    <div className={'meets-detail-image-fallback theme-'+cardGroup(event)} aria-hidden="true">✦</div>}
+   <button className="meets-detail-close" type="button" aria-label="Aizvērt ✕" onClick={close} autoFocus>✕</button>
+  </div>
+  <div className="meets-detail-body">
+   <div className="meets-detail-headline"><span className="meets-detail-tag">{cardCategory(event)}</span><h2>{event.title}</h2></div>
+   <div className="meets-detail-key-facts">
+    <p>▦ <strong>{cardDate(event)}</strong></p>
+    <p>⌖ <strong>{cardLocation(event)}</strong></p>
+    {price&&<span className="meets-detail-price">{price}</span>}
+   </div>
+   {description&&<section className="meets-detail-description"><h3>Par pasākumu</h3><p>{description}</p></section>}
+   <div className="meets-detail-follow">{followButton(event)}</div>
+   <div className="meets-detail-primary-actions">
+    <a className="button primary" href={'/karte?event='+encodeURIComponent(event.id)}>Atvērt kartē →</a>
+    {event.sources?.filter(source=>source.url).slice(0,1).map((source,index)=>
+     <a key={index} className="button" href={source.url} target="_blank" rel="noopener noreferrer">Organizatora saite ↗</a>)}
+   </div>
+   <details className="meets-detail-more">
+    <summary>Visa pasākuma informācija</summary>
+    <dl>{[...columns,...detailColumns].filter(([key])=>key!=='title').map(([key,label])=><div key={key}>
+      <dt>{label}</dt>
+      <dd>{key==='source_url'?event.sources?.filter(source=>source.url).map((source,index)=>
+       <a className="source-link" href={source.url} target="_blank" rel="noopener noreferrer" key={index}>{source.source||'Avots'} ↗</a>)
+       :display(event,key)||'Nav norādīts'}</dd>
+     </div>)}</dl>
+   </details>
+   <div className="meets-detail-quick"><h3>Ātrās darbības</h3><EventQuickActions event={event}/></div>
+  </div>
  </dialog>;
 }

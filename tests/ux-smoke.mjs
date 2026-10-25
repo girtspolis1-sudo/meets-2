@@ -35,18 +35,24 @@ for(const width of cases){
  await page.route('**/api/events*',route=>{console.log('Mock event request:',route.request().url());return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)});});
  try{
   await page.goto(base+'/',{waitUntil:'domcontentloaded',timeout:45000});
-  await page.locator('.home-landing').waitFor({timeout:30000});
+  await page.locator('.meets-discovery-hero').waitFor({timeout:30000});
   if(await page.locator('.meets-location-overlay').count())throw Error('Forced location dialog on homepage');
-  try{await page.locator('.home-nearby-card').first().waitFor({timeout:9000});}
+  try{await page.locator('.meets-discovery-grid .meets-discovery-card').first().waitFor({timeout:9000});}
   catch{
    fails++;
    console.error('Missing home event cards',width,{
-    hero:await page.locator('.home-landing').count(),
-    nearby:await page.locator('.home-nearby').count(),
+    hero:await page.locator('.meets-discovery-hero').count(),
+    nearby:await page.locator('.meets-discovery-grid').count(),
     body:(await page.locator('body').innerText()).slice(0,1400),
     errors:errors.slice(0,3)
    });
   }
+  const homeCard=page.locator('.meets-discovery-grid .meets-discovery-card').first();
+  if(!await homeCard.getByRole('link',{name:/Skatīt vairāk/}).count()) {fails++;console.error('Home card CTA missing',width);}
+  if(!await page.getByRole('navigation',{name:'Mobilā ātrā navigācija'}).isVisible()) {fails++;console.error('Mobile bottom navigation missing',width);}
+  if(!await homeCard.getByRole('button',{name:'Saglabāt pasākumu'}).count()) {fails++;console.error('Card favorite missing',width);}
+  if(!(await page.getByRole('link',{name:/Skatīt pasākumus/}).count())){fails++;console.error('Missing primary hero CTA',width);}
+  if((await page.getByRole('navigation',{name:'MEETS iespējas'}).locator('a').count())!==4){fails++;console.error('Missing functional home benefit links',width);}
   await assertLayout(page,'home',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-home.png',fullPage:true});
   await page.goto(base+'/karte?period=week',{waitUntil:'domcontentloaded',timeout:45000});
@@ -109,6 +115,7 @@ for(const width of cases){
   await page.goto(base+'/pasakumi',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.catalog-view-switch').waitFor({timeout:30000});
   if(!(await page.getByRole('button',{name:/Kartītes/}).getAttribute('aria-pressed'))?.includes('true')){fails++;console.error('Card view is not active by default');}
+  await page.locator('.catalog-event-card .meets-card-secondary-actions summary').first().click();
   const catalogCircles=page.locator('.catalog-event-card .meets-circle-actions').first();
   await catalogCircles.waitFor();
   if(await catalogCircles.locator(':scope > *').count()!==6){
@@ -390,6 +397,9 @@ for(const width of [360,390,768,1440]){
   if(width<768){
    if(!(await page.locator('.meets-profile-mobile-tabs').isVisible())){fails++;console.error('Mobile profile navigation not visible',width);}
   }else if(!(await page.locator('.meets-profile-aside').isVisible())){fails++;console.error('Desktop profile sidebar not visible',width);}
+  if(width<761&&!await page.getByRole('button',{name:'Iziet no MEETS konta'}).isVisible()){
+   fails++;console.error('Mobile logout action not visible',width);
+  }
   await assertLayout(page,'signed-profile',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-signed-profile.png',fullPage:true});
   await page.goto(base+'/organizators?panel=venues',{waitUntil:'domcontentloaded',timeout:45000});
