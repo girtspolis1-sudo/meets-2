@@ -68,7 +68,7 @@ for(const width of cases){
   await marker.click({force:true});
   await page.locator('.meets-mobile-event-sheet').waitFor({timeout:10000});
   const nearVenue=page.locator('.meets-mobile-sheet-title .meets-sheet-venue-follow');
-  if(!(await nearVenue.getByRole('button',{name:/Pievienot iecienītajām vietām/}).count())){
+  if(!(await nearVenue.getByRole('button',{name:/Sekot norises vietai/}).count())){
    fails++;console.error('Missing venue follow next to location title',width);
   }
   if(await page.locator('.meets-mobile-sheet-event .meets-place-favorite').count()){
@@ -96,7 +96,7 @@ for(const width of cases){
   if(layout.count!==6||Math.max(...layout.widths)-Math.min(...layout.widths)>1||
    Math.max(...layout.heights)-Math.min(...layout.heights)>1||
    Math.max(...layout.tops)-Math.min(...layout.tops)>1||
-   layout.right>layout.parentRight+1||layout.icons.some(size=>size!==20)){
+   layout.right>layout.parentRight+1||layout.icons.some(size=>size!==18)||Math.min(...layout.widths)<44||Math.min(...layout.heights)<44){
    fails++;console.error('Six circular actions do not fit a single row',width,layout);
   }else console.log('PASS six circular event actions',width,layout.widths);
   await actions.getByRole('button',{name:'Maršruts'}).click();
@@ -167,7 +167,7 @@ for(const width of cases){
   const followButton=page.locator('.catalog-event-card .meets-place-favorite button').first();
   await followButton.waitFor({timeout:15000});
   await followButton.click();
-  await page.getByText('Vieta pievienota iecienītajām.', {exact:false}).waitFor({timeout:10000});
+  await page.getByText('Tagad seko šai norises vietai.', {exact:false}).waitFor({timeout:10000});
   if((await followButton.getAttribute('aria-pressed'))!=='true'){
    fails++;console.error('Catalog venue follow state was not updated',width);
   }
@@ -212,9 +212,9 @@ try{
  const popup=desktop.locator('.leaflet-popup-content .meets-circle-actions').first();
  await popup.waitFor({timeout:15000});
  const count=await popup.locator(':scope > *').count();
- if(count!==5){fails++;console.error('Desktop popup requires five action icons, got',count);}
+ if(count!==6){fails++;console.error('Desktop popup requires six action icons, got',count);}
  const icons=await popup.locator('svg').count();
- if(icons!==5){fails++;console.error('Desktop popup requires five SVG icons, got',icons);}
+ if(icons!==6){fails++;console.error('Desktop popup requires six SVG icons, got',icons);}
  await popup.getByRole('button',{name:'Dalīties ar pasākumu'}).click();
  const panel=desktop.locator('.leaflet-popup-content .meets-popup-share-options').first();
  if(await panel.isHidden()){fails++;console.error('Desktop sharing fallback did not open');}
