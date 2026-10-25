@@ -151,6 +151,14 @@ export async function POST(request){
    const owned=await api(TABLES.venues,token,'GET',null,'?select=id,name,address,latitude,longitude,organization_id&organization_id=eq.'+data.organization_id);
    const duplicate=owned.find(item=>item.id!==data.venue_id&&duplicatesVenue(payload,item));
    if(duplicate)return NextResponse.json({error:'Šī vieta organizācijā jau ir reģistrēta. Izvēlies to no vietu saraksta vai labo esošo ierakstu.',existingVenueId:duplicate.id},{status:409});
+   if(action==='createVenue'){
+    const publicMatches=await api(TABLES.venues,token,'GET',null,'?select=id,name,address,latitude,longitude,organization_id,is_public&is_public=eq.true');
+    const publicDuplicate=publicMatches.find(item=>item.organization_id!==data.organization_id&&duplicatesVenue(payload,item));
+    if(publicDuplicate){
+     await linkVenue(token,data.organization_id,publicDuplicate.id,'used');
+     return NextResponse.json({item:publicDuplicate,reused_public:true});
+    }
+   }
    const result=await api(TABLES.venues,token,action==='updateVenue'?'PATCH':'POST',payload,action==='updateVenue'?'?id=eq.'+data.venue_id+'&organization_id=eq.'+data.organization_id:'');
    if(!result.length)return NextResponse.json({error:'Vietu nevar labot.'},{status:404});
    await linkVenue(token,data.organization_id,result[0].id,'managed');
@@ -226,10 +234,14 @@ export async function POST(request){
     const name=payload.venue_name.trim();
     if(name.length<2||name.length>160||!payload.address)
      return NextResponse.json({error:'Lai saglabātu vietu, norādi nosaukumu un adresi vai kartes punktu.'},{status:400});
-    const existing=await api(TABLES.venues,token,'GET',null,'?select=id,name,address,latitude,longitude,organization_id&organization_id=eq.'+data.organization_id);
-    const duplicate=existing.find(item=>duplicatesVenue({name,address:payload.address,...point},item));
+    const existing=await api(TABLES.venues,token,'GET',null,'?select=id,name,address,latitude,longitude,organization_id,is_public');
+    const duplicate=existing.find(item=>item.organization_id===data.organization_id&&duplicatesVenue({name,address:payload.address,...point},item));
+    const publicDuplicate=existing.find(item=>item.organization_id!==data.organization_id&&item.is_public===true&&duplicatesVenue({name,address:payload.address,...point},item));
     if(duplicate)payload.venue_id=duplicate.id;
-    else{
+    else if(publicDuplicate){
+     payload.venue_id=publicDuplicate.id;
+     await linkVenue(token,data.organization_id,publicDuplicate.id,'used');
+    }else{
      const created=await api(TABLES.venues,token,'POST',{organization_id:data.organization_id,name,address:payload.address,latitude:point.latitude,longitude:point.longitude,directions:'',description:'',is_public:false});
      if(!created?.[0]?.id)return NextResponse.json({error:'Norises vietu neizdevās saglabāt.'},{status:409});
      payload.venue_id=created[0].id;
