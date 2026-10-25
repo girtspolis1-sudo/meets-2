@@ -236,7 +236,7 @@ for(const width of [360,390]){
 
   await page.goto(base+'/registre-vietu?org='+orgId,{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.meets-location-picker').waitFor({timeout:15000});
-  await page.getByText('MEETS Testa organizācija',{exact:false}).first().waitFor();
+  await page.locator('.venue-editor').getByText('MEETS Testa organizācija',{exact:false}).first().waitFor();
   await assertLayout(page,'venue-editor',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-venue-editor.png',fullPage:true});
 
