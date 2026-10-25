@@ -6,7 +6,7 @@ import EventQuickActions from '../components/event-quick-actions.jsx';
 import DiscoveryEventCard from '../components/discovery-event-card.jsx';
 import EventVenueFavorite from '../components/event-venue-favorite.jsx';
 import {cardCategory,cardDate,cardDescription,cardGroup,cardImage,cardLocation,cardPrice} from '../../lib/discovery-card.js';
-import {placesFromEvents} from '../../lib/location-follow.js';
+import {placeFromEvent,placesFromEvents} from '../../lib/location-follow.js';
 import Link from 'next/link';
 import {rigaTodayIso,addIsoDays} from '../../lib/event-date.js';
 import {eventGroup,matchesAudience,sourceType} from '../../lib/home-category-filters.js';
