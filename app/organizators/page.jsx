@@ -302,11 +302,11 @@ export default function OrganizerPage(){
   {panel==='venues'&&<section className="org-panel">
    <div className="org-panel-head"><div><h2>Norises vietas</h2><p>Pārvaldītas vietas vari labot. Izmantotas publiskās vietas ir tikai piesaistītas pasākumiem un nerada rediģēšanas tiesības.</p></div>{canEdit&&<Link className="button primary" href={'/registre-vietu?org='+orgId}>+ Pievienot vietu</Link>}</div>
    <h3>Pārvaldītās vietas</h3><div className="org-list">{managedVenues.map(v=><div className="org-row" key={v.id}>
-    <div><strong>{v.name}</strong><small>{v.address||'Adrese nav norādīta'} · {v.is_public?'Publiska':'Privāta'}</small></div>
+    <div><strong>{v.name}</strong><small>{v.address||'Adrese nav norādīta'} · {v.is_public?'Publiska':'Privāta'} · {orgSubmissions.filter(x=>x.venue_id===v.id&&future(x)).length} gaidāmi pasākumi</small></div>
     <span className="org-status">Pārvaldīta</span><div className="org-row-actions">{v.is_public&&<Link className="button" href={'/vietas/'+v.id}>Atvērt</Link>}{canEdit&&<><Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&venue='+v.id}>Jauns pasākums</Link><Link className="button" href={'/registre-vietu?org='+orgId+'&edit='+v.id}>Labot</Link></>}</div>
    </div>)}{!managedVenues.length&&<p className="org-empty">Vēl nav pārvaldītu vietu.</p>}</div>
    {usedVenues.length>0&&<><h3>Izmantotās vietas</h3><div className="org-list">{usedVenues.map(v=><div className="org-row" key={v.id}>
-    <div><strong>{v.name}</strong><small>{v.address||'Adrese nav norādīta'}</small></div><span className="org-status">Izmantota</span>
+    <div><strong>{v.name}</strong><small>{v.address||'Adrese nav norādīta'} · {orgSubmissions.filter(x=>x.venue_id===v.id&&future(x)).length} gaidāmi pasākumi</small></div><span className="org-status">Izmantota</span>
     <div className="org-row-actions"><Link className="button" href={'/vietas/'+v.id}>Atvērt</Link>{canEdit&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&venue='+v.id}>Jauns pasākums</Link>}</div>
    </div>)}</div></>}
   </section>}
