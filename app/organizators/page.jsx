@@ -6,7 +6,7 @@ import {EVENT_CATEGORIES} from '../../lib/event-entry.js';
 import VenueLocationPicker from './venue-location-picker.jsx';
 
 const SESSION='meets_user_session_v1';
-const EMPTY_VENUE={name:'',address:'',latitude:'',longitude:'',directions:'',description:''};
+const EMPTY_VENUE={name:'',address:'',latitude:'',longitude:'',directions:'',description:'',is_public:false};
 const EMPTY={id:'',organization_id:'',venue_id:'',title:'',description:'',category:'Cits',date_from:'',date_to:'',time_from:'',time_to:'',venue_name:'',address:'',latitude:'',longitude:'',price_status:'free',schedule_kind:'once',recurrence_note:'',status:'draft'};
 async function call(action,values={}){
  let session;try{session=JSON.parse(localStorage.getItem(SESSION)||'null');}catch{}
@@ -108,6 +108,9 @@ export default function OrganizerPage({initialKind='organizer'}){
         <label>Nosaukums *<input value={venue.name||''} onChange={e=>setVenue({...venue,name:e.target.value})} required minLength={2} maxLength={160} placeholder="Kā sauc šo vietu?"/></label>
         <label>Adrese (ja zināma)<input value={venue.address||''} onChange={e=>setVenue({...venue,address:e.target.value})} required={!hasLocationPoint(venue)} maxLength={300} placeholder="Iela, pilsēta, Latvija"/></label>
        </div>
+
+       <label className="quick-flow-check"><input type="checkbox" checked={venue.is_public===true} onChange={e=>setVenue({...venue,is_public:e.target.checked})}/> Publiskot šo vietu un tās pasākumu kalendāru</label>
+       {venue.id&&venue.is_public&&<p><Link href={'/vietas/'+venue.id} target="_blank" rel="noopener noreferrer">Atvērt publisko vietas profilu un iframe ↗</Link></p>}
        <details className="meets-organizer-extra">
         <summary>Papildinformācija (neobligāti)</summary>
         <div className="meets-organizer-extra-fields">
@@ -122,7 +125,7 @@ export default function OrganizerPage({initialKind='organizer'}){
       </div>
      </>}
     </form>
-    <div className="meets-account-list">{venues.map(v=><div key={v.id} className="meets-organizer-item"><div><strong>⌖ {v.name}</strong><span>{v.address}</span></div><div className="meets-organizer-buttons"><Link className="button" href={'/registre-pasakumu/vienkarsi?venue='+v.id+'&org='+orgId}>+ Pasākums</Link><button type="button" className="button" onClick={()=>{setVenue({...v,latitude:v.latitude??'',longitude:v.longitude??''});window.scrollTo({top:0,behavior:'smooth'});}}>Labot</button></div></div>)}</div>
+    <div className="meets-account-list">{venues.map(v=><div key={v.id} className="meets-organizer-item"><div><strong>⌖ {v.name}</strong><span>{v.address}</span>{v.is_public&&<Link href={'/vietas/'+v.id}>Publiskais kalendārs ↗</Link>}</div><div className="meets-organizer-buttons"><Link className="button" href={'/registre-pasakumu/vienkarsi?venue='+v.id+'&org='+orgId}>+ Pasākums</Link><button type="button" className="button" onClick={()=>{setVenue({...v,latitude:v.latitude??'',longitude:v.longitude??''});window.scrollTo({top:0,behavior:'smooth'});}}>Labot</button></div></div>)}</div>
    </>}
    {panel==='team'&&<div className="meets-organizer-form"><h2>Komanda</h2>
     <p className="meets-muted">Uzaicini kolēģi ar privātu saiti. Saites derīgums — 7 dienas. Kolēģim jābūt savam MEETS kontam.</p>
