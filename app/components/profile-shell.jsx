@@ -93,7 +93,7 @@ function Inner({children,session,displayName='',subtitle='',activeOrganization=n
      <Link href="/organizators" className={'meets-profile-nav-link'+(!orgId&&pathname==='/organizators'?' active':'')}>
       <ProfileIcon name="building"/><span>Organizatori</span>
      </Link>
-     {organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined}
+     {orgId&&organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined}
        className={'meets-profile-nav-link'+(activeOrganizer(item)?' active':'')}>
       <ProfileIcon name={item.icon}/><span>{item.label}</span>{activeOrganizer(item)&&<ProfileIcon name="arrow" size={14}/>}
      </Link>)}
@@ -110,7 +110,7 @@ function Inner({children,session,displayName='',subtitle='',activeOrganization=n
   <div className="meets-profile-content">
    <nav className="meets-profile-mobile-tabs" aria-label={organizerMode?'Organizēšanas sadaļas':'Mans MEETS sadaļas'}>
     {!organizerMode?personalLinks.slice(0,4).map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.label}</Link>):
-     <><Link href="/organizators" className={!orgId?'active':''}>Organizatori</Link>{organizerLinks.slice(0,4).map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined} className={activeOrganizer(item)?'active':''}>{item.label}</Link>)}</>}
+     <><Link href="/organizators" className={!orgId?'active':''}>Organizatori</Link>{orgId&&organizerLinks.slice(0,4).map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined} className={activeOrganizer(item)?'active':''}>{item.label}</Link>)}</>}
    </nav>
    <div className="meets-profile-slot">{children}</div>
   </div>
