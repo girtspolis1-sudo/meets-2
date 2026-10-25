@@ -9,13 +9,13 @@ import {rigaDate} from '../../../lib/meets-personal.js';
 import WeeklySchedule from '../../components/weekly-schedule.jsx';
 import {countOccurrences,cleanPrice} from '../../../lib/event-schedule.js';
 import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
+import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
 
 const SESSION='meets_user_session_v1';
 const DRAFT_PREFIX='meets_event_draft_v3';
 const DEFAULT={...QUICK_EVENT_EMPTY,recurrence_note:''};
 
 function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION)||'null');}catch{return null;}}
-function draftKey(userId,orgId){return DRAFT_PREFIX+':'+(userId||'guest')+':'+(orgId||'unassigned');}
 function safeRead(key){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v&&typeof v==='object'&&!Array.isArray(v)?v:null;}catch{return null;}}
 function cleanDraft(value){return {...DEFAULT,...Object.fromEntries(Object.keys(DEFAULT).map(k=>[k,value?.[k]??DEFAULT[k]]))};}
 function prettyDate(date){if(!date)return 'Nav norādīts';const [y,m,d]=date.split('-');return d+'.'+m+'.'+y;}
@@ -52,7 +52,7 @@ function SimpleEventFlow(){
  const activeOrg=orgs.find(o=>o.id===orgId)||null;
  const selectedVenue=[...venues,...publicVenues].find(v=>v.id===form.venue_id);
  const managedSelected=selectedVenue?.organization_id===orgId;
- const canEdit=activeOrg?.role!=='viewer';
+ const canEdit=canWriteOrganization(activeOrg?.role);
 
  async function call(action,payload={},token=account?.access_token){
   const response=await fetch('/api/organizer',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({action,token,...payload})});
@@ -63,13 +63,13 @@ function SimpleEventFlow(){
 
  function persistLocal(nextForm=form,nextOrg=orgId,nextAccount=account){
   try{
-   const key=draftKey(nextAccount?.user?.id,nextOrg);
+   const key=scopedDraftKey(nextAccount?.user?.id,nextOrg);
    localStorage.setItem(key,JSON.stringify({...nextForm,save_venue:saveVenue,saved_id:savedId||''}));
    setLastSaved(new Date().toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'}));
   }catch{}
  }
  function restoreLocal(userId,nextOrg){
-  const scoped=safeRead(draftKey(userId,nextOrg));
+  const scoped=safeRead(scopedDraftKey(userId,nextOrg));
   if(scoped)return scoped;
   if(!userId){
    const legacy=safeRead(EVENT_DRAFT_KEY);
@@ -78,7 +78,7 @@ function SimpleEventFlow(){
   return null;
  }
  function clearLocal(userId=account?.user?.id,nextOrg=orgId){
-  try{localStorage.removeItem(draftKey(userId,nextOrg));if(!userId)localStorage.removeItem(EVENT_DRAFT_KEY);}catch{}
+  try{localStorage.removeItem(scopedDraftKey(userId,nextOrg));if(!userId)localStorage.removeItem(EVENT_DRAFT_KEY);}catch{}
  }
 
  async function load(session){
@@ -110,7 +110,7 @@ function SimpleEventFlow(){
    }catch(e){if(alive)setError(e.message);}
    if(!alive)return;
    const available=result.organizations||[];
-   const chosen=available.find(o=>o.id===requestedOrg)?.id||(available.length===1?available[0]?.id:'');
+   const chosen=resolveOrganizationId(available,requestedOrg);
    setOrgId(chosen||'');
    let next=null;
    if(editId&&chosen){
@@ -232,7 +232,7 @@ function SimpleEventFlow(){
 
    <section className="event-editor-section"><div className="event-editor-section-title"><span>2</span><div><h2>Kad?</h2><p>Izvēlies vienreizēju, vairāku dienu vai atkārtotu norisi.</p></div></div>
     <label>Norises veids<select value={form.schedule_kind||'once'} onChange={e=>update('schedule_kind',e.target.value)}><option value="once">Vienreizējs</option><option value="ongoing">Vairāku dienu</option><option value="recurring">Atkārtots grafiks</option></select></label>
-    {savedId&&form.schedule_kind==='recurring'&&<fieldset className="recurrence-scope"><legend>Ko labo?</legend><label><input type="radio" checked readOnly/> Visu sērijas grafiku</label><label aria-disabled="true"><input type="radio" disabled/> Tikai vienu norisi — šajā redaktorā nav pieejams</label><small>Izmaiņas visai sērijai nekad netiek veiktas klusām.</small></fieldset>}
+    {savedId&&recurrenceEditScope(form)==='series'&&<fieldset className="recurrence-scope"><legend>Ko labo?</legend><label><input type="radio" checked readOnly/> Visu sērijas grafiku</label><label aria-disabled="true"><input type="radio" disabled/> Tikai vienu norisi — šajā redaktorā nav pieejams</label><small>Izmaiņas visai sērijai nekad netiek veiktas klusām.</small></fieldset>}
     {form.schedule_kind==='recurring'?<>
      <div className="quick-flow-two"><label>Grafiks no *<input required type="date" min={savedId?undefined:rigaDate()} value={form.date_from||''} onChange={e=>update('date_from',e.target.value)}/></label><label>Grafiks līdz *<input required type="date" min={form.date_from||rigaDate()} value={form.date_to||''} onChange={e=>update('date_to',e.target.value)}/></label></div>
      <WeeklySchedule slots={form.recurrence_slots||[]} onChange={v=>update('recurrence_slots',v)} dateFrom={form.date_from} dateTo={form.date_to}/>
@@ -280,7 +280,7 @@ function SimpleEventFlow(){
 
   {stage==='auth'&&<div className="quick-flow-card"><h2>Pieslēdzies, lai turpinātu</h2><p className="meets-muted">Ievadītais pasākums paliks saglabāts šajā ierīcē.</p><Authentication onSuccess={async value=>{
     try{
-     const oldGuest=draftKey(null,orgId);const result=await load(value);
+     const oldGuest=scopedDraftKey(null,orgId);const result=await load(value);
      const chosen=result.result.organizations?.find(o=>o.id===orgId)?.id||(result.result.organizations?.length===1?result.result.organizations[0].id:'');
      setOrgId(chosen);try{localStorage.removeItem(oldGuest);localStorage.removeItem(EVENT_DRAFT_KEY);}catch{}
      setStage('preview');setError('');setNotice('Pieslēgšanās veiksmīga. Pārbaudi organizatoru un iesniedz pasākumu.');
