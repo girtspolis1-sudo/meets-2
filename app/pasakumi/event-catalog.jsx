@@ -398,11 +398,11 @@ function EventDetails({event,close,followButton}){
    <div className="meets-detail-headline"><span className="meets-detail-tag">{cardCategory(event)}</span><h2>{event.title}</h2></div>
    <div className="meets-detail-key-facts">
     <p>▦ <strong>{cardDate(event)}</strong></p>
-    <p>⌖ <strong>{cardLocation(event)}</strong></p>
+    <div className="meets-detail-location-line"><span>⌖ <strong>{cardLocation(event)}</strong></span><EventVenueFavorite event={event} compact/></div>
     {price&&<span className="meets-detail-price">{price}</span>}
    </div>
    {description&&<section className="meets-detail-description"><h3>Par pasākumu</h3><p>{description}</p></section>}
-   <div className="meets-detail-follow"><EventVenueFavorite event={event}/><EventQuickActions event={event} listOnly/></div>
+   <div className="meets-detail-follow"><EventQuickActions event={event} listOnly/></div>
    <div className="meets-detail-primary-actions">
     <a className="button primary" href={'/karte?event='+encodeURIComponent(event.id)}>Atvērt kartē →</a>
     {event.sources?.filter(source=>source.url).slice(0,1).map((source,index)=>

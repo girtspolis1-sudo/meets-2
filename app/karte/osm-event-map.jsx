@@ -158,7 +158,7 @@ function popupActionsHtml(e,favorites,editLink){
   button('share','Dalīties ar pasākumu','popup-share-event')+
   '</div><div class="meets-circle-options meets-popup-share-options" hidden>'+social+
   '<button type="button" class="popup-share-copy" data-event-id="'+id+'">Kopēt saiti ⧉</button></div>'+
-  '<a class="meets-popup-venue-link" href="/pasakumi?event='+encodeURIComponent(e.id)+'">♡ Saglabāt vietu vai pievienot sarakstam →</a>'+
+
   (editLink?'<div class="popup-admin-actions">'+editLink+'</div>':'');
 }
 function popupHtml(group,activeIds,isAdminSession,now,favorites){
@@ -185,6 +185,7 @@ function popupHtml(group,activeIds,isAdminSession,now,favorites){
      '<strong>'+esc(e.title)+'</strong>'+
      '<span class="popup-event-datetime">'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span>'+
      (address?'<span class="popup-event-address">'+esc(address)+'</span>':'')+
+     (address?'<a class="meets-popup-venue-inline" href="/pasakumi?event='+encodeURIComponent(e.id)+'">⌖ Sekot vietai ↗</a>':'')+
      (compactMeta?'<small>'+esc(compactMeta)+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>':'')+
      (price?'<span class="popup-event-price">'+esc(price)+'</span>':'')+
      (description?'<div class="popup-description"><p class="popup-event-description">'+esc(summary)+'</p>'+
