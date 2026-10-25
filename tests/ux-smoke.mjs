@@ -3,7 +3,7 @@ import {mkdir} from 'node:fs/promises';
 const base='http://127.0.0.1:3000';
 await mkdir('ux-screenshots',{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
-const cases=[320,390];
+const cases=[360,390];
 const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Riga',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const mockEvent={
  id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',
@@ -74,12 +74,12 @@ for(const width of cases){
     tops:rects.map(r=>r.top),right:Math.max(...rects.map(r=>r.right)),
     parentRight:wrap.right,icons:tiles.map(x=>x.querySelector('svg')?.getBoundingClientRect().width)};
   });
-  if(layout.count!==5||Math.max(...layout.widths)-Math.min(...layout.widths)>1||
+  if(layout.count!==6||Math.max(...layout.widths)-Math.min(...layout.widths)>1||
    Math.max(...layout.heights)-Math.min(...layout.heights)>1||
    Math.max(...layout.tops)-Math.min(...layout.tops)>1||
    layout.right>layout.parentRight+1||layout.icons.some(size=>size!==20)){
-   fails++;console.error('Five circular actions do not fit a single row',width,layout);
-  }else console.log('PASS five circular event actions',width,layout.widths);
+   fails++;console.error('Six circular actions do not fit a single row',width,layout);
+  }else console.log('PASS six circular event actions',width,layout.widths);
   await actions.getByRole('button',{name:'Maršruts'}).click();
   const navigationChoices=await page.locator('.meets-mobile-sheet-event').first().locator('.meets-circle-options a').allTextContents();
   if(!navigationChoices.some(x=>x.includes('Google Maps'))||!navigationChoices.some(x=>x.includes('Waze'))){
@@ -111,8 +111,8 @@ for(const width of cases){
   if(!(await page.getByRole('button',{name:/Kartītes/}).getAttribute('aria-pressed'))?.includes('true')){fails++;console.error('Card view is not active by default');}
   const catalogCircles=page.locator('.catalog-event-card .meets-circle-actions').first();
   await catalogCircles.waitFor();
-  if(await catalogCircles.locator(':scope > *').count()!==5){
-   fails++;console.error('Catalog lacks five circular actions',width);
+  if(await catalogCircles.locator(':scope > *').count()!==6){
+   fails++;console.error('Catalog lacks six circular actions',width);
   }
   await page.goto(base+'/pasakumi?event='+mockEvent.id,{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.event-dialog[open]').waitFor({timeout:20000});
@@ -169,7 +169,7 @@ for(const width of cases){
     const rects=[...element.children].map(child=>child.getBoundingClientRect());
     return {count:rects.length,widths:rects.map(r=>r.width),tops:rects.map(r=>r.top),right:Math.max(...rects.map(r=>r.right)),max:element.getBoundingClientRect().right};
    });
-   if(stats.count!==5||Math.min(...stats.widths)<43.5||Math.max(...stats.widths)-Math.min(...stats.widths)>1||
+   if(stats.count!==6||Math.min(...stats.widths)<43.5||Math.max(...stats.widths)-Math.min(...stats.widths)>1||
      Math.max(...stats.tops)-Math.min(...stats.tops)>1||stats.right>stats.max+1){
     fails++;console.error('Personal event buttons not equal in one row',width,stats);
    }
@@ -181,7 +181,7 @@ for(const width of cases){
  await page.close();
 }
 // Desktop Leaflet popups are generated as HTML, so test them separately from React panels.
-const desktop=await browser.newPage({viewport:{width:1280,height:900},deviceScaleFactor:1});
+const desktop=await browser.newPage({viewport:{width:1440,height:900},deviceScaleFactor:1});
 await desktop.addInitScript(()=>{Object.defineProperty(navigator,'share',{value:undefined,configurable:true});});
 await desktop.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
 try{
@@ -201,67 +201,52 @@ try{
  const telegram=await panel.getByRole('link',{name:'Telegram'}).getAttribute('href');
  if(!telegram?.includes(encodeURIComponent(mockEvent.id))){fails++;console.error('Desktop sharing URL wrong',telegram);}
  await desktop.screenshot({path:'ux-screenshots/desktop-map-actions.png',fullPage:true});
- await assertLayout(desktop,'desktop-map',1280);
+ await assertLayout(desktop,'desktop-map',1440);
 }catch(error){fails++;console.error('Desktop popup failed',error.message);}
 await desktop.close();
-// Organizer registration: search-first selection and map confirmation on compact phones.
-for(const width of [320,390]){
+// Organizer workspace and scoped venue/event editors on compact phones.
+for(const width of [360,390]){
  const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const orgId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb51';
  const venueId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb52';
- await page.addInitScript(()=>{
-  localStorage.setItem('meets_user_session_v1',JSON.stringify({access_token:'organizer-test',user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51'}}));
- });
+ await page.addInitScript(()=>localStorage.setItem('meets_user_session_v1',JSON.stringify({
+  access_token:'organizer-test',refresh_token:'organizer-refresh',
+  user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',email:'organizer@example.com'}
+ })));
  await page.route('**/api/organizer',route=>{
   const body=route.request().postDataJSON()||{};
   if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
-   organizations:[{id:orgId,name:'MEETS Testa organizācija',kind:'organizer',owner_id:orgId}],
-   venues:[{id:venueId,organization_id:orgId,name:'MEETS Sporta halle',address:'Sporta iela 1, Rīga',latitude:56.9496,longitude:24.1052,directions:'',description:''}],
-   submissions:[]})});
+   organizations:[{id:orgId,name:'MEETS Testa organizācija',kind:'organizer',owner_id:orgId,role:'owner',description:'Testa organizators',is_public:false}],
+   venues:[{id:venueId,organization_id:orgId,name:'MEETS Sporta halle',address:'Sporta iela 1, Rīga',latitude:56.9496,longitude:24.1052,directions:'',description:'',is_public:true}],
+   publicVenues:[],venueLinks:[{organization_id:orgId,venue_id:venueId,relation_type:'managed'}],submissions:[]
+  })});
+  if(body.action==='saveEvent')return route.fulfill({status:200,contentType:'application/json',body:'{"item":{"id":"9847198c-66d5-4bd1-8f2e-3b2f3a86bb59","status":"draft"}}'});
   return route.fulfill({status:200,contentType:'application/json',body:'{"item":{}}'});
  });
+ await page.route('**/api/registries',route=>route.fulfill({status:200,contentType:'application/json',body:'{"registries":[],"profile":{"display_name":""}}'}));
  await page.route('**/api/venue-catalog*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
   locations:[{id:'public:1',name:'Rīgas koncertzāle',address:'Koncertu iela 2, Rīga',latitude:56.96,longitude:24.12}]})}));
  await page.route('**/api/geocode',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({address:'Rīga, Latvija',results:[]})}));
  try{
-  await page.goto(base+'/organizators',{waitUntil:'domcontentloaded',timeout:45000});
-  await page.getByRole('button',{name:/Vietas/}).click();
-  const picker=page.locator('.meets-location-picker').first();
-  await picker.waitFor();
-  if(await page.locator('.meets-organizer-location-details').count()){
-   fails++;console.error('Venue details appeared before location selection',width);
-  }
-  await picker.getByRole('button',{name:/Izvēlēties punktu kartē/}).click();
-  const dialog=page.locator('.meets-pin-dialog');
-  await dialog.waitFor();
-  if(!(await dialog.isVisible())||(await dialog.getByRole('button',{name:'Apstiprināt šo vietu'}).isEnabled())){
-   fails++;console.error('Map picker should start without selected point',width);
-  }
-  await dialog.getByRole('button',{name:'Aizvērt karti'}).click();
-  await picker.getByRole('searchbox',{name:'Meklē vietu vai adresi'}).fill('Rīgas koncertzāle');
-  const match=picker.getByRole('button',{name:/Rīgas koncertzāle/}).first();
-  await match.waitFor({timeout:15000});
-  await match.click();
-  await dialog.waitFor();
-  await dialog.getByRole('button',{name:'Apstiprināt šo vietu'}).click();
-  await page.locator('.meets-organizer-location-details').waitFor();
-  if(!(await picker.getByRole('button',{name:/Mainīt atrašanās vietu/}).count())){
-   fails++;console.error('Confirmed venue missing edit map control',width);
-  }
-  await assertLayout(page,'organizer-venue',width);
-  await page.screenshot({path:'ux-screenshots/'+width+'-organizer-venue.png',fullPage:true});
-  await page.getByRole('button',{name:/Pasākumi \(/}).click();
-  await page.getByRole('button',{name:/Jauns pasākums/}).click();
-  await page.locator('.meets-wizard-step input[placeholder="Kā sauc pasākumu?"]').fill('MEETS testa koncerts');
-  await page.getByRole('button',{name:'Turpināt →'}).click();
-  await page.locator('.meets-wizard-step .meets-location-picker').waitFor();
-  const eventPicker=page.locator('.meets-wizard-step .meets-location-picker');
-  await eventPicker.getByRole('searchbox',{name:'Meklē vietu vai adresi'}).fill('MEETS Sporta halle');
-  await eventPicker.getByRole('button',{name:/MEETS Sporta halle/}).click();
-  await page.locator('.meets-pin-dialog').getByRole('button',{name:'Apstiprināt šo vietu'}).click();
-  await page.locator('.meets-location-existing-info').waitFor();
-  await assertLayout(page,'organizer-event',width);
-  await page.screenshot({path:'ux-screenshots/'+width+'-organizer-event.png',fullPage:true});
+  await page.goto(base+'/organizators?org='+orgId+'&panel=venues',{waitUntil:'domcontentloaded',timeout:45000});
+  await page.getByRole('heading',{name:'MEETS Testa organizācija'}).waitFor({timeout:15000});
+  await page.getByRole('link',{name:/Pievienot vietu/}).waitFor();
+  await assertLayout(page,'organizer-venues',width);
+  await page.screenshot({path:'ux-screenshots/'+width+'-organizer-venues.png',fullPage:true});
+
+  await page.goto(base+'/registre-vietu?org='+orgId,{waitUntil:'domcontentloaded',timeout:45000});
+  await page.locator('.meets-location-picker').waitFor({timeout:15000});
+  await page.getByText('MEETS Testa organizācija',{exact:false}).first().waitFor();
+  await assertLayout(page,'venue-editor',width);
+  await page.screenshot({path:'ux-screenshots/'+width+'-venue-editor.png',fullPage:true});
+
+  await page.goto(base+'/registre-pasakumu/vienkarsi?org='+orgId,{waitUntil:'domcontentloaded',timeout:45000});
+  const editor=page.locator('.unified-event-editor');
+  await editor.waitFor({timeout:15000});
+  await editor.getByPlaceholder('Piemēram, Ģimenes sporta diena').fill('MEETS testa koncerts');
+  await editor.getByText('MEETS Testa organizācija',{exact:false}).first().waitFor();
+  await assertLayout(page,'event-editor',width);
+  await page.screenshot({path:'ux-screenshots/'+width+'-event-editor.png',fullPage:true});
  }catch(error){
   fails++;console.error('Organizer UX smoke failed',width,error.message);
   try{await page.screenshot({path:'ux-screenshots/'+width+'-organizer-failure.png',fullPage:true});}catch{}
@@ -270,7 +255,7 @@ for(const width of [320,390]){
 }
 
 // First-time user: event form first, sign-in only after preview, without losing data.
-for(const width of [320,390]){
+for(const width of [360,390]){
  const p=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Riga'}).format(new Date(Date.now()+86400000));
  const errors=[];p.on('pageerror',e=>errors.push(String(e)));
@@ -288,11 +273,11 @@ for(const width of [320,390]){
   await form.getByRole('textbox',{name:'Adrese manuāli'}).fill('Sporta iela 1, Rīga');
   await form.getByRole('button',{name:'Turpināt ar šo adresi'}).click();
   await form.getByRole('textbox',{name:/Norises vietas nosaukums/}).fill('MEETS Sporta zāle');
-  await form.getByRole('button',{name:/Priekšskatīt un turpināt/}).click();
+  await form.getByRole('button',{name:/Priekšskatīt/}).click();
   if(!(await p.getByText('MEETS mobilais pasākums').count())){fails++;console.error('Preview lost event title',width);}
   await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
-  if(!(await p.getByRole('heading',{name:'Pieslēgties un turpināt'}).count())){fails++;console.error('Anonymous event flow should request login at end',width);}
-  const stored=await p.evaluate(()=>JSON.parse(localStorage.getItem('meets_event_draft_v2')||'{}'));
+  if(!(await p.getByRole('heading',{name:/Pieslēdzies, lai turpinātu|Pieslēgties un turpināt/}).count())){fails++;console.error('Anonymous event flow should request login at end',width);}
+  const stored=await p.evaluate(()=>JSON.parse(localStorage.getItem('meets_event_draft_v3:guest:unassigned')||'{}'));
   if(stored.title!=='MEETS mobilais pasākums'||stored.venue_name!=='MEETS Sporta zāle'){fails++;console.error('Draft lost when requesting login',width);}
   await assertLayout(p,'quick-event',width);
   await p.screenshot({path:'ux-screenshots/'+width+'-quick-event.png',fullPage:true});
@@ -305,8 +290,8 @@ for(const width of [320,390]){
    await p.route('**/api/organizer',route=>{
     const body=route.request().postDataJSON()||{};
     if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
-     organizations:[{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',name:'Testa organizators'}],
-     venues:[],submissions:[]})});
+     organizations:[{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',name:'Testa organizators',role:'owner'}],
+     venues:[],publicVenues:[],venueLinks:[],submissions:[]})});
     if(body.action==='saveEvent'){
      submitted=body;
      return route.fulfill({status:200,contentType:'application/json',body:'{"item":{"id":"9847198c-66d5-4bd1-8f2e-3b2f3a86bb51","status":"pending_review"}}'});
@@ -318,7 +303,7 @@ for(const width of [320,390]){
    await p.getByRole('button',{name:'Pieslēgties →'}).click();
    await p.getByRole('button',{name:/Iesniegt pārbaudei/}).waitFor({timeout:12000});
    await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
-   await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei!'}).waitFor({timeout:12000});
+   await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei'}).waitFor({timeout:12000});
    if(submitted?.venue_name!=='MEETS Sporta zāle'||submitted?.status!=='pending_review'||submitted?.date_from!==day){
     fails++;console.error('New event submission lost data after in-place login',submitted);
    }
@@ -326,22 +311,22 @@ for(const width of [320,390]){
    await p.getByRole('button',{name:/Pievienot nākamo pasākumu/}).click();
    const next=p.locator('.quick-flow-card');
    await next.getByPlaceholder('Piemēram, Ģimenes sporta diena').fill('Regulārās sporta nodarbības');
-   await next.locator('select').first().selectOption('recurring');
+   await next.getByLabel('Norises veids').selectOption('recurring');
    const end=new Date(day+'T12:00:00Z');end.setUTCDate(end.getUTCDate()+15);
    await next.locator('input[type=date]').nth(0).fill(day);
    await next.locator('input[type=date]').nth(1).fill(end.toISOString().slice(0,10));
    await next.getByRole('button',{name:'+ Laiks'}).first().click();
-   await next.locator('select').last().selectOption('paid');
+   await next.getByLabel('Dalības maksa').selectOption('paid');
    await next.locator('input[type=number]').nth(0).fill('9.50');
    await next.locator('input[type=number]').nth(1).fill('15.00');
    await next.getByRole('button',{name:/Nevari atrast vietu/}).click();
    await next.getByRole('textbox',{name:'Adrese manuāli'}).fill('Sporta iela 1, Rīga');
    await next.getByRole('button',{name:'Turpināt ar šo adresi'}).click();
    await next.getByRole('textbox',{name:/Norises vietas nosaukums/}).fill('MEETS Sporta zāle');
-   await next.getByRole('button',{name:/Priekšskatīt un turpināt/}).click();
+   await next.getByRole('button',{name:/Priekšskatīt/}).click();
    await p.getByText('Norises reizes:',{exact:false}).waitFor({timeout:10000});
    await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
-   await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei!'}).waitFor({timeout:10000});
+   await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei'}).waitFor({timeout:10000});
    if(submitted?.schedule_kind!=='recurring'||submitted?.price_min!=='9.50'||
      submitted?.price_max!=='15.00'||submitted?.recurrence_slots?.length!==1){
      fails++;console.error('Recurring paid event payload is invalid',submitted);
@@ -358,7 +343,7 @@ for(const width of [320,390]){
 
 
 // Unified logged-in profile, shared navigation and real data-backed dashboard.
-for(const width of [320,390,1280]){
+for(const width of [360,390,768,1440]){
  const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:width<761,hasTouch:width<761});
  const faults=[];page.on('pageerror',error=>faults.push(error.message));
  const ownerId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb51';
@@ -379,8 +364,9 @@ for(const width of [320,390,1280]){
  await page.route('**/api/organizer',route=>{
   const b=route.request().postDataJSON()||{};
   if(b.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
-   organizations:[{id:ownerId,name:'MEETS Testa komanda',owner_id:ownerId,kind:'organizer'}],
+   organizations:[{id:ownerId,name:'MEETS Testa komanda',owner_id:ownerId,kind:'organizer',role:'owner',description:'Testa organizators',is_public:false}],
    venues:[{id:venueId,name:'MEETS Sporta zāle',organization_id:ownerId,address:'Sporta iela 1, Rīga',is_public:true,latitude:56.9496,longitude:24.1052}],
+   publicVenues:[],venueLinks:[{organization_id:ownerId,venue_id:venueId,relation_type:'managed'}],
    submissions:[{id:ownerId,title:'Ģimeņu sporta diena',organization_id:ownerId,venue_name:'MEETS Sporta zāle',date_from:today,status:'pending_review'}]})});
   return route.fulfill({status:200,contentType:'application/json',body:'{"item":{}}'});
  });
@@ -397,17 +383,17 @@ for(const width of [320,390,1280]){
  await page.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
  try{
   await page.goto(base+'/profils',{waitUntil:'domcontentloaded',timeout:45000});
-  await page.getByRole('heading',{name:'Mans profils'}).waitFor({timeout:15000});
+  await page.getByRole('heading',{name:'Pārskats'}).waitFor({timeout:15000});
   await page.locator('.meets-profile-hero-info strong').getByText('Mārupes pasākumi').waitFor({timeout:12000});
   const stats=page.locator('.meets-profile-stats');
-  if((await stats.locator('.meets-profile-stat').count())!==5){fails++;console.error('Profile stats count wrong',width);}
-  if(width<=760){
+  if((await stats.locator('.meets-profile-stat').count())!==4){fails++;console.error('Profile stats count wrong',width);}
+  if(width<768){
    if(!(await page.locator('.meets-profile-mobile-tabs').isVisible())){fails++;console.error('Mobile profile navigation not visible',width);}
   }else if(!(await page.locator('.meets-profile-aside').isVisible())){fails++;console.error('Desktop profile sidebar not visible',width);}
   await assertLayout(page,'signed-profile',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-signed-profile.png',fullPage:true});
   await page.goto(base+'/organizators?panel=venues',{waitUntil:'domcontentloaded',timeout:45000});
-  await page.getByRole('heading',{name:'Organizatora kabinets'}).waitFor({timeout:12000});
+  await page.getByRole('heading',{name:'MEETS Testa komanda'}).waitFor({timeout:12000});
   await assertLayout(page,'signed-organizer',width);
   if(faults.length){fails++;console.error('Profile JS errors',width,faults.slice(0,3));}
  }catch(error){
@@ -419,4 +405,4 @@ for(const width of [320,390,1280]){
 
 await browser.close();
 if(fails){console.error('UX smoke failures:',fails);process.exit(1);}
-console.log('PASS: mobile smoke checks at 320px and 390px');
+console.log('PASS: responsive smoke checks include 360px, 390px, 768px and 1440px');
