@@ -73,6 +73,8 @@ export default function VenueRegistration(){
     <label>Vietas nosaukums *<input required minLength={2} maxLength={160} value={form.name} onChange={e=>update('name',e.target.value)} placeholder="Piemēram, Mārupes sporta zāle"/></label>
     <label>Adrese<input maxLength={300} value={form.address} onChange={e=>update('address',e.target.value)}/></label>
     {existingId&&<p className="quick-flow-note">✓ Šī vieta jau ir tavā reģistrā. Vari uzreiz izmantot to pasākumam.</p>}
+    <label className="quick-flow-check"><input type="checkbox" checked={form.is_public===true} onChange={e=>update('is_public',e.target.checked)}/>
+     Publiskot norises vietas profilu un tās pasākumu kalendāru</label>
     <details className="quick-flow-details"><summary>Papildu informācija (nav obligāta)</summary>
      <label>Kā nokļūt<textarea rows={2} maxLength={2000} value={form.directions} onChange={e=>update('directions',e.target.value)} placeholder="Ieeja, stāvvieta, sabiedriskais transports…"/></label>
      <label>Vietas apraksts<textarea rows={3} maxLength={4000} value={form.description} onChange={e=>update('description',e.target.value)}/></label></details>
@@ -85,12 +87,14 @@ export default function VenueRegistration(){
    <p>⌖ {form.address||'Precīza vieta norādīta kartē'}</p>
    {isCoordinatePair(form)&&<p className="quick-flow-note">Punkts: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)}</p>}
    {form.description&&<p>{form.description}</p>}
+   <p className="quick-flow-note">{form.is_public?'Publiska vieta: kalendārs būs redzams pēc saglabāšanas.':'Privāta vieta: publiska kalendāra nebūs.'}</p>
    <div className="quick-flow-actions"><button className="button" onClick={()=>setStep('edit')}>← Labot</button>
     <button className="button primary" disabled={busy} onClick={persist}>{busy?'Saglabā…':'Saglabāt vietu →'}</button></div></div>}
   {step==='auth'&&<div className="quick-flow-card"><Authentication onSuccess={onLogin}/>
    <button className="button" type="button" onClick={()=>setStep('preview')}>← Atpakaļ</button></div>}
   {step==='done'&&<div className="quick-flow-card"><div className="quick-flow-success">✓</div><h2>{saved?.name||form.name}</h2>
    <p>Vieta pievienota tavām pastāvīgajām norises vietām.</p>
+   {form.is_public===true&&saved?.id&&<p><Link href={'/vietas/'+saved.id}>Skatīt publisko profilu un iframe kalendāru ↗</Link></p>}
    <div className="quick-flow-actions"><Link className="button primary" href={'/registre-pasakumu/vienkarsi?venue='+saved?.id+'&org='+orgId}>+ Pasākums šajā vietā →</Link>
     <Link className="button" href="/organizators">Manas vietas →</Link></div></div>}
  </section>;
