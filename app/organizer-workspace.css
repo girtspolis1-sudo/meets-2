@@ -104,3 +104,9 @@
 
 .public-venue-map-wrap{margin:0 0 14px;border:1px solid #e6dcea;border-radius:18px;overflow:hidden;background:#f6f2f8}
 .public-venue-map{height:280px;width:100%}
+
+/* Header session switcher for testing multiple user accounts */
+.meets-header-logout{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 15px;border:1px solid #dfccef;border-radius:11px;background:#fff;color:#6b25ab;font:700 13px/1.2 inherit;cursor:pointer;white-space:nowrap}
+.meets-header-logout:hover,.meets-header-logout:focus-visible{background:#f3e9fc;border-color:#9c69c7}
+.meets-header-logout:disabled{opacity:.65;cursor:wait}
+.meets-nav-more-items .meets-header-logout{width:100%;justify-content:flex-start}
