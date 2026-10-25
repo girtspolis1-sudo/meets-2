@@ -25,7 +25,10 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
     {onOpen?<button type="button" className="meets-card-main-action" onClick={()=>onOpen(event.id)}>Skatīt vairāk <span aria-hidden="true">→</span></button>:
      <Link href={detailHref} className="meets-card-main-action">Skatīt vairāk <span aria-hidden="true">→</span></Link>}
    </div>
-   {actions&&<div className="meets-card-secondary-actions"><EventQuickActions event={event}/></div>}
+   {actions&&<details className="meets-card-secondary-actions">
+     <summary>Vairāk darbību</summary>
+     <EventQuickActions event={event}/>
+    </details>}
    {footer&&<div className="meets-card-additional">{footer}</div>}
   </div>
  </article>;
