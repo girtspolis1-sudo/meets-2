@@ -182,7 +182,7 @@ function SimpleEventFlow(){
     <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{
      const file=e.target.files?.[0];if(!file){setImageFile(null);setImagePreview('');return;}
      if(file.size>4*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){
-      setError('Atļauti tikai JPG, PNG, WebP attēli līdz 5 MB.');e.target.value='';return;
+      setError('Atļauti tikai JPG, PNG, WebP attēli līdz 4 MB.');e.target.value='';return;
      }
      setImageFile(file);setImagePreview(URL.createObjectURL(file));setError('');
     }}/></label>
@@ -204,7 +204,7 @@ function SimpleEventFlow(){
    <div className="quick-flow-tags"><span>{form.category}</span><span>{({free:'Bezmaksas',paid:'Maksas',mixed:'Daļēji maksas',unknown:'Cena nav zināma'})[form.price_status]}
     {['paid','mixed'].includes(form.price_status)?' · '+form.price_min+'–'+form.price_max+' EUR':''}</span></div>
    {form.schedule_kind==='recurring'&&<p><strong>Norises reizes:</strong> {countOccurrences(form.date_from,form.date_to,form.recurrence_slots)} atsevišķi pasākumi kartē</p>}
-   {imagePreview&&<img src={imagePreview} alt="" className="quick-event-image"/>
+   {imagePreview&&<img src={imagePreview} alt="" className="quick-event-image"/>}
    {saveVenue&&<p className="quick-flow-note">✓ Vietu saglabāsim tavā profilā turpmākai izmantošanai.</p>}
    <p className="meets-muted">Pēc iesniegšanas ieraksts tiks pārbaudīts. Tas nekļūs publisks automātiski.</p>
    <div className="quick-flow-actions"><button className="button" type="button" onClick={()=>setStage('edit')}>← Labot informāciju</button>
