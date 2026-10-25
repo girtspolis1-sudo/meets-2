@@ -94,3 +94,6 @@
  .meets-add-to-list,.meets-place-favorite button{padding:7px 8px;font-size:10px}
  .meets-card-list-trigger .meets-list-picker{right:auto;left:0}
 }
+
+.meets-discovery-card:has(.meets-list-picker){position:relative;z-index:25}
+.meets-card-list-trigger:has(.meets-list-picker){z-index:30}

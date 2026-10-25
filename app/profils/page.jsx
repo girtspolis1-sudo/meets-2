@@ -54,7 +54,7 @@ export default function ProfilePage(){
  const personal=state?.personal||{},dashboard=state?.dashboard||{},lists=(state?.registries?.registries||[]).filter(x=>!x.organization_id),orgs=state?.organizer?.organizations||[];
  const savedIds=[...new Set([...(personal.favorites||[]),...(personal.plans||[])])];
  const upcoming=savedIds.map(id=>byId.get(id)).filter(e=>e&&String(e.date_to||e.date_from)>=rigaDate()).sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from))).slice(0,5);
- const follows=dashboard.follows||[],followOrg=follows.filter(x=>x.target_kind==='organization').length,followVenue=follows.filter(x=>x.target_kind==='venue').length;
+ const follows=dashboard.follows||[],followOrg=follows.filter(x=>x.target_kind==='organization').length,followVenue=follows.filter(x=>x.target_kind==='venue').length+(dashboard.locationFollows||[]).length;
  const followedOrgIds=new Set(follows.filter(x=>x.target_kind==='organization').map(x=>x.target_id));
  const followedOrgs=(dashboard.directory?.organizations||[]).filter(x=>followedOrgIds.has(x.id)).slice(0,4);
  const display=(state?.registries?.profile?.display_name||'').trim(),email=account?.user?.email||'',nickname=display||email.split('@')[0]||'MEETS lietotājs',initial=(display||email).slice(0,1).toLocaleUpperCase('lv')||'M';
