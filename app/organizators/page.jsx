@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
 import ProfileShell from '../components/profile-shell.jsx';
 import {rigaDate} from '../../lib/meets-personal.js';
+import {resolveOrganizationId,canWriteOrganization} from '../../lib/organizer-workspace.js';
 
 const SESSION='meets_user_session_v1';
 const PANELS=new Set(['overview','events','venues','lists','team','profile']);
@@ -67,8 +68,7 @@ export default function OrganizerPage(){
    const params=new URLSearchParams(window.location.search);
    const requested=params.get('org');
    const requestedPanel=params.get('panel');
-   const validRequested=data.organizations?.some(o=>o.id===requested)?requested:'';
-   const chosen=validRequested||(data.organizations?.length===1?data.organizations[0].id:'');
+   const chosen=resolveOrganizationId(data.organizations,requested);
    setOrgId(chosen);
    setPanel(PANELS.has(requestedPanel)?requestedPanel:'overview');
    setCreating(params.get('new')==='1');
@@ -100,7 +100,7 @@ export default function OrganizerPage(){
 
  const organizations=items.organizations||[];
  const activeOrg=organizations.find(o=>o.id===orgId)||null;
- const canEdit=activeOrg&&activeOrg.role!=='viewer';
+ const canEdit=activeOrg&&canWriteOrganization(activeOrg.role);
  const orgSubmissions=useMemo(()=>items.submissions.filter(x=>x.organization_id===orgId),[items.submissions,orgId]);
  const managedVenues=useMemo(()=>items.venues.filter(v=>v.organization_id===orgId),[items.venues,orgId]);
  const usedVenueIds=useMemo(()=>new Set((items.venueLinks||[]).filter(x=>x.organization_id===orgId&&x.relation_type==='used').map(x=>x.venue_id)),[items.venueLinks,orgId]);
