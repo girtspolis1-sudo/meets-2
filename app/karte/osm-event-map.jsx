@@ -126,6 +126,7 @@ function popupActionIcon(name){
  const icons={
   heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
   calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M12 13v5M9.5 15.5h5"/>',
+  list:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h10M8 14h10M5 9h.01M5 14h.01"/>',
   pin:'<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.8"/>',
   external:'<path d="M13 5h6v6M19 5l-9 9"/><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
   share:'<circle cx="18" cy="5" r="2.2"/><circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="m8 11 8-5m-8 8 8 4"/>'
@@ -150,7 +151,7 @@ function popupActionsHtml(e,favorites,editLink){
   .map(([name,url])=>'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">'+esc(name)+'</a>').join('');
  return '<div class="popup-event-actions meets-event-action-grid meets-circle-actions" role="group" aria-label="Pasākuma darbības">'+
   '<button type="button" class="meets-circle-action popup-save-favorite" data-event-id="'+id+'" aria-label="'+favoriteLabel+'" title="'+favoriteLabel+'" aria-pressed="'+saved+'">'+popupActionIcon('heart')+'<small class="meets-quiet-label">Favorīts</small></button>'+
-  '<a class="meets-circle-action" href="/pasakumi?event='+encodeURIComponent(e.id)+'" aria-label="Pievienot pasākumu sarakstam" title="Pievienot sarakstam">'+popupActionIcon('external')+'<small class="meets-quiet-label">Saraksts</small></a>'+
+  '<a class="meets-circle-action" href="/pasakumi?event='+encodeURIComponent(e.id)+'" aria-label="Pievienot pasākumu sarakstam" title="Pievienot sarakstam">'+popupActionIcon('list')+'<small class="meets-quiet-label">Saraksts</small></a>'+
   button('calendar','Pievienot kalendāram','popup-save-calendar','Kalendārs')+
   (google?'<details class="meets-popup-route"><summary class="meets-circle-action" aria-label="Maršruts" title="Maršruts">'+popupActionIcon('pin')+'<small class="meets-quiet-label">Norādes</small></summary><div class="meets-event-action-choices"><a target="_blank" rel="noopener noreferrer" href="'+esc(google)+'">Google Maps ↗</a>'+(waze?'<a target="_blank" rel="noopener noreferrer" href="'+esc(waze)+'">Waze ↗</a>':'')+'</div></details>'
    :'<button type="button" class="meets-circle-action" disabled aria-label="Nav adreses maršrutam" title="Nav adreses maršrutam">'+popupActionIcon('pin')+'<small class="meets-quiet-label">Norādes</small></button>')+
