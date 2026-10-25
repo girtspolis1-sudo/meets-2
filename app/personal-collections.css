@@ -151,7 +151,7 @@
 .meets-quiet-actions .meets-event-action-grid.meets-circle-actions .meets-circle-action svg{
  width:20px;height:20px;min-width:20px;stroke-width:1.75;
 }
-.meets-quiet-label{font-size:9px;font-weight:650;line-height:1.12;letter-spacing:-.1px;white-space:nowrap;color:inherit}
+.meets-quiet-label{font-size:11px;font-weight:650;line-height:1.12;letter-spacing:-.1px;white-space:nowrap;color:inherit}
 .meets-quiet-actions .meets-event-action-grid.meets-circle-actions .meets-circle-action:is(:hover,:focus-visible){
  background:#f4f3fb;border-color:#e3def7;color:#5852b3;
 }
@@ -181,5 +181,18 @@
  .meets-quiet-event-sheet .meets-mobile-sheet-events{padding-left:10px;padding-right:10px}
  .meets-quiet-event-sheet .meets-mobile-sheet-event{padding:10px}
  .meets-quiet-actions .meets-event-action-grid.meets-circle-actions{gap:1px}
- .meets-quiet-label{font-size:8.6px}
+ .meets-quiet-label{font-size:10.5px}
+}
+
+/* Desktop map popups use the same restrained visual vocabulary. */
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-circle-action,
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-popup-route > .meets-circle-action{
+ background:#fff;border-color:#e5e8f1;color:#7a8098;
+}
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-circle-action:hover,
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-popup-route > .meets-circle-action:hover{
+ background:#f3f0fd;border-color:#cfc4ec;color:#5d4bc2;
+}
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-circle-action[aria-pressed="true"]{
+ background:#ede8ff;border-color:#bcaaf1;color:#5c37c6;
 }
