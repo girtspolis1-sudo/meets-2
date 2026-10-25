@@ -102,3 +102,97 @@
 .meets-map-event-place .meets-place-favorite button{min-height:44px}
 .meets-popup-venue-link{display:inline-block;margin:9px 0 2px;color:#5b50df;font-size:11px;font-weight:750;text-decoration:none}
 .meets-popup-venue-link:hover{text-decoration:underline}
+
+/* Quiet event actions, based on common event and maps interaction patterns.
+   Event content remains dominant, stateful actions get distinct contrast. */
+.meets-quiet-event-sheet.meets-mobile-event-sheet{
+ background:#fff;border-color:#e6e8f2;border-radius:22px 22px 0 0;
+ box-shadow:0 -12px 32px rgba(24,28,63,.14);
+}
+.meets-quiet-event-sheet .meets-mobile-sheet-title{padding:9px 15px 12px;gap:10px}
+.meets-quiet-event-sheet .meets-sheet-venue{min-width:0;flex:1}
+.meets-quiet-event-sheet .meets-mobile-sheet-title strong{font-size:16px;line-height:1.34;display:block;color:#1c2443}
+.meets-quiet-event-sheet .meets-mobile-sheet-title small{font-size:11px;color:#828ba2}
+.meets-sheet-venue-follow{margin-top:7px;display:flex;align-items:center}
+.meets-sheet-venue-follow .meets-place-favorite button{min-height:36px;padding:6px 10px;font-size:11px}
+.meets-quiet-event-sheet .meets-mobile-sheet-events{padding:6px 12px 16px}
+.meets-quiet-event-sheet .meets-mobile-sheet-event{
+ border:1px solid #e9ebf2;border-radius:13px;padding:12px;
+ margin:7px 0 11px;background:#fff;opacity:1;
+}
+.meets-quiet-event-sheet .meets-mobile-sheet-event.is-highlighted{
+ background:#fbfaff;border-color:#d7cef4;box-shadow:0 3px 10px rgba(82,65,143,.055)
+}
+.meets-quiet-event-sheet .meets-mobile-sheet-event.outside{background:#fff;opacity:.86}
+.meets-quiet-event-sheet .meets-mobile-sheet-event.outside h3{color:#454a62}
+.meets-quiet-event-sheet .meets-mobile-sheet-event-top{gap:8px}
+.meets-quiet-event-sheet .meets-mobile-sheet-event-top small{font-size:11px;color:#7e839a}
+.meets-quiet-event-sheet .meets-mobile-sheet-event h3{font-size:16px;line-height:1.34;margin:8px 0 6px;letter-spacing:-.3px}
+.meets-quiet-event-sheet .meets-mobile-sheet-meta{font-size:12px;line-height:1.42;margin:5px 0;color:#737e98}
+.meets-quiet-event-sheet .meets-sheet-primary-date{color:#4b5476;font-weight:650}
+.meets-quiet-event-sheet .meets-sheet-address{display:flex;gap:7px;align-items:flex-start;min-width:0}
+.meets-quiet-event-sheet .meets-sheet-address>span:last-child{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.meets-quiet-event-sheet .meets-sheet-source{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.meets-sheet-description-details{font-size:11px;color:#757c97;margin:6px 0}
+.meets-sheet-description-details summary,.meets-sheet-more-actions summary{font-size:11px;color:#696e92;cursor:pointer;padding:5px 0;font-weight:650}
+.meets-sheet-description-details p{margin:5px 0;line-height:1.55;color:#6b728d;overflow-wrap:anywhere}
+.meets-sheet-more-actions{margin-top:4px}
+.meets-quiet-event-sheet .meets-mobile-sheet-outside-label{font-size:10px;margin:4px 0 0}
+.meets-quiet-actions.meets-event-actions-wrapper{margin:5px 0 0}
+.meets-quiet-actions .meets-event-action-grid.meets-circle-actions{
+ max-width:none;gap:3px;margin:7px 0 2px;grid-template-columns:repeat(6,minmax(0,1fr))
+}
+.meets-quiet-actions .meets-event-action-grid.meets-circle-actions > .meets-circle-action{
+ display:flex;flex-direction:column;gap:3px;justify-content:center;align-items:center;
+ border-radius:10px;width:100%;max-width:52px;min-height:54px;height:54px;
+ aspect-ratio:auto;background:#fff;border:1px solid transparent;color:#7c8093;
+ padding:5px 1px;
+}
+.meets-quiet-actions .meets-event-action-grid.meets-circle-actions .meets-circle-action svg{
+ width:20px;height:20px;min-width:20px;stroke-width:1.75;
+}
+.meets-quiet-label{font-size:11px;font-weight:650;line-height:1.12;letter-spacing:-.1px;white-space:nowrap;color:inherit}
+.meets-quiet-actions .meets-event-action-grid.meets-circle-actions .meets-circle-action:is(:hover,:focus-visible){
+ background:#f4f3fb;border-color:#e3def7;color:#5852b3;
+}
+.meets-quiet-actions .meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-expanded="true"],
+.meets-quiet-actions .meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-pressed="true"]{
+ background:#eee9ff;border-color:#c7b8fa;color:#5d37c9;
+}
+.meets-quiet-actions .meets-event-action-grid.meets-circle-actions .meets-circle-action[aria-pressed="true"] svg{
+ fill:currentColor;
+}
+.meets-place-favorite.compact button{
+ min-height:36px;padding:6px 10px;border-radius:9px;
+ border:1px solid #e4e6f0;background:#fff;color:#727991;
+ font-size:10px;font-weight:700;gap:5px;
+}
+.meets-place-favorite.compact button svg{width:15px;height:15px}
+.meets-place-favorite.compact button.active{background:#edeaff;border-color:#c5b6f4;color:#5c3cc5}
+.meets-place-favorite.compact button:hover{border-color:#b8abed;color:#5341ba}
+.meets-card-location-line,.meets-detail-location-line{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
+.meets-card-location-line>span{min-width:0;flex:1 1 120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meets-card-location-line .meets-place-favorite{flex:none}
+.meets-detail-location-line>span{min-width:0;flex:1 1 160px;overflow-wrap:anywhere;font-size:12px;color:#6a7391}
+.meets-detail-location-line>span strong{font-weight:650;color:#424c70}
+.meets-popup-venue-inline{display:inline-flex;width:max-content;margin:3px 0 5px;text-decoration:none!important;color:#655c94;font-size:11px;font-weight:650}
+.meets-popup-venue-inline:hover{color:#5137c9;text-decoration:underline!important}
+@media(max-width:390px){
+ .meets-quiet-event-sheet .meets-mobile-sheet-events{padding-left:10px;padding-right:10px}
+ .meets-quiet-event-sheet .meets-mobile-sheet-event{padding:10px}
+ .meets-quiet-actions .meets-event-action-grid.meets-circle-actions{gap:1px}
+ .meets-quiet-label{font-size:10.5px}
+}
+
+/* Desktop map popups use the same restrained visual vocabulary. */
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-circle-action,
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-popup-route > .meets-circle-action{
+ background:#fff;border-color:#e5e8f1;color:#7a8098;
+}
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-circle-action:hover,
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-popup-route > .meets-circle-action:hover{
+ background:#f3f0fd;border-color:#cfc4ec;color:#5d4bc2;
+}
+.meets-event-popup .popup-event-actions.meets-circle-actions > .meets-circle-action[aria-pressed="true"]{
+ background:#ede8ff;border-color:#bcaaf1;color:#5c37c6;
+}

@@ -29,7 +29,7 @@ async function copyLink(value){
 }
 function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch{return null;}}
 
-export default function EventQuickActions({event,saved,onSave,onCalendar,compact=false,disabledFavorite=false,favoriteOnly=false,listOnly=false}){
+export default function EventQuickActions({event,saved,onSave,onCalendar,compact=false,disabledFavorite=false,favoriteOnly=false,listOnly=false,quiet=false}){
  const [localSaved,setLocalSaved]=useState(false),[busy,setBusy]=useState(false),[menu,setMenu]=useState(''),[status,setStatus]=useState('');
  const [registries,setRegistries]=useState([]),[listLoading,setListLoading]=useState(false),[newList,setNewList]=useState('');
  const controlled=typeof saved==='boolean'&&typeof onSave==='function',isSaved=controlled?saved:localSaved;
@@ -118,14 +118,14 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
   </button>{listPicker}{status&&<small role="status" className="meets-card-list-status">{status}</small>}
  </div>;
   const opts=[{label:'WhatsApp',href:targets.whatsapp},{label:'Messenger',href:targets.messenger},{label:'Telegram',href:targets.telegram},{label:'Facebook',href:targets.facebook},{label:'X',href:targets.x}];
- return <div className={'meets-event-actions-wrapper'+(compact?' compact':'')}>
+ return <div className={'meets-event-actions-wrapper'+(compact?' compact':'')+(quiet?' meets-quiet-actions':'')}>
   <div className="meets-event-action-grid meets-circle-actions" role="group" aria-label={'Pasākuma darbības: '+(event.title||'Pasākums')}>
-   <button type="button" className="meets-circle-action" aria-pressed={isSaved} aria-label={isSaved?'Noņemt no saglabātajiem':'Saglabāt pasākumu'} title={isSaved?'Noņemt no saglabātajiem':'Saglabāt'} disabled={busy||disabledFavorite} onClick={favorite}><Icon name="heart"/></button>
-   <button type="button" className="meets-circle-action" aria-label="Pievienot sarakstam" aria-expanded={menu==='lists'} title="Pievienot sarakstam" disabled={listLoading} onClick={()=>menu==='lists'?setMenu(''):loadLists()}><Icon name="list"/></button>
-   <button type="button" className="meets-circle-action" aria-label="Pievienot kalendāram" title="Kalendārā" onClick={calendar}><Icon name="calendar"/></button>
-   <button type="button" className="meets-circle-action" aria-label="Maršruts" title="Maršruts" aria-expanded={menu==='route'} disabled={!links.google} onClick={()=>{setStatus('');setMenu(previous=>previous==='route'?'':'route');}}><Icon name="pin"/></button>
-   {official?<a className="meets-circle-action" href={official} target="_blank" rel="noopener noreferrer" aria-label="Oficiālā pasākuma lapa" title="Oficiālā lapa"><Icon name="external"/></a>:<span className="meets-circle-action disabled" aria-label="Nav oficiālās saites" title="Nav oficiālās saites"><Icon name="external"/></span>}
-   <button type="button" className="meets-circle-action" aria-label="Dalīties ar pasākumu" aria-expanded={menu==='share'} title="Dalīties" onClick={share}><Icon name="share"/></button>
+   <button type="button" className="meets-circle-action" aria-pressed={isSaved} aria-label={isSaved?'Noņemt no saglabātajiem':'Saglabāt pasākumu'} title={isSaved?'Noņemt no saglabātajiem':'Saglabāt'} disabled={busy||disabledFavorite} onClick={favorite}><Icon name="heart"/>{quiet&&<small className="meets-quiet-label">Favorīts</small>}</button>
+   <button type="button" className="meets-circle-action" aria-label="Pievienot sarakstam" aria-expanded={menu==='lists'} title="Pievienot sarakstam" disabled={listLoading} onClick={()=>menu==='lists'?setMenu(''):loadLists()}><Icon name="list"/>{quiet&&<small className="meets-quiet-label">Saraksts</small>}</button>
+   <button type="button" className="meets-circle-action" aria-label="Pievienot kalendāram" title="Kalendārā" onClick={calendar}><Icon name="calendar"/>{quiet&&<small className="meets-quiet-label">Kalendārs</small>}</button>
+   <button type="button" className="meets-circle-action" aria-label="Maršruts" title="Maršruts" aria-expanded={menu==='route'} disabled={!links.google} onClick={()=>{setStatus('');setMenu(previous=>previous==='route'?'':'route');}}><Icon name="pin"/>{quiet&&<small className="meets-quiet-label">Norādes</small>}</button>
+   {official?<a className="meets-circle-action" href={official} target="_blank" rel="noopener noreferrer" aria-label="Oficiālā pasākuma lapa" title="Oficiālā lapa"><Icon name="external"/>{quiet&&<small className="meets-quiet-label">Atvērt</small>}</a>:<span className="meets-circle-action disabled" aria-label="Nav oficiālās saites" title="Nav oficiālās saites"><Icon name="external"/>{quiet&&<small className="meets-quiet-label">Atvērt</small>}</span>}
+   <button type="button" className="meets-circle-action" aria-label="Dalīties ar pasākumu" aria-expanded={menu==='share'} title="Dalīties" onClick={share}><Icon name="share"/>{quiet&&<small className="meets-quiet-label">Dalīties</small>}</button>
   </div>
   {menu==='route'&&<div className="meets-circle-options" role="group" aria-label="Maršruta izvēle"><a href={links.google} target="_blank" rel="noopener noreferrer">Google Maps ↗</a>{links.waze&&<a href={links.waze} target="_blank" rel="noopener noreferrer">Waze ↗</a>}</div>}
   {menu==='share'&&<div className="meets-circle-options" role="group" aria-label="Kopīgot pasākumu">{opts.map(option=><a href={option.href} key={option.label} target="_blank" rel="noopener noreferrer">{option.label}</a>)}<button type="button" onClick={copy}>Kopēt saiti <span aria-hidden="true">⧉</span></button></div>}

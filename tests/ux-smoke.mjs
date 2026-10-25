@@ -67,8 +67,15 @@ for(const width of cases){
   await marker.waitFor({timeout:15000});
   await marker.click({force:true});
   await page.locator('.meets-mobile-event-sheet').waitFor({timeout:10000});
-  if(!(await page.getByRole('button',{name:/Pievienot iecienītajām vietām/}).count())){
-   fails++;console.error('Missing event venue favorite in mobile map sheet',width);
+  const nearVenue=page.locator('.meets-mobile-sheet-title .meets-sheet-venue-follow');
+  if(!(await nearVenue.getByRole('button',{name:/Pievienot iecienītajām vietām/}).count())){
+   fails++;console.error('Missing venue follow next to location title',width);
+  }
+  if(await page.locator('.meets-mobile-sheet-event .meets-place-favorite').count()){
+   fails++;console.error('Venue follow duplicated under event actions',width);
+  }
+  if(!(await page.locator('.meets-mobile-sheet-event.is-highlighted').count())){
+   fails++;console.error('Selected event is not visually highlighted',width);
   }
   const sheet=await page.locator('.meets-mobile-event-sheet').boundingBox();
   if(!sheet||sheet.x<0||sheet.x+sheet.width>width+2||sheet.y+sheet.height>844+2){
@@ -83,6 +90,9 @@ for(const width of cases){
     tops:rects.map(r=>r.top),right:Math.max(...rects.map(r=>r.right)),
     parentRight:wrap.right,icons:tiles.map(x=>x.querySelector('svg')?.getBoundingClientRect().width)};
   });
+  if((await actions.locator('.meets-quiet-label').count())!==6){
+   fails++;console.error('Quiet actions missing visible descriptions',width);
+  }
   if(layout.count!==6||Math.max(...layout.widths)-Math.min(...layout.widths)>1||
    Math.max(...layout.heights)-Math.min(...layout.heights)>1||
    Math.max(...layout.tops)-Math.min(...layout.tops)>1||

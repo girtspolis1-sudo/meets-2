@@ -19,10 +19,10 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
    <div className="meets-discovery-card-title-row"><h3>{event.title}</h3>{price&&<span className={'meets-discovery-price'+(event.price_status==='free'?' is-free':'')}>{price}</span>}</div>
    <div className="meets-discovery-card-facts">
     <span><span aria-hidden="true">▦</span> {cardDate(event)}</span>
-    <span><span aria-hidden="true">⌖</span> {cardLocation(event)}</span>
+    <div className="meets-card-location-line"><span><span aria-hidden="true">⌖</span> {cardLocation(event)}</span><EventVenueFavorite event={event} compact/></div>
    </div>
    {summary?<p className="meets-discovery-description">{summary}</p>:<p className="meets-discovery-description is-empty">Vairāk par pasākumu un norisi</p>}
-   <div className="meets-card-curation-row"><EventQuickActions event={event} listOnly/><EventVenueFavorite event={event} compact/></div>
+   <div className="meets-card-curation-row"><EventQuickActions event={event} listOnly/></div>
    <div className="meets-discovery-card-cta">
     {onOpen?<button type="button" className="meets-card-main-action" onClick={()=>onOpen(event.id)}>Skatīt vairāk <span aria-hidden="true">→</span></button>:
      <Link href={detailHref} className="meets-card-main-action">Skatīt vairāk <span aria-hidden="true">→</span></Link>}
