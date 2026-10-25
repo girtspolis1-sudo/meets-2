@@ -1,217 +1,338 @@
 'use client';
-import {useEffect,useState} from 'react';
 import Link from 'next/link';
-import {rigaDate} from '../../lib/meets-personal.js';
-import {EVENT_CATEGORIES} from '../../lib/event-entry.js';
-import VenueLocationPicker from './venue-location-picker.jsx';
-import WeeklySchedule from '../components/weekly-schedule.jsx';
+import {useEffect,useMemo,useState} from 'react';
 import ProfileShell from '../components/profile-shell.jsx';
-import {countOccurrences,cleanPrice} from '../../lib/event-schedule.js';
+import {rigaDate} from '../../lib/meets-personal.js';
 
 const SESSION='meets_user_session_v1';
-const EMPTY_VENUE={name:'',address:'',latitude:'',longitude:'',directions:'',description:'',is_public:false};
-const EMPTY={id:'',organization_id:'',venue_id:'',title:'',description:'',category:'Cits',date_from:'',date_to:'',time_from:'',time_to:'',venue_name:'',address:'',latitude:'',longitude:'',price_status:'free',price_min:'',price_max:'',recurrence_slots:[],schedule_kind:'once',recurrence_note:'',status:'draft'};
-async function call(action,values={}){
- let session;try{session=JSON.parse(localStorage.getItem(SESSION)||'null');}catch{}
- if(!session?.access_token)throw Error('Pieslēdzies sadaļā “Mani pasākumi”.');
- const response=await fetch('/api/organizer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token:session.access_token,...values})});
- const result=await response.json();if(!response.ok)throw Error(result.error||'Neizdevās saglabāt.');return result;
+const PANELS=new Set(['overview','events','venues','lists','team','profile']);
+const STATUS_LABELS={draft:'Melnraksts',pending_review:'Pārbaudē',rejected:'Jālabo',published:'Publicēts',closed:'Slēgts',archived:'Arhivēts',cancelled:'Atcelts'};
+const ROLE_LABELS={owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'};
+
+function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION)||'null');}catch{return null;}}
+async function rpc(action,values={},session=sessionRead()){
+ if(!session?.access_token)throw Error('Pieslēdzies MEETS kontā.');
+ const response=await fetch('/api/organizer',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',
+  body:JSON.stringify({action,token:session.access_token,...values})});
+ const body=await response.json().catch(()=>({}));
+ if(!response.ok){const error=new Error(body.error||'Darbība neizdevās.');error.status=response.status;throw error;}
+ return body;
 }
-const CATEGORIES=EVENT_CATEGORIES;
-function hasLocationPoint(value){
- const latitude=value?.latitude,longitude=value?.longitude;
- return latitude!==''&&latitude!=null&&longitude!==''&&longitude!=null&&
-  Number.isFinite(Number(latitude))&&Number.isFinite(Number(longitude))&&
-  Math.abs(Number(latitude))<=90&&Math.abs(Number(longitude))<=180;
+async function refreshSession(session){
+ if(!session?.refresh_token)throw Error('Sesija beigusies.');
+ const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'refresh',token:session.refresh_token})});
+ const body=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(body.error||'Sesija beigusies.');
+ const value={...body,expires_at:Date.now()+(body.expires_in||3600)*1000};
+ localStorage.setItem(SESSION,JSON.stringify(value));
+ window.dispatchEvent(new Event('meets-user-changed'));
+ return value;
 }
-export default function OrganizerPage({initialKind='organizer'}){
- const [items,setItems]=useState({organizations:[],venues:[],submissions:[]});
- const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
- const [panel,setPanel]=useState(initialKind==='venue'?'venues':'events'),[orgName,setOrgName]=useState(''),[orgKind,setOrgKind]=useState(initialKind);
- const [orgId,setOrgId]=useState(''),[venue,setVenue]=useState(EMPTY_VENUE);
- const [draft,setDraft]=useState(EMPTY),[editing,setEditing]=useState(false),[draftStep,setDraftStep]=useState(0);
- const [team,setTeam]=useState([]),[inviteRole,setInviteRole]=useState('editor'),[inviteLink,setInviteLink]=useState(''),[currentUserId,setCurrentUserId]=useState('');
- async function refresh(){const data=await call('list');setItems(data);setOrgId(current=>current&&data.organizations.some(org=>org.id===current)?current:(data.organizations[0]?.id||''));}
+function statusClass(status){return 'org-status org-status-'+String(status||'draft').replaceAll('_','-');}
+function eventDate(item){return item.date_from||'Datums nav norādīts';}
+function future(item){const end=item.date_to||item.date_from;return end?end>=rigaDate():true;}
+
+export default function OrganizerPage(){
+ const [session,setSession]=useState(null);
+ const [items,setItems]=useState({organizations:[],venues:[],publicVenues:[],venueLinks:[],submissions:[]});
+ const [orgId,setOrgId]=useState('');
+ const [panel,setPanel]=useState('overview');
+ const [loaded,setLoaded]=useState(false);
+ const [busy,setBusy]=useState(false);
+ const [error,setError]=useState('');
+ const [notice,setNotice]=useState('');
+ const [creating,setCreating]=useState(false);
+ const [newOrg,setNewOrg]=useState({name:'',description:''});
+ const [profile,setProfile]=useState(null);
+ const [profileDirty,setProfileDirty]=useState(false);
+ const [team,setTeam]=useState([]);
+ const [inviteRole,setInviteRole]=useState('editor');
+ const [inviteLink,setInviteLink]=useState('');
+ const [lists,setLists]=useState([]);
+ const [filters,setFilters]=useState({status:'all',time:'upcoming',query:'',venue:''});
+
+ async function load(startSession=sessionRead()){
+  if(!startSession?.access_token){setLoaded(true);return;}
+  let current=startSession;
+  try{
+   let data;
+   try{data=await rpc('list',{},current);}
+   catch(e){
+    if(e.status!==401)throw e;
+    current=await refreshSession(current);
+    data=await rpc('list',{},current);
+   }
+   setSession(current);
+   setItems(data);
+   const params=new URLSearchParams(window.location.search);
+   const requested=params.get('org');
+   const requestedPanel=params.get('panel');
+   const validRequested=data.organizations?.some(o=>o.id===requested)?requested:'';
+   const chosen=validRequested||(data.organizations?.length===1?data.organizations[0].id:'');
+   setOrgId(chosen);
+   setPanel(PANELS.has(requestedPanel)?requestedPanel:'overview');
+   setCreating(params.get('new')==='1');
+   setFilters({
+    status:params.get('status')||'all',
+    time:params.get('time')||'upcoming',
+    query:params.get('q')||'',
+    venue:params.get('venue')||''
+   });
+   if(chosen&&data.organizations?.length===1&&!requested)replaceUrl(chosen,PANELS.has(requestedPanel)?requestedPanel:'overview');
+   const invite=params.get('invite');
+   if(invite){
+    await rpc('acceptInvite',{invite_token:invite},current);
+    const refreshed=await rpc('list',{},current);setItems(refreshed);
+    const joined=refreshed.organizations?.find(o=>o.id===requested)||refreshed.organizations?.[0];
+    if(joined){setOrgId(joined.id);setPanel('team');replaceUrl(joined.id,'team');}
+    setNotice('Uzaicinājums pieņemts.');
+   }
+  }catch(e){setError(e.message);}
+  finally{setLoaded(true);}
+ }
+
+ useEffect(()=>{load();},[]);
  useEffect(()=>{
-  try{setCurrentUserId(JSON.parse(localStorage.getItem(SESSION)||'null')?.user?.id||'');}catch{}
-  refresh().catch(e=>setError(e.message));
-  const desiredPanel=new URLSearchParams(window.location.search).get('panel');
-  if(['venues','events','team'].includes(desiredPanel))setPanel(desiredPanel);
-  const invite=new URLSearchParams(window.location.search).get('invite');
-  if(invite){
-   call('acceptInvite',{invite_token:invite}).then(()=>{window.history.replaceState(null,'',window.location.pathname);setNotice('Uzaicinājums pieņemts.');refresh();setPanel('team');}).catch(e=>setError(e.message));
+  const beforeUnload=e=>{if(profileDirty){e.preventDefault();e.returnValue='';}};
+  window.addEventListener('beforeunload',beforeUnload);
+  return()=>window.removeEventListener('beforeunload',beforeUnload);
+ },[profileDirty]);
+
+ const organizations=items.organizations||[];
+ const activeOrg=organizations.find(o=>o.id===orgId)||null;
+ const canEdit=activeOrg&&activeOrg.role!=='viewer';
+ const orgSubmissions=useMemo(()=>items.submissions.filter(x=>x.organization_id===orgId),[items.submissions,orgId]);
+ const managedVenues=useMemo(()=>items.venues.filter(v=>v.organization_id===orgId),[items.venues,orgId]);
+ const usedVenueIds=useMemo(()=>new Set((items.venueLinks||[]).filter(x=>x.organization_id===orgId&&x.relation_type==='used').map(x=>x.venue_id)),[items.venueLinks,orgId]);
+ const usedVenues=useMemo(()=>[...(items.publicVenues||[]),...(items.venues||[])].filter(v=>usedVenueIds.has(v.id)),[items.publicVenues,items.venues,usedVenueIds]);
+
+ useEffect(()=>{
+  if(activeOrg){setProfile({...activeOrg});setProfileDirty(false);}
+  else setProfile(null);
+ },[activeOrg?.id,activeOrg?.updated_at]);
+
+ useEffect(()=>{
+  if(!session||!orgId)return;
+  if(panel==='team')rpc('team',{organization_id:orgId},session).then(x=>setTeam(x.team||[])).catch(e=>setError(e.message));
+  if(panel==='lists'){
+   fetch('/api/registries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',token:session.access_token})})
+    .then(async r=>{const b=await r.json();if(!r.ok)throw Error(b.error||'Sarakstus neizdevās ielādēt.');return b;})
+    .then(b=>setLists((b.registries||[]).filter(x=>x.organization_id===orgId)))
+    .catch(e=>setError(e.message));
   }
- },[]);
- useEffect(()=>{if(orgId&&panel==='team')call('team',{organization_id:orgId}).then(data=>setTeam(data.team||[])).catch(e=>setError(e.message));},[orgId,panel]);
- async function perform(action,values,onSuccess){setBusy(true);setError('');setNotice('');try{await call(action,values);await refresh();onSuccess?.();setNotice('Saglabāts.');}catch(e){setError(e.message);}finally{setBusy(false);}}
+ },[panel,orgId,session?.access_token]);
+
+ function replaceUrl(nextOrg=orgId,nextPanel=panel,extra={}){
+  const params=new URLSearchParams();
+  if(nextOrg)params.set('org',nextOrg);
+  if(nextPanel)params.set('panel',nextPanel);
+  const merged={...filters,...extra};
+  if(nextPanel==='events'){
+   if(merged.status&&merged.status!=='all')params.set('status',merged.status);
+   if(merged.time&&merged.time!=='upcoming')params.set('time',merged.time);
+   if(merged.query)params.set('q',merged.query);
+   if(merged.venue)params.set('venue',merged.venue);
+  }
+  window.history.replaceState(null,'','/organizators'+(params.toString()?'?'+params.toString():''));
+ }
+ function chooseOrganization(id){
+  if(profileDirty&&!window.confirm('Organizatora profilā ir nesaglabātas izmaiņas. Pārslēgt organizatoru un tās atmest?'))return;
+  setOrgId(id);setPanel('overview');setError('');setNotice('');setProfileDirty(false);
+  replaceUrl(id,'overview');
+ }
+ function choosePanel(next){
+  if(profileDirty&&panel==='profile'&&!window.confirm('Ir nesaglabātas profila izmaiņas. Turpināt bez saglabāšanas?'))return;
+  setPanel(next);setProfileDirty(false);replaceUrl(orgId,next);
+ }
+ async function perform(action,values,onDone){
+  setBusy(true);setError('');setNotice('');
+  try{
+   const result=await rpc(action,values,session);
+   const data=await rpc('list',{},session);setItems(data);
+   onDone?.(result,data);
+   setNotice('Saglabāts.');
+  }catch(e){setError(e.message);}
+  finally{setBusy(false);}
+ }
+ async function createOrganization(e){
+  e.preventDefault();
+  await perform('createOrganization',{name:newOrg.name,description:newOrg.description,kind:'organizer'},(result)=>{
+   const id=result.item?.id;if(!id)return;
+   setNewOrg({name:'',description:''});setCreating(false);setOrgId(id);setPanel('overview');replaceUrl(id,'overview');
+  });
+ }
+ async function saveProfile(e){
+  e.preventDefault();if(!profile||!orgId)return;
+  await perform('updateOrganization',{organization_id:orgId,...profile},()=>setProfileDirty(false));
+ }
  async function createInvitation(){
   setBusy(true);setError('');setInviteLink('');
   try{
-   const result=await call('invite',{organization_id:orgId,role:inviteRole});
-   const link=window.location.origin+'/organizators?invite='+result.invite.token;
+   const result=await rpc('invite',{organization_id:orgId,role:inviteRole},session);
+   const link=window.location.origin+'/organizators?invite='+result.invite.token+'&org='+orgId;
    setInviteLink(link);
    try{await navigator.clipboard.writeText(link);setNotice('Uzaicinājuma saite nokopēta.');}catch{setNotice('Uzaicinājuma saite sagatavota.');}
-  }catch(e){setError(e.message);}finally{setBusy(false);}
+  }catch(e){setError(e.message);}
+  finally{setBusy(false);}
  }
- const organizations=items.organizations,venues=items.venues.filter(v=>v.organization_id===orgId),submissions=items.submissions.filter(e=>e.organization_id===orgId);
- function edit(item){setDraft({...EMPTY,...item});setDraftStep(0);setEditing(true);setPanel('events');}
- function chooseVenueLocation(place){
-  if(place.venueId){
-   const existing=venues.find(item=>item.id===place.venueId);
-   if(existing){
-    setVenue({...existing,latitude:existing.latitude??'',longitude:existing.longitude??''});
-    setNotice('Vieta jau ir saglabāta. Atvērta esošās vietas labošana, nevis jauna dublikāta veidošana.');
-    return;
-   }
-  }
-  setVenue(current=>({...current,
-   name:current.id?current.name:(place.name||current.name),
-   address:place.address||'',
-   latitude:place.latitude,longitude:place.longitude
-  }));
-  setNotice('');
- }
- function chooseEventLocation(place){
-  const existing=place.venueId?venues.find(item=>item.id===place.venueId):null;
-  setDraft(current=>({...current,
-   venue_id:existing?.id||'',venue_name:existing?.name||place.name||'',
-   address:existing?.address||place.address||'',
-   latitude:existing?.latitude??place.latitude,longitude:existing?.longitude??place.longitude
-  }));
+ function changeFilter(key,value){
+  const next={...filters,[key]:value};setFilters(next);replaceUrl(orgId,'events',next);
  }
 
- function advanceDraft(){
-  if(draftStep===0&&draft.title.trim().length<3){setError('Ievadi pasākuma nosaukumu (vismaz 3 rakstzīmes).');return;}
-  if(draftStep===1&&(!draft.date_from||(!draft.venue_id&&(!draft.venue_name.trim()||(!draft.address.trim()&&!hasLocationPoint(draft)))))){setError('Norādi pasākuma datumu, norises vietas nosaukumu un adresi vai punktu kartē.');return;}
-  if(draftStep===1&&draft.date_to&&draft.date_to<draft.date_from){setError('Beigu datums nevar būt pirms pasākuma sākuma datuma.');return;}
-  if(draftStep===1&&!draft.venue_id&&((draft.latitude!==''&&draft.latitude!=null)!==(draft.longitude!==''&&draft.longitude!=null))){setError('Norādi abas koordinātas vai atzīmē vietu kartē.');return;}
-  if(draftStep===1){
-   try{
-    cleanPrice(draft.price_status,draft.price_min,draft.price_max);
-    if(draft.schedule_kind==='recurring')countOccurrences(draft.date_from,draft.date_to,draft.recurrence_slots);
-   }catch(e){setError(e.message);return;}
-  }
-  setError('');setDraftStep(step=>Math.min(2,step+1));
- }
- return <ProfileShell><section className="meets-organizer-page">
-  <div className="meets-account-heading"><div><p className="eyebrow">MEETS</p><h1>Organizatora kabinets</h1><p className="meets-muted">Pasākumi, vietas un komanda.</p></div><Link className="button" href="/registre-pasakumu/vienkarsi">+ Pievienot pasākumu ↗</Link></div>
-  {error&&<p className="meets-inline-error" role="alert">{error}</p>}
-  {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
-  {!organizations.length?<form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('createOrganization',{name:orgName,kind:orgKind},()=>{setOrgName('');setPanel(orgKind==='venue'?'venues':'events');});}}>
-   <h2>Izveido organizatora profilu</h2><p className="meets-muted">Sāc ar organizāciju vai pastāvīgu norises vietu.</p>
-   <label>Profila nosaukums<input required minLength={2} maxLength={160} value={orgName} onChange={e=>setOrgName(e.target.value)} placeholder="Organizācija, klubs vai norises vieta"/></label>
-   <label>Profila tips<select value={orgKind} onChange={e=>setOrgKind(e.target.value)}><option value="organizer">Pasākumu organizators</option><option value="venue">Pastāvīgas vietas pārvaldnieks</option></select></label>
-   <button className="button primary" disabled={busy} type="submit">Izveidot →</button>
-  </form>:<>
-   <div className="meets-organizer-bar"><select aria-label="Organizācija" value={orgId} onChange={e=>{setOrgId(e.target.value);setEditing(false);setVenue({...EMPTY_VENUE});setDraft({...EMPTY});}}>{organizations.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select>
-    <button className="button" onClick={()=>setPanel('newOrg')}>+ Organizācija</button></div>
-   <div className="meets-account-tabs" role="group" aria-label="Organizatora darba sadaļas"><button type="button" aria-pressed={panel==='events'} className={panel==='events'?'active':''} onClick={()=>setPanel('events')}>▣ Pasākumi ({submissions.length})</button><button type="button" aria-pressed={panel==='venues'} className={panel==='venues'?'active':''} onClick={()=>setPanel('venues')}>⌖ Vietas ({venues.length})</button><button type="button" aria-pressed={panel==='team'} className={panel==='team'?'active':''} onClick={()=>setPanel('team')}>♙ Komanda</button></div>
-   {panel==='newOrg'&&<form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform('createOrganization',{name:orgName,kind:orgKind},()=>{setOrgName('');setPanel(orgKind==='venue'?'venues':'events');});}}><h2>Jauna organizācija</h2><label>Nosaukums<input required minLength={2} value={orgName} onChange={e=>setOrgName(e.target.value)}/></label><label>Tips<select value={orgKind} onChange={e=>setOrgKind(e.target.value)}><option value="organizer">Organizators</option><option value="venue">Vietas pārvaldnieks</option></select></label><button disabled={busy} className="button primary">Izveidot</button></form>}
-   {panel==='venues'&&<>
-    <form className="meets-organizer-form" onSubmit={e=>{e.preventDefault();perform(venue.id?'updateVenue':'createVenue',{...venue,venue_id:venue.id,organization_id:orgId},()=>setVenue({...EMPTY_VENUE}));}}>
-     <h2>{venue.id?'Labot norises vietu':'+ Norises vieta'}</h2>
-     <VenueLocationPicker value={venue} existingVenues={venues.filter(item=>item.id!==venue.id)} onSelect={chooseVenueLocation}/>
-     {(hasLocationPoint(venue)||String(venue.address||'').trim().length>=5||venue.id)&&<>
-      <div className="meets-organizer-location-details">
-       <h3>Vietas informācija</h3>
-       <p className="meets-muted">Pārbaudi nosaukumu un adresi. Koordinātas nav jāievada pašam.</p>
-       <div className="meets-organizer-grid">
-        <label>Nosaukums *<input value={venue.name||''} onChange={e=>setVenue({...venue,name:e.target.value})} required minLength={2} maxLength={160} placeholder="Kā sauc šo vietu?"/></label>
-        <label>Adrese (ja zināma)<input value={venue.address||''} onChange={e=>setVenue({...venue,address:e.target.value})} required={!hasLocationPoint(venue)} maxLength={300} placeholder="Iela, pilsēta, Latvija"/></label>
-       </div>
+ const filteredEvents=useMemo(()=>{
+  const q=filters.query.trim().toLocaleLowerCase('lv');
+  return orgSubmissions.filter(item=>{
+   if(filters.status!=='all'&&item.status!==filters.status)return false;
+   if(filters.time==='upcoming'&&!future(item))return false;
+   if(filters.time==='past'&&future(item))return false;
+   if(filters.venue&&item.venue_id!==filters.venue)return false;
+   if(q&&!String(item.title+' '+item.venue_name+' '+item.address).toLocaleLowerCase('lv').includes(q))return false;
+   return true;
+  }).sort((a,b)=>{
+   const ad=a.date_from||'9999-12-31',bd=b.date_from||'9999-12-31';
+   return filters.time==='past'?bd.localeCompare(ad):ad.localeCompare(bd);
+  });
+ },[orgSubmissions,filters]);
 
-       <label className="quick-flow-check"><input type="checkbox" checked={venue.is_public===true} onChange={e=>setVenue({...venue,is_public:e.target.checked})}/> Publiskot šo vietu un tās pasākumu kalendāru</label>
-       {venue.id&&venue.is_public&&<p><Link href={'/vietas/'+venue.id} target="_blank" rel="noopener noreferrer">Atvērt publisko vietas profilu un iframe ↗</Link></p>}
-       <details className="meets-organizer-extra">
-        <summary>Papildinformācija (neobligāti)</summary>
-        <div className="meets-organizer-extra-fields">
-         <label>Kā nokļūt<textarea value={venue.directions||''} onChange={e=>setVenue({...venue,directions:e.target.value})} placeholder="Ieeja, stāvvieta, transports…"/></label>
-         <label>Vietas apraksts<textarea value={venue.description||''} onChange={e=>setVenue({...venue,description:e.target.value})}/></label>
-        </div>
-       </details>
-      </div>
-      <div className="meets-organizer-buttons">
-       <button className="button primary" type="submit" disabled={busy}>{venue.id?'Saglabāt izmaiņas':'Saglabāt norises vietu'}</button>
-       {venue.id&&<button type="button" className="button" onClick={()=>setVenue({...EMPTY_VENUE})}>Atcelt labošanu</button>}
-      </div>
-     </>}
-    </form>
-    <div className="meets-account-list">{venues.map(v=><div key={v.id} className="meets-organizer-item"><div><strong>⌖ {v.name}</strong><span>{v.address}</span>{v.is_public&&<Link href={'/vietas/'+v.id}>Publiskais kalendārs ↗</Link>}</div><div className="meets-organizer-buttons"><Link className="button" href={'/registre-pasakumu/vienkarsi?venue='+v.id+'&org='+orgId}>+ Pasākums</Link><button type="button" className="button" onClick={()=>{setVenue({...v,latitude:v.latitude??'',longitude:v.longitude??''});window.scrollTo({top:0,behavior:'smooth'});}}>Labot</button></div></div>)}</div>
-   </>}
-   {panel==='team'&&<div className="meets-organizer-form"><h2>Komanda</h2>
-    <p className="meets-muted">Uzaicini kolēģi ar privātu saiti. Saites derīgums — 7 dienas. Kolēģim jābūt savam MEETS kontam.</p>
-    <div className="meets-account-list">{team.map(member=><div className="meets-organizer-item" key={member.user_id}><strong>{member.email}</strong><span className="meets-organizer-status">{({owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'})[member.role]||member.role}</span></div>)}</div>
-    {items.organizations.find(org=>org.id===orgId)?.owner_id===currentUserId&&<>
-     <label>Uzaicināt kā<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="editor">Redaktors — pasākumi un vietas</option><option value="admin">Administrators — pasākumi un vietas</option><option value="viewer">Skatītājs — tikai pārskats</option></select></label>
-     <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>+ Uzaicināt kolēģi</button>
-     {inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/></label>}
-    </>}
+ const metrics=useMemo(()=>({
+  drafts:orgSubmissions.filter(x=>x.status==='draft').length,
+  review:orgSubmissions.filter(x=>x.status==='pending_review').length,
+  fixes:orgSubmissions.filter(x=>x.status==='rejected').length,
+  published:orgSubmissions.filter(x=>x.status==='published'&&future(x)).length
+ }),[orgSubmissions]);
+
+ function eventFilterLink(status){
+  return '/organizators?org='+orgId+'&panel=events&status='+status+'&time=upcoming';
+ }
+ function orgCard(org){
+  const events=items.submissions.filter(x=>x.organization_id===org.id&&future(x));
+  const venues=items.venues.filter(x=>x.organization_id===org.id);
+  return <article className="org-card" key={org.id}>
+   <div className="org-card-image">{org.image_url?<img src={org.image_url} alt=""/>:<span>{org.name.slice(0,1).toLocaleUpperCase('lv')}</span>}</div>
+   <div className="org-card-body"><div className="org-card-title"><h2>{org.name}</h2><span>{ROLE_LABELS[org.role]||org.role}</span></div>
+    <p>{org.description||'Apraksts vēl nav pievienots.'}</p>
+    <small>{events.length} gaidāmi pasākumi · {venues.length} pārvaldītas vietas</small>
+   </div>
+   <button className="button primary" type="button" onClick={()=>chooseOrganization(org.id)}>Atvērt →</button>
+  </article>;
+ }
+
+ if(!loaded)return <div className="meets-profile-skeleton" role="status">Ielādē organizēšanas vidi…</div>;
+ if(!session)return <ProfileShell><section className="org-workspace"><div className="org-empty-state">
+  <h1>Organizēšana</h1><p>Lai reģistrētu un pārvaldītu pasākumus, vispirms pieslēdzies savam MEETS kontam.</p>
+  <Link className="button primary" href="/profils">Pieslēgties →</Link>
+ </div></section></ProfileShell>;
+
+ if(!orgId||creating){
+  return <ProfileShell session={session}><section className="org-workspace">
+   <header className="org-page-head"><div><p className="eyebrow">Organizēšana</p><h1>{creating?'Jauns organizators':'Tavi organizatori'}</h1>
+    <p>Viens MEETS konts var pārvaldīt vairākus organizatorus, nezaudējot apmeklētāja funkcijas.</p></div>
+    {!creating&&<button className="button primary" type="button" onClick={()=>setCreating(true)}>+ Jauns organizators</button>}</header>
+   {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
+   {creating?<form className="org-form-card" onSubmit={createOrganization}>
+    <h2>Organizatora profils</h2><p className="meets-muted">Sākumā pietiek ar nosaukumu un īsu aprakstu. Logo un publiskos kontaktus varēsi pievienot vēlāk.</p>
+    <label>Nosaukums *<input required minLength={2} maxLength={160} value={newOrg.name} onChange={e=>setNewOrg(v=>({...v,name:e.target.value}))}/></label>
+    <label>Īss apraksts<textarea rows={3} maxLength={2000} value={newOrg.description} onChange={e=>setNewOrg(v=>({...v,description:e.target.value}))} placeholder="Ko organizējat un kam paredzēti jūsu pasākumi?"/></label>
+    <div className="org-actions"><button className="button" type="button" onClick={()=>setCreating(false)}>Atcelt</button><button className="button primary" disabled={busy}>Izveidot organizatoru →</button></div>
+   </form>:organizations.length?<div className="org-card-grid">{organizations.map(orgCard)}</div>:<div className="org-empty-state">
+    <h2>Sāc organizēt</h2><p>Izveido organizatora profilu tikai tad, kad vēlies publicēt savus pasākumus. Otrs lietotāja konts nav vajadzīgs.</p>
+    <button className="button primary" type="button" onClick={()=>setCreating(true)}>Sākt organizēt →</button>
    </div>}
-   {panel==='events'&&<>
-    {!editing?<><button className="button primary" onClick={()=>{setDraft({...EMPTY,organization_id:orgId});setDraftStep(0);setEditing(true);}}>+ Jauns pasākums</button>
-     <div className="meets-account-list">{submissions.map(item=><div key={item.id} className="meets-organizer-item"><div><strong>{item.title}</strong><span>{item.date_from} · {item.venue_name||'Vieta nav norādīta'}</span>{item.status==='rejected'&&item.admin_note&&<small className="meets-organizer-rejection">Jālabo: {item.admin_note}</small>}</div><span className="meets-organizer-status">{({draft:'Melnraksts',pending_review:'Pārbaudē',published:'Publicēts',rejected:'Jālabo'})[item.status]}</span>{['draft','rejected'].includes(item.status)&&<button className="button" onClick={()=>edit(item)}>Labot</button>}<Link className="button" href={'/registre-pasakumu/vienkarsi?copy='+item.id+'&org='+orgId}>Kopēt</Link></div>)}</div>
-     {!submissions.length&&<p className="meets-muted">Vēl nav iesniegtu pasākumu.</p>}</>:
-    <form className="meets-organizer-form meets-organizer-wizard" onSubmit={e=>{e.preventDefault();if(draftStep!==2)return;perform('saveEvent',{...draft,organization_id:orgId,status:'pending_review'},()=>{setEditing(false);setDraftStep(0);setDraft(EMPTY);});}}>
-     <h2>{draft.id?'Labot pasākumu':'Jauns pasākums'}</h2>
-     <p className="meets-muted">Aizpildi informāciju trīs soļos. Melnrakstu var saglabāt pēc pasākuma nosaukuma un datuma norādīšanas. Atsevišķu atkārtotu nodarbību izveidei izmanto pasākuma kopēšanu.</p>
-     <ol className="meets-wizard-progress" aria-label="Pasākuma reģistrēšanas soļi">{['Informācija','Datums un vieta','Pārbaude'].map((label,i)=><li key={label} aria-current={draftStep===i?'step':undefined} className={draftStep===i?'active':i<draftStep?'done':''}><span>{i<draftStep?'✓':i+1}</span>{label}</li>)}</ol>
-     {draftStep===0&&<div className="meets-wizard-step">
-      <div className="meets-schedule-choice"><label>Pasākuma veids<select value={draft.schedule_kind||'once'} onChange={e=>setDraft({...draft,schedule_kind:e.target.value})}><option value="once">Vienreizējs</option><option value="recurring">Regulārs / atkārtojas</option><option value="ongoing">Pastāvīgs / ilgstošs</option></select></label>
-       {draft.schedule_kind==='recurring'&&<label>Regularitāte<input maxLength={300} value={draft.recurrence_note||''} onChange={e=>setDraft({...draft,recurrence_note:e.target.value})} placeholder="Piem., katru sestdienu plkst. 12.00"/></label>}</div>
-      <label>Nosaukums *<input value={draft.title} minLength={3} maxLength={200} onChange={e=>setDraft({...draft,title:e.target.value})} placeholder="Kā sauc pasākumu?"/></label>
-      <label>Kategorija<select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})}>{CATEGORIES.map(category=><option key={category}>{category}</option>)}</select></label>
-      <label>Apraksts<textarea rows={5} value={draft.description||''} onChange={e=>setDraft({...draft,description:e.target.value})} placeholder="Kas notiks? Kam pasākums paredzēts?"/></label>
-     </div>}
-     {draftStep===1&&<div className="meets-wizard-step">
-      <div className="meets-organizer-grid">
-       <label>{draft.schedule_kind==='recurring'?'Grafiks no *':'Datums no *'} *<input type="date" value={draft.date_from} min={rigaDate()} onChange={e=>setDraft({...draft,date_from:e.target.value})}/></label>
-       <label>{draft.schedule_kind==='recurring'?'Grafiks līdz *':'Datums līdz'}<input type="date" min={draft.date_from||undefined} value={draft.date_to||''} onChange={e=>setDraft({...draft,date_to:e.target.value})}/></label>
-       {draft.schedule_kind!=='recurring'&&<><label>Sākuma laiks<input type="time" value={draft.time_from||''} onChange={e=>setDraft({...draft,time_from:e.target.value})}/></label>
-       <label>Beigu laiks<input type="time" value={draft.time_to||''} onChange={e=>setDraft({...draft,time_to:e.target.value})}/></label></>}
-      </div>
-      {draft.schedule_kind==='recurring'&&<WeeklySchedule slots={draft.recurrence_slots||[]} dateFrom={draft.date_from} dateTo={draft.date_to} onChange={slots=>setDraft({...draft,recurrence_slots:slots})}/>}
-      <VenueLocationPicker value={{
-       name:(venues.find(v=>v.id===draft.venue_id)?.name)||draft.venue_name,
-       address:(venues.find(v=>v.id===draft.venue_id)?.address)||draft.address,
-       latitude:venues.find(v=>v.id===draft.venue_id)?.latitude??draft.latitude,
-       longitude:venues.find(v=>v.id===draft.venue_id)?.longitude??draft.longitude,
-       venueId:draft.venue_id
-      }} existingVenues={venues} onSelect={chooseEventLocation}/>
-      {(draft.venue_id||hasLocationPoint(draft)||String(draft.address||'').trim().length>=5)&&
-       (draft.venue_id?<p className="meets-location-existing-info">✓ Izmantota jau saglabāta vieta. Nākamajos pasākumos varēsi izvēlēties to pašu vietu.</p>:
-        <div className="meets-organizer-grid meets-organizer-location-details">
-         <label>Vietas nosaukums *<input value={draft.venue_name||''} minLength={2} maxLength={200} onChange={e=>setDraft({...draft,venue_name:e.target.value})} placeholder="Norises vietas nosaukums"/></label>
-         <label>Adrese (ja zināma)<input value={draft.address||''} maxLength={300} onChange={e=>setDraft({...draft,address:e.target.value})} placeholder="Iela, pilsēta, Latvija"/></label>
-        </div>)}
-      <label>Dalības maksa<select value={draft.price_status} onChange={e=>setDraft({...draft,price_status:e.target.value})}><option value="free">Bezmaksas</option><option value="paid">Maksas</option><option value="mixed">Daļēji maksas</option><option value="unknown">Nav zināms</option></select></label>
-      {['paid','mixed'].includes(draft.price_status)&&<div className="meets-organizer-grid">
-       <label>Cena no, EUR<input type="number" min="0" step="0.01" value={draft.price_min||''} onChange={e=>setDraft({...draft,price_min:e.target.value})}/></label>
-       <label>Cena līdz, EUR<input type="number" min="0" step="0.01" value={draft.price_max||''} onChange={e=>setDraft({...draft,price_max:e.target.value})}/></label>
-      </div>}
-     </div>}
-     {draftStep===2&&<section className="meets-wizard-step meets-wizard-preview" aria-label="Pasākuma priekšskatījums">
-      <p className="eyebrow">Pirms iesniegšanas</p><h3>{draft.title}</h3>
-      <dl>
-       <div><dt>Kategorija</dt><dd>{draft.category}</dd></div>
-       <div><dt>Datums</dt><dd>{draft.date_from}{draft.date_to&&draft.date_to!==draft.date_from?' – '+draft.date_to:''}</dd></div>
-       <div><dt>Laiks</dt><dd>{draft.time_from||'Nav norādīts'}{draft.time_to?' – '+draft.time_to:''}</dd></div>
-       <div><dt>Norises vieta</dt><dd>{draft.venue_id?venues.find(v=>v.id===draft.venue_id)?.name||'Izvēlēta vieta':[draft.venue_name,draft.address].filter(Boolean).join(' · ')}
-        {!draft.venue_id&&draft.latitude!==''&&draft.latitude!=null&&draft.longitude!==''&&draft.longitude!=null&&<small className="meets-location-picker-preview">Kartes punkts: {Number(draft.latitude).toFixed(6)}, {Number(draft.longitude).toFixed(6)}</small>}</dd></div>
-       <div><dt>Maksa</dt><dd>{({free:'Bezmaksas',paid:'Maksas',mixed:'Daļēji maksas',unknown:'Nav zināms'})[draft.price_status]}</dd></div>
-       {['paid','mixed'].includes(draft.price_status)&&<div><dt>Cena EUR</dt><dd>{draft.price_min}–{draft.price_max}</dd></div>}
-       {draft.schedule_kind==='recurring'&&<div><dt>Norises reizes</dt><dd>{countOccurrences(draft.date_from,draft.date_to,draft.recurrence_slots)}</dd></div>}
-      </dl>
-      {draft.description&&<p>{draft.description}</p>}
-      <p className="meets-muted">Pēc iesniegšanas pasākums nonāks administratora pārbaudē; kartē tas būs redzams tikai pēc apstiprināšanas.</p>
-     </section>}
-     <div className="meets-organizer-buttons meets-wizard-actions">
-      {draftStep>0&&<button className="button" type="button" disabled={busy} onClick={()=>{setDraftStep(s=>s-1);setError('');}}>← Atpakaļ</button>}
-      <button className="button" type="button" disabled={busy||draft.title.trim().length<3||!draft.date_from} onClick={()=>perform('saveEvent',{...draft,organization_id:orgId,status:'draft'},()=>{setEditing(false);setDraftStep(0);setDraft(EMPTY);})}>Saglabāt melnrakstu</button>
-      {draftStep<2?<button className="button primary" type="button" disabled={busy} onClick={advanceDraft}>Turpināt →</button>:<button className="button primary" disabled={busy} type="submit">Iesniegt pārbaudei →</button>}
-      <button className="button" type="button" disabled={busy} onClick={()=>{setEditing(false);setDraftStep(0);}}>Atcelt</button>
+  </section></ProfileShell>;
+ }
+
+ return <ProfileShell session={session} activeOrganization={activeOrg}><section className="org-workspace">
+  <header className="org-page-head"><div><p className="eyebrow">Organizēšana · {ROLE_LABELS[activeOrg?.role]||activeOrg?.role}</p><h1>{activeOrg?.name}</h1>
+   <p>{activeOrg?.description||'Pievieno organizatora aprakstu, lai profils būtu saprotams arī apmeklētājiem.'}</p></div>
+   <div className="org-head-actions"><select aria-label="Aktīvais organizators" value={orgId} onChange={e=>chooseOrganization(e.target.value)}>{organizations.map(org=><option value={org.id} key={org.id}>{org.name}</option>)}</select>
+    <button className="button" type="button" onClick={()=>{setOrgId('');setCreating(false);window.history.replaceState(null,'','/organizators');}}>Visi organizatori</button>
+    {canEdit&&<Link className="button primary" href={'/registre-pasakumu/vienkarsi?org='+orgId}>+ Jauns pasākums</Link>}</div></header>
+
+  {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
+
+  <nav className="org-section-tabs" aria-label="Organizatora sadaļas">
+   {[['overview','Pārskats'],['events','Pasākumi'],['venues','Norises vietas'],['lists','Publiskie saraksti'],['team','Komanda'],['profile','Organizatora profils']].map(([key,label])=>
+    <button key={key} type="button" className={panel===key?'active':''} aria-current={panel===key?'page':undefined} onClick={()=>choosePanel(key)}>{label}</button>)}
+  </nav>
+
+  {panel==='overview'&&<div className="org-stack">
+   <section className="org-metric-grid">
+    <Link href={eventFilterLink('rejected')} className={metrics.fixes?'needs-action':''}><strong>{metrics.fixes}</strong><span>Jālabo</span><small>{metrics.fixes?'Nepieciešama darbība':'Nav neatrisinātu kļūdu'}</small></Link>
+    <Link href={eventFilterLink('draft')}><strong>{metrics.drafts}</strong><span>Melnraksti</span><small>Turpini nepabeigtos</small></Link>
+    <Link href={eventFilterLink('pending_review')}><strong>{metrics.review}</strong><span>Pārbaudē</span><small>Gaida moderatoru</small></Link>
+    <Link href={eventFilterLink('published')}><strong>{metrics.published}</strong><span>Publicētie</span><small>Gaidāmie pasākumi</small></Link>
+   </section>
+   <section className="org-panel"><div className="org-panel-head"><div><h2>Tuvākie pasākumi</h2><p>Vispirms redzami gaidāmie pasākumi un darbības, kurām jāpievērš uzmanība.</p></div><button className="button" onClick={()=>choosePanel('events')}>Visi pasākumi →</button></div>
+    <div className="org-list">{orgSubmissions.filter(future).sort((a,b)=>(a.date_from||'9999').localeCompare(b.date_from||'9999')).slice(0,6).map(item=><div className="org-row" key={item.id}>
+     <div><strong>{item.title||'Bez nosaukuma'}</strong><small>{eventDate(item)} · {item.venue_name||'Vieta nav norādīta'}</small>{item.status==='rejected'&&item.admin_note&&<em>Jālabo: {item.admin_note}</em>}</div>
+     <span className={statusClass(item.status)}>{STATUS_LABELS[item.status]||item.status}</span>
+     {canEdit&&['draft','rejected'].includes(item.status)&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&edit='+item.id}>Labot</Link>}
+    </div>)}
+    {!orgSubmissions.filter(future).length&&<p className="org-empty">Nav gaidāmu pasākumu.</p>}</div>
+   </section>
+  </div>}
+
+  {panel==='events'&&<section className="org-panel">
+   <div className="org-panel-head"><div><h2>Pasākumi</h2><p>Filtri saglabājas adresē, tāpēc pēc labošanas vari atgriezties tajā pašā skatā.</p></div>{canEdit&&<Link className="button primary" href={'/registre-pasakumu/vienkarsi?org='+orgId}>+ Jauns pasākums</Link>}</div>
+   <div className="org-filters">
+    <label>Statuss<select value={filters.status} onChange={e=>changeFilter('status',e.target.value)}><option value="all">Visi</option><option value="draft">Melnraksti</option><option value="pending_review">Pārbaudē</option><option value="rejected">Jālabo</option><option value="published">Publicētie</option></select></label>
+    <label>Laiks<select value={filters.time} onChange={e=>changeFilter('time',e.target.value)}><option value="upcoming">Gaidāmie</option><option value="past">Pagājušie</option><option value="all">Visi</option></select></label>
+    <label>Vieta<select value={filters.venue} onChange={e=>changeFilter('venue',e.target.value)}><option value="">Visas vietas</option>{managedVenues.map(v=><option value={v.id} key={v.id}>{v.name}</option>)}{usedVenues.map(v=><option value={v.id} key={v.id}>{v.name} · izmantota</option>)}</select></label>
+    <label className="org-filter-search">Meklēt<input type="search" value={filters.query} onChange={e=>changeFilter('query',e.target.value)} placeholder="Nosaukums vai vieta"/></label>
+   </div>
+   <div className="org-table" role="table" aria-label="Organizatora pasākumi">
+    <div className="org-table-head" role="row"><span>Nosaukums</span><span>Datums</span><span>Vieta</span><span>Statuss</span><span>Darbības</span></div>
+    {filteredEvents.map(item=><div className="org-table-row" role="row" key={item.id}>
+     <div data-label="Nosaukums"><strong>{item.title||'Bez nosaukuma'}</strong>{item.status==='rejected'&&item.admin_note&&<small className="org-rejection">Jālabo: {item.admin_note}</small>}</div>
+     <span data-label="Datums">{eventDate(item)}</span><span data-label="Vieta">{item.venue_name||'Nav norādīta'}</span>
+     <span data-label="Statuss"><em className={statusClass(item.status)}>{STATUS_LABELS[item.status]||item.status}</em></span>
+     <div data-label="Darbības" className="org-row-actions">
+      {canEdit&&['draft','rejected'].includes(item.status)&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&edit='+item.id}>Labot</Link>}
+      {canEdit&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&copy='+item.id}>Dublēt</Link>}
+      {item.event_id&&<Link className="button" href={'/karte?event='+item.event_id}>Priekšskatīt</Link>}
      </div>
-    </form>}
-   </>}
-  </>}
+    </div>)}
+   </div>
+   {!filteredEvents.length&&<p className="org-empty">Šiem filtriem pasākumi nav atrasti.</p>}
+  </section>}
+
+  {panel==='venues'&&<section className="org-panel">
+   <div className="org-panel-head"><div><h2>Norises vietas</h2><p>Pārvaldītas vietas vari labot. Izmantotas publiskās vietas ir tikai piesaistītas pasākumiem un nerada rediģēšanas tiesības.</p></div>{canEdit&&<Link className="button primary" href={'/registre-vietu?org='+orgId}>+ Pievienot vietu</Link>}</div>
+   <h3>Pārvaldītās vietas</h3><div className="org-list">{managedVenues.map(v=><div className="org-row" key={v.id}>
+    <div><strong>{v.name}</strong><small>{v.address||'Adrese nav norādīta'} · {v.is_public?'Publiska':'Privāta'}</small></div>
+    <span className="org-status">Pārvaldīta</span><div className="org-row-actions">{v.is_public&&<Link className="button" href={'/vietas/'+v.id}>Atvērt</Link>}{canEdit&&<><Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&venue='+v.id}>Jauns pasākums</Link><Link className="button" href={'/registre-vietu?org='+orgId+'&edit='+v.id}>Labot</Link></>}</div>
+   </div>)}{!managedVenues.length&&<p className="org-empty">Vēl nav pārvaldītu vietu.</p>}</div>
+   {usedVenues.length>0&&<><h3>Izmantotās vietas</h3><div className="org-list">{usedVenues.map(v=><div className="org-row" key={v.id}>
+    <div><strong>{v.name}</strong><small>{v.address||'Adrese nav norādīta'}</small></div><span className="org-status">Izmantota</span>
+    <div className="org-row-actions"><Link className="button" href={'/vietas/'+v.id}>Atvērt</Link>{canEdit&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&venue='+v.id}>Jauns pasākums</Link>}</div>
+   </div>)}</div></>}
+  </section>}
+
+  {panel==='lists'&&<section className="org-panel">
+   <div className="org-panel-head"><div><h2>Publiskie saraksti</h2><p>Saraksts ir pasākumu izlase; tas nemaina pašu pasākumu īpašnieku.</p></div>{canEdit&&<Link className="button primary" href={'/mani-registri?org='+orgId+'&new=1'}>+ Jauns publiskais saraksts</Link>}</div>
+   <div className="org-list">{lists.map(item=><div className="org-row" key={item.id}><div><strong>{item.title}</strong><small>{item.is_published?'Publisks':'Privāts'} · {(item.included_event_ids||[]).length} manuāli pievienoti</small></div><Link className="button" href={'/mani-registri?org='+orgId+'&edit='+item.id}>Atvērt</Link></div>)}
+   {!lists.length&&<p className="org-empty">Šim organizatoram vēl nav sarakstu.</p>}</div>
+  </section>}
+
+  {panel==='team'&&<section className="org-panel">
+   <div className="org-panel-head"><div><h2>Komanda</h2><p>Skatītājs var lasīt, bet nevar mainīt organizācijas datus. Redaktors un administrators var pārvaldīt saturu.</p></div></div>
+   <div className="org-list">{team.map(member=><div className="org-row" key={member.user_id}><div><strong>{member.email}</strong></div><span className="org-status">{ROLE_LABELS[member.role]||member.role}</span></div>)}</div>
+   {activeOrg?.role==='owner'&&<div className="org-invite"><label>Uzaicināt kā<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="editor">Redaktors</option><option value="admin">Administrators</option><option value="viewer">Skatītājs</option></select></label>
+    <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>Izveidot uzaicinājumu</button>{inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/></label>}</div>}
+  </section>}
+
+  {panel==='profile'&&profile&&<section className="org-panel">
+   <div className="org-panel-head"><div><h2>Organizatora profils</h2><p>Personas profila vārds un organizatora nosaukums tiek pārvaldīti atsevišķi.</p></div>{(profile.is_public||metrics.published>0)&&<Link className="button" href={'/organizatori/'+orgId}>Publiskais priekšskatījums ↗</Link>}</div>
+   <form className="org-profile-form" onSubmit={saveProfile}>
+    <label>Organizatora nosaukums<input disabled={!canEdit} required minLength={2} maxLength={160} value={profile.name||''} onChange={e=>{setProfile(v=>({...v,name:e.target.value}));setProfileDirty(true);}}/></label>
+    <label>Apraksts<textarea disabled={!canEdit} rows={5} maxLength={2000} value={profile.description||''} onChange={e=>{setProfile(v=>({...v,description:e.target.value}));setProfileDirty(true);}}/></label>
+    <div className="org-form-grid"><label>Attēla URL<input disabled={!canEdit} type="url" maxLength={1000} value={profile.image_url||''} onChange={e=>{setProfile(v=>({...v,image_url:e.target.value}));setProfileDirty(true);}}/></label>
+     <label>Publiskais e-pasts<input disabled={!canEdit} type="email" maxLength={254} value={profile.public_email||''} onChange={e=>{setProfile(v=>({...v,public_email:e.target.value}));setProfileDirty(true);}}/></label>
+     <label>Tālrunis<input disabled={!canEdit} maxLength={80} value={profile.public_phone||''} onChange={e=>{setProfile(v=>({...v,public_phone:e.target.value}));setProfileDirty(true);}}/></label>
+     <label>Mājaslapa<input disabled={!canEdit} type="url" maxLength={1000} value={profile.public_url||''} onChange={e=>{setProfile(v=>({...v,public_url:e.target.value}));setProfileDirty(true);}}/></label></div>
+    <label className="quick-flow-check"><input disabled={!canEdit} type="checkbox" checked={profile.is_public===true} onChange={e=>{setProfile(v=>({...v,is_public:e.target.checked}));setProfileDirty(true);}}/> Publiskot organizatora profilu</label>
+    {canEdit&&<div className="org-actions"><button className="button primary" disabled={busy||!profileDirty}>Saglabāt profilu</button>{profileDirty&&<span className="org-unsaved">Ir nesaglabātas izmaiņas</span>}</div>}
+   </form>
+  </section>}
  </section></ProfileShell>;
 }
