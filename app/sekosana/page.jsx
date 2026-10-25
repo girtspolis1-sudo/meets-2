@@ -21,8 +21,9 @@ export default function FollowingPage(){
  const orgs=(directory.organizations||[]).filter(x=>orgIds.includes(x.id));
  const venues=(directory.venues||[]).filter(x=>venueIds.includes(x.id));
  const sources=(directory.sources||[]).filter(x=>sourceIds.includes(x.id));
- const eventIds=new Set(dashboard?.followedEvents||[]);
- const upcoming=useMemo(()=>(data?.events||[]).filter(e=>eventIds.has(e.id)).sort((a,b)=>String(a.date_from||'9999').localeCompare(String(b.date_from||'9999'))).slice(0,30),[data,eventIds.size]);
+ const followedEventIds=dashboard?.followedEvents||[];
+ const eventIds=useMemo(()=>new Set(followedEventIds),[followedEventIds]);
+ const upcoming=useMemo(()=>(data?.events||[]).filter(e=>eventIds.has(e.id)).sort((a,b)=>String(a.date_from||'9999').localeCompare(String(b.date_from||'9999'))).slice(0,30),[data,eventIds]);
  async function unfollow(kind,id){setBusy(kind+id);setError('');try{await account('follow',{targetKind:kind,targetId:id,enabled:false},session);await load(session);}catch(e){setError(e.message);}finally{setBusy('');}}
  const page=<section className="meets-account-page following-page">
   <div className="meets-account-heading"><div><p className="eyebrow">Mans MEETS</p><h1>Sekošana</h1><p className="meets-muted">Organizatori un norises vietas, kuru jaunajiem publicētajiem pasākumiem seko platformā.</p></div><Link className="button" href="/karte">Atrast pasākumus →</Link></div>
