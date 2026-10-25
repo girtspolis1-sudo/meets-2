@@ -1,6 +1,7 @@
 'use client';
 import {useState} from 'react';
-export default function AdminUserSubmissions({items=[],focusedId='',onReview,busy=false}){
+import {countOccurrences} from '../../lib/event-schedule.js';
+export default function AdminUserSubmissions({items=[],focusedId='',onReview,busy=false,supabaseUrl=''}){
  const [notes,setNotes]=useState({}),[coords,setCoords]=useState({});
  const pending=items.filter(x=>x.status==='pending_review').sort((a,b)=>Number(b.id===focusedId)-Number(a.id===focusedId));
  return <section className="meets-admin-submissions">
@@ -14,6 +15,15 @@ export default function AdminUserSubmissions({items=[],focusedId='',onReview,bus
     return <article key={item.id} className={'meets-organizer-review-card'+(item.id===focusedId?' meets-organizer-review-focused':'')}>
      <div className="meets-organizer-review-head"><div><h3>{item.title}</h3><p>{item.organization_name} · {item.date_from} {item.time_from||''}</p></div><span className="meets-organizer-status">Jāpārbauda</span></div>
      <p>{item.description||'Nav apraksta.'}</p>
+     {item.cover_image_path&&/^[a-f\d-]+\/[a-f\d-]+\/[a-f\d-]+\.(jpg|png|webp)$/.test(item.cover_image_path)&&supabaseUrl&&<img
+      src={supabaseUrl+'/storage/v1/object/public/meets-event-images/'+item.cover_image_path}
+      alt="Iesniegtā pasākuma attēls" style={{maxWidth:'100%',maxHeight:240,objectFit:'cover',borderRadius:12}}/>}
+     <p><strong>Maksa:</strong> {item.price_status==='free'?'Bezmaksas':item.price_min!=null&&item.price_max!=null?item.price_min+'–'+item.price_max+' EUR':item.price_status||'Nav zināma'}</p>
+     {item.schedule_kind==='recurring'&&<section>
+      <strong>Atkārtotais grafiks · {item.date_from} – {item.date_to}</strong>
+      <p>{(item.recurrence_slots||[]).map(s=>['','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena','Svētdiena'][s.weekday]+' '+s.start+'–'+s.end).join(' · ')}</p>
+      <p>{(()=>{try{return countOccurrences(item.date_from,item.date_to,item.recurrence_slots)+' norises reizes tiks publicētas.';}catch{return 'Grafika kļūda. Nepublicēt.';}})()}</p>
+     </section>}
      <p><strong>⌖ {item.venue_name||'Nav vietas'}</strong> — {item.address||'Nav adreses'}</p>
      <div className="meets-organizer-grid">
       <label>Platums<input type="number" step="any" placeholder="56.9496" value={lat} onChange={e=>setCoords(c=>({...c,[item.id]:{...c[item.id],latitude:e.target.value}}))}/></label>

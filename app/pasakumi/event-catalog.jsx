@@ -321,9 +321,10 @@ export default function EventCatalog(){
    ?<div className="empty"><h2>Nav atrastu pasākumu</h2><p>{rows.length?'Pamēģini mainīt datumu, kategoriju vai noņemt aktīvos filtrus.':'Pašlaik nav publicētu pasākumu. Tiklīdz pasākums tiks publicēts, tas parādīsies šeit.'}</p></div>
    :<>
     {viewMode==='cards'&&<div className="catalog-card-grid">{visible.map(event=>{return <article className="catalog-event-card" key={event.id}>
+     {event.cover_image_url&&<img src={event.cover_image_url} alt="" loading="lazy" className="catalog-event-cover"/>}
      <div className="catalog-event-card-top"><time dateTime={event.date_from}>{display(event,'date_from')||'Datums nav norādīts'}</time><span>{display(event,'event_type')||event.primary_category||'Pasākums'}</span></div>
      <h2>{event.title}</h2><p className="catalog-event-card-location">⌖ {event.venue_name||event.address_raw||event.municipality||'Norises vieta nav zināma'}</p>
-     <p className="catalog-event-card-time">{display(event,'time')||'Laiks nav norādīts'} · {display(event,'price_status')||'Maksa nav norādīta'}</p>
+     <p className="catalog-event-card-time">{display(event,'time')||'Laiks nav norādīts'} · {event.price_status==='free'?'Bezmaksas':event.price_min!=null&&event.price_max!=null?Number(event.price_min)===Number(event.price_max)?event.price_min+' €':event.price_min+'–'+event.price_max+' €':display(event,'price_status')||'Maksa nav norādīta'}</p>
      <EventQuickActions event={event}/>
       <div className="catalog-event-card-follow">{followButton(event)}</div>
      <div className="catalog-event-card-actions"><button className="button compact primary" type="button" onClick={()=>setSelected(event.id)}>Par pasākumu</button><a className="button compact" href={'/karte?q='+encodeURIComponent(event.title)}>Kartē ↗</a></div>
@@ -383,6 +384,7 @@ function EventDetails({event,close,followButton}){
  useEffect(()=>{dialog.current.showModal();},[]);
  return <dialog ref={dialog} className="event-dialog" onCancel={close} onClose={close}>
   <div className="detail-header"><h2>{event.title}</h2><button className="button" onClick={close} autoFocus>Aizvērt ✕</button></div>
+  {event.cover_image_url&&<img src={event.cover_image_url} alt="" className="catalog-detail-cover"/>}
   <EventQuickActions event={event}/>
   <div className="catalog-detail-actions">{followButton(event)}<a className="button primary" href={'/karte?q='+encodeURIComponent(event.title)}>Atvērt kartē ↗</a></div>
   <dl>{[...columns,...detailColumns].filter(([key])=>key!=='title').map(([key,label])=><div key={key}>

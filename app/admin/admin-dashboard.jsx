@@ -827,7 +827,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <AdminImportHealth health={importHealth}/>
   </>}
 
-  {workspaceView==='userSubmissions'&&<AdminUserSubmissions items={userSubmissions} focusedId={focusedSubmissionId} onReview={reviewUserSubmission} busy={reviewingSubmission}/>}
+  {workspaceView==='userSubmissions'&&<AdminUserSubmissions items={userSubmissions} focusedId={focusedSubmissionId} onReview={reviewUserSubmission} busy={reviewingSubmission} supabaseUrl={supabaseUrl}/>}
 
   {workspaceView==='sources'&&<AdminSourceChannels
    sources={sources}

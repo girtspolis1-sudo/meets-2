@@ -3,6 +3,10 @@ const nextConfig = {
   poweredByHeader: false,
   async headers() {
     return [
+      { source: '/iegult-vietu/:id', headers: [
+        { key: 'Content-Security-Policy', value: "frame-ancestors https: http://localhost:*" },
+        { key: 'X-Content-Type-Options', value: 'nosniff' }
+      ] },
       { source: '/iegult/:id', headers: [
         { key: 'Content-Security-Policy', value: "frame-ancestors https: http://localhost:*" },
         { key: 'X-Content-Type-Options', value: 'nosniff' }

@@ -1,4 +1,5 @@
 import {validateQuickEvent} from '../../../lib/event-entry.js';
+import {cleanSlots,countOccurrences,cleanPrice} from '../../../lib/event-schedule.js';
 import {rigaDate} from '../../../lib/meets-personal.js';
 import {NextResponse} from 'next/server';
 export const dynamic='force-dynamic';
@@ -44,8 +45,8 @@ export async function POST(request){
   if(action==='list'){
    const [organizations,venues,submissions]=await Promise.all([
     api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id&order=created_at.desc'),
-    api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,directions,description&order=created_at.desc'),
-    api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,admin_note,latitude,longitude,schedule_kind,recurrence_note&order=created_at.desc')
+    api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,directions,description,is_public&order=created_at.desc'),
+    api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,price_min,price_max,cover_image_path,recurrence_slots,admin_note,latitude,longitude,schedule_kind,recurrence_note&order=created_at.desc')
    ]);
    return NextResponse.json({organizations,venues,submissions});
   }
@@ -78,7 +79,7 @@ export async function POST(request){
    const {latitude,longitude}=coordinates(data);
    if(name.length<2||name.length>160||address.length>300||(address.length<5&&latitude===null))return NextResponse.json({error:'Norādi vietas nosaukumu un pilnu adresi vai izvēlies punktu kartē.'},{status:400});
    const locationAddress=address.length>=5?address:`Kartē atzīmēta vieta (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`;
-   const payload={organization_id:data.organization_id,name,address:locationAddress,latitude,longitude,directions:String(data.directions||'').slice(0,2000),description:String(data.description||'').slice(0,4000)};
+   const payload={organization_id:data.organization_id,name,address:locationAddress,latitude,longitude,directions:String(data.directions||'').slice(0,2000),description:String(data.description||'').slice(0,4000),is_public:data.is_public===true};
    if(action==='updateVenue'&&!UUID.test(data.venue_id||''))return NextResponse.json({error:'Nederīgs vietas ieraksts.'},{status:400});
    const owned=await api(TABLES.venues,token,'GET',null,'?select=id,name,address,latitude,longitude&organization_id=eq.'+data.organization_id);
    const duplicate=owned.find(item=>item.id!==data.venue_id&&duplicatesVenue(payload,item));
@@ -92,8 +93,16 @@ export async function POST(request){
    if(title.length<3||title.length>200||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date_from))return NextResponse.json({error:'Norādi pasākuma nosaukumu un datumu.'},{status:400});
    if(data.date_to&&data.date_to<date_from)return NextResponse.json({error:'Beigu datums nevar būt pirms sākuma datuma.'},{status:400});
    if(!['draft','pending_review'].includes(data.status))return NextResponse.json({error:'Nepareizs pasākuma statuss.'},{status:400});
-   if(data.status==='pending_review'&&data.schedule_kind==='recurring')
-    return NextResponse.json({error:'Atkārtotu norises reižu publicēšana vēl nav pieejama. Izveido katru norises reizi kā atsevišķu pasākumu, izmantojot Kopēt.'},{status:400});
+   const recurring=data.schedule_kind==='recurring';
+   let slots=[],pricing;
+   try{
+    slots=recurring?cleanSlots(data.recurrence_slots):[];
+    if(recurring&&data.status==='pending_review')countOccurrences(date_from,String(data.date_to||''),slots);
+    const incompleteDraft=data.status==='draft'&&['paid','mixed'].includes(data.price_status)&&
+      (data.price_min==null||data.price_min===''||data.price_max==null||data.price_max==='');
+    pricing=incompleteDraft?{price_min:null,price_max:null}:
+      cleanPrice(String(data.price_status||'unknown'),data.price_min,data.price_max);
+   }catch(error){return NextResponse.json({error:error.message},{status:400});}
    let venue=null;
    if(data.venue_id){if(!UUID.test(data.venue_id))return NextResponse.json({error:'Nepareiza norises vieta.'},{status:400});
     const found=await api(TABLES.venues,token,'GET',null,'?select=*&id=eq.'+data.venue_id+'&organization_id=eq.'+data.organization_id);
@@ -102,9 +111,9 @@ export async function POST(request){
    const point=venue?{latitude:venue.latitude??null,longitude:venue.longitude??null}:coordinates(data);
    const enteredAddress=venue?.address||String(data.address||'').trim().slice(0,300);
    const locationAddress=enteredAddress||(point.latitude!==null&&point.longitude!==null?`Kartē atzīmēta vieta (${Number(point.latitude).toFixed(6)}, ${Number(point.longitude).toFixed(6)})`:'');
-   const payload={organization_id:data.organization_id,author_id:user.id,venue_id:venue?.id||null,title,description:String(data.description||'').slice(0,6000),schedule_kind:['once','recurring','ongoing'].includes(data.schedule_kind)?data.schedule_kind:'once',recurrence_note:String(data.recurrence_note||'').slice(0,300),category:String(data.category||'Cits').slice(0,100),date_from,date_to:data.date_to||null,time_from:data.time_from||null,time_to:data.time_to||null,venue_name:venue?.name||String(data.venue_name||'').slice(0,200),address:locationAddress,...point,price_status:['free','paid','mixed','unknown'].includes(data.price_status)?data.price_status:'unknown',status:data.status};
+   const payload={organization_id:data.organization_id,author_id:user.id,venue_id:venue?.id||null,title,description:String(data.description||'').slice(0,6000),schedule_kind:['once','recurring','ongoing'].includes(data.schedule_kind)?data.schedule_kind:'once',recurrence_note:String(data.recurrence_note||'').slice(0,300),category:String(data.category||'Cits').slice(0,100),date_from,date_to:data.date_to||null,time_from:data.time_from||null,time_to:data.time_to||null,venue_name:venue?.name||String(data.venue_name||'').slice(0,200),address:locationAddress,...point,price_status:['free','paid','mixed','unknown'].includes(data.price_status)?data.price_status:'unknown',...pricing,recurrence_slots:slots,status:data.status};
    if(payload.status==='pending_review'){
-    const problem=validateQuickEvent(payload);
+    const problem=validateQuickEvent(recurring?{...payload,time_from:'',time_to:''}:payload);
     if(problem)return NextResponse.json({error:problem},{status:400});
     if(String(payload.date_to||payload.date_from)<rigaDate())return NextResponse.json({error:'Pasākuma beigu datums jau ir pagājis.'},{status:400});
    }
@@ -118,7 +127,7 @@ export async function POST(request){
     const duplicate=existing.find(item=>duplicatesVenue({name,address:payload.address,...point},item));
     if(duplicate)payload.venue_id=duplicate.id;
     else {
-     const created=await api(TABLES.venues,token,'POST',{organization_id:data.organization_id,name,address:payload.address,latitude:point.latitude,longitude:point.longitude,directions:'',description:''});
+     const created=await api(TABLES.venues,token,'POST',{organization_id:data.organization_id,name,address:payload.address,latitude:point.latitude,longitude:point.longitude,directions:'',description:'',is_public:false});
      if(!created?.[0]?.id)return NextResponse.json({error:'Norises vietu neizdevās saglabāt.'},{status:409});
      payload.venue_id=created[0].id;
     }
