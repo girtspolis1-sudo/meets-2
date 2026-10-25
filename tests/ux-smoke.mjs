@@ -35,18 +35,22 @@ for(const width of cases){
  await page.route('**/api/events*',route=>{console.log('Mock event request:',route.request().url());return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)});});
  try{
   await page.goto(base+'/',{waitUntil:'domcontentloaded',timeout:45000});
-  await page.locator('.home-landing').waitFor({timeout:30000});
+  await page.locator('.meets-discovery-hero').waitFor({timeout:30000});
   if(await page.locator('.meets-location-overlay').count())throw Error('Forced location dialog on homepage');
-  try{await page.locator('.home-nearby-card').first().waitFor({timeout:9000});}
+  try{await page.locator('.meets-discovery-grid .meets-discovery-card').first().waitFor({timeout:9000});}
   catch{
    fails++;
    console.error('Missing home event cards',width,{
-    hero:await page.locator('.home-landing').count(),
-    nearby:await page.locator('.home-nearby').count(),
+    hero:await page.locator('.meets-discovery-hero').count(),
+    nearby:await page.locator('.meets-discovery-grid').count(),
     body:(await page.locator('body').innerText()).slice(0,1400),
     errors:errors.slice(0,3)
    });
   }
+  const homeCard=page.locator('.meets-discovery-grid .meets-discovery-card').first();
+  if(!await homeCard.getByRole('link',{name:/Skatīt vairāk/}).count()) {fails++;console.error('Home card CTA missing',width);}
+  if(!await page.getByRole('navigation',{name:'Mobilā ātrā navigācija'}).isVisible()) {fails++;console.error('Mobile bottom navigation missing',width);}
+  if(!await homeCard.getByRole('button',{name:'Saglabāt pasākumu'}).count()) {fails++;console.error('Card favorite missing',width);}
   await assertLayout(page,'home',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-home.png',fullPage:true});
   await page.goto(base+'/karte?period=week',{waitUntil:'domcontentloaded',timeout:45000});
