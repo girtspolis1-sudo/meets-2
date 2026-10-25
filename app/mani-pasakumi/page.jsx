@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import PersonalDashboard from './personal-dashboard.jsx';
+import ProfileShell from '../components/profile-shell.jsx';
 import Link from 'next/link';
 import {useEvents} from '../../lib/use-events.js';
 
@@ -70,7 +71,7 @@ export default function MyEvents(){
   finally{setBusy(false);}
  }
  function logout(){saveSession(null);setSession(null);setFavorites([]);setPlans([]);setVisits([]);setMode('login');setPassword('');setConfirmPassword('');}
- return <section className="meets-account-page">
+ const page=<section className="meets-account-page">
   <div className="meets-account-heading"><div><p className="eyebrow">Tavs MEETS</p><h1>Mani pasākumi</h1><p className="meets-muted">Saglabā, plāno un atrodi pasākumus vienuviet.</p></div><Link href="/karte" className="button">Karte ↗</Link></div>
   {!session?<div className="meets-account-login"><div className="meets-account-symbol">♡</div>
    <h2>{mode==='register'?'Izveidot kontu':'Pieslēgties'}</h2>
@@ -93,4 +94,5 @@ export default function MyEvents(){
   </>}
   {session&&error&&<p className="error-message" role="alert">{error}</p>}
  </section>;
+ return session?<ProfileShell session={session}>{page}</ProfileShell>:page;
 }
