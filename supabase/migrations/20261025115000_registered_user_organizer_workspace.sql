@@ -54,11 +54,8 @@ using (
   or (organization_id is not null and public.meets_org_can_edit(organization_id))
 )
 with check (
-  (select auth.uid()) = user_id
-  and (
-    organization_id is null
-    or public.meets_org_can_edit(organization_id)
-  )
+  (organization_id is null and (select auth.uid()) = user_id)
+  or (organization_id is not null and public.meets_org_can_edit(organization_id))
 );
 
 create policy "embed registries scoped delete"
