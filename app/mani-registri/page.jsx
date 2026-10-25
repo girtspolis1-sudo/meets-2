@@ -110,6 +110,6 @@ function ListsInner(){
   </>}
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
  </section>;
- return session?<ProfileShell session={session} displayName={profile} activeOrganization={activeOrg}>{page}</ProfileShell>:page;
+ return session?<ProfileShell session={session} displayName={profile} activeOrganization={activeOrg} mode={orgId?'organizer':''}>{page}</ProfileShell>:page;
 }
 export default function MyRegistries(){return <Suspense fallback={<p role="status">Ielādē sarakstus…</p>}><ListsInner/></Suspense>;}
