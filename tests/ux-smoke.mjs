@@ -202,7 +202,22 @@ for(const width of cases){
 }
 // Desktop Leaflet popups are generated as HTML, so test them separately from React panels.
 const desktop=await browser.newPage({viewport:{width:1440,height:900},deviceScaleFactor:1});
-await desktop.addInitScript(()=>{Object.defineProperty(navigator,'share',{value:undefined,configurable:true});});
+await desktop.addInitScript(()=>{
+ Object.defineProperty(navigator,'share',{value:undefined,configurable:true});
+ localStorage.setItem('meets_user_session_v1',JSON.stringify({access_token:'desktop-test-token',user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51'},expires_at:Date.now()+3600000}));
+});
+let mapListToggled=null;
+const desktopList={id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb58',title:'Brīvdienu saraksts',filters:{selection_mode:'manual',period:'all'},included_event_ids:[],excluded_event_ids:[],organization_id:null};
+await desktop.route('**/api/registries',route=>{
+ const body=route.request().postDataJSON()||{};
+ if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({registries:[desktopList]})});
+ if(body.action==='toggleEvent'){
+  mapListToggled=body;
+  desktopList.included_event_ids=body.enabled?[mockEvent.id]:[];
+  return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({registry:desktopList})});
+ }
+ return route.fulfill({status:400,contentType:'application/json',body:'{"error":"Unknown test action"}'});
+});
 await desktop.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
 try{
  await desktop.goto(base+'/karte?period=week',{waitUntil:'domcontentloaded',timeout:45000});
@@ -220,6 +235,17 @@ try{
  if(await panel.isHidden()){fails++;console.error('Desktop sharing fallback did not open');}
  const telegram=await panel.getByRole('link',{name:'Telegram'}).getAttribute('href');
  if(!telegram?.includes(encodeURIComponent(mockEvent.id))){fails++;console.error('Desktop sharing URL wrong',telegram);}
+ await popup.getByRole('button',{name:'Pievienot pasākumu sarakstam'}).click();
+ const listDialog=desktop.getByRole('dialog',{name:/Pievienot sarakstam/});
+ await listDialog.waitFor({timeout:10000});
+ const listCheckbox=listDialog.getByRole('checkbox',{name:'Brīvdienu saraksts'});
+ await listCheckbox.waitFor({timeout:10000});
+ await listCheckbox.check();
+ if(mapListToggled?.event_id!==mockEvent.id||mapListToggled?.enabled!==true){
+  fails++;console.error('Desktop list was not saved to the existing registry API');
+ }
+ await desktop.keyboard.press('Escape');
+ await listDialog.waitFor({state:'hidden'});
  await desktop.screenshot({path:'ux-screenshots/desktop-map-actions.png',fullPage:true});
  await assertLayout(desktop,'desktop-map',1440);
 }catch(error){fails++;console.error('Desktop popup failed',error.message);}
