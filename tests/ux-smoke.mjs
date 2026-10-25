@@ -377,15 +377,32 @@ for(const width of [360,390,768,1440]){
    submissions:[{id:ownerId,title:'Ģimeņu sporta diena',organization_id:ownerId,venue_name:'MEETS Sporta zāle',date_from:today,status:'pending_review'}]})});
   return route.fulfill({status:200,contentType:'application/json',body:'{"item":{}}'});
  });
+ const collectionId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb57';
+ let privateCollections=[{
+   id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb53',title:'Ģimeņu pasākumi',
+   description:'Atlasīti pasākumi',filters:{period:'month'},is_published:true,
+   included_event_ids:[],excluded_event_ids:[],organization_id:null
+ }];
  await page.route('**/api/registries',route=>{
   const b=route.request().postDataJSON()||{};
-  if(b.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
-   profile:{display_name:'Mārupes pasākumi'},registries:[{
-    id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb53',title:'Ģimeņu pasākumi',
-    description:'Atlasīti pasākumi',filters:{period:'month'},is_published:true,
-    included_event_ids:[],excluded_event_ids:[]}]})});
-  if(b.action==='profile')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({profile:{display_name:b.display_name}})});
-  return route.fulfill({status:400,contentType:'application/json',body:'{"error":"Unsupported"}'});
+  const json=(value,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(value)});
+  if(b.action==='list')return json({profile:{display_name:'Mārupes pasākumi'},registries:privateCollections});
+  if(b.action==='profile')return json({profile:{display_name:b.display_name}});
+  if(b.action==='save'){
+   const item={...b,id:b.id||collectionId};
+   privateCollections=[item,...privateCollections.filter(x=>x.id!==item.id)];
+   return json({registry:item});
+  }
+  if(b.action==='toggleEvent'){
+   const item=privateCollections.find(x=>x.id===b.id);
+   if(!item)return json({error:'Missing list'},404);
+   const included=new Set(item.included_event_ids||[]);
+   b.enabled?included.add(b.event_id):included.delete(b.event_id);
+   const next={...item,included_event_ids:[...included]};
+   privateCollections=privateCollections.map(x=>x.id===item.id?next:x);
+   return json({registry:next});
+  }
+  return json({error:'Unsupported'},400);
  });
  await page.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
  try{
@@ -402,6 +419,21 @@ for(const width of [360,390,768,1440]){
   }
   await assertLayout(page,'signed-profile',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-signed-profile.png',fullPage:true});
+  await page.goto(base+'/mani-registri',{waitUntil:'domcontentloaded',timeout:45000});
+  await page.getByRole('heading',{name:'Manas kolekcijas'}).waitFor({timeout:15000});
+  await page.getByRole('button',{name:/Mani saraksti/}).waitFor();
+  await page.locator('#new-playlist').fill('Brīvdienu idejas');
+  await page.getByRole('button',{name:/Izveidot sarakstu/}).click();
+  await page.getByRole('heading',{name:'Brīvdienu idejas'}).waitFor({timeout:15000});
+  await page.locator('#playlist-search').fill('Ģimen');
+  await page.getByRole('button',{name:'+ Pievienot'}).first().click();
+  if((await page.locator('.meets-collection-event').count())<1){fails++;console.error('Manual collection did not receive the event',width);}
+  await assertLayout(page,'personal-playlist',width);
+  await page.getByRole('button',{name:/Visi saraksti/}).click();
+  await page.getByRole('button',{name:/Iecienītās vietas/}).click();
+  await assertLayout(page,'favorite-places',width);
+  await page.getByRole('button',{name:/Favorīti/}).click();
+  await assertLayout(page,'saved-favorites',width);
   await page.goto(base+'/organizators?panel=venues',{waitUntil:'domcontentloaded',timeout:45000});
   await page.getByRole('heading',{name:'MEETS Testa komanda'}).waitFor({timeout:12000});
   await assertLayout(page,'signed-organizer',width);
