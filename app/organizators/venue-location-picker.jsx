@@ -182,7 +182,7 @@ function PinMapDialog({initial,onClose,onConfirm}){
  </dialog>;
 }
 
-export default function VenueLocationPicker({value={},onSelect,existingVenues=[]}){
+export default function VenueLocationPicker({value={},onSelect,existingVenues=[],publicVenues=[]}){
  const [query,setQuery]=useState('');
  const [focused,setFocused]=useState(false);
  const [catalog,setCatalog]=useState([]);
@@ -203,6 +203,11 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
   if(!needle)return existingVenues.slice(0,5);
   return existingVenues.filter(v=>normalize(v.name+' '+v.address).includes(needle)).slice(0,7);
  },[existingVenues,query]);
+ const publicResults=useMemo(()=>{
+  const needle=normalize(query);
+  if(!needle)return [];
+  return publicVenues.filter(v=>normalize(v.name+' '+v.address).includes(needle)).slice(0,7);
+ },[publicVenues,query]);
  useEffect(()=>{
   if(!focused||query.trim().length<2){setCatalog([]);setCatalogError('');setFetching(false);return;}
   const controller=new AbortController();
@@ -284,6 +289,12 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
        <strong>⌖ {place.name} <em>MEETS · Mana vieta</em></strong><span>{place.address||'Bez adreses'}</span>
       </button>)}
      </>}
+     {publicResults.length>0&&<>
+      <small>Publiskās MEETS norises vietas</small>
+      {publicResults.map(place=><button key={'public-'+place.id} type="button" onClick={()=>preview({...place,venueId:place.id})}>
+       <strong>⌖ {place.name} <em>MEETS · Publiska vieta</em></strong><span>{place.address||'Bez adreses'}</span>
+      </button>)}
+     </>}
      {catalog.length>0&&<>
       <small>MEETS vietu katalogs</small>
       {catalog.filter(place=>!localResults.some(own=>normalize(own.name)===normalize(place.name)&&Math.abs(Number(own.latitude)-place.latitude)<0.001)).slice(0,7).map(place=><button key={place.id} type="button" onClick={()=>preview(place)}>
@@ -298,7 +309,7 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
      </>}
      {fetching&&<small>Notiek MEETS vietu meklēšana…</small>}
      {catalogError&&<small>{catalogError}</small>}
-     {!localResults.length&&!catalog.length&&!addressResults.length&&!fetching&&<small>Sāc rakstīt vai izmanto karti zemāk.</small>}
+     {!localResults.length&&!publicResults.length&&!catalog.length&&!addressResults.length&&!fetching&&<small>Sāc rakstīt vai izmanto karti zemāk.</small>}
     </div>}
    </div>
    {searchError&&<p role="status" className="meets-location-picker-message">{searchError}</p>}
