@@ -54,6 +54,7 @@ export async function POST(request){
    const organization_id=input.organization_id?String(input.organization_id):null;
    if(organization_id&&!validUuid(organization_id))return reply('Nederīga organizācija.');
    const filters=cleanRegistryFilters(input.filters);
+   if(organization_id===null&&input.filters?.selection_mode==='manual')filters.selection_mode='manual';
    const included_event_ids=cleanRegistryIds(input.included_event_ids||[]);
    const excluded_event_ids=cleanRegistryIds(input.excluded_event_ids||[]);
    const row={user_id:user.id,organization_id,title,description,filters,included_event_ids,excluded_event_ids,is_published:input.is_published===true,updated_at:new Date().toISOString()};
@@ -74,7 +75,7 @@ export async function POST(request){
    if(title.length<3||title.length>120)return reply('Saraksta nosaukumam jābūt 3–120 rakstzīmes garam.');
    if(!validUuid(input.event_id))return reply('Nederīgs pasākuma ID.');
    const saved=await rest(TABLE,token,'POST','',{
-    user_id:user.id,organization_id:null,title,description:'',filters:{period:'all'},
+    user_id:user.id,organization_id:null,title,description:'',filters:{period:'all',selection_mode:'manual'},
     included_event_ids:[input.event_id],excluded_event_ids:[],is_published:false,updated_at:new Date().toISOString()
    });
    return NextResponse.json({registry:saved[0]},{headers:{'Cache-Control':'no-store'}});

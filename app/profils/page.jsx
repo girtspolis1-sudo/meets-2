@@ -54,7 +54,7 @@ export default function ProfilePage(){
  const personal=state?.personal||{},dashboard=state?.dashboard||{},lists=(state?.registries?.registries||[]).filter(x=>!x.organization_id),orgs=state?.organizer?.organizations||[];
  const savedIds=[...new Set([...(personal.favorites||[]),...(personal.plans||[])])];
  const upcoming=savedIds.map(id=>byId.get(id)).filter(e=>e&&String(e.date_to||e.date_from)>=rigaDate()).sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from))).slice(0,5);
- const follows=dashboard.follows||[],followOrg=follows.filter(x=>x.target_kind==='organization').length,followVenue=follows.filter(x=>x.target_kind==='venue').length;
+ const follows=dashboard.follows||[],followOrg=follows.filter(x=>x.target_kind==='organization').length,followVenue=follows.filter(x=>x.target_kind==='venue').length+(dashboard.locationFollows||[]).length;
  const followedOrgIds=new Set(follows.filter(x=>x.target_kind==='organization').map(x=>x.target_id));
  const followedOrgs=(dashboard.directory?.organizations||[]).filter(x=>followedOrgIds.has(x.id)).slice(0,4);
  const display=(state?.registries?.profile?.display_name||'').trim(),email=account?.user?.email||'',nickname=display||email.split('@')[0]||'MEETS lietotājs',initial=(display||email).slice(0,1).toLocaleUpperCase('lv')||'M';
@@ -65,7 +65,7 @@ export default function ProfilePage(){
  return <ProfileShell session={account} displayName={display}><div className="meets-profile-overview">
   <div className="meets-profile-page-head"><div><p className="eyebrow">Mans MEETS</p><h1>Pārskats</h1><p>Tavi saglabātie pasākumi, saraksti un sekošana vienuviet.</p></div><Link href="/karte" className="meets-profile-top-cta"><ProfileIcon name="map"/> Atrast pasākumu</Link></div>
   <div className="meets-profile-hero"><div className="meets-profile-avatar" aria-hidden="true">{initial}</div><div className="meets-profile-hero-info"><strong>{nickname}</strong><small>{email}</small></div><span className="meets-profile-pill">Mans MEETS</span></div>
-  <div className="meets-profile-stats"><Metric icon="heart" number={personal.favorites?.length} label="Saglabāti" href="/mani-pasakumi"/><Metric icon="calendar" number={personal.plans?.length} label="Plānoti" href="/mani-pasakumi"/><Metric icon="list" number={lists.length} label="Mani saraksti" href="/mani-registri"/><Metric icon="eye" number={followOrg+followVenue} label="Sekošana" href="/sekosana"/></div>
+  <div className="meets-profile-stats"><Metric icon="heart" number={personal.favorites?.length} label="Saglabāti" href="/mani-pasakumi"/><Metric icon="calendar" number={personal.plans?.length} label="Plānoti" href="/mani-pasakumi"/><Metric icon="list" number={lists.length} label="Mani saraksti" href="/mani-registri?tab=lists"/><Metric icon="eye" number={followOrg+followVenue} label="Sekošana" href="/sekosana"/></div>
 
   <div className="meets-profile-columns"><div className="meets-profile-stack">
    <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Tuvākie saglabātie pasākumi</h2><Link href="/mani-pasakumi">Visi →</Link></div>
@@ -76,7 +76,7 @@ export default function ProfilePage(){
      <Link href={'/pasakumi?event='+encodeURIComponent(e.id)}>Atvērt →</Link>
     </div>):<div className="meets-profile-empty">Vēl nav gaidāmu saglabātu pasākumu. <Link href="/karte">Atrodi kartē →</Link></div>}
    </section>
-   <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Mani saraksti</h2><Link href="/mani-registri">Pārvaldīt →</Link></div>
+   <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Manas kolekcijas</h2><Link href="/mani-registri">Pārvaldīt →</Link></div>
     {lists.length?lists.slice(0,4).map(x=><div className="meets-profile-row" key={x.id}><span className="meets-profile-day"><ProfileIcon name="list"/></span><div className="meets-profile-row-meta"><strong>{x.title}</strong><small>{x.is_published?'Publisks':'Privāts'} · {(x.included_event_ids||[]).length} manuāli pievienoti</small></div><Link href={'/mani-registri?edit='+x.id}>Atvērt →</Link></div>):<div className="meets-profile-empty">Vēl nav sarakstu. Pasākuma kartītē izmanto “Pievienot sarakstam”.</div>}
    </section>
   </div>

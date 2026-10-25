@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import EventQuickActions from './event-quick-actions.jsx';
+import EventVenueFavorite from './event-venue-favorite.jsx';
 import {cardCategory,cardDate,cardDescription,cardGroup,cardImage,cardLocation,cardPrice} from '../../lib/discovery-card.js';
 
 const EMOJI={music:'🎵',stage:'🎭',culture:'🖼️',sport:'⚽',active:'🌿',markets:'🎉',learning:'💡',community:'🤝',other:'✦'};
@@ -21,6 +22,7 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
     <span><span aria-hidden="true">⌖</span> {cardLocation(event)}</span>
    </div>
    {summary?<p className="meets-discovery-description">{summary}</p>:<p className="meets-discovery-description is-empty">Vairāk par pasākumu un norisi</p>}
+   <div className="meets-card-curation-row"><EventQuickActions event={event} listOnly/><EventVenueFavorite event={event} compact/></div>
    <div className="meets-discovery-card-cta">
     {onOpen?<button type="button" className="meets-card-main-action" onClick={()=>onOpen(event.id)}>Skatīt vairāk <span aria-hidden="true">→</span></button>:
      <Link href={detailHref} className="meets-card-main-action">Skatīt vairāk <span aria-hidden="true">→</span></Link>}

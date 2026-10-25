@@ -4,6 +4,7 @@ import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} fro
 import {useEvents} from '../../lib/use-events.js';
 import EventQuickActions from '../components/event-quick-actions.jsx';
 import DiscoveryEventCard from '../components/discovery-event-card.jsx';
+import EventVenueFavorite from '../components/event-venue-favorite.jsx';
 import {cardCategory,cardDate,cardDescription,cardGroup,cardImage,cardLocation,cardPrice} from '../../lib/discovery-card.js';
 import {placeFromEvent,placesFromEvents} from '../../lib/location-follow.js';
 import Link from 'next/link';
@@ -331,7 +332,7 @@ export default function EventCatalog(){
    :<>
     {viewMode==='cards'&&<div className="catalog-card-grid meets-catalog-image-grid">{visible.map(event=>
      <DiscoveryEventCard key={event.id} event={event} onOpen={setSelected} actions
-       footer={<div className="catalog-event-card-follow">{followButton(event)}</div>}/>
+       footer={null}/>
     )}</div>}
     {viewMode==='table'&&<div className="table-scroll" role="region" aria-label="Pasākumu tabula — ritināma horizontāli" tabIndex={0}>
      <table className="events-table catalog-events-table">
@@ -401,7 +402,7 @@ function EventDetails({event,close,followButton}){
     {price&&<span className="meets-detail-price">{price}</span>}
    </div>
    {description&&<section className="meets-detail-description"><h3>Par pasākumu</h3><p>{description}</p></section>}
-   <div className="meets-detail-follow">{followButton(event)}</div>
+   <div className="meets-detail-follow"><EventVenueFavorite event={event}/><EventQuickActions event={event} listOnly/></div>
    <div className="meets-detail-primary-actions">
     <a className="button primary" href={'/karte?event='+encodeURIComponent(event.id)}>Atvērt kartē →</a>
     {event.sources?.filter(source=>source.url).slice(0,1).map((source,index)=>

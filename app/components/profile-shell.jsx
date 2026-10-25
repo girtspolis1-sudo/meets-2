@@ -24,7 +24,7 @@ export function ProfileIcon({name,size=19}){
 const personalLinks=[
  {href:'/profils',label:'Pārskats',icon:'home'},
  {href:'/mani-pasakumi',label:'Saglabātie pasākumi',icon:'heart'},
- {href:'/mani-registri',label:'Mani saraksti',icon:'list'},
+ {href:'/mani-registri',label:'Manas kolekcijas',icon:'list'},
  {href:'/sekosana',label:'Sekošana',icon:'eye'},
  {href:'/profils#iestatijumi',label:'Konta iestatījumi',icon:'settings'}
 ];

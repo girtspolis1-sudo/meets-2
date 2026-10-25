@@ -3,6 +3,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {icsContent,navigationLinks} from '../../lib/meets-personal.js';
 import {eventShareUrl,eventShareTargets,officialEventUrl} from '../../lib/event-sharing.js';
 import {filterRegistryEvents} from '../../lib/registry-filters.js';
+import {isManualCollection,eventInCollection} from '../../lib/personal-collections.js';
 
 const FAVORITES_KEY='meets_favorites_v1';
 const SESSION_KEY='meets_user_session_v1';
@@ -28,12 +29,12 @@ async function copyLink(value){
 }
 function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch{return null;}}
 
-export default function EventQuickActions({event,saved,onSave,onCalendar,compact=false,disabledFavorite=false,favoriteOnly=false}){
+export default function EventQuickActions({event,saved,onSave,onCalendar,compact=false,disabledFavorite=false,favoriteOnly=false,listOnly=false}){
  const [localSaved,setLocalSaved]=useState(false),[busy,setBusy]=useState(false),[menu,setMenu]=useState(''),[status,setStatus]=useState('');
  const [registries,setRegistries]=useState([]),[listLoading,setListLoading]=useState(false),[newList,setNewList]=useState('');
  const controlled=typeof saved==='boolean'&&typeof onSave==='function',isSaved=controlled?saved:localSaved;
  const links=navigationLinks(event),official=officialEventUrl(event),url=eventShareUrl(event,typeof window!=='undefined'?window.location.origin:undefined),targets=eventShareTargets(event,url);
- const personalLists=useMemo(()=>registries.filter(x=>!x.organization_id),[registries]);
+ const personalLists=useMemo(()=>registries.filter(isManualCollection),[registries]);
 
  useEffect(()=>{
   const refresh=()=>{try{const values=JSON.parse(localStorage.getItem(FAVORITES_KEY)||'[]');setLocalSaved(Array.isArray(values)&&values.map(String).includes(String(event.id)));}catch{setLocalSaved(false);}};
@@ -75,7 +76,7 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
    const b=await r.json();if(!r.ok)throw Error(b.error||'Sarakstus neizdevās ielādēt.');setRegistries(b.registries||[]);setMenu('lists');
   }catch(e){setStatus(e.message);}finally{setListLoading(false);}
  }
- function belongs(item){return filterRegistryEvents([event],item.filters||{},item.included_event_ids||[],item.excluded_event_ids||[]).length>0;}
+ function belongs(item){return isManualCollection(item)?eventInCollection(item,event.id):filterRegistryEvents([event],item.filters||{},item.included_event_ids||[],item.excluded_event_ids||[]).length>0;}
  async function toggleList(item){
   const session=sessionRead();if(!session?.access_token)return;
   const enabled=!belongs(item);setListLoading(true);setStatus('');
@@ -103,6 +104,19 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
    disabled={busy||disabledFavorite} onClick={favorite}><Icon name="heart"/></button>
   {status&&<small className="meets-card-favorite-status" role="status">{status}</small>}
  </span>;
+ const listPicker=menu==='lists'&&<div className="meets-list-picker" role="group" aria-label="Pievienot pasākumu sarakstam">
+  {sessionRead()?.access_token?<><strong>Pievienot manam sarakstam</strong>
+   {personalLists.map(item=><label key={item.id}><input type="checkbox" checked={belongs(item)} disabled={listLoading} onChange={()=>toggleList(item)}/><span>{item.title}</span></label>)}
+   {!personalLists.length&&<small>Vēl nav manuālu sarakstu — izveido pirmo!</small>}
+   <form onSubmit={createList}><input value={newList} maxLength={120} onChange={e=>setNewList(e.target.value)} placeholder="Jauns saraksts" aria-label="Jauna saraksta nosaukums"/><button type="submit" disabled={listLoading||newList.trim().length<3}>+ Izveidot</button></form>
+   <a href="/mani-registri">Atvērt manas kolekcijas →</a></>:<a href="/profils">Pieslēgties, lai veidotu sarakstus →</a>}
+ </div>;
+ if(listOnly)return <div className="meets-card-list-trigger">
+  <button type="button" className="meets-add-to-list" aria-label={'Pievienot sarakstam: '+event.title}
+   aria-expanded={menu==='lists'} disabled={listLoading} onClick={()=>menu==='lists'?setMenu(''):loadLists()}>
+   <Icon name="list"/> Pievienot sarakstam
+  </button>{listPicker}{status&&<small role="status" className="meets-card-list-status">{status}</small>}
+ </div>;
   const opts=[{label:'WhatsApp',href:targets.whatsapp},{label:'Messenger',href:targets.messenger},{label:'Telegram',href:targets.telegram},{label:'Facebook',href:targets.facebook},{label:'X',href:targets.x}];
  return <div className={'meets-event-actions-wrapper'+(compact?' compact':'')}>
   <div className="meets-event-action-grid meets-circle-actions" role="group" aria-label={'Pasākuma darbības: '+(event.title||'Pasākums')}>
@@ -115,10 +129,7 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
   </div>
   {menu==='route'&&<div className="meets-circle-options" role="group" aria-label="Maršruta izvēle"><a href={links.google} target="_blank" rel="noopener noreferrer">Google Maps ↗</a>{links.waze&&<a href={links.waze} target="_blank" rel="noopener noreferrer">Waze ↗</a>}</div>}
   {menu==='share'&&<div className="meets-circle-options" role="group" aria-label="Kopīgot pasākumu">{opts.map(option=><a href={option.href} key={option.label} target="_blank" rel="noopener noreferrer">{option.label}</a>)}<button type="button" onClick={copy}>Kopēt saiti <span aria-hidden="true">⧉</span></button></div>}
-  {menu==='lists'&&<div className="meets-list-picker" role="group" aria-label="Pievienot pasākumu sarakstam">
-   {sessionRead()?.access_token?<><strong>Mani saraksti</strong>{personalLists.map(item=><label key={item.id}><input type="checkbox" checked={belongs(item)} disabled={listLoading} onChange={()=>toggleList(item)}/><span>{item.title}</span></label>)}
-    {!personalLists.length&&<small>Vēl nav sarakstu.</small>}<form onSubmit={createList}><input value={newList} maxLength={120} onChange={e=>setNewList(e.target.value)} placeholder="Jauns saraksts"/><button type="submit" disabled={listLoading||newList.trim().length<3}>Izveidot</button></form><a href="/mani-registri">Pārvaldīt visus sarakstus →</a></>:<a href="/profils">Pieslēgties →</a>}
-  </div>}
+  {listPicker}
   {status&&<p className="meets-circle-feedback" role="status">{status}</p>}
  </div>;
 }

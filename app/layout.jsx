@@ -10,6 +10,7 @@ import './quick-flow.css';
 import './profile-dashboard.css';
 import './organizer-workspace.css';
 import './discovery-design.css';
+import './personal-collections.css';
 
 export const metadata = {
   title: { default: 'MEETS — Pasākumi Latvijā', template: '%s | MEETS' },
