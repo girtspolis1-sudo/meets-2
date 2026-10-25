@@ -324,7 +324,7 @@ export default function EventCatalog(){
      {event.cover_image_url&&<img src={event.cover_image_url} alt="" loading="lazy" className="catalog-event-cover"/>}
      <div className="catalog-event-card-top"><time dateTime={event.date_from}>{display(event,'date_from')||'Datums nav norādīts'}</time><span>{display(event,'event_type')||event.primary_category||'Pasākums'}</span></div>
      <h2>{event.title}</h2><p className="catalog-event-card-location">⌖ {event.venue_name||event.address_raw||event.municipality||'Norises vieta nav zināma'}</p>
-     <p className="catalog-event-card-time">{display(event,'time')||'Laiks nav norādīts'} · {display(event,'price_status')||'Maksa nav norādīta'}</p>
+     <p className="catalog-event-card-time">{display(event,'time')||'Laiks nav norādīts'} · {event.price_status==='free'?'Bezmaksas':event.price_min!=null&&event.price_max!=null?Number(event.price_min)===Number(event.price_max)?event.price_min+' €':event.price_min+'–'+event.price_max+' €':display(event,'price_status')||'Maksa nav norādīta'}</p>
      <EventQuickActions event={event}/>
       <div className="catalog-event-card-follow">{followButton(event)}</div>
      <div className="catalog-event-card-actions"><button className="button compact primary" type="button" onClick={()=>setSelected(event.id)}>Par pasākumu</button><a className="button compact" href={'/karte?q='+encodeURIComponent(event.title)}>Kartē ↗</a></div>
