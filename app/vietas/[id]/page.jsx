@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {publicVenue} from '../../../lib/public-venues.js';
 import VenueCalendar from './venue-calendar.jsx';
+import CopyVenueEmbed from './copy-embed.jsx';
 export const dynamic='force-dynamic';
 export async function generateMetadata({params}){const {id}=await params;const venue=await publicVenue(id);return {title:venue?.name?venue.name+' — MEETS vietas kalendārs':'MEETS norises vieta'};}
 export default async function VenuePage({params}){
@@ -19,9 +20,7 @@ export default async function VenuePage({params}){
    </div>
    <p className="quick-flow-note">Kalendārā automātiski redzami šai vietai piesaistītie, publicētie MEETS pasākumi.</p>
    <VenueCalendar events={venue.events}/>
-   <div><strong>Iegult šo kalendāru savā mājaslapā</strong>
-    <pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',fontSize:12,background:'#f5f2fa',padding:12,borderRadius:10}}>{'<iframe src="https://meets-2.vercel.app/iegult-vietu/'+venue.id+'" title="'+venue.name.replaceAll('"','&quot;')+'" width="100%" height="700" loading="lazy" style="border:0"></iframe>'}</pre>
-   </div>
+   <CopyVenueEmbed id={venue.id} title={venue.name}/>
   </section>
  </section>;
 }
