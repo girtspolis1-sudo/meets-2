@@ -322,6 +322,30 @@ for(const width of [320,390]){
    if(submitted?.venue_name!=='MEETS Sporta zāle'||submitted?.status!=='pending_review'||submitted?.date_from!==day){
     fails++;console.error('New event submission lost data after in-place login',submitted);
    }
+   // Recurrence + per-day time + EUR price should persist as one series to moderation.
+   await p.getByRole('button',{name:/Pievienot nākamo pasākumu/}).click();
+   const next=p.locator('.quick-flow-card');
+   await next.getByPlaceholder('Piemēram, Ģimenes sporta diena').fill('Regulārās sporta nodarbības');
+   await next.locator('select').first().selectOption('recurring');
+   const end=new Date(day+'T12:00:00Z');end.setUTCDate(end.getUTCDate()+15);
+   await next.locator('input[type=date]').nth(0).fill(day);
+   await next.locator('input[type=date]').nth(1).fill(end.toISOString().slice(0,10));
+   await next.getByRole('button',{name:'+ Laiks'}).first().click();
+   await next.locator('select').last().selectOption('paid');
+   await next.locator('input[type=number]').nth(0).fill('9.50');
+   await next.locator('input[type=number]').nth(1).fill('15.00');
+   await next.getByRole('button',{name:/Nevari atrast vietu/}).click();
+   await next.getByRole('textbox',{name:'Adrese manuāli'}).fill('Sporta iela 1, Rīga');
+   await next.getByRole('button',{name:'Turpināt ar šo adresi'}).click();
+   await next.getByRole('textbox',{name:/Norises vietas nosaukums/}).fill('MEETS Sporta zāle');
+   await next.getByRole('button',{name:/Priekšskatīt un turpināt/}).click();
+   await p.getByText('Norises reizes:',{exact:false}).waitFor({timeout:10000});
+   await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
+   await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei!'}).waitFor({timeout:10000});
+   if(submitted?.schedule_kind!=='recurring'||submitted?.price_min!=='9.50'||
+     submitted?.price_max!=='15.00'||submitted?.recurrence_slots?.length!==1){
+     fails++;console.error('Recurring paid event payload is invalid',submitted);
+   }
   }
   await p.goto(base+'/registre-vietu',{waitUntil:'domcontentloaded'});
   await p.locator('.meets-location-picker').waitFor({timeout:12000});
