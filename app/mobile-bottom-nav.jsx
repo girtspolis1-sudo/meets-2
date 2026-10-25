@@ -18,7 +18,7 @@ function Icon({name}){
 }
 export default function MobileBottomNav(){
  const pathname=usePathname();
- if(pathname.startsWith('/karte')||pathname.startsWith('/admin')||pathname.startsWith('/registre-'))return null;
+ if(pathname.startsWith('/admin')||pathname.startsWith('/registre-'))return null;
  const active=href=>href==='/'?pathname==='/':pathname===href||pathname.startsWith(href+'/')||(href==='/profils'&&['/organizators','/sekosana','/mani-registri'].some(x=>pathname.startsWith(x)));
  return <nav className="meets-mobile-bottom-nav" aria-label="Mobilā ātrā navigācija">
   {links.map(link=><Link key={link.href} href={link.href} className={active(link.href)?'active':''} aria-current={active(link.href)?'page':undefined}>
