@@ -237,6 +237,12 @@ export async function POST(request){
     }
    }
 
+   if(!data.id&&!isDraft){
+    const timeFilter=payload.time_from?'&time_from=eq.'+encodeURIComponent(payload.time_from):'&time_from=is.null';
+    const same=await api(TABLES.submissions,token,'GET',null,'?select=id&organization_id=eq.'+data.organization_id+'&title=eq.'+encodeURIComponent(payload.title)+'&date_from=eq.'+payload.date_from+timeFilter+'&limit=1');
+    if(same.length)return NextResponse.json({error:'Šāds pasākums ar tādu pašu datumu un sākuma laiku jau ir iesniegts. Atver esošo ierakstu vai izmanto dublēšanu ar jauniem datumiem.'},{status:409});
+   }
+
    let result;
    if(data.id){
     if(!UUID.test(data.id))return NextResponse.json({error:'Nederīgs ieraksts.'},{status:400});
