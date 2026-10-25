@@ -244,3 +244,11 @@ body:not(.admin-environment) .button{border-radius:13px}
 .meets-profile-follow-mini strong{min-width:0;flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meets-profile-follow-mini small{font-size:10px;color:#6354e6;white-space:nowrap}
 @media(max-width:760px){body.admin-environment .meets-mobile-bottom-nav{display:none}}
+
+/* A single primary CTA stays visible; secondary actions reveal on demand. */
+.meets-card-secondary-actions{border-top:1px solid #f0eef8;padding-top:8px;margin-top:6px}
+.meets-card-secondary-actions>summary{font-size:11px;font-weight:700;color:#655de3;cursor:pointer;min-height:30px;display:flex;align-items:center;gap:6px;list-style:none}
+.meets-card-secondary-actions>summary:before{content:'＋';font-size:15px;font-weight:700}
+.meets-card-secondary-actions[open]>summary:before{content:'−'}
+.meets-card-secondary-actions>summary::-webkit-details-marker{display:none}
+.meets-card-secondary-actions>.meets-event-actions-wrapper{margin:7px 0 0!important}
