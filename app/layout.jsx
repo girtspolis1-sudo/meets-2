@@ -7,6 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './globals.css';
 import './ux-enhancements.css';
 import './quick-flow.css';
+import './profile-dashboard.css';
 
 export const metadata = {
   title: { default: 'MEETS — Pasākumi Latvijā', template: '%s | MEETS' },
