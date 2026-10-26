@@ -53,7 +53,7 @@ function EventCard({event,favorites,plans,visits,reminders,busy,onToggle,onRemin
 }
 export default function PersonalDashboard({session,favorites,plans,visits,onToggle,busy,events=[],loading}){
  const [view,setView]=useState('overview'),[moreOpen,setMoreOpen]=useState(false),[extra,setExtra]=useState(DEFAULT),[tabError,setTabError]=useState(''),[message,setMessage]=useState(''),[saving,setSaving]=useState(false);
- const [month,setMonth]=useState(rigaDate().slice(0,7)),[selectedDate,setSelectedDate]=useState(rigaDate()),[mapScope,setMapScope]=useState('all'),[followQuery,setFollowQuery]=useState('');
+ const [mapScope,setMapScope]=useState('all'),[followQuery,setFollowQuery]=useState('');
  const [origin,setOrigin]=useState(null),[radius,setRadius]=useState(30),[locationError,setLocationError]=useState('');
  const token=session.access_token;
  useEffect(()=>{if(new URLSearchParams(window.location.search).get('view')==='following')setView('following');},[]);
@@ -106,7 +106,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
   </div>}
   {tabError&&<p className="meets-inline-error" role="alert">{tabError}</p>}
   {message&&<p className="meets-organizer-success" role="status">{message}</p>}
-  {loading?<p className="meets-muted">Ielādē pasākumus…</p>:<>
+  {loading&&!eventIndex.size?<p className="meets-muted">Ielādē pasākumus…</p>:<>
    {['overview','favorites','planned','calendar'].includes(view)&&<PersonalAgenda events={[...eventIndex.values()]} favorites={favorites} plans={plans} onToggle={onToggle} busy={busy||saving} loading={loading} initialStatus={view==='planned'?'planned':'all'}/>}
    {view==='visited'&&list(selected)}
    {view==='map'&&<><div className="meets-personal-heading-row"><h2>Manu pasākumu karte</h2>
