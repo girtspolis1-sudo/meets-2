@@ -335,3 +335,55 @@ body:not(.admin-environment) .button{border-radius:13px}
  .meets-hero-ctas{width:calc(100% + 82px)}
  .meets-minimal-benefits>a{align-items:start}
 }
+
+
+/* Home hero artwork: full-bleed visual with readable content overlay */
+.meets-discovery-hero{
+ display:block;
+ min-height:400px;
+ padding:44px 48px;
+ border:1px solid rgba(224,225,239,.92);
+ border-radius:22px;
+ background-color:#f7f6ff;
+ background-image:
+  linear-gradient(90deg,rgba(255,255,255,.985) 0%,rgba(255,255,255,.955) 34%,rgba(249,248,255,.82) 53%,rgba(249,248,255,.38) 74%,rgba(249,248,255,.12) 100%),
+  url('/images/meets-hero-events.svg');
+ background-size:cover;
+ background-position:center;
+ background-repeat:no-repeat;
+ box-shadow:0 18px 46px rgba(43,45,91,.07);
+}
+.meets-discovery-hero:before{display:none}
+.meets-hero-message{max-width:720px}
+.meets-hero-message>p{max-width:550px;color:#59627a}
+.meets-hero-search{
+ width:100%;
+ max-width:640px;
+ background:rgba(255,255,255,.96);
+ border-color:rgba(220,222,236,.96);
+ box-shadow:0 8px 22px rgba(57,55,116,.055)
+}
+.meets-hero-chips{width:100%;max-width:760px}
+.meets-hero-chips>a{background:rgba(255,255,255,.92);backdrop-filter:blur(4px)}
+.meets-hero-cta-secondary{background:rgba(255,255,255,.94)}
+
+@media(max-width:760px){
+ .meets-discovery-hero{
+  display:block;
+  min-height:0;
+  padding:25px 18px 21px;
+  border-radius:17px;
+  background-image:
+   linear-gradient(90deg,rgba(255,255,255,.985) 0%,rgba(251,250,255,.95) 58%,rgba(248,247,255,.86) 100%),
+   url('/images/meets-hero-events.svg');
+  background-position:68% center
+ }
+ .meets-hero-message{max-width:none}
+ .meets-hero-message>p{max-width:100%}
+ .meets-hero-search,.meets-hero-chips,.meets-hero-ctas{width:100%;max-width:100%}
+ .meets-hero-chips{overflow-x:auto;overscroll-behavior-inline:contain}
+}
+@media(max-width:400px){
+ .meets-discovery-hero{display:block;padding:22px 15px 18px;background-position:72% center}
+ .meets-hero-search,.meets-hero-chips,.meets-hero-ctas{width:100%;max-width:100%}
+}
