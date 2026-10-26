@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
+import {personalSelectionAfter} from '../../lib/personal-agenda.js';
 import PersonalDashboard from './personal-dashboard.jsx';
 import ProfileShell from '../components/profile-shell.jsx';
 import Link from 'next/link';
@@ -14,7 +15,7 @@ function saveSession(s){try{const item=s?.access_token?{...s,expires_at:Date.now
 function getLocal(){try{const ids=JSON.parse(localStorage.getItem(LOCAL)||'[]');return Array.isArray(ids)?ids:[];}catch{return [];}}
 export default function MyEvents(){
  const [session,setSession]=useState(null),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirmPassword,setConfirmPassword]=useState(''),[mode,setMode]=useState('register'),[showPassword,setShowPassword]=useState(false),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[favorites,setFavorites]=useState([]),[plans,setPlans]=useState([]),[visits,setVisits]=useState([]);
- const {data,loading}=useEvents();
+ const {data,loading,error:eventsError}=useEvents();
  async function load(account){
   const result=await rpc({action:'list',token:account.access_token});
   const owner=localStorage.getItem(FAVORITE_OWNER);
@@ -54,25 +55,25 @@ export default function MyEvents(){
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
  async function change(id,kind){
-  if(!session)return;setBusy(true);setError('');
+  if(!session||busy)return;setBusy(true);setError('');
   try{
-   const current=kind==='plan'?plans:kind==='visit'?visits:favorites;
+   const current=kind==='plan'?plans:kind==='visit'?visits:[...new Set([...favorites,...plans])];
    const present=current.includes(id);
    const action=kind==='plan'?(present?'unplan':'plan'):kind==='visit'?(present?'unvisit':'visit'):(present?'remove':'add');
    await rpc({action,token:session.access_token,eventId:id});
    const next=present?current.filter(x=>x!==id):[...current,id];
-   if(kind==='plan')setPlans(next);
-   else if(kind==='visit')setVisits(next);
+   if(kind==='visit')setVisits(next);
    else{
-    setFavorites(next);
-    try{localStorage.setItem(LOCAL,JSON.stringify(next));window.dispatchEvent(new Event('meets-favorites-changed'));}catch{}
+    const selection=personalSelectionAfter({favorites,plans},id,kind);
+    setFavorites(selection.favorites);setPlans(selection.plans);
+    try{localStorage.setItem(LOCAL,JSON.stringify(selection.favorites));window.dispatchEvent(new Event('meets-favorites-changed'));}catch{}
    }
-  }catch(e){setError(e.message);}
+  }catch(e){setError(e.message);try{const actual=await rpc({action:'list',token:session.access_token});setFavorites(actual.favorites);setPlans(actual.plans);}catch{}}
   finally{setBusy(false);}
  }
  function logout(){saveSession(null);setSession(null);setFavorites([]);setPlans([]);setVisits([]);setMode('login');setPassword('');setConfirmPassword('');}
  const page=<section className="meets-account-page">
-  <div className="meets-account-heading"><div><p className="eyebrow">Tavs MEETS</p><h1>Saglabātie pasākumi</h1><p className="meets-muted">Saglabā, plāno un atrodi pasākumus vienuviet.</p></div><Link href="/karte" className="button">Karte ↗</Link></div>
+  <div className="meets-account-heading"><div><p className="eyebrow">Tavs MEETS</p><h1>Mani pasākumi</h1><p className="meets-muted">Saglabā, plāno un atrodi pasākumus vienuviet.</p></div><Link href="/karte" className="button">Karte ↗</Link></div>
   {!session?<div className="meets-account-login"><div className="meets-account-symbol">♡</div>
    <h2>{mode==='register'?'Izveidot kontu':'Pieslēgties'}</h2>
    <p className="meets-muted">{mode==='register'?'Reģistrējies un uzreiz saglabā savus pasākumus.':'Ievadi savu e-pastu un paroli.'}</p>
@@ -92,7 +93,7 @@ export default function MyEvents(){
    <PersonalDashboard session={session} favorites={favorites} plans={plans} visits={visits} onToggle={change}
     busy={busy} events={data?.events||[]} loading={loading}/>
   </>}
-  {session&&error&&<p className="error-message" role="alert">{error}</p>}
+  {session&&(error||eventsError)&&<p className="error-message" role="alert">{error||eventsError}</p>}
  </section>;
  return session?<ProfileShell session={session}>{page}</ProfileShell>:page;
 }

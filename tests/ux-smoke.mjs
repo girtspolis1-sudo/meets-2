@@ -447,10 +447,9 @@ for(const width of [360,390,768,1440]){
  await page.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
  try{
   await page.goto(base+'/profils',{waitUntil:'domcontentloaded',timeout:45000});
-  await page.getByRole('heading',{name:'Pārskats'}).waitFor({timeout:15000});
-  await page.locator('.meets-profile-hero-info strong').getByText('Mārupes pasākumi').waitFor({timeout:12000});
-  const stats=page.locator('.meets-profile-stats');
-  if((await stats.locator('.meets-profile-stat').count())!==4){fails++;console.error('Profile stats count wrong',width);}
+  await page.getByRole('heading',{name:'Mans MEETS',exact:true}).waitFor({timeout:15000});
+  await page.locator('.meets-agenda').waitFor();
+  if((await page.locator('.meets-profile-stats').count())!==0){fails++;console.error('Legacy stats still present',width);}
   if(width<768){
    if(!(await page.locator('.meets-profile-mobile-tabs').isVisible())){fails++;console.error('Mobile profile navigation not visible',width);}
   }else if(!(await page.locator('.meets-profile-aside').isVisible())){fails++;console.error('Desktop profile sidebar not visible',width);}

@@ -1,4 +1,4 @@
-import {NextResponse} from 'next/server';
+import {NextResponse} from 'next/server.js';
 import {placeFromEvent} from '../../../lib/location-follow.js';
 export const dynamic='force-dynamic';
 const BASE=()=>process.env.SUPABASE_URL;
@@ -150,6 +150,10 @@ export async function POST(request){
    catch{return NextResponse.json({error:'Paziņojumu neizdevās atzīmēt.'},{status:400});}
   }
   if(typeof eventId!=='string'||! /^[0-9a-f-]{36}$/i.test(eventId))return NextResponse.json({error:'Nederīgs pasākums.'},{status:400});
+  // A plan is also a saved event. Keep favorites on unplan (including legacy
+  // plan-only rows); remove the plan first when explicitly unsaving an event.
+  if(action==='plan'||action==='unplan')await rest('meets_favorites','POST','',{user_id:user.id,event_id:eventId});
+  if(action==='remove')await rest('meets_event_plans','DELETE',own+'&event_id=eq.'+eventId);
   const table=['plan','unplan'].includes(action)?'meets_event_plans':['visit','unvisit'].includes(action)?'meets_event_visits':'meets_favorites';
   const adding=['add','plan','visit'].includes(action);
   const res=await fetch(BASE()+'/rest/v1/'+table+(adding?'':'?user_id=eq.'+user.id+'&event_id=eq.'+eventId),{method:adding?'POST':'DELETE',headers:{...headers,...(adding?{Prefer:'resolution=ignore-duplicates,return=minimal'}:{})},...(adding?{body:JSON.stringify({user_id:user.id,event_id:eventId})}:{}) ,cache:'no-store'});
