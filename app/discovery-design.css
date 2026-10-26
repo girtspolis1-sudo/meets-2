@@ -376,3 +376,24 @@ body:not(.admin-environment) .button{border-radius:13px}
  .meets-discovery-hero{padding:22px 15px 18px;background-position:64% center}
  .meets-hero-search,.meets-hero-chips,.meets-hero-ctas{width:100%;max-width:100%}
 }
+
+/* Landing hero final layout: primary map CTA, all categories without scrolling */
+.meets-discovery-hero{padding:clamp(24px,3.3vw,52px);min-height:420px}
+.meets-hero-message{max-width:none;width:100%}
+.meets-hero-message h1,.meets-hero-message>p{max-width:700px}
+.meets-hero-ctas{margin-top:24px;margin-bottom:22px}
+.meets-hero-cta-primary{background:#6053ed;color:#fff;border-color:#6053ed}
+.meets-hero-cta-secondary{background:rgba(255,255,255,.96);color:#24254c;border-color:#fff}
+.meets-hero-chips{display:flex;flex-wrap:wrap;gap:10px;width:100%;max-width:none;overflow:visible;padding:4px 0;scrollbar-width:none}
+.meets-hero-chips>a{flex:0 0 auto;max-width:100%;white-space:normal;min-height:42px;line-height:1.25}
+.meets-hero-chips::-webkit-scrollbar{display:none}
+@media(max-width:760px){
+ .meets-discovery-hero{padding:24px 18px;min-height:0}
+ .meets-hero-ctas{width:100%;margin:20px 0}
+ .meets-hero-chips{width:100%;flex-wrap:wrap;overflow:visible;gap:8px}
+ .meets-hero-chips>a{min-height:38px;padding:8px 11px;font-size:11px}
+}
+@media(max-width:400px){
+ .meets-discovery-hero{padding:22px 15px}
+ .meets-hero-chips,.meets-hero-ctas{width:100%;max-width:100%}
+}
