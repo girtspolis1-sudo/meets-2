@@ -85,6 +85,9 @@ jobs:
       - name: Verify mobile interfaces
         run: node tests/ux-smoke.mjs
 
+      - name: Verify personal agenda and calendar
+        run: node tests/personal-agenda-smoke.mjs
+
       - name: Upload responsive screenshots
         if: always()
         uses: actions/upload-artifact@v4
