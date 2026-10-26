@@ -23,12 +23,6 @@ export default function Home(){
       <span aria-hidden="true">{group.icon}</span>{group.title}</Link>)}
     </div>
    </div>
-   <div className="meets-hero-original-map">
-    <Link href="/karte" aria-label="Apskatīt pasākumus MEETS kartē">
-     <img src="/images/meets-home-concept-2.webp" alt="MEETS Latvijas pasākumu kartes ilustrācija" width={320} height={282} fetchPriority="high"/>
-     <span>Apskatīt karti <span aria-hidden="true">↗</span></span>
-    </Link>
-   </div>
   </section>
   <nav className="meets-minimal-benefits" aria-label="MEETS iespējas">
    <Link href="/karte"><span className="meets-minimal-benefit-icon" aria-hidden="true">⌖</span><span><strong>Pasākumi tuvumā</strong><small>Atrodi notikumus savā apkārtnē</small></span></Link>
