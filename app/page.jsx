@@ -10,16 +10,10 @@ export default function Home(){
     <span className="eyebrow">LATVIJAS PASĀKUMI VIENUVIET</span>
     <h1 id="meets-welcome-title">Atrodi pasākumus,<br/><em>kas iedvesmo.</em></h1>
     <p>Atrodi sev piemērotus pasākumus tuvumā un visā Latvijā — koncertus, kultūru, sportu un citus piedzīvojumus.</p>
-    <div className="meets-hero-ctas"><Link className="meets-hero-cta-primary" href="/pasakumi">Skatīt pasākumus <span aria-hidden="true">→</span></Link><Link className="meets-hero-cta-secondary" href="/karte">Atvērt karti <span aria-hidden="true">↗</span></Link></div>
-    <form action="/pasakumi" method="get" role="search" className="meets-hero-search">
-     <label className="sr-only" htmlFor="meets-home-search">Meklēt pasākumu, vietu vai intereses</label>
-     <span aria-hidden="true">⌕</span>
-     <input id="meets-home-search" name="q" type="search" placeholder="Meklēt pasākumu vai vietu…" maxLength={100}/>
-     <button type="submit" aria-label="Meklēt pasākumus">→</button>
-    </form>
+    <div className="meets-hero-ctas"><Link className="meets-hero-cta-primary" href="/karte">Atvērt karti <span aria-hidden="true">↗</span></Link><Link className="meets-hero-cta-secondary" href="/pasakumi">Skatīt pasākumus <span aria-hidden="true">→</span></Link></div>
     <div className="meets-hero-chips" aria-label="Populārākās kategorijas">
      <Link href="/pasakumi" className="active">Visi</Link>
-     {GROUPS.slice(0,6).map(group=><Link key={group.key} href={'/pasakumi?category='+group.key}>
+     {GROUPS.map(group=><Link key={group.key} href={'/pasakumi?category='+group.key}>
       <span aria-hidden="true">{group.icon}</span>{group.title}</Link>)}
     </div>
    </div>
