@@ -246,3 +246,15 @@ body:has(.meets-profile-auth) .meets-auth-inline-alert{margin:2px 0;padding:9px 
 .meets-account-settings input:focus-visible,.meets-account-settings button:focus-visible,.meets-account-settings label.button:focus-visible{outline:2px solid #7042aa;outline-offset:2px}
 @media(max-width:760px){.meets-account-settings{gap:11px}.meets-settings-panel{padding:15px}.meets-settings-photo{width:70px;height:70px}.meets-settings-photo-row{gap:12px}.meets-profile-summary-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:440px){.meets-settings-photo-row{align-items:flex-start}.meets-profile-summary-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.meets-profile-summary-stats .meets-profile-stat{padding:10px 6px;min-height:88px}.meets-profile-summary-stats .meets-profile-stat-number{font-size:21px}.meets-profile-summary-stats .meets-profile-stat-label{font-size:10px}}
+
+/* Accessible compact account-mode switch and sidebar logout */
+.meets-profile-mode-switch{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;gap:4px;padding:4px;border-radius:14px;background:#f3eff9;min-width:0}
+.meets-profile-mode-switch a{display:flex;align-items:center;justify-content:center;gap:5px;text-align:center;min-width:0;min-height:45px;padding:7px 5px;border-radius:10px;font-weight:500;font-size:11px;line-height:1.25;color:#5b546d;text-decoration:none;white-space:normal}
+.meets-profile-mode-switch a svg{flex:none;stroke-width:1.6}
+.meets-profile-mode-switch a.active{background:#fff;color:#663cc0;font-weight:600;box-shadow:0 1px 5px rgba(33,23,66,.08)}
+.meets-profile-mode-switch a:focus-visible,.meets-profile-logout:focus-visible{outline:2px solid #7445ae;outline-offset:2px}
+.meets-profile-aside-footer{gap:6px}
+.meets-profile-logout{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:44px;border:1px solid #e7e0ef;background:transparent;color:#665e76;border-radius:11px;cursor:pointer;font:inherit;font-size:12px;font-weight:500}
+.meets-profile-logout:hover{background:#faf7ff;color:#56369a}
+.meets-profile-logout:disabled{opacity:.55;cursor:wait}
+@media(max-width:760px){.meets-profile-mode-switch a{font-size:12px;min-height:44px}}
