@@ -184,43 +184,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
     {origin&&<p className="meets-muted">Atlasīti tikai pasākumi ar precīzu kartes punktu {radius} km rādiusā. Atrašanās vieta netiek saglabāta tavā kontā.</p>}
     {recommended.length?cardEvents(recommended):<p className="meets-muted">Izvēlies intereses, lai šeit parādītos piemēroti pasākumi. <Link href="/karte">Apskatīt visus pasākumus ↗</Link></p>}
    </section>}
-   {view==='following'&&<section className="meets-personal-follows">
-    <h2>Manas sekotās norises vietas</h2>
-    <p className="meets-muted">No <Link href="/pasakumi">visu pasākumu saraksta</Link> vari sekot arī importētām norises vietām. Šeit redzami to gaidāmie pasākumi; e-pasta un push paziņojumi nav ieslēgti.</p>
-    {locationEventGroups.length?<div className="meets-followed-venues">
-     {locationEventGroups.map(place=><article className="meets-followed-venue" key={place.location_key}>
-      <div className="meets-followed-venue-head">
-       <div><strong>⌖ {place.location_name}</strong><small>{place.municipality} · {place.upcoming.length} aktuāli pasākumi</small></div>
-       <button type="button" disabled={saving} className="catalog-follow-place following"
-        onClick={()=>mutate({action:'followLocation',locationKey:place.location_key,locationName:place.location_name,municipality:place.municipality,enabled:false},()=>setExtra(p=>({...p,locationFollows:p.locationFollows.filter(x=>x.location_key!==place.location_key)})))}>✓ Sekoju</button>
-      </div>
-      {place.upcoming.length?<ul>{place.upcoming.slice(0,3).map(event=><li key={event.id}><strong>{event.title}</strong><span>{dateText(event.date_from)}</span></li>)}</ul>
-       :<p className="meets-muted">Šobrīd šajā vietā nav gaidāmu publicētu pasākumu.</p>}
-      <Link href={'/pasakumi?place='+encodeURIComponent(place.location_key)}>Visi pasākumi šajā vietā ↗</Link>
-     </article>)}
-    </div>:<p className="meets-muted">Vēl neseko nevienai norises vietai. <Link href="/pasakumi">Atver pasākumu sarakstu ↗</Link></p>}
-    <h2>Seko organizatoriem un reģistrētām vietām</h2>
-    <p className="meets-muted">Seko MEETS organizatoriem, vietām un publiskajiem pasākumu avotiem, piemēram, pašvaldībām vai sporta federācijām.</p>
-    <input aria-label="Meklēt organizatorus vai norises vietas" placeholder="Meklēt organizatoru vai vietu…" value={followQuery} onChange={e=>setFollowQuery(e.target.value)}/>
-    <div className="meets-personal-follow-list">
-     {[
-      ...(extra.directory.organizations||[]).map(x=>({...x,kind:'organization'})),
-      ...(extra.directory.venues||[]).map(x=>({...x,kind:'venue'})),
-      ...(extra.directory.sources||[]).map(x=>({...x,kind:'source'}))
-     ].filter(x=>x.name.toLocaleLowerCase('lv').includes(followQuery.toLocaleLowerCase('lv'))).map(x=>{
-      const active=extra.follows.some(f=>f.target_id===x.id&&f.target_kind===x.kind);
-      return <div className="meets-personal-follow-row" key={x.kind+x.id}>
-       <span>{x.kind==='venue'?'⌖':x.kind==='source'?'◈':'♙'} <strong>{x.name}</strong><small>{x.kind==='venue'?'Norises vieta':x.kind==='source'?'Pasākumu avots':'Organizators'}</small></span>
-       <button disabled={saving} className={active?'selected':''} onClick={()=>mutate({action:'follow',targetId:x.id,targetKind:x.kind,enabled:!active},async()=>{
-        setExtra(p=>({...p,follows:active?p.follows.filter(f=>!(f.target_id===x.id&&f.target_kind===x.kind)):[...p.follows,{target_id:x.id,target_kind:x.kind}]}));
-        try{await reload();}catch{}
-       })}>{active?'✓ Sekoju':'+ Sekot'}</button>
-      </div>;
-     })}
-    </div>
-    {!extra.directory.organizations?.length&&!extra.directory.venues?.length&&!extra.directory.sources?.length&&<p className="meets-muted">Pagaidām nav avotu ar publiskiem pasākumiem.</p>}
-    <h2>Jaunie pasākumi no sekotajiem</h2>{following.length?cardEvents(following):<p className="meets-muted">Pagaidām nav jaunu publicētu pasākumu no izvēlētajiem organizatoriem un vietām.</p>}
-   </section>}
+
   </>}
   <section className="meets-personal-sharing">
    <div><h2>↗ Dalīties ar manu favorītu sarakstu</h2>
