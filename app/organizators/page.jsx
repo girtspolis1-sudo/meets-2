@@ -1,12 +1,14 @@
 'use client';
 import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
+import {useSearchParams} from 'next/navigation';
 import ProfileShell from '../components/profile-shell.jsx';
 import {rigaDate} from '../../lib/meets-personal.js';
 import {resolveOrganizationId,canWriteOrganization} from '../../lib/organizer-workspace.js';
 
 const SESSION='meets_user_session_v1';
 const PANELS=new Set(['overview','events','venues','profile']);
+function organizationsFrom(items,id){return id&&Array.isArray(items)&&items.some(o=>o.id===id)?id:'';}
 const STATUS_LABELS={draft:'Melnraksts',pending_review:'Pārbaudē',rejected:'Jālabo',published:'Publicēts',closed:'Slēgts',archived:'Arhivēts',cancelled:'Atcelts'};
 const ROLE_LABELS={owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'};
 
@@ -56,6 +58,7 @@ async function uploadOrgLogo(file,id,token){
  return b.url;
 }
 export default function OrganizerPage(){
+ const searchParams=useSearchParams();
  const [session,setSession]=useState(null);
  const [items,setItems]=useState({organizations:[],venues:[],publicVenues:[],venueLinks:[],submissions:[]});
  const [orgId,setOrgId]=useState('');
@@ -91,7 +94,7 @@ export default function OrganizerPage(){
    const params=new URLSearchParams(window.location.search);
    const requested=params.get('org');
    const requestedPanel=params.get('panel');
-   const chosen=resolveOrganizationId(data.organizations,requested);
+   const chosen=requested&&data.organizations?.some(o=>o.id===requested)?requested:'';
    setOrgId(chosen);
    setPanel(PANELS.has(requestedPanel)?requestedPanel:'overview');
    setCreating(params.get('new')==='1');
@@ -101,7 +104,7 @@ export default function OrganizerPage(){
     query:params.get('q')||'',
     venue:params.get('venue')||''
    });
-   if(chosen&&data.organizations?.length===1&&!requested)replaceUrl(chosen,PANELS.has(requestedPanel)?requestedPanel:'overview');
+
    const invite=params.get('invite');
    if(invite){
     await rpc('acceptInvite',{invite_token:invite},current);
@@ -115,6 +118,17 @@ export default function OrganizerPage(){
  }
 
  useEffect(()=>{load();},[]);
+ // Keep the rendered panel in sync with Next.js client-side Link navigation.
+ useEffect(()=>{
+  if(!loaded)return;
+  const requested=searchParams.get('org')||'';
+  const nextOrg=organizationsFrom(items.organizations,requested);
+  const nextPanel=searchParams.get('panel');
+  setOrgId(current=>current===nextOrg?current:nextOrg);
+  setPanel(PANELS.has(nextPanel)?nextPanel:'overview');
+  if(searchParams.get('new')==='1')setCreating(true);
+ },[searchParams,loaded,items.organizations]);
+
  useEffect(()=>{
   const beforeUnload=e=>{if(profileDirty){e.preventDefault();e.returnValue='';}};
   window.addEventListener('beforeunload',beforeUnload);
@@ -242,15 +256,16 @@ export default function OrganizerPage(){
   return '/organizators?org='+orgId+'&panel=events&status='+status+'&time=upcoming';
  }
  function orgCard(org){
-  const events=items.submissions.filter(x=>x.organization_id===org.id&&future(x));
+  const events=items.submissions.filter(x=>x.organization_id===org.id);
+  const published=events.filter(x=>x.status==='published');
   const venues=items.venues.filter(x=>x.organization_id===org.id);
   return <article className="org-card" key={org.id}>
    <div className="org-card-image">{org.image_url?<img src={org.image_url} alt=""/>:<span>{org.name.slice(0,1).toLocaleUpperCase('lv')}</span>}</div>
    <div className="org-card-body"><div className="org-card-title"><h2>{org.name}</h2><span>{ROLE_LABELS[org.role]||org.role}</span></div>
     <p>{org.description||'Apraksts vēl nav pievienots.'}</p>
-    <small>{events.length} gaidāmi pasākumi · {venues.length} pārvaldītas vietas</small>
+    <div className="org-card-counts"><span><strong>{venues.length}</strong> adreses</span><span><strong>{events.length}</strong> pasākumi</span><span><strong>{published.length}</strong> publicēti</span></div>
    </div>
-   <button className="button primary" type="button" onClick={()=>chooseOrganization(org.id)}>Atvērt →</button>
+   <button className="button primary" type="button" onClick={()=>chooseOrganization(org.id)}>Izvēlēties organizatoru →</button>
   </article>;
  }
 
@@ -300,8 +315,8 @@ export default function OrganizerPage(){
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
 
   {panel==='overview'&&<div className="org-stack">
-   <section className="org-simple-summary" aria-label="Organizatora kopsavilkums"><span><strong>{managedVenues.length}</strong> objekti</span><span><strong>{orgSubmissions.length}</strong> pasākumi</span><span><strong>{metrics.published}</strong> publicēti</span></section>
-   <section className="org-panel"><div className="org-panel-head"><h2>Mani objekti</h2>{canEdit&&<Link className="button primary" href={'/registre-vietu?org='+orgId}>+ Pievienot objektu</Link>}</div><div className="org-list">{managedVenues.slice(0,5).map(v=><div className="org-row" key={v.id}><div><strong>{v.name}</strong><small>{v.address} · {orgSubmissions.filter(x=>x.venue_id===v.id).length} pasākumi</small></div><div className="org-row-actions"><button type="button" className="button" onClick={()=>choosePanel('venues')}>Atvērt</button>{canEdit&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&venue='+v.id}>+ Pasākums</Link>}</div></div>)}{!managedVenues.length&&<p className="org-empty">Vēl nav objektu. Pievieno pirmo objektu, lai sāktu reģistrēt pasākumus.</p>}</div></section>
+   <section className="org-simple-summary" aria-label="Organizatora kopsavilkums"><span><strong>{managedVenues.length}</strong> adreses</span><span><strong>{orgSubmissions.length}</strong> pasākumi</span><span><strong>{metrics.published}</strong> publicēti</span></section>
+   <section className="org-panel"><div className="org-panel-head"><h2>Manas adreses</h2>{canEdit&&<Link className="button primary" href={'/registre-vietu?org='+orgId}>+ Pievienot adresi</Link>}</div><div className="org-list">{managedVenues.slice(0,5).map(v=><div className="org-row" key={v.id}><div><strong>{v.name}</strong><small>{v.address} · {orgSubmissions.filter(x=>x.venue_id===v.id).length} pasākumi</small></div><div className="org-row-actions"><button type="button" className="button" onClick={()=>choosePanel('venues')}>Atvērt</button>{canEdit&&<Link className="button primary org-add-event" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&venue='+v.id}>+ Pievienot pasākumu</Link>}</div></div>)}{!managedVenues.length&&<p className="org-empty">Vēl nav objektu. Pievieno pirmo adresi, lai sāktu reģistrēt pasākumus.</p>}</div></section>
    <section className="org-panel"><div className="org-panel-head"><div><h2>Tuvākie pasākumi</h2></div><button className="button" onClick={()=>choosePanel('events')}>Visi pasākumi →</button></div>
     <div className="org-list">{orgSubmissions.filter(future).sort((a,b)=>(a.date_from||'9999').localeCompare(b.date_from||'9999')).slice(0,6).map(item=><div className="org-row" key={item.id}>
      <div><strong>{item.title||'Bez nosaukuma'}</strong><small>{eventDate(item)} · {item.venue_name||'Vieta nav norādīta'}</small>{item.status==='rejected'&&item.admin_note&&<em>Jālabo: {item.admin_note}</em>}</div>
