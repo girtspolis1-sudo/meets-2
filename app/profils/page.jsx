@@ -15,13 +15,12 @@ async function post(endpoint,action,token,other={}){
  const b=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(b.error||'Datus neizdevās ielādēt.');e.status=r.status;throw e;}return b;
 }
 async function loadAll(account){
- const [personal,dashboard,registries,organizer]=await Promise.all([
+ const [personal,dashboard,registries]=await Promise.all([
   post('/api/account','list',account.access_token),
   post('/api/account','dashboard',account.access_token),
-  post('/api/registries','list',account.access_token),
-  post('/api/organizer','list',account.access_token)
+  post('/api/registries','list',account.access_token)
  ]);
- return {personal,dashboard,registries,organizer};
+ return {personal,dashboard,registries};
 }
 function Metric({number,label,icon,href}){return <Link href={href} className="meets-profile-stat"><ProfileIcon name={icon} size={19}/><strong className="meets-profile-stat-number">{number??0}</strong><span className="meets-profile-stat-label">{label}</span></Link>;}
 
@@ -43,9 +42,9 @@ export default function ProfilePage(){
   setAccount(session);setState(data);
  },[]);
  useEffect(()=>{let active=true;const session=fromStorage();if(!session?.access_token){setLoading(false);return;}
-  (async()=>{try{await load(session);}catch(e){if(active){setAccount(null);setError(e.message);}}finally{if(active)setLoading(false);}})();return()=>{active=false;};},[load]);
+  (async()=>{try{await load(session);}catch(e){if(active){setAccount(null);if(e.status===401){localStorage.removeItem(KEY);window.dispatchEvent(new Event('meets-user-changed'));setError('');}else setError(e.message);}}finally{if(active)setLoading(false);}})();return()=>{active=false;};},[load]);
 
- async function login(value){setLoading(true);setError('');try{await load(value);}catch(e){setError(e.message);}finally{setLoading(false);}}
+ async function login(value){setLoading(true);setError('');try{await load(value);localStorage.setItem(KEY,JSON.stringify({...value,expires_at:Date.now()+(value.expires_in||3600)*1000}));window.dispatchEvent(new Event('meets-user-changed'));}catch(e){if(e.status===401)setError('Sesiju neizdevās apstiprināt. Mēģini pieslēgties atkārtoti.');else setError(e.message);}finally{setLoading(false);}}
  const events=eventData?.events||[],byId=useMemo(()=>new Map([...(state?.dashboard?.savedDetails||[]).map(e=>[e.id,e]),...events.map(e=>[e.id,e])]),[events,state]);
  const personal=state?.personal||{},dashboard=state?.dashboard||{};
  const favoriteIds=new Set(personal.favorites||[]),planIds=new Set(personal.plans||[]);
