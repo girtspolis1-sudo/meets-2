@@ -27,7 +27,7 @@ function Metric({number,label,icon,href}){return <Link href={href} className="me
 export default function ProfilePage(){
  const {data:eventData}=useEvents();
  const [account,setAccount]=useState(null),[state,setState]=useState(null),[loading,setLoading]=useState(true);
- const [profileName,setProfileName]=useState(''),[saving,setSaving]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const [error,setError]=useState('');
 
  const load=useCallback(async(initial)=>{
   let session=initial,data;
@@ -39,17 +39,12 @@ export default function ProfilePage(){
    localStorage.setItem(KEY,JSON.stringify(session));window.dispatchEvent(new Event('meets-user-changed'));
    data=await loadAll(session);
   }
-  setAccount(session);setState(data);setProfileName(data.registries?.profile?.display_name||'');
+  setAccount(session);setState(data);
  },[]);
  useEffect(()=>{let active=true;const session=fromStorage();if(!session?.access_token){setLoading(false);return;}
   (async()=>{try{await load(session);}catch(e){if(active){setAccount(null);setError(e.message);}}finally{if(active)setLoading(false);}})();return()=>{active=false;};},[load]);
 
  async function login(value){setLoading(true);setError('');try{await load(value);}catch(e){setError(e.message);}finally{setLoading(false);}}
- async function saveProfile(e){e.preventDefault();if(!account)return;setSaving(true);setNotice('');try{
-  const data=await post('/api/registries','profile',account.access_token,{display_name:profileName});
-  setState(v=>({...v,registries:{...v.registries,profile:data.profile}}));setNotice('Profila vārds saglabāts.');
- }catch(e){setNotice(e.message);}finally{setSaving(false);}}
-
  const events=eventData?.events||[],byId=useMemo(()=>new Map([...(state?.dashboard?.savedDetails||[]).map(e=>[e.id,e]),...events.map(e=>[e.id,e])]),[events,state]);
  const personal=state?.personal||{},dashboard=state?.dashboard||{},lists=(state?.registries?.registries||[]).filter(x=>!x.organization_id),orgs=state?.organizer?.organizations||[];
  const favoriteIds=new Set(personal.favorites||[]),planIds=new Set(personal.plans||[]);
@@ -63,11 +58,10 @@ export default function ProfilePage(){
  const leftIds=new Set(left.map(e=>e.id));
  const right=[...new Map([...planned,...collectionEvents].filter(e=>!leftIds.has(e.id)).map(e=>[e.id,e])).values()].sort(byDate).slice(0,5);
  const badgesFor=e=>[favoriteIds.has(e.id)?'Favorīts':null,planIds.has(e.id)?'Plānoju':null,collectionIds.has(e.id)?'Sarakstā':null].filter(Boolean);
- const follows=dashboard.follows||[],followOrg=follows.filter(x=>x.target_kind==='organization').length,followVenue=follows.filter(x=>x.target_kind==='venue').length+(dashboard.locationFollows||[]).length;
  const display=(state?.registries?.profile?.display_name||'').trim(),email=account?.user?.email||'';
 
  if(loading)return <div className="meets-profile-skeleton" role="status">Ielādē tavu MEETS profilu…</div>;
- if(!account)return <section className="meets-profile-auth" aria-labelledby="meets-auth-title"><p className="eyebrow">MANS MEETS</p><h1 id="meets-auth-title">Tavs MEETS vienuviet</h1><p className="meets-auth-intro">Saglabā pasākumus, veido savus plānus un seko interesantām vietām.</p>{error&&<p className="meets-profile-error" role="alert">{error}</p>}<Authentication variant="profile" onSuccess={login}/></section>;
+ if(!account)return <section className="meets-profile-auth" aria-labelledby="meets-auth-title"><p className="eyebrow">MANS MEETS</p><h1 id="meets-auth-title">Tavs MEETS vienuviet</h1><p className="meets-auth-intro">Saglabā pasākumus un veido savus plānus.</p>{error&&<p className="meets-profile-error" role="alert">{error}</p>}<Authentication variant="profile" onSuccess={login}/></section>;
 
  return <ProfileShell session={account} displayName={display}><div className="meets-profile-overview">
   <section className="meets-profile-summary" aria-labelledby="profile-overview-heading">
@@ -76,7 +70,7 @@ export default function ProfilePage(){
       <Metric icon="heart" number={personal.favorites?.length} label="Saglabāti" href="/mani-pasakumi"/>
       <Metric icon="calendar" number={personal.plans?.length} label="Plānoti" href="/mani-pasakumi"/>
       <Metric icon="list" number={lists.length} label="Mani saraksti" href="/mani-registri?tab=lists"/>
-      <Metric icon="eye" number={followOrg+followVenue} label="Sekošana" href="/sekosana"/>
+
     </div>
   </section>
   <div className="meets-profile-columns meets-unified-columns">
@@ -93,8 +87,8 @@ export default function ProfilePage(){
    <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Manas kolekcijas</h2><Link href="/mani-registri?tab=lists">Pārvaldīt →</Link></div>
     {lists.length?lists.slice(0,3).map(x=><Link className="meets-unified-collection" href={'/mani-registri?tab=lists&edit='+encodeURIComponent(x.id)} key={x.id}><span>{x.title}</span><small>{(x.included_event_ids||[]).length} pasākumi · {x.is_published?'Publisks':'Privāts'}</small></Link>):<p className="meets-profile-empty">Vēl nav kolekciju.</p>}
    </section>
-   <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Sekošana</h2><Link href="/sekosana">Atvērt →</Link></div><p className="meets-profile-hint">Organizatori: {followOrg} · Vietas: {followVenue}</p></section>
+
   </div>
-  <section className="meets-profile-panel meets-unified-settings" id="iestatijumi"><div className="meets-profile-panel-header"><h2>Konta iestatījumi</h2></div><form className="meets-profile-settings-fields" onSubmit={saveProfile}><label>Profila vārds<input value={profileName} maxLength={100} onChange={e=>setProfileName(e.target.value)} placeholder="Tavs vārds"/></label><label>E-pasts<input value={email} readOnly/></label><button className="button" disabled={saving}>{saving?'Saglabā…':'Saglabāt'}</button></form>{notice&&<p className="meets-profile-hint" role="status">{notice}</p>}</section>
+
  </div></ProfileShell>;
 }
