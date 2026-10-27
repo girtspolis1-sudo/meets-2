@@ -39,7 +39,7 @@ function MiniEvent({event,action}){
 }
 export default function PersonalCollections(){
  const params=useSearchParams();
- const initialTab=['favorites','lists','places'].includes(params.get('tab'))?params.get('tab'):'lists';
+ const initialTab=['favorites','lists'].includes(params.get('tab'))?params.get('tab'):'lists';
  const [tab,setTab]=useState(initialTab),[session,setSession]=useState(null),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
  const [lists,setLists]=useState([]),[favorites,setFavorites]=useState([]),[places,setPlaces]=useState([]),[venueFollows,setVenueFollows]=useState([]);
  const [directory,setDirectory]=useState({venues:[]}),[savedDetails,setSavedDetails]=useState([]);
@@ -171,7 +171,6 @@ export default function PersonalCollections(){
    <nav className="meets-collection-tabs" aria-label="Kolekciju veidi">
     <button type="button" className={tab==='favorites'?'active':''} aria-current={tab==='favorites'?'page':undefined} onClick={()=>{setTab('favorites');setSelected(null);}}>♡ Favorīti <small>{favorites.length}</small></button>
     <button type="button" className={tab==='lists'?'active':''} aria-current={tab==='lists'?'page':undefined} onClick={()=>setTab('lists')}>▤ Mani saraksti <small>{lists.length}</small></button>
-    <button type="button" className={tab==='places'?'active':''} aria-current={tab==='places'?'page':undefined} onClick={()=>{setTab('places');setSelected(null);}}>⌖ Iecienītās vietas <small>{places.length+venueFollows.length}</small></button>
    </nav>
    {tab==='favorites'&&<section className="meets-collection-panel"><div className="meets-collection-panel-head"><div><h2>Mani favorīti</h2><p>Visi ar sirsniņu saglabātie pasākumi. Tie nav automātiski pievienoti nevienam tavam sarakstam.</p></div><Link href="/mani-pasakumi" className="button">Plāni un kalendārs →</Link></div>
     {favEvents.length?<div className="meets-collection-event-list">{favEvents.map(e=><MiniEvent key={e.id} event={e} action={<div className="meets-collection-row-actions"><EventQuickActions event={e} listOnly/><button type="button" disabled={busy} onClick={()=>removeFavorite(e.id)} aria-label={'Noņemt no favorītiem: '+e.title}>♡ Noņemt</button></div>}/>)}</div>:
