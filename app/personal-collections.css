@@ -640,3 +640,23 @@
 @media(max-width:390px){
  .meets-map-list-dialog{padding:14px}
 }
+
+/* Unified Mans MEETS personal content density */
+.meets-profile-slot .meets-account-heading{margin-bottom:12px;gap:10px}
+.meets-profile-slot .meets-account-heading h1{font-size:clamp(26px,3vw,34px);line-height:1.12;margin:0 0 6px}
+.meets-profile-slot .meets-personal-dashboard .meets-unified-counts{display:flex;gap:8px 16px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;border:1px solid #e7def7;background:linear-gradient(110deg,#f0e7ff,#fff);border-radius:13px;color:#62637c;font-size:13px}
+.meets-unified-counts strong{color:#5d399d;font-size:17px;font-weight:650}
+.meets-unified-discovery-extra{margin-top:24px}
+.meets-profile-slot .meets-personal-tabs{margin:6px 0 14px;gap:6px}
+.meets-profile-slot .meets-personal-tabs button{font-weight:500;font-size:13px;min-height:44px}
+.meets-collections .meets-collection-tabs{margin:4px 0 12px}
+.meets-collections .meets-collection-tabs button{font-weight:500;font-size:13px}
+.meets-collections .meets-collection-panel{padding:16px;border-radius:16px}
+.meets-collections .meets-collection-panel-head{margin-bottom:12px}
+.meets-collections .meets-collection-panel-head h2{font-size:18px}
+.meets-collections .meets-unified-collection-event{padding:9px 11px;gap:10px}
+.meets-collections .meets-unified-collection-event .meets-unified-event-date{height:46px;width:44px}
+.meets-collections .meets-unified-collection-event strong{font-weight:600}
+.meets-collections .meets-playlist-cover{width:52px;height:52px}
+.meets-collections .meets-playlist-card-copy strong{font-weight:600}
+@media(max-width:760px){.meets-collections .meets-collection-panel{padding:13px}.meets-collections .meets-playlist-grid{grid-template-columns:1fr}.meets-profile-slot .meets-personal-tabs{overflow-x:auto;flex-wrap:nowrap}.meets-collections .meets-unified-collection-event{flex-wrap:wrap}.meets-collections .meets-unified-collection-event .meets-collection-row-actions{order:4;width:100%}}
