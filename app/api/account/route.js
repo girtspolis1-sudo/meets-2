@@ -52,12 +52,13 @@ export async function POST(request){
    if(!res.ok)return NextResponse.json({error:'Sesija beigusies.'},{status:401});
    const value=await res.json();return NextResponse.json({access_token:value.access_token,refresh_token:value.refresh_token,expires_in:value.expires_in,user:{id:value.user?.id,email:value.user?.email}});
   }
-  if(action==='updateAvatar'||action==='changePassword'){
+  if(action==='getProfile'||action==='updateAvatar'||action==='changePassword'){
    if(typeof token!=='string'||token.length<20)return NextResponse.json({error:'Nepieciešama pieslēgšanās.'},{status:401});
    const bearer={...head,Authorization:'Bearer '+token};
    const me=await fetch(authUrl+'user',{headers:bearer,cache:'no-store'});
    if(!me.ok)return NextResponse.json({error:'Sesija beigusies. Pieslēdzies vēlreiz.'},{status:401});
    const user=await me.json();
+   if(action==='getProfile')return NextResponse.json({avatar_data_url:typeof user.user_metadata?.avatar_data_url==='string'?user.user_metadata.avatar_data_url:null});
    if(action==='updateAvatar'){
     if(avatarDataUrl!==null&&(typeof avatarDataUrl!=='string'||avatarDataUrl.length>50000||!/^data:image\\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(avatarDataUrl)))return NextResponse.json({error:'Nepieciešams neliels JPEG attēls.'},{status:400});
     const res=await fetch(authUrl+'user',{method:'PUT',headers:bearer,body:JSON.stringify({data:{avatar_data_url:avatarDataUrl}}),cache:'no-store'});
