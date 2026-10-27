@@ -112,7 +112,8 @@ export async function POST(request){
 
   if(action==='saveOrgContacts'){
    const owned=await api(TABLES.organizations,token,'GET',null,'?select=owner_id,is_public&id=eq.'+data.organization_id);
-   if(owned[0]?.owner_id!==user.id)return NextResponse.json({error:'Kontaktu izmaiņām nepieciešamas organizatora īpašnieka tiesības.'},{status:403});
+   const mayEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
+   if(!owned.length||mayEdit!==true)return NextResponse.json({error:'Nav tiesību mainīt organizācijas kontaktus.'},{status:403});
    const contacts=cleanOrgContacts(data.contacts);
    const details={organization_id:data.organization_id,address:String(data.address||'').trim().slice(0,300),contacts,contacts_public:data.contacts_public===true&&owned[0].is_public===true,updated_at:new Date().toISOString()};
    const saved=await api(TABLES.contacts,token,'POST',details,'?on_conflict=organization_id');
