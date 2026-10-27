@@ -63,10 +63,15 @@ export default function ProfilePage(){
  if(!account)return <section className="meets-profile-auth" aria-labelledby="meets-auth-title"><p className="eyebrow">MANS MEETS</p><h1 id="meets-auth-title">Tavs MEETS vienuviet</h1><p className="meets-auth-intro">Saglabā pasākumus, veido savus plānus un seko interesantām vietām.</p>{error&&<p className="meets-profile-error" role="alert">{error}</p>}<Authentication variant="profile" onSuccess={login}/></section>;
 
  return <ProfileShell session={account} displayName={display}><div className="meets-profile-overview">
-  <div className="meets-profile-page-head"><div><p className="eyebrow">Mans MEETS</p><h1>Pārskats</h1><p>Tavi saglabātie pasākumi, saraksti un sekošana vienuviet.</p></div><Link href="/karte" className="meets-profile-top-cta"><ProfileIcon name="map"/> Atrast pasākumu</Link></div>
-  <div className="meets-profile-hero"><div className="meets-profile-avatar" aria-hidden="true">{initial}</div><div className="meets-profile-hero-info"><strong>{nickname}</strong><small>{email}</small></div><span className="meets-profile-pill">Mans MEETS</span></div>
-  <div className="meets-profile-stats"><Metric icon="heart" number={personal.favorites?.length} label="Saglabāti" href="/mani-pasakumi"/><Metric icon="calendar" number={personal.plans?.length} label="Plānoti" href="/mani-pasakumi"/><Metric icon="list" number={lists.length} label="Mani saraksti" href="/mani-registri?tab=lists"/><Metric icon="eye" number={followOrg+followVenue} label="Sekošana" href="/sekosana"/></div>
-
+  <section className="meets-profile-summary" aria-labelledby="profile-overview-heading">
+    <div className="meets-profile-summary-heading"><div><p className="eyebrow">MANS MEETS</p><h1 id="profile-overview-heading">Pārskats</h1></div><Link href="/karte" className="meets-profile-summary-action"><ProfileIcon name="map"/> Atrast pasākumu</Link></div>
+    <div className="meets-profile-summary-stats" aria-label="Tavs MEETS pārskats">
+      <Metric icon="heart" number={personal.favorites?.length} label="Saglabāti" href="/mani-pasakumi"/>
+      <Metric icon="calendar" number={personal.plans?.length} label="Plānoti" href="/mani-pasakumi"/>
+      <Metric icon="list" number={lists.length} label="Mani saraksti" href="/mani-registri?tab=lists"/>
+      <Metric icon="eye" number={followOrg+followVenue} label="Sekošana" href="/sekosana"/>
+    </div>
+  </section>
   <div className="meets-profile-columns"><div className="meets-profile-stack">
    <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Tuvākie saglabātie pasākumi</h2><Link href="/mani-pasakumi">Visi →</Link></div>
     {upcoming.length?upcoming.map(e=><div className="meets-profile-row meets-profile-image-row" key={e.id}>

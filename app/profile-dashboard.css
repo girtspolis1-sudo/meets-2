@@ -158,3 +158,41 @@ body:has(.meets-profile-auth) .meets-auth-inline-alert{margin:2px 0;padding:9px 
  body:has(.meets-profile-auth) .meets-profile-auth>h1{font-size:25px;margin-bottom:8px}
  body:has(.meets-profile-auth) .meets-auth-compact .quick-flow-stack{gap:6px}
 }
+
+/* Profile overview refinement — visual hierarchy, lightweight sidebar, dense first screen. */
+.meets-profile-shell{grid-template-columns:218px minmax(0,1fr);gap:18px;margin-top:15px;max-width:1360px}
+.meets-profile-aside{gap:13px;padding:13px 10px;border-radius:18px;box-shadow:0 7px 22px rgba(50,28,78,.03)}
+.meets-profile-identity{padding:9px;background:transparent;border:0}
+.meets-profile-identity strong{font-weight:550;font-size:13px}
+.meets-profile-identity small{font-size:11px}
+.meets-profile-avatar{width:34px;height:34px;border-radius:11px;font-size:16px}
+.meets-profile-mode-switch a{font-weight:500}
+.meets-profile-nav{gap:6px}
+.meets-profile-nav-link{font-size:13px;font-weight:450;min-height:44px;padding:10px 12px;color:#5f5a6f}
+.meets-profile-nav-link.active{font-weight:550;background:#f0ebfc;color:#6343a2}
+.meets-profile-nav-link svg{width:18px;height:18px;stroke-width:1.65}
+.meets-profile-nav-link svg:last-child:not(:first-child){opacity:.5}
+.meets-profile-aside-footer{padding-top:12px}
+.meets-profile-aside-action{font-weight:550}
+.meets-profile-overview{gap:14px;padding-top:0}
+.meets-profile-summary{padding:22px 25px 18px;border-radius:22px;border:1px solid #e8def8;background:linear-gradient(112deg,#efe5ff 0%,#f7f1ff 56%,#ffffff 100%)}
+.meets-profile-summary-heading{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:17px}
+.meets-profile-summary-heading .eyebrow{margin:0 0 5px;color:#77639e;font-size:10px;letter-spacing:1.4px}
+.meets-profile-summary-heading h1{font-size:clamp(29px,3.1vw,39px);line-height:1.07;margin:0;color:#202546;letter-spacing:-1.2px}
+.meets-profile-summary-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;border-radius:11px;padding:10px 14px;background:#7042aa;color:white;font-size:13px;font-weight:550;white-space:nowrap}
+.meets-profile-summary-action:hover{background:#59358e}
+.meets-profile-summary-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.meets-profile-summary-stats .meets-profile-stat{min-height:105px;padding:13px 15px;background:rgba(255,255,255,.85);border:1px solid #e6ddf2;border-radius:14px;transition:border-color .15s,background .15s}
+.meets-profile-summary-stats .meets-profile-stat:hover{background:white;border-color:#aa96cd}
+.meets-profile-summary-stats .meets-profile-stat-number{font-size:25px}
+.meets-profile-summary-stats .meets-profile-stat-label{margin-top:3px;font-size:12px}
+.meets-profile-panel{padding:17px;border-radius:16px}
+.meets-profile-panel-header{margin-bottom:10px}
+.meets-profile-panel h2{font-size:17px}
+.meets-profile-row{padding:9px 0}
+.meets-profile-panel .meets-muted{font-size:13px}
+.meets-profile-top-cta{display:none}
+.meets-profile-summary a:focus-visible,.meets-profile-aside a:focus-visible{outline:2px solid #613aab;outline-offset:3px}
+@media(max-width:1020px){.meets-profile-shell{grid-template-columns:195px minmax(0,1fr);gap:13px}.meets-profile-summary{padding:19px}.meets-profile-summary-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.meets-profile-shell{display:block;margin-top:0}.meets-profile-summary{padding:18px;border-radius:17px}.meets-profile-summary-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.meets-profile-summary-stats .meets-profile-stat{min-height:94px;padding:12px}.meets-profile-summary-heading{align-items:flex-start}.meets-profile-summary-action{font-size:12px;padding:9px 11px}.meets-profile-overview{gap:12px}}
+@media(max-width:390px){.meets-profile-summary-heading{flex-wrap:wrap}.meets-profile-summary-action{width:100%}.meets-profile-summary-heading h1{font-size:30px}}
