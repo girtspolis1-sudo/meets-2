@@ -6,6 +6,7 @@ import Authentication from '../components/account-auth-flow.jsx';
 import {useEvents} from '../../lib/use-events.js';
 import {rigaDate} from '../../lib/meets-personal.js';
 import {PersonalEventList} from '../components/personal-event-row.jsx';
+import {eventsAtPlace} from '../../lib/location-follow.js';
 
 const KEY='meets_user_session_v1';
 function fromStorage(){try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch{return null;}}
@@ -48,7 +49,7 @@ export default function ProfilePage(){
  const events=eventData?.events||[],byId=useMemo(()=>new Map([...(state?.dashboard?.savedDetails||[]).map(e=>[e.id,e]),...events.map(e=>[e.id,e])]),[events,state]);
  const personal=state?.personal||{},dashboard=state?.dashboard||{};
  const favoriteIds=new Set(personal.favorites||[]),planIds=new Set(personal.plans||[]);
- const followedIds=new Set(dashboard.followedEvents||[]);
+ const followedIds=new Set([...(dashboard.followedEvents||[]),...(dashboard.locationFollows||[]).flatMap(place=>eventsAtPlace(events,place.location_key).map(e=>e.id))]);
  const isUpcoming=e=>e?.date_from&&String(e.date_to||e.date_from)>=rigaDate();
  const byDate=(a,b)=>String(a.date_from||'9999').localeCompare(String(b.date_from||'9999'));
  const visibleIds=[...new Set([...favoriteIds,...planIds,...followedIds])];
