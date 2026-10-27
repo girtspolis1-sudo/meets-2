@@ -11,7 +11,7 @@ const TABLES={
  members:'meets_organization_members',
  venueLinks:'meets_organization_venues',
  venues:'meets_venues',
- submissions:'meets_submissions'
+ submissions:'meets_submissions',contacts:'meets_org_contact_details'
 };
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE=/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
@@ -58,6 +58,10 @@ function publicVenue(item,orgIds){
  return item?.is_public===true&&!orgIds.has(item.organization_id);
 }
 
+function cleanOrgContacts(input){
+ if(!Array.isArray(input))return [];
+ return input.slice(0,25).map(x=>({type:['email','phone','person','other'].includes(x?.type)?x.type:'other',label:String(x?.label||'').trim().slice(0,80),value:String(x?.value||'').trim().slice(0,254),public:x?.public===true})).filter(x=>x.value);
+}
 export async function POST(request){
  try{
   const data=await request.json();
@@ -71,15 +75,17 @@ export async function POST(request){
   if(!UUID.test(user.id||''))return NextResponse.json({error:'Nepareiza sesija.'},{status:401});
 
   if(action==='list'){
-   const [organizations,memberships,visibleVenues,submissions,venueLinks]=await Promise.all([
+   const [organizations,memberships,visibleVenues,submissions,venueLinks,contacts]=await Promise.all([
     api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id,description,image_url,public_email,public_phone,public_url,is_public,created_at,updated_at&order=created_at.desc'),
     api(TABLES.members,token,'GET',null,'?select=organization_id,role&user_id=eq.'+user.id),
     api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,directions,description,is_public,created_at&order=created_at.desc'),
     api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,price_min,price_max,cover_image_path,recurrence_slots,admin_note,latitude,longitude,schedule_kind,recurrence_note,event_id,created_at,updated_at&order=created_at.desc'),
-    api(TABLES.venueLinks,token,'GET',null,'?select=organization_id,venue_id,relation_type,created_at')
+    api(TABLES.venueLinks,token,'GET',null,'?select=organization_id,venue_id,relation_type,created_at'),
+    api(TABLES.contacts,token,'GET',null,'?select=organization_id,address,contacts,contacts_public')
    ]);
    const memberRole=new Map((memberships||[]).map(x=>[x.organization_id,x.role]));
-   const orgs=(organizations||[]).map(org=>({...org,role:org.owner_id===user.id?'owner':memberRole.get(org.id)||'viewer'}));
+   const details=new Map((contacts||[]).map(c=>[c.organization_id,c]));
+   const orgs=(organizations||[]).map(org=>({...org,...(details.get(org.id)||{}),role:org.owner_id===user.id?'owner':memberRole.get(org.id)||'viewer'}));
    const orgIds=new Set(orgs.map(org=>org.id));
    const venues=(visibleVenues||[]).filter(v=>orgIds.has(v.organization_id));
    const publicVenues=(visibleVenues||[]).filter(v=>publicVenue(v,orgIds));
@@ -92,6 +98,7 @@ export async function POST(request){
    if(name.length<2||name.length>160)return NextResponse.json({error:'Organizācijas nosaukumam jābūt 2–160 rakstzīmes garam.'},{status:400});
    const kind=['organizer','venue'].includes(data.kind)?data.kind:'organizer';
    const result=await api(TABLES.organizations,token,'POST',{name,description,kind,owner_id:user.id,is_public:false});
+   if(result[0]?.id){await api(TABLES.contacts,token,'POST',{organization_id:result[0].id,address:String(data.address||'').slice(0,300),contacts:cleanOrgContacts(data.contacts),contacts_public:false});}
    return NextResponse.json({item:{...result[0],role:'owner'}});
   }
 
@@ -103,6 +110,15 @@ export async function POST(request){
 
   if(!UUID.test(data.organization_id||''))return NextResponse.json({error:'Izvēlies organizāciju.'},{status:400});
 
+  if(action==='saveOrgContacts'){
+   const owned=await api(TABLES.organizations,token,'GET',null,'?select=owner_id,is_public&id=eq.'+data.organization_id);
+   const mayEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
+   if(!owned.length||mayEdit!==true)return NextResponse.json({error:'Nav tiesību mainīt organizācijas kontaktus.'},{status:403});
+   const contacts=cleanOrgContacts(data.contacts);
+   const details={organization_id:data.organization_id,address:String(data.address||'').trim().slice(0,300),contacts,contacts_public:data.contacts_public===true&&owned[0].is_public===true,address_public:data.address_public===true,updated_at:new Date().toISOString()};
+   const saved=await api(TABLES.contacts,token,'POST',details,'?on_conflict=organization_id');
+   return NextResponse.json({item:saved[0]||details});
+  }
   if(action==='team'){
    const result=await api('rpc/meets_org_team',token,'POST',{p_organization_id:data.organization_id});
    return NextResponse.json({team:result});
