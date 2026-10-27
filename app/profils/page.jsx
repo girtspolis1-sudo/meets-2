@@ -46,18 +46,16 @@ export default function ProfilePage(){
 
  async function login(value){setLoading(true);setError('');try{await load(value);}catch(e){setError(e.message);}finally{setLoading(false);}}
  const events=eventData?.events||[],byId=useMemo(()=>new Map([...(state?.dashboard?.savedDetails||[]).map(e=>[e.id,e]),...events.map(e=>[e.id,e])]),[events,state]);
- const personal=state?.personal||{},dashboard=state?.dashboard||{},lists=(state?.registries?.registries||[]).filter(x=>!x.organization_id),orgs=state?.organizer?.organizations||[];
+ const personal=state?.personal||{},dashboard=state?.dashboard||{};
  const favoriteIds=new Set(personal.favorites||[]),planIds=new Set(personal.plans||[]);
- const collectionIds=new Set(lists.flatMap(x=>x.included_event_ids||[]));
+ const followedIds=new Set(dashboard.followedEvents||[]);
  const isUpcoming=e=>e?.date_from&&String(e.date_to||e.date_from)>=rigaDate();
  const byDate=(a,b)=>String(a.date_from||'9999').localeCompare(String(b.date_from||'9999'));
- const favorites=[...favoriteIds].map(id=>byId.get(id)).filter(isUpcoming).sort(byDate);
- const planned=[...planIds].map(id=>byId.get(id)).filter(isUpcoming).sort(byDate);
- const collectionEvents=[...collectionIds].map(id=>byId.get(id)).filter(isUpcoming).sort(byDate);
- const left=favorites.slice(0,5);
- const leftIds=new Set(left.map(e=>e.id));
- const right=[...new Map([...planned,...collectionEvents].filter(e=>!leftIds.has(e.id)).map(e=>[e.id,e])).values()].sort(byDate).slice(0,5);
- const badgesFor=e=>[favoriteIds.has(e.id)?'Favorīts':null,planIds.has(e.id)?'Plānoju':null,collectionIds.has(e.id)?'Sarakstā':null].filter(Boolean);
+ const visibleIds=[...new Set([...favoriteIds,...planIds,...followedIds])];
+ const allUpcoming=visibleIds.map(id=>byId.get(id)).filter(isUpcoming).sort(byDate).slice(0,12);
+ const badgesFor=e=>[favoriteIds.has(e.id)?'Favorīts':null,planIds.has(e.id)?'Plānoju':null,followedIds.has(e.id)?'No sekošanas':null].filter(Boolean);
+ const followedPlaces=(dashboard.locationFollows||[]).length;
+ const followedTargets=(dashboard.follows||[]).filter(x=>['organization','venue'].includes(x.target_kind)).length;
  const display=(state?.registries?.profile?.display_name||'').trim(),email=account?.user?.email||'';
 
  if(loading)return <div className="meets-profile-skeleton" role="status">Ielādē tavu MEETS profilu…</div>;
@@ -69,26 +67,14 @@ export default function ProfilePage(){
     <div className="meets-profile-summary-stats" aria-label="Tavs MEETS pārskats">
       <Metric icon="heart" number={personal.favorites?.length} label="Saglabāti" href="/mani-pasakumi"/>
       <Metric icon="calendar" number={personal.plans?.length} label="Plānoti" href="/mani-pasakumi"/>
-      <Metric icon="list" number={lists.length} label="Mani saraksti" href="/mani-registri?tab=lists"/>
+      <Metric icon="pin" number={followedPlaces+followedTargets} label="Sekoju" href="/sekosana"/>
 
     </div>
   </section>
-  <div className="meets-profile-columns meets-unified-columns">
-   <section className="meets-profile-panel">
-    <div className="meets-profile-panel-header"><h2>Tuvākie favorīti</h2><Link href="/mani-pasakumi">Visi →</Link></div>
-    <PersonalEventList events={left} badgesFor={badgesFor} empty="Pagaidām nav gaidāmu favorītu."/>
-   </section>
-   <section className="meets-profile-panel">
-    <div className="meets-profile-panel-header"><h2>Plānotie un sarakstos</h2><Link href="/mani-registri?tab=lists">Saraksti →</Link></div>
-    <PersonalEventList events={right} badgesFor={badgesFor} empty="Nav gaidāmu plānotu pasākumu vai pasākumu sarakstos."/>
-   </section>
-  </div>
-  <div className="meets-unified-secondary">
-   <section className="meets-profile-panel"><div className="meets-profile-panel-header"><h2>Manas kolekcijas</h2><Link href="/mani-registri?tab=lists">Pārvaldīt →</Link></div>
-    {lists.length?lists.slice(0,3).map(x=><Link className="meets-unified-collection" href={'/mani-registri?tab=lists&edit='+encodeURIComponent(x.id)} key={x.id}><span>{x.title}</span><small>{(x.included_event_ids||[]).length} pasākumi · {x.is_published?'Publisks':'Privāts'}</small></Link>):<p className="meets-profile-empty">Vēl nav kolekciju.</p>}
-   </section>
-
-  </div>
+  <section className="meets-profile-panel">
+   <div className="meets-profile-panel-header"><h2>Mani tuvākie pasākumi</h2><Link href="/mani-pasakumi">Visi →</Link></div>
+   <PersonalEventList events={allUpcoming} badgesFor={badgesFor} empty="Pagaidām nav gaidāmu saglabātu vai sekotu pasākumu."/>
+  </section>
 
  </div></ProfileShell>;
 }
