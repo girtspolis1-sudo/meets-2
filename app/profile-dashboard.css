@@ -223,3 +223,26 @@ body:has(.meets-profile-auth) .meets-auth-inline-alert{margin:2px 0;padding:9px 
 @media(max-width:1020px){.meets-unified-columns{grid-template-columns:1fr}.meets-unified-secondary{grid-template-columns:1fr}}
 @media(max-width:760px){.meets-unified-columns,.meets-unified-secondary{grid-template-columns:1fr}.meets-unified-event-row{padding:9px 0}.meets-unified-event-open{font-size:11px}.meets-unified-event-date{width:43px}}
 @media(max-width:360px){.meets-unified-event-row{gap:7px}.meets-unified-event-title{font-size:12px}.meets-unified-event-open{padding:7px 0;font-size:10px}}
+
+/* Simple personal account settings, independent of events dashboard */
+.meets-profile-summary-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.meets-unified-secondary:has(> :only-child){grid-template-columns:minmax(0,1fr)}
+.meets-settings-avatar-image,.meets-settings-photo img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.meets-account-settings{max-width:800px;padding:4px 0 32px;display:grid;gap:14px}
+.meets-account-settings h1{font-size:clamp(26px,3vw,34px);margin:0;line-height:1.15;color:#1e2547}
+.meets-settings-caption{margin:-6px 0 2px;font-size:13px;color:#767288}
+.meets-settings-panel{background:#fff;border:1px solid #e8e2f1;border-radius:17px;padding:19px 21px;display:grid;gap:14px}
+.meets-settings-panel h2{font-size:17px;margin:0;color:#252540;font-weight:650}
+.meets-settings-photo-row{display:flex;align-items:center;gap:19px}
+.meets-settings-photo{width:86px;height:86px;flex:none;display:grid;place-items:center;overflow:hidden;border-radius:20px;background:#7153d9;color:#fff;font-size:34px}
+.meets-settings-photo-row>div:last-child{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.meets-settings-photo-row small{color:#7d7890;font-size:11px;width:100%}
+.meets-settings-upload{cursor:pointer;min-height:44px;display:inline-flex;align-items:center}
+.meets-settings-form{display:grid;gap:13px;max-width:480px}
+.meets-settings-form label{display:grid;gap:6px;font-size:13px;color:#302d43;font-weight:550}
+.meets-settings-form input{height:46px;border:1px solid #ded9e8;border-radius:10px;background:#fff;padding:10px 12px;font:inherit;font-size:14px;min-width:0}
+.meets-settings-form input[readonly]{background:#f8f7fb;color:#736d7d}
+.meets-settings-form button{justify-self:start;min-height:44px}
+.meets-account-settings input:focus-visible,.meets-account-settings button:focus-visible,.meets-account-settings label.button:focus-visible{outline:2px solid #7042aa;outline-offset:2px}
+@media(max-width:760px){.meets-account-settings{gap:11px}.meets-settings-panel{padding:15px}.meets-settings-photo{width:70px;height:70px}.meets-settings-photo-row{gap:12px}.meets-profile-summary-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:440px){.meets-settings-photo-row{align-items:flex-start}.meets-profile-summary-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.meets-profile-summary-stats .meets-profile-stat{padding:10px 6px;min-height:88px}.meets-profile-summary-stats .meets-profile-stat-number{font-size:21px}.meets-profile-summary-stats .meets-profile-stat-label{font-size:10px}}
