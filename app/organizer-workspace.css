@@ -110,3 +110,18 @@
 .meets-header-logout:hover,.meets-header-logout:focus-visible{background:#f3e9fc;border-color:#9c69c7}
 .meets-header-logout:disabled{opacity:.65;cursor:wait}
 .meets-nav-more-items .meets-header-logout{width:100%;justify-content:flex-start}
+
+/* Minimal organizer hub: object and event management first */
+.org-simple-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px 18px;background:linear-gradient(105deg,#f0e7ff,#fff);border:1px solid #e7dcf5;border-radius:17px}
+.org-simple-summary span{display:flex;gap:8px;align-items:baseline;font-size:13px;color:#685c7d}
+.org-simple-summary strong{font-size:23px;color:#54318f;font-weight:650}
+.org-workspace .org-page-head{margin-bottom:15px}
+.org-workspace .org-page-head h1{font-size:clamp(27px,3vw,36px)}
+.org-workspace .org-head-actions{gap:8px}
+.org-workspace .org-panel{border-radius:17px;padding:17px}
+.org-workspace .org-panel-head{margin-bottom:11px}
+.org-workspace .org-panel-head h2{font-size:19px}
+.org-workspace .org-row{padding:12px 2px}
+.org-workspace .org-row strong{font-weight:600}
+.org-workspace .org-actions .button,.org-workspace .org-row-actions .button{min-height:44px}
+@media(max-width:760px){.org-simple-summary{padding:11px;gap:6px}.org-simple-summary span{flex-direction:column;gap:1px;font-size:11px}.org-simple-summary strong{font-size:20px}.org-workspace .org-head-actions{flex-wrap:wrap}.org-workspace .org-panel{padding:13px}}
