@@ -87,7 +87,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
  const [month,setMonth]=useState(rigaDate().slice(0,7)),[selectedDate,setSelectedDate]=useState(rigaDate()),[mapScope,setMapScope]=useState('all'),[followQuery,setFollowQuery]=useState('');
  const [origin,setOrigin]=useState(null),[radius,setRadius]=useState(30),[locationError,setLocationError]=useState('');
  const token=session.access_token;
- useEffect(()=>{if(new URLSearchParams(window.location.search).get('view')==='following')setView('following');},[]);
+
  const reload=useCallback(async()=>{const result=await request({action:'dashboard',token});setExtra({...DEFAULT,...result});},[token]);
  useEffect(()=>{let cancelled=false;async function load(){try{const result=await request({action:'dashboard',token});if(!cancelled)setExtra({...DEFAULT,...result});}catch(e){if(!cancelled)setTabError(e.message);}}
  load();const timer=setInterval(()=>{if(document.visibilityState==='visible')load();},60000);
@@ -121,11 +121,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
  const list=items=>items.length?cardEvents(items):<div className="meets-account-empty"><span>♡</span><h3>Šeit vēl nav saglabātu pasākumu</h3><p>Atver karti un atzīmē interesējošos pasākumus ar sirsniņu.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>;
  async function copy(){if(!shareUrl)return;try{await navigator.clipboard.writeText(shareUrl);setMessage('Saite nokopēta.');}catch{setMessage('Saite ir laukā — iezīmē un kopē to.');}}
  return <div className="meets-personal-dashboard">
-  <div className="meets-account-stats">
-   <div><strong>{favorites.length}</strong><span>♡ Favorīti</span></div>
-   <div><strong>{plans.length}</strong><span><PlanIcon/> Plānoju</span></div>
-   <div><strong>{visits.length}</strong><span>✓ Apmeklēti</span></div>
-  </div>
+  <div className="meets-unified-counts" aria-label="Pasākumu kopsavilkums"><span><strong>{favorites.length}</strong> favorīti</span><span><strong>{plans.length}</strong> plānoti</span><span><strong>{visits.length}</strong> apmeklēti</span></div>
   {!!unread.length&&<div className="meets-personal-notices" role="status"><strong>🔔 {unread.length} atgādinājumi</strong>
    {unread.slice(0,5).map(n=><div key={n.id}><span>{n.message}: {eventIndex.get(n.event_id)?.title||'Saglabātais pasākums'}</span>
     <button disabled={saving} onClick={()=>mutate({action:'readNotice',notificationId:n.id},()=>setExtra(p=>({...p,notices:p.notices.map(x=>x.id===n.id?{...x,read_at:new Date().toISOString()}:x)})))}>Izlasīts</button></div>)}
@@ -134,11 +130,11 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
    {[
     ['overview','⌂ Pārskats'],['favorites','♡ Favorīti'],['planned',<><PlanIcon/> Plānoju</>],['calendar','▦ Kalendārs']
    ].map(([key,label])=><button key={key} type="button" aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
-   <button type="button" aria-expanded={moreOpen} aria-controls="meets-extra-views" className={['map','recommend','following','visited'].includes(view)?'active':''} onClick={()=>setMoreOpen(v=>!v)}>Vēl ▾</button>
+   <button type="button" aria-expanded={moreOpen} aria-controls="meets-extra-views" className={['map','recommend','visited'].includes(view)?'active':''} onClick={()=>setMoreOpen(v=>!v)}>Vēl ▾</button>
   </div>
   {moreOpen&&<div className="meets-account-tabs meets-personal-tabs meets-personal-more" id="meets-extra-views" role="group" aria-label="Papildu skati">
    {[
-    ['map','⌖ Karte'],['recommend','✦ Ieteikumi'],['following','♧ Sekoju'],['visited','✓ Apmeklēti']
+    ['map','⌖ Karte'],['recommend','✦ Ieteikumi'],['visited','✓ Apmeklēti']
    ].map(([key,label])=><button type="button" key={key} aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
   </div>}
   {tabError&&<p className="meets-inline-error" role="alert">{tabError}</p>}
@@ -147,10 +143,10 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
    {view==='overview'&&<section className="meets-personal-overview">
     <div className="meets-personal-overview-header"><h2>Tavi tuvākie pasākumi</h2><button type="button" className="button compact" onClick={()=>setView('calendar')}><CalendarIcon/> Kalendārs ↗</button></div>
     {upcoming.length?cardEvents(upcoming):<div className="meets-account-empty"><span>♡</span><h3>Sāc savu pasākumu plānu</h3><p>Saglabā interesējošos pasākumus kartē. Tos atradīsi šeit.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>}
-    <div className="meets-personal-overview-header"><h2>Atklāj ko jaunu</h2><button type="button" className="button compact" onClick={()=>setView('recommend')}>Mani ieteikumi ↗</button></div>
+    <div className="meets-unified-discovery-extra"><div className="meets-personal-overview-header"><h2>Atklāj ko jaunu</h2><button type="button" className="button compact" onClick={()=>setView('recommend')}>Mani ieteikumi ↗</button></div>
     <p className="meets-muted">Iestatot intereses, saņemsi pasākumu ieteikumus. Atgādinājumi pagaidām ir redzami tikai šajā kontā.</p>
-    <div className="meets-personal-overview-header"><h2>Manas sekotās norises vietas ({followedLocations.length})</h2><button type="button" className="button compact" onClick={()=>setView('following')}>Apskatīt vietas ↗</button></div>
-    <p className="meets-muted">Seko konkrētai vietai <Link href="/pasakumi">pasākumu sarakstā</Link>, lai redzētu tās turpmākos pasākumus savā kontā.</p>
+    
+    </div>
    </section>}
    {['favorites','planned','visited'].includes(view)&&list(selected)}
    {view==='calendar'&&<CalendarView events={saved} selectedDate={selectedDate} setSelectedDate={setSelectedDate} month={month} setMonth={setMonth} renderCards={cardEvents}/>}
@@ -188,43 +184,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
     {origin&&<p className="meets-muted">Atlasīti tikai pasākumi ar precīzu kartes punktu {radius} km rādiusā. Atrašanās vieta netiek saglabāta tavā kontā.</p>}
     {recommended.length?cardEvents(recommended):<p className="meets-muted">Izvēlies intereses, lai šeit parādītos piemēroti pasākumi. <Link href="/karte">Apskatīt visus pasākumus ↗</Link></p>}
    </section>}
-   {view==='following'&&<section className="meets-personal-follows">
-    <h2>Manas sekotās norises vietas</h2>
-    <p className="meets-muted">No <Link href="/pasakumi">visu pasākumu saraksta</Link> vari sekot arī importētām norises vietām. Šeit redzami to gaidāmie pasākumi; e-pasta un push paziņojumi nav ieslēgti.</p>
-    {locationEventGroups.length?<div className="meets-followed-venues">
-     {locationEventGroups.map(place=><article className="meets-followed-venue" key={place.location_key}>
-      <div className="meets-followed-venue-head">
-       <div><strong>⌖ {place.location_name}</strong><small>{place.municipality} · {place.upcoming.length} aktuāli pasākumi</small></div>
-       <button type="button" disabled={saving} className="catalog-follow-place following"
-        onClick={()=>mutate({action:'followLocation',locationKey:place.location_key,locationName:place.location_name,municipality:place.municipality,enabled:false},()=>setExtra(p=>({...p,locationFollows:p.locationFollows.filter(x=>x.location_key!==place.location_key)})))}>✓ Sekoju</button>
-      </div>
-      {place.upcoming.length?<ul>{place.upcoming.slice(0,3).map(event=><li key={event.id}><strong>{event.title}</strong><span>{dateText(event.date_from)}</span></li>)}</ul>
-       :<p className="meets-muted">Šobrīd šajā vietā nav gaidāmu publicētu pasākumu.</p>}
-      <Link href={'/pasakumi?place='+encodeURIComponent(place.location_key)}>Visi pasākumi šajā vietā ↗</Link>
-     </article>)}
-    </div>:<p className="meets-muted">Vēl neseko nevienai norises vietai. <Link href="/pasakumi">Atver pasākumu sarakstu ↗</Link></p>}
-    <h2>Seko organizatoriem un reģistrētām vietām</h2>
-    <p className="meets-muted">Seko MEETS organizatoriem, vietām un publiskajiem pasākumu avotiem, piemēram, pašvaldībām vai sporta federācijām.</p>
-    <input aria-label="Meklēt organizatorus vai norises vietas" placeholder="Meklēt organizatoru vai vietu…" value={followQuery} onChange={e=>setFollowQuery(e.target.value)}/>
-    <div className="meets-personal-follow-list">
-     {[
-      ...(extra.directory.organizations||[]).map(x=>({...x,kind:'organization'})),
-      ...(extra.directory.venues||[]).map(x=>({...x,kind:'venue'})),
-      ...(extra.directory.sources||[]).map(x=>({...x,kind:'source'}))
-     ].filter(x=>x.name.toLocaleLowerCase('lv').includes(followQuery.toLocaleLowerCase('lv'))).map(x=>{
-      const active=extra.follows.some(f=>f.target_id===x.id&&f.target_kind===x.kind);
-      return <div className="meets-personal-follow-row" key={x.kind+x.id}>
-       <span>{x.kind==='venue'?'⌖':x.kind==='source'?'◈':'♙'} <strong>{x.name}</strong><small>{x.kind==='venue'?'Norises vieta':x.kind==='source'?'Pasākumu avots':'Organizators'}</small></span>
-       <button disabled={saving} className={active?'selected':''} onClick={()=>mutate({action:'follow',targetId:x.id,targetKind:x.kind,enabled:!active},async()=>{
-        setExtra(p=>({...p,follows:active?p.follows.filter(f=>!(f.target_id===x.id&&f.target_kind===x.kind)):[...p.follows,{target_id:x.id,target_kind:x.kind}]}));
-        try{await reload();}catch{}
-       })}>{active?'✓ Sekoju':'+ Sekot'}</button>
-      </div>;
-     })}
-    </div>
-    {!extra.directory.organizations?.length&&!extra.directory.venues?.length&&!extra.directory.sources?.length&&<p className="meets-muted">Pagaidām nav avotu ar publiskiem pasākumiem.</p>}
-    <h2>Jaunie pasākumi no sekotajiem</h2>{following.length?cardEvents(following):<p className="meets-muted">Pagaidām nav jaunu publicētu pasākumu no izvēlētajiem organizatoriem un vietām.</p>}
-   </section>}
+
   </>}
   <section className="meets-personal-sharing">
    <div><h2>↗ Dalīties ar manu favorītu sarakstu</h2>

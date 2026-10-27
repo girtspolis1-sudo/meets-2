@@ -158,3 +158,103 @@ body:has(.meets-profile-auth) .meets-auth-inline-alert{margin:2px 0;padding:9px 
  body:has(.meets-profile-auth) .meets-profile-auth>h1{font-size:25px;margin-bottom:8px}
  body:has(.meets-profile-auth) .meets-auth-compact .quick-flow-stack{gap:6px}
 }
+
+/* Profile overview refinement — visual hierarchy, lightweight sidebar, dense first screen. */
+.meets-profile-shell{grid-template-columns:218px minmax(0,1fr);gap:18px;margin-top:15px;max-width:1360px}
+.meets-profile-aside{gap:13px;padding:13px 10px;border-radius:18px;box-shadow:0 7px 22px rgba(50,28,78,.03)}
+.meets-profile-identity{padding:9px;background:transparent;border:0}
+.meets-profile-identity strong{font-weight:550;font-size:13px}
+.meets-profile-identity small{font-size:11px}
+.meets-profile-avatar{width:34px;height:34px;border-radius:11px;font-size:16px}
+.meets-profile-mode-switch a{font-weight:500}
+.meets-profile-nav{gap:6px}
+.meets-profile-nav-link{font-size:13px;font-weight:450;min-height:44px;padding:10px 12px;color:#5f5a6f}
+.meets-profile-nav-link.active{font-weight:550;background:#f0ebfc;color:#6343a2}
+.meets-profile-nav-link svg{width:18px;height:18px;stroke-width:1.65}
+.meets-profile-nav-link svg:last-child:not(:first-child){opacity:.5}
+.meets-profile-aside-footer{padding-top:12px}
+.meets-profile-aside-action{font-weight:550}
+.meets-profile-overview{gap:14px;padding-top:0}
+.meets-profile-summary{padding:22px 25px 18px;border-radius:22px;border:1px solid #e8def8;background:linear-gradient(112deg,#efe5ff 0%,#f7f1ff 56%,#ffffff 100%)}
+.meets-profile-summary-heading{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:17px}
+.meets-profile-summary-heading .eyebrow{margin:0 0 5px;color:#77639e;font-size:10px;letter-spacing:1.4px}
+.meets-profile-summary-heading h1{font-size:clamp(29px,3.1vw,39px);line-height:1.07;margin:0;color:#202546;letter-spacing:-1.2px}
+.meets-profile-summary-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;border-radius:11px;padding:10px 14px;background:#7042aa;color:white;font-size:13px;font-weight:550;white-space:nowrap}
+.meets-profile-summary-action:hover{background:#59358e}
+.meets-profile-summary-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.meets-profile-summary-stats .meets-profile-stat{min-height:105px;padding:13px 15px;background:rgba(255,255,255,.85);border:1px solid #e6ddf2;border-radius:14px;transition:border-color .15s,background .15s}
+.meets-profile-summary-stats .meets-profile-stat:hover{background:white;border-color:#aa96cd}
+.meets-profile-summary-stats .meets-profile-stat-number{font-size:25px}
+.meets-profile-summary-stats .meets-profile-stat-label{margin-top:3px;font-size:12px}
+.meets-profile-panel{padding:17px;border-radius:16px}
+.meets-profile-panel-header{margin-bottom:10px}
+.meets-profile-panel h2{font-size:17px}
+.meets-profile-row{padding:9px 0}
+.meets-profile-panel .meets-muted{font-size:13px}
+.meets-profile-top-cta{display:none}
+.meets-profile-summary a:focus-visible,.meets-profile-aside a:focus-visible{outline:2px solid #613aab;outline-offset:3px}
+@media(max-width:1020px){.meets-profile-shell{grid-template-columns:195px minmax(0,1fr);gap:13px}.meets-profile-summary{padding:19px}.meets-profile-summary-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.meets-profile-shell{display:block;margin-top:0}.meets-profile-summary{padding:18px;border-radius:17px}.meets-profile-summary-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.meets-profile-summary-stats .meets-profile-stat{min-height:94px;padding:12px}.meets-profile-summary-heading{align-items:flex-start}.meets-profile-summary-action{font-size:12px;padding:9px 11px}.meets-profile-overview{gap:12px}}
+@media(max-width:390px){.meets-profile-summary-heading{flex-wrap:wrap}.meets-profile-summary-action{width:100%}.meets-profile-summary-heading h1{font-size:30px}}
+
+/* Shared Mans MEETS event-first visual language */
+.meets-unified-columns{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:13px}
+.meets-unified-columns .meets-profile-panel{min-width:0;min-height:160px}
+.meets-unified-event-list{display:grid}
+.meets-unified-event-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eeebf4;min-width:0}
+.meets-unified-event-row:last-child{border-bottom:0}
+.meets-unified-event-date{flex:none;display:grid;place-items:center;align-content:center;width:45px;height:48px;border-radius:11px;background:#f3ecff;color:#6945ab}
+.meets-unified-event-date strong{font-size:17px;line-height:1.15;font-weight:650}
+.meets-unified-event-date small{font-size:10px}
+.meets-unified-event-details{min-width:0;flex:1;display:grid;gap:4px}
+.meets-unified-event-title{color:#222640;font-size:13px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meets-unified-event-details>small{color:#73788b;font-size:11px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.meets-unified-badges{display:flex;gap:4px;flex-wrap:wrap}
+.meets-unified-badges span{border-radius:99px;background:#f1edfc;color:#694b9c;font-size:10px;padding:2px 7px}
+.meets-unified-event-open{font-size:12px;color:#6741a6;font-weight:550;white-space:nowrap;padding:9px 3px;min-height:40px;display:flex;align-items:center}
+.meets-unified-event-empty{color:#73788b;font-size:13px;padding:12px 0;line-height:1.55}
+.meets-unified-event-empty a{color:#6941a7;font-weight:550}
+.meets-unified-secondary{display:grid;grid-template-columns:1.4fr 1fr;align-items:start;gap:13px}
+.meets-unified-collection{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #eeebf4;font-size:13px;font-weight:500}
+.meets-unified-collection:last-child{border-bottom:0}
+.meets-unified-collection small{color:#7c758b;font-weight:400;font-size:11px}
+.meets-unified-settings{scroll-margin-top:16px}
+.meets-unified-settings .meets-profile-settings-fields{max-width:480px}
+@media(max-width:1020px){.meets-unified-columns{grid-template-columns:1fr}.meets-unified-secondary{grid-template-columns:1fr}}
+@media(max-width:760px){.meets-unified-columns,.meets-unified-secondary{grid-template-columns:1fr}.meets-unified-event-row{padding:9px 0}.meets-unified-event-open{font-size:11px}.meets-unified-event-date{width:43px}}
+@media(max-width:360px){.meets-unified-event-row{gap:7px}.meets-unified-event-title{font-size:12px}.meets-unified-event-open{padding:7px 0;font-size:10px}}
+
+/* Simple personal account settings, independent of events dashboard */
+.meets-profile-summary-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.meets-unified-secondary:has(> :only-child){grid-template-columns:minmax(0,1fr)}
+.meets-settings-avatar-image,.meets-settings-photo img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.meets-account-settings{max-width:800px;padding:4px 0 32px;display:grid;gap:14px}
+.meets-account-settings h1{font-size:clamp(26px,3vw,34px);margin:0;line-height:1.15;color:#1e2547}
+.meets-settings-caption{margin:-6px 0 2px;font-size:13px;color:#767288}
+.meets-settings-panel{background:#fff;border:1px solid #e8e2f1;border-radius:17px;padding:19px 21px;display:grid;gap:14px}
+.meets-settings-panel h2{font-size:17px;margin:0;color:#252540;font-weight:650}
+.meets-settings-photo-row{display:flex;align-items:center;gap:19px}
+.meets-settings-photo{width:86px;height:86px;flex:none;display:grid;place-items:center;overflow:hidden;border-radius:20px;background:#7153d9;color:#fff;font-size:34px}
+.meets-settings-photo-row>div:last-child{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.meets-settings-photo-row small{color:#7d7890;font-size:11px;width:100%}
+.meets-settings-upload{cursor:pointer;min-height:44px;display:inline-flex;align-items:center}
+.meets-settings-form{display:grid;gap:13px;max-width:480px}
+.meets-settings-form label{display:grid;gap:6px;font-size:13px;color:#302d43;font-weight:550}
+.meets-settings-form input{height:46px;border:1px solid #ded9e8;border-radius:10px;background:#fff;padding:10px 12px;font:inherit;font-size:14px;min-width:0}
+.meets-settings-form input[readonly]{background:#f8f7fb;color:#736d7d}
+.meets-settings-form button{justify-self:start;min-height:44px}
+.meets-account-settings input:focus-visible,.meets-account-settings button:focus-visible,.meets-account-settings label.button:focus-visible{outline:2px solid #7042aa;outline-offset:2px}
+@media(max-width:760px){.meets-account-settings{gap:11px}.meets-settings-panel{padding:15px}.meets-settings-photo{width:70px;height:70px}.meets-settings-photo-row{gap:12px}.meets-profile-summary-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:440px){.meets-settings-photo-row{align-items:flex-start}.meets-profile-summary-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.meets-profile-summary-stats .meets-profile-stat{padding:10px 6px;min-height:88px}.meets-profile-summary-stats .meets-profile-stat-number{font-size:21px}.meets-profile-summary-stats .meets-profile-stat-label{font-size:10px}}
+
+/* Accessible compact account-mode switch and sidebar logout */
+.meets-profile-mode-switch{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;gap:4px;padding:4px;border-radius:14px;background:#f3eff9;min-width:0}
+.meets-profile-mode-switch a{display:flex;align-items:center;justify-content:center;gap:5px;text-align:center;min-width:0;min-height:45px;padding:7px 5px;border-radius:10px;font-weight:500;font-size:11px;line-height:1.25;color:#5b546d;text-decoration:none;white-space:normal}
+.meets-profile-mode-switch a svg{flex:none;stroke-width:1.6}
+.meets-profile-mode-switch a.active{background:#fff;color:#663cc0;font-weight:600;box-shadow:0 1px 5px rgba(33,23,66,.08)}
+.meets-profile-mode-switch a:focus-visible,.meets-profile-logout:focus-visible{outline:2px solid #7445ae;outline-offset:2px}
+.meets-profile-aside-footer{gap:6px}
+.meets-profile-logout{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:44px;border:1px solid #e7e0ef;background:transparent;color:#665e76;border-radius:11px;cursor:pointer;font:inherit;font-size:12px;font-weight:500}
+.meets-profile-logout:hover{background:#faf7ff;color:#56369a}
+.meets-profile-logout:disabled{opacity:.55;cursor:wait}
+@media(max-width:760px){.meets-profile-mode-switch a{font-size:12px;min-height:44px}}

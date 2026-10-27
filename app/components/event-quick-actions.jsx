@@ -112,7 +112,9 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
    <form onSubmit={createList}><input value={newList} maxLength={120} onChange={e=>setNewList(e.target.value)} placeholder="Jauns saraksts" aria-label="Jauna saraksta nosaukums"/><button type="submit" disabled={listLoading||newList.trim().length<3}>+ Izveidot</button></form>
    <a href="/mani-registri">Atvērt manas kolekcijas →</a></>:<a href="/profils">Pieslēgties, lai veidotu sarakstus →</a>}
  </div>;
- if(listOnly)return <div className="meets-card-list-trigger">
+ if(listOnly)return null;
+ /* Collection picker is hidden while the personal experience uses one shared event list. */
+ if(false)return <div className="meets-card-list-trigger">
   <button type="button" className="meets-add-to-list" aria-label={'Pievienot sarakstam: '+event.title}
    aria-expanded={menu==='lists'} disabled={listLoading} onClick={()=>menu==='lists'?setMenu(''):loadLists()}>
    <Icon name="list"/> Pievienot sarakstam
@@ -122,7 +124,6 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
  return <div className={'meets-event-actions-wrapper'+(compact?' compact':'')+(quiet?' meets-quiet-actions':'')}>
   <div className="meets-event-action-grid meets-circle-actions" role="group" aria-label={'Pasākuma darbības: '+(event.title||'Pasākums')}>
    <button type="button" className="meets-circle-action" aria-pressed={isSaved} aria-label={isSaved?'Noņemt no saglabātajiem':'Saglabāt pasākumu'} title={isSaved?'Noņemt no saglabātajiem':'Saglabāt'} disabled={busy||disabledFavorite} onClick={favorite}><Icon name="heart"/><small className="meets-quiet-label">Favorīts</small></button>
-   <button type="button" className="meets-circle-action" aria-label="Pievienot sarakstam" aria-expanded={menu==='lists'} title="Pievienot sarakstam" disabled={listLoading} onClick={()=>menu==='lists'?setMenu(''):loadLists()}><Icon name="list"/><small className="meets-quiet-label">Saraksts</small></button>
    <button type="button" className="meets-circle-action" aria-label="Pievienot kalendāram" title="Kalendārā" onClick={calendar}><Icon name="calendar"/><small className="meets-quiet-label">Kalendārs</small></button>
    <button type="button" className="meets-circle-action" aria-label="Maršruts" title="Maršruts" aria-expanded={menu==='route'} disabled={!links.google} onClick={()=>{setStatus('');setMenu(previous=>previous==='route'?'':'route');}}><Icon name="pin"/><small className="meets-quiet-label">Norādes</small></button>
    {official?<a className="meets-circle-action" href={official} target="_blank" rel="noopener noreferrer" aria-label="Oficiālā pasākuma lapa" title="Oficiālā lapa"><Icon name="external"/><small className="meets-quiet-label">Atvērt</small></a>:<span className="meets-circle-action disabled" aria-label="Nav oficiālās saites" title="Nav oficiālās saites"><Icon name="external"/><small className="meets-quiet-label">Atvērt</small></span>}
@@ -130,7 +131,6 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
   </div>
   {menu==='route'&&<div className="meets-circle-options" role="group" aria-label="Maršruta izvēle"><a href={links.google} target="_blank" rel="noopener noreferrer">Google Maps ↗</a>{links.waze&&<a href={links.waze} target="_blank" rel="noopener noreferrer">Waze ↗</a>}</div>}
   {menu==='share'&&<div className="meets-circle-options" role="group" aria-label="Kopīgot pasākumu">{opts.map(option=><a href={option.href} key={option.label} target="_blank" rel="noopener noreferrer">{option.label}</a>)}<button type="button" onClick={copy}>Kopēt saiti <span aria-hidden="true">⧉</span></button></div>}
-  {listPicker}
   {status&&<p className="meets-circle-feedback" role="status">{status}</p>}
  </div>;
 }
