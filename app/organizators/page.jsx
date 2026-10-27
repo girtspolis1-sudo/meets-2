@@ -269,6 +269,10 @@ export default function OrganizerPage(){
     <h2>Organizatora profils</h2><p className="meets-muted">Sākumā pietiek ar nosaukumu un īsu aprakstu. Logo un publiskos kontaktus varēsi pievienot vēlāk.</p>
     <label>Nosaukums *<input required minLength={2} maxLength={160} value={newOrg.name} onChange={e=>setNewOrg(v=>({...v,name:e.target.value}))}/></label>
     <label>Īss apraksts<textarea rows={3} maxLength={2000} value={newOrg.description} onChange={e=>setNewOrg(v=>({...v,description:e.target.value}))} placeholder="Ko organizējat un kam paredzēti jūsu pasākumi?"/></label>
+    <label>Galvenā adrese<input maxLength={300} value={newOrg.address||''} onChange={e=>setNewOrg(v=>({...v,address:e.target.value}))} placeholder="Pilsēta, iela, mājas numurs"/></label>
+    <label>Organizatora logo<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setNewLogo(e.target.files?.[0]||null)}/>{newLogo&&<small>{newLogo.name}</small>}</label>
+    <ContactFields value={newOrg.contacts} onChange={contacts=>setNewOrg(v=>({...v,contacts}))}/>
+    <label className="org-public-choice"><input type="checkbox" checked={newOrg.is_public===true} onChange={e=>setNewOrg(v=>({...v,is_public:e.target.checked}))}/><span><strong>Publisks organizatora profils</strong><small>{newOrg.is_public?'Profils, norādītie kontakti un adrese paredzēti publiskai attēlošanai.':'Privāts — informācija pieejama tikai organizatora pārvaldībai.'}</small></span></label>
     <div className="org-actions"><button className="button" type="button" onClick={()=>setCreating(false)}>Atcelt</button><button className="button primary" disabled={busy}>Izveidot organizatoru →</button></div>
    </form>:organizations.length?<div className="org-card-grid">{organizations.map(orgCard)}</div>:<div className="org-empty-state">
     <h2>Sāc organizēt</h2><p>Izveido organizatora profilu tikai tad, kad vēlies publicēt savus pasākumus. Otrs lietotāja konts nav vajadzīgs.</p>
@@ -353,11 +357,11 @@ export default function OrganizerPage(){
    <form className="org-profile-form" onSubmit={saveProfile}>
     <label>Organizatora nosaukums<input disabled={!canEdit} required minLength={2} maxLength={160} value={profile.name||''} onChange={e=>{setProfile(v=>({...v,name:e.target.value}));setProfileDirty(true);}}/></label>
     <label>Apraksts<textarea disabled={!canEdit} rows={5} maxLength={2000} value={profile.description||''} onChange={e=>{setProfile(v=>({...v,description:e.target.value}));setProfileDirty(true);}}/></label>
-    <div className="org-form-grid"><label>Attēla URL<input disabled={!canEdit} type="url" maxLength={1000} value={profile.image_url||''} onChange={e=>{setProfile(v=>({...v,image_url:e.target.value}));setProfileDirty(true);}}/></label>
-     <label>Publiskais e-pasts<input disabled={!canEdit} type="email" maxLength={254} value={profile.public_email||''} onChange={e=>{setProfile(v=>({...v,public_email:e.target.value}));setProfileDirty(true);}}/></label>
-     <label>Tālrunis<input disabled={!canEdit} maxLength={80} value={profile.public_phone||''} onChange={e=>{setProfile(v=>({...v,public_phone:e.target.value}));setProfileDirty(true);}}/></label>
-     <label>Mājaslapa<input disabled={!canEdit} type="url" maxLength={1000} value={profile.public_url||''} onChange={e=>{setProfile(v=>({...v,public_url:e.target.value}));setProfileDirty(true);}}/></label></div>
-    <label className="quick-flow-check"><input disabled={!canEdit} type="checkbox" checked={profile.is_public===true} onChange={e=>{setProfile(v=>({...v,is_public:e.target.checked}));setProfileDirty(true);}}/> Publiskot organizatora profilu</label>
+    <label>Galvenā adrese<input disabled={!canEdit} maxLength={300} value={profile.address||''} onChange={e=>{setProfile(v=>({...v,address:e.target.value}));setProfileDirty(true);}}/></label>
+    <div className="org-profile-logo">{profile.image_url&&<img src={profile.image_url} alt="Organizatora logo" width="80" height="80"/>}<label>Logo attēls<input disabled={!canEdit} type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{setProfileLogo(e.target.files?.[0]||null);setProfileDirty(true);}}/></label></div>
+    <ContactFields disabled={!canEdit} value={profile.contacts||[]} onChange={contacts=>{setProfile(v=>({...v,contacts}));setProfileDirty(true);}}/>
+    <label>Mājaslapa<input disabled={!canEdit} type="url" maxLength={1000} value={profile.public_url||''} onChange={e=>{setProfile(v=>({...v,public_url:e.target.value}));setProfileDirty(true);}}/></label>
+    <label className="quick-flow-check"><input disabled={!canEdit} type="checkbox" checked={profile.is_public===true} onChange={e=>{setProfile(v=>({...v,is_public:e.target.checked}));setProfileDirty(true);}}/> Publiskot profilu, adresi un norādītos kontaktus</label>
     {canEdit&&<div className="org-actions"><button className="button primary" disabled={busy||!profileDirty}>Saglabāt profilu</button>{profileDirty&&<span className="org-unsaved">Ir nesaglabātas izmaiņas</span>}</div>}
    </form>
   </section>}
