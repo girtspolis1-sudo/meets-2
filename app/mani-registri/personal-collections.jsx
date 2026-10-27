@@ -31,10 +31,10 @@ async function getAccount(){
  return session;
 }
 function MiniEvent({event,action}){
- return <div className="meets-collection-event">
-  {cardImage(event)?<img src={cardImage(event)} alt="" loading="lazy"/>:<span className="meets-collection-event-placeholder" aria-hidden="true">✦</span>}
+ return <div className="meets-collection-event meets-unified-collection-event">
+  <span className="meets-unified-event-date" aria-hidden="true"><strong>{event.date_from?.slice(8,10)||'—'}</strong><small>{event.date_from?.slice(5,7)||'—'}.</small></span>
   <div><strong>{event.title}</strong><small>{cardDate(event)} · {cardLocation(event)}</small></div>
-  {action}<Link href={'/pasakumi?event='+encodeURIComponent(event.id)} aria-label={'Atvērt pasākumu: '+event.title}>Atvērt ↗</Link>
+  {action}<Link href={'/pasakumi?event='+encodeURIComponent(event.id)} aria-label={'Atvērt pasākumu: '+event.title}>Atvērt →</Link>
  </div>;
 }
 export default function PersonalCollections(){
@@ -162,7 +162,7 @@ export default function PersonalCollections(){
  const knownVenues=(directory.venues||[]).filter(x=>venueFollows.some(y=>y.target_id===x.id));
  const page=<section className="meets-account-page meets-collections">
   <header className="meets-account-heading"><div><p className="eyebrow">MANS MEETS</p><h1>Manas kolekcijas</h1>
-    <p className="meets-muted">Favorīti ir viena vieta visam, kas patīk. Savos sarakstos saliec pasākumus pa tēmām; iecienītajām vietām seko atsevišķi.</p></div>
+</div>
     <Link className="button" href="/pasakumi">Atrast pasākumus →</Link>
   </header>
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}
