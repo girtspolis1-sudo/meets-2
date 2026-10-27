@@ -30,9 +30,7 @@ const personalLinks=[
 const organizerPanels=[
  {panel:'overview',label:'Pārskats',icon:'home'},
  {panel:'events',label:'Pasākumi',icon:'calendar'},
- {panel:'venues',label:'Norises vietas',icon:'pin'},
- {panel:'lists',label:'Publiskie saraksti',icon:'list'},
- {panel:'team',label:'Komanda',icon:'users'},
+ {panel:'venues',label:'Objekti',icon:'pin'},
  {panel:'profile',label:'Organizatora profils',icon:'building'}
 ];
 
