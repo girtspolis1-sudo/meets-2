@@ -14,13 +14,14 @@ export default function Authentication({onSuccess,variant='default'}){
    const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:mode,email:email.trim(),password}),cache:'no-store'});
    const data=await response.json();
    if(!response.ok)throw Error(data.error||'Neizdevās pieslēgties.');
-   if(!data.access_token){setError('Konts izveidots. Pārbaudi e-pasta apstiprināšanas ziņu un pēc tam pieslēdzies.');setMode('login');return;}
+   if(!data.access_token){setError('Konts izveidots. Pārbaudi e-pasta apstiprināšanas ziņu un pēc tam pieslēdzies.');setMode('login');setStep('password');return;}
    localStorage.setItem(SESSION,JSON.stringify({...data,expires_at:Date.now()+(data.expires_in||3600)*1000}));
    window.dispatchEvent(new Event('meets-user-changed'));await onSuccess(data);
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
  return <div className={'quick-flow-auth'+(compact?' meets-auth-compact':'')}>
   {!compact&&<><h2>{mode==='register'?'Izveidot MEETS kontu':'Pieslēgties un turpināt'}</h2><p className="meets-muted">Tava aizpildītā pasākuma informācija paliks saglabāta. Pieslēgšanās nepieciešama tikai iesniegšanai.</p></>}
+  {compact&&<div className="meets-auth-google-area"><button type="button" className="meets-auth-google" disabled aria-describedby="meets-google-soon"><span className="meets-google-mark" aria-hidden="true">G</span> Turpināt ar Google <span className="meets-auth-soon">Drīzumā</span></button><span id="meets-google-soon" className="meets-auth-google-hint">Google pieslēgšanās būs pieejama vēlāk.</span><div className="meets-auth-divider"><span>vai ar e-pastu</span></div></div>}
   <form onSubmit={submit} className="quick-flow-stack">
    <label>E-pasts<input type="email" autoComplete="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)}/></label>
    {(!compact||step==='password')&&<label>Parole<input type={show?'text':'password'} autoComplete={mode==='login'?'current-password':'new-password'} required minLength={8} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}/></label>}
