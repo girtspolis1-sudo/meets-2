@@ -87,7 +87,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
  const [month,setMonth]=useState(rigaDate().slice(0,7)),[selectedDate,setSelectedDate]=useState(rigaDate()),[mapScope,setMapScope]=useState('all'),[followQuery,setFollowQuery]=useState('');
  const [origin,setOrigin]=useState(null),[radius,setRadius]=useState(30),[locationError,setLocationError]=useState('');
  const token=session.access_token;
- useEffect(()=>{if(new URLSearchParams(window.location.search).get('view')==='following')setView('following');},[]);
+
  const reload=useCallback(async()=>{const result=await request({action:'dashboard',token});setExtra({...DEFAULT,...result});},[token]);
  useEffect(()=>{let cancelled=false;async function load(){try{const result=await request({action:'dashboard',token});if(!cancelled)setExtra({...DEFAULT,...result});}catch(e){if(!cancelled)setTabError(e.message);}}
  load();const timer=setInterval(()=>{if(document.visibilityState==='visible')load();},60000);
@@ -130,11 +130,11 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
    {[
     ['overview','⌂ Pārskats'],['favorites','♡ Favorīti'],['planned',<><PlanIcon/> Plānoju</>],['calendar','▦ Kalendārs']
    ].map(([key,label])=><button key={key} type="button" aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
-   <button type="button" aria-expanded={moreOpen} aria-controls="meets-extra-views" className={['map','recommend','following','visited'].includes(view)?'active':''} onClick={()=>setMoreOpen(v=>!v)}>Vēl ▾</button>
+   <button type="button" aria-expanded={moreOpen} aria-controls="meets-extra-views" className={['map','recommend','visited'].includes(view)?'active':''} onClick={()=>setMoreOpen(v=>!v)}>Vēl ▾</button>
   </div>
   {moreOpen&&<div className="meets-account-tabs meets-personal-tabs meets-personal-more" id="meets-extra-views" role="group" aria-label="Papildu skati">
    {[
-    ['map','⌖ Karte'],['recommend','✦ Ieteikumi'],['following','♧ Sekoju'],['visited','✓ Apmeklēti']
+    ['map','⌖ Karte'],['recommend','✦ Ieteikumi'],['visited','✓ Apmeklēti']
    ].map(([key,label])=><button type="button" key={key} aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
   </div>}
   {tabError&&<p className="meets-inline-error" role="alert">{tabError}</p>}
@@ -145,8 +145,8 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
     {upcoming.length?cardEvents(upcoming):<div className="meets-account-empty"><span>♡</span><h3>Sāc savu pasākumu plānu</h3><p>Saglabā interesējošos pasākumus kartē. Tos atradīsi šeit.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>}
     <div className="meets-unified-discovery-extra"><div className="meets-personal-overview-header"><h2>Atklāj ko jaunu</h2><button type="button" className="button compact" onClick={()=>setView('recommend')}>Mani ieteikumi ↗</button></div>
     <p className="meets-muted">Iestatot intereses, saņemsi pasākumu ieteikumus. Atgādinājumi pagaidām ir redzami tikai šajā kontā.</p>
-    <div className="meets-personal-overview-header"><h2>Manas sekotās norises vietas ({followedLocations.length})</h2><button type="button" className="button compact" onClick={()=>setView('following')}>Apskatīt vietas ↗</button></div>
-    <p className="meets-muted">Seko konkrētai vietai <Link href="/pasakumi">pasākumu sarakstā</Link>, lai redzētu tās turpmākos pasākumus savā kontā.</p></div>
+    
+    </div>
    </section>}
    {['favorites','planned','visited'].includes(view)&&list(selected)}
    {view==='calendar'&&<CalendarView events={saved} selectedDate={selectedDate} setSelectedDate={setSelectedDate} month={month} setMonth={setMonth} renderCards={cardEvents}/>}
