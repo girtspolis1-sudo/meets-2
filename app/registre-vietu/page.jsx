@@ -87,7 +87,7 @@ function VenueRegistrationInner(){
  if(!loaded)return <p className="meets-profile-skeleton" role="status">Ielādē norises vietu redaktoru…</p>;
 
  const page=<section className="meets-organizer-page quick-flow venue-editor">
-  <div className="meets-account-heading"><div><p className="eyebrow">MEETS · Norises vieta</p><h1>{existingId?'Labot norises vietu':'Pievienot norises vietu'}</h1><p className="meets-muted">{activeOrg?<><strong>{activeOrg.name}</strong> · </>:null}meklē esošu vietu vai izveido jaunu.</p></div>
+  <div className="meets-account-heading"><div><p className="eyebrow">MEETS · Norises vieta</p><h1>{existingId?'Labot objektu':'Pievienot objektu'}</h1><p className="meets-muted">{activeOrg?<><strong>{activeOrg.name}</strong> · </>:null}izvēlies esošu vietu kartē vai reģistrē jaunu objektu.</p></div>
    <Link href={orgId?'/organizators?org='+orgId+'&panel=venues':'/organizators'} className="button">← Vietu pārvaldība</Link></div>
   {organizations.length>1&&stage!=='done'&&<div className="event-editor-context"><label>Organizators<select value={orgId} onChange={e=>switchOrg(e.target.value)}><option value="">Izvēlies organizatoru</option>{organizations.map(o=><option value={o.id} key={o.id}>{o.name}</option>)}</select></label></div>}
   {account&&organizations.length===0&&<div className="event-editor-org-needed"><strong>Vispirms izveido organizatoru.</strong><p>Vieta tiks piesaistīta organizatoram, kas to pārvalda vai izmanto.</p><button className="button primary" type="button" onClick={organizerSetup}>Sākt organizēt →</button></div>}
@@ -107,8 +107,8 @@ function VenueRegistrationInner(){
    <p className="quick-flow-note">{publicId?'Esoša publiska vieta tiks tikai piesaistīta organizatoram kā izmantota vieta.':form.is_public?'Vieta būs publiska un tai būs publiskais kalendārs.':'Vieta paliks organizācijas iekšējā sarakstā.'}</p>
    <div className="quick-flow-actions"><button className="button" type="button" onClick={()=>setStage('edit')}>← Labot</button><button className="button primary" disabled={busy||activeOrg?.role==='viewer'} onClick={persist}>{busy?'Saglabā…':publicId?'Pievienot izmantotajām vietām →':'Saglabāt vietu →'}</button></div></div>}
   {stage==='auth'&&<div className="quick-flow-card"><Authentication onSuccess={async value=>{try{const x=await load(value);const chosen=x.result.organizations?.length===1?x.result.organizations[0].id:orgId;setOrgId(chosen);setStage('preview');setError('');}catch(e){setError(e.message);}}}/><button className="button" onClick={()=>setStage('preview')}>← Atpakaļ</button></div>}
-  {stage==='done'&&<div className="quick-flow-card"><div className="quick-flow-success">✓</div><h2>{saved?.name||form.name}</h2><p>{publicId?'Vieta piesaistīta organizatoram kā izmantota publiska vieta.':'Vieta saglabāta organizatora norises vietās.'}</p>
-   <div className="quick-flow-actions"><Link className="button primary" href={'/registre-pasakumu/vienkarsi?venue='+saved?.id+'&org='+orgId}>+ Pasākums šajā vietā →</Link><Link className="button" href={'/organizators?org='+orgId+'&panel=venues'}>Norises vietas →</Link></div></div>}
+  {stage==='done'&&<div className="quick-flow-card"><div className="quick-flow-success">✓</div><h2>{saved?.name||form.name}</h2><p>{publicId?'Vieta piesaistīta organizatoram kā izmantota publiska vieta.':'Objekts izveidots un saglabāts.'}</p>
+   <div className="quick-flow-actions"><Link className="button primary" href={'/registre-pasakumu/vienkarsi?venue='+saved?.id+'&org='+orgId}>+ Pievienot pasākumu →</Link><Link className="button" href={'/organizators?org='+orgId+'&panel=venues'}>Atvērt objektus →</Link></div></div>}
  </section>;
  return account?<ProfileShell session={account} activeOrganization={activeOrg}>{page}</ProfileShell>:page;
 }
