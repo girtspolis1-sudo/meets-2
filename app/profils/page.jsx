@@ -15,19 +15,23 @@ async function post(endpoint,action,token,other={}){
  const b=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(b.error||'Datus neizdevās ielādēt.');e.status=r.status;throw e;}return b;
 }
 async function loadAll(account){
- const [personal,dashboard,registries]=await Promise.all([
+ // Identity validation is separate from optional personal dashboard data.
+ await post('/api/account','getProfile',account.access_token);
+ const calls=await Promise.allSettled([
   post('/api/account','list',account.access_token),
   post('/api/account','dashboard',account.access_token),
   post('/api/registries','list',account.access_token)
  ]);
- return {personal,dashboard,registries};
+ const values=calls.map(x=>x.status==='fulfilled'?x.value:null);
+ return {personal:values[0]||{},dashboard:values[1]||{},registries:values[2]||{},
+  partialFailure:calls.some(x=>x.status==='rejected')};
 }
 function Metric({number,label,icon,href}){return <Link href={href} className="meets-profile-stat"><ProfileIcon name={icon} size={19}/><strong className="meets-profile-stat-number">{number??0}</strong><span className="meets-profile-stat-label">{label}</span></Link>;}
 
 export default function ProfilePage(){
  const {data:eventData}=useEvents();
  const [account,setAccount]=useState(null),[state,setState]=useState(null),[loading,setLoading]=useState(true);
- const [error,setError]=useState('');
+ const [error,setError]=useState(''),[warning,setWarning]=useState('');
 
  const load=useCallback(async(initial)=>{
   let session=initial,data;
@@ -39,7 +43,7 @@ export default function ProfilePage(){
    localStorage.setItem(KEY,JSON.stringify(session));window.dispatchEvent(new Event('meets-user-changed'));
    data=await loadAll(session);
   }
-  setAccount(session);setState(data);
+  setAccount(session);setState(data);setWarning(data.partialFailure?'Daļu pasākumu informācijas šobrīd neizdevās ielādēt. Vari turpināt lietot kontu.':'');
  },[]);
  useEffect(()=>{let active=true;const session=fromStorage();if(!session?.access_token){setLoading(false);return;}
   (async()=>{try{await load(session);}catch(e){if(active){setAccount(null);if(e.status===401){localStorage.removeItem(KEY);window.dispatchEvent(new Event('meets-user-changed'));setError('');}else setError(e.message);}}finally{if(active)setLoading(false);}})();return()=>{active=false;};},[load]);
@@ -62,6 +66,7 @@ export default function ProfilePage(){
  if(!account)return <section className="meets-profile-auth" aria-labelledby="meets-auth-title"><p className="eyebrow">MANS MEETS</p><h1 id="meets-auth-title">Tavs MEETS vienuviet</h1><p className="meets-auth-intro">Saglabā pasākumus un veido savus plānus.</p>{error&&<p className="meets-profile-error" role="alert">{error}</p>}<Authentication variant="profile" onSuccess={login}/></section>;
 
  return <ProfileShell session={account} displayName={display}><div className="meets-profile-overview">
+  {warning&&<p className="meets-profile-hint" role="status">{warning}</p>}
   <section className="meets-profile-summary" aria-labelledby="profile-overview-heading">
     <div className="meets-profile-summary-heading"><div><p className="eyebrow">MANS MEETS</p><h1 id="profile-overview-heading">Pārskats</h1></div><Link href="/karte" className="meets-profile-summary-action"><ProfileIcon name="map"/> Atrast pasākumu</Link></div>
     <div className="meets-profile-summary-stats" aria-label="Tavs MEETS pārskats">
