@@ -30,7 +30,7 @@ const personalLinks=[
 const organizerPanels=[
  {panel:'overview',label:'Pārskats',icon:'home'},
  {panel:'events',label:'Pasākumi',icon:'calendar'},
- {panel:'venues',label:'Objekti',icon:'pin'},
+ {panel:'venues',label:'Adreses',icon:'pin'},
  {panel:'profile',label:'Organizatora profils',icon:'building'}
 ];
 
@@ -79,9 +79,9 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
     <div><strong>{title}</strong><small>{email||subtitle||'Tavs pasākumu centrs'}</small></div>
    </div>
 
-   <div className="meets-profile-mode-switch" role="group" aria-label="Profila režīms">
+   <div className="meets-profile-mode-switch meets-org-mode-switch" role="group" aria-label="Profila režīms">
     <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}><ProfileIcon name="heart" size={15}/> <span>Mans MEETS</span></Link>
-    <Link href={orgId?'/organizators?org='+encodeURIComponent(orgId):'/organizators'} aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={15}/> <span>Organizēšana</span></Link>
+    <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={15}/> <span>Organizēšana</span></Link>
    </div>
 
    {!organizerMode?<nav className="meets-profile-nav" aria-label="Mans MEETS">
@@ -105,7 +105,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
    </nav>}
 
    <div className="meets-profile-aside-footer">
-    {organizerMode?<Link className="meets-profile-aside-action" href={eventHref}><ProfileIcon name="plus"/> Jauns pasākums</Link>:
+    {organizerMode?<Link className="meets-profile-aside-action org-sidebar-event-action" href={eventHref}><ProfileIcon name="plus"/> Jauns pasākums</Link>:
      <Link className="meets-profile-aside-action" href="/karte"><ProfileIcon name="map"/> Atrast pasākumu</Link>}
 
     <button type="button" className="meets-profile-logout" disabled={loggingOut} onClick={logout}><ProfileIcon name="logout" size={17}/>{loggingOut?"Iziet…":"Iziet no konta"}</button>
