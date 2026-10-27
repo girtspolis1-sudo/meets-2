@@ -60,7 +60,7 @@ export async function POST(request){
    const user=await me.json();
    if(action==='getProfile')return NextResponse.json({avatar_data_url:typeof user.user_metadata?.avatar_data_url==='string'?user.user_metadata.avatar_data_url:null});
    if(action==='updateAvatar'){
-    if(avatarDataUrl!==null&&(typeof avatarDataUrl!=='string'||avatarDataUrl.length>50000||!/^data:image\\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(avatarDataUrl)))return NextResponse.json({error:'Nepieciešams neliels JPEG attēls.'},{status:400});
+    if(avatarDataUrl!==null&&(typeof avatarDataUrl!=='string'||avatarDataUrl.length>50000||!new RegExp('^data:image/jpeg;base64,[A-Za-z0-9+/]+={0,2}$').test(avatarDataUrl)))return NextResponse.json({error:'Nepieciešams neliels JPEG attēls.'},{status:400});
     const res=await fetch(authUrl+'user',{method:'PUT',headers:bearer,body:JSON.stringify({data:{avatar_data_url:avatarDataUrl}}),cache:'no-store'});
     if(!res.ok)return NextResponse.json({error:'Attēlu neizdevās saglabāt.'},{status:400});
     return NextResponse.json({ok:true,avatar_data_url:avatarDataUrl});
