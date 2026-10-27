@@ -335,3 +335,86 @@ body:not(.admin-environment) .button{border-radius:13px}
  .meets-hero-ctas{width:calc(100% + 82px)}
  .meets-minimal-benefits>a{align-items:start}
 }
+
+
+/* MEETS concert hero - high contrast over a real event photograph */
+.meets-discovery-hero{
+ display:block;
+ min-height:430px;
+ padding:48px;
+ border:1px solid rgba(224,225,239,.42);
+ border-radius:22px;
+ background-color:#142543;
+ background-image:linear-gradient(90deg,rgba(8,21,47,.84) 0%,rgba(9,23,50,.74) 36%,rgba(11,28,59,.40) 66%,rgba(11,28,59,.10) 100%),url('/images/b30e6ba4-be32-4b1c-88a2-b15d689c70d6.png');
+ background-size:cover;
+ background-position:center;
+ background-repeat:no-repeat;
+ box-shadow:0 18px 46px rgba(43,45,91,.09)
+}
+.meets-discovery-hero:before{display:none}
+.meets-hero-message{max-width:720px;position:relative;z-index:1}
+.meets-discovery-hero .eyebrow{color:#e4e4ff}
+.meets-hero-message h1{color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.18)}
+.meets-hero-message h1 em{color:#b9b2ff}
+.meets-hero-message>p{max-width:570px;color:#f3f4ff}
+.meets-hero-search{width:100%;max-width:640px;background:#fff;border-color:rgba(255,255,255,.8);box-shadow:0 8px 24px rgba(10,20,40,.12)}
+.meets-hero-chips{width:100%;max-width:720px;overflow-x:auto;overscroll-behavior-inline:contain}
+.meets-hero-chips>a{background:rgba(255,255,255,.96);color:#303651;border-color:rgba(255,255,255,.8)}
+.meets-hero-chips>a.active{background:#5f53e6;color:#fff;border-color:#5f53e6}
+.meets-hero-cta-secondary{background:#fff;color:#28315d;border-color:#fff}
+@media(max-width:760px){
+ .meets-discovery-hero{
+  display:block;min-height:0;padding:25px 18px 21px;border-radius:17px;
+  background-image:linear-gradient(90deg,rgba(8,21,47,.88) 0%,rgba(8,21,47,.82) 54%,rgba(8,21,47,.66) 100%),url('/images/b30e6ba4-be32-4b1c-88a2-b15d689c70d6.png');
+  background-position:60% center
+ }
+ .meets-hero-message{max-width:none}
+ .meets-hero-message>p{max-width:100%}
+ .meets-hero-search,.meets-hero-chips,.meets-hero-ctas{width:100%;max-width:100%}
+}
+@media(max-width:400px){
+ .meets-discovery-hero{padding:22px 15px 18px;background-position:64% center}
+ .meets-hero-search,.meets-hero-chips,.meets-hero-ctas{width:100%;max-width:100%}
+}
+
+/* Landing hero final layout: primary map CTA, all categories without scrolling */
+.meets-discovery-hero{padding:clamp(24px,3.3vw,52px);min-height:420px}
+.meets-hero-message{max-width:none;width:100%}
+.meets-hero-message h1,.meets-hero-message>p{max-width:700px}
+.meets-hero-ctas{margin-top:24px;margin-bottom:22px}
+.meets-hero-cta-primary{background:#6053ed;color:#fff;border-color:#6053ed}
+.meets-hero-cta-secondary{background:rgba(255,255,255,.96);color:#24254c;border-color:#fff}
+.meets-hero-chips{display:flex;flex-wrap:wrap;gap:10px;width:100%;max-width:none;overflow:visible;padding:4px 0;scrollbar-width:none}
+.meets-hero-chips>a{flex:0 0 auto;max-width:100%;white-space:normal;min-height:42px;line-height:1.25}
+.meets-hero-chips::-webkit-scrollbar{display:none}
+@media(max-width:760px){
+ .meets-discovery-hero{padding:24px 18px;min-height:0}
+ .meets-hero-ctas{width:100%;margin:20px 0}
+ .meets-hero-chips{width:100%;flex-wrap:wrap;overflow:visible;gap:8px}
+ .meets-hero-chips>a{min-height:38px;padding:8px 11px;font-size:11px}
+}
+@media(max-width:400px){
+ .meets-discovery-hero{padding:22px 15px}
+ .meets-hero-chips,.meets-hero-ctas{width:100%;max-width:100%}
+}
+
+/* Approved hero composition, tuned for widescreen and compact displays */
+.meets-discovery-hero{
+ min-height:clamp(440px,44vw,610px);
+ padding:clamp(26px,3.6vw,58px);
+ background-image:linear-gradient(90deg,rgba(7,23,49,.62) 0%,rgba(7,23,49,.41) 37%,rgba(7,23,49,.07) 74%,transparent 100%),url('/images/b30e6ba4-be32-4b1c-88a2-b15d689c70d6.png');
+ background-position:center;
+}
+.meets-hero-message{max-width:none}
+.meets-hero-message h1{max-width:800px}
+.meets-hero-message>p{max-width:700px}
+.meets-hero-ctas{gap:12px}
+.meets-hero-ctas a{min-height:48px;padding:12px 20px;font-size:14px}
+.meets-hero-chips{gap:11px;align-content:flex-start}
+.meets-hero-chips>a{font-size:12px;padding:10px 17px;border-radius:999px}
+@media(max-width:760px){
+ .meets-discovery-hero{min-height:0;padding:26px 18px;background-image:linear-gradient(90deg,rgba(7,23,49,.86),rgba(7,23,49,.48)),url('/images/b30e6ba4-be32-4b1c-88a2-b15d689c70d6.png');background-position:62% center}
+ .meets-hero-message h1{max-width:100%}
+ .meets-hero-ctas a{font-size:12px;padding:10px 14px}
+ .meets-hero-chips>a{font-size:11px;padding:8px 11px}
+}
