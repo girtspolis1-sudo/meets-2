@@ -60,7 +60,7 @@ function publicVenue(item,orgIds){
 
 function cleanOrgContacts(input){
  if(!Array.isArray(input))return [];
- return input.slice(0,25).map(x=>({type:['email','phone','person','other'].includes(x?.type)?x.type:'other',label:String(x?.label||'').trim().slice(0,80),value:String(x?.value||'').trim().slice(0,254)})).filter(x=>x.value);
+ return input.slice(0,25).map(x=>({type:['email','phone','person','other'].includes(x?.type)?x.type:'other',label:String(x?.label||'').trim().slice(0,80),value:String(x?.value||'').trim().slice(0,254),public:x?.public===true})).filter(x=>x.value);
 }
 export async function POST(request){
  try{
@@ -115,7 +115,7 @@ export async function POST(request){
    const mayEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
    if(!owned.length||mayEdit!==true)return NextResponse.json({error:'Nav tiesību mainīt organizācijas kontaktus.'},{status:403});
    const contacts=cleanOrgContacts(data.contacts);
-   const details={organization_id:data.organization_id,address:String(data.address||'').trim().slice(0,300),contacts,contacts_public:data.contacts_public===true&&owned[0].is_public===true,updated_at:new Date().toISOString()};
+   const details={organization_id:data.organization_id,address:String(data.address||'').trim().slice(0,300),contacts,contacts_public:data.contacts_public===true&&owned[0].is_public===true,address_public:data.address_public===true,updated_at:new Date().toISOString()};
    const saved=await api(TABLES.contacts,token,'POST',details,'?on_conflict=organization_id');
    return NextResponse.json({item:saved[0]||details});
   }
