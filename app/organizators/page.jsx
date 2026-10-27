@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import {useEffect,useMemo,useState} from 'react';
+import {Suspense,useEffect,useMemo,useState} from 'react';
 import {useSearchParams} from 'next/navigation';
 import ProfileShell from '../components/profile-shell.jsx';
 import {rigaDate} from '../../lib/meets-personal.js';
@@ -57,7 +57,7 @@ async function uploadOrgLogo(file,id,token){
  const b=await r.json().catch(()=>({}));if(!r.ok)throw Error(b.error||'Logo neizdevās saglabāt.');
  return b.url;
 }
-export default function OrganizerPage(){
+function OrganizerPageInner(){
  const searchParams=useSearchParams();
  const [session,setSession]=useState(null);
  const [items,setItems]=useState({organizations:[],venues:[],publicVenues:[],venueLinks:[],submissions:[]});
@@ -399,3 +399,5 @@ export default function OrganizerPage(){
   </section>}
  </section></ProfileShell>;
 }
+
+export default function OrganizerPage(){return <Suspense fallback={<div className="meets-profile-skeleton" role="status">Ielādē organizatorus…</div>}><OrganizerPageInner/></Suspense>}
