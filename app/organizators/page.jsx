@@ -262,11 +262,11 @@ export default function OrganizerPage(){
  if(!orgId||creating){
   return <ProfileShell session={session}><section className="org-workspace">
    <header className="org-page-head"><div><p className="eyebrow">Organizēšana</p><h1>{creating?'Jauns organizators':'Tavi organizatori'}</h1>
-    <p>Viens MEETS konts var pārvaldīt vairākus organizatorus, nezaudējot apmeklētāja funkcijas.</p></div>
+    <p>Izveido organizatora profilu un pievieno tam norises vietas un pasākumus.</p></div>
     {!creating&&<button className="button primary" type="button" onClick={()=>setCreating(true)}>+ Jauns organizators</button>}</header>
    {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
    {creating?<form className="org-form-card" onSubmit={createOrganization}>
-    <h2>Organizatora profils</h2><p className="meets-muted">Sākumā pietiek ar nosaukumu un īsu aprakstu. Logo un publiskos kontaktus varēsi pievienot vēlāk.</p>
+    <h2>Organizatora profils</h2><p className="meets-muted">Sāc ar nosaukumu. Adresi, logo un vairākus kontaktus vari norādīt tagad vai papildināt vēlāk.</p>
     <label>Nosaukums *<input required minLength={2} maxLength={160} value={newOrg.name} onChange={e=>setNewOrg(v=>({...v,name:e.target.value}))}/></label>
     <label>Īss apraksts<textarea rows={3} maxLength={2000} value={newOrg.description} onChange={e=>setNewOrg(v=>({...v,description:e.target.value}))} placeholder="Ko organizējat un kam paredzēti jūsu pasākumi?"/></label>
     <label>Galvenā adrese<input maxLength={300} value={newOrg.address||''} onChange={e=>setNewOrg(v=>({...v,address:e.target.value}))} placeholder="Pilsēta, iela, mājas numurs"/></label>
