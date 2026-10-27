@@ -5,7 +5,7 @@ const BASE=()=>process.env.SUPABASE_URL;
 const KEY=()=>process.env.SUPABASE_PUBLISHABLE_KEY;
 export async function POST(request){
  try{
-  const {action,email,token,password,eventId,category,enabled,leadMinutes,targetKind,targetId,notificationId,locationKey,locationName,municipality}=await request.json();
+  const {action,email,token,password,eventId,category,enabled,leadMinutes,targetKind,targetId,notificationId,locationKey,locationName,municipality,avatarDataUrl,currentPassword,newPassword}=await request.json();
   if(!BASE()||!KEY())return NextResponse.json({error:'Kontu serviss nav konfigurēts.'},{status:503});
   const authUrl=BASE()+'/auth/v1/';
   const head={apikey:KEY(),'Content-Type':'application/json'};
@@ -51,6 +51,25 @@ export async function POST(request){
    const res=await fetch(authUrl+'token?grant_type=refresh_token',{method:'POST',headers:head,body:JSON.stringify({refresh_token:token}),cache:'no-store'});
    if(!res.ok)return NextResponse.json({error:'Sesija beigusies.'},{status:401});
    const value=await res.json();return NextResponse.json({access_token:value.access_token,refresh_token:value.refresh_token,expires_in:value.expires_in,user:{id:value.user?.id,email:value.user?.email}});
+  }
+  if(action==='updateAvatar'||action==='changePassword'){
+   if(typeof token!=='string'||token.length<20)return NextResponse.json({error:'Nepieciešama pieslēgšanās.'},{status:401});
+   const bearer={...head,Authorization:'Bearer '+token};
+   const me=await fetch(authUrl+'user',{headers:bearer,cache:'no-store'});
+   if(!me.ok)return NextResponse.json({error:'Sesija beigusies. Pieslēdzies vēlreiz.'},{status:401});
+   const user=await me.json();
+   if(action==='updateAvatar'){
+    if(avatarDataUrl!==null&&(typeof avatarDataUrl!=='string'||avatarDataUrl.length>50000||!/^data:image\\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(avatarDataUrl)))return NextResponse.json({error:'Nepieciešams neliels JPEG attēls.'},{status:400});
+    const res=await fetch(authUrl+'user',{method:'PUT',headers:bearer,body:JSON.stringify({data:{avatar_data_url:avatarDataUrl}}),cache:'no-store'});
+    if(!res.ok)return NextResponse.json({error:'Attēlu neizdevās saglabāt.'},{status:400});
+    return NextResponse.json({ok:true,avatar_data_url:avatarDataUrl});
+   }
+   if(typeof currentPassword!=='string'||typeof newPassword!=='string'||newPassword.length<8||newPassword.length>128||currentPassword===newPassword)return NextResponse.json({error:'Pārbaudi esošo un jauno paroli (vismaz 8 rakstzīmes).'}, {status:400});
+   const check=await fetch(authUrl+'token?grant_type=password',{method:'POST',headers:head,body:JSON.stringify({email:user.email,password:currentPassword}),cache:'no-store'});
+   if(!check.ok)return NextResponse.json({error:'Esošā parole nav pareiza.'},{status:401});
+   const res=await fetch(authUrl+'user',{method:'PUT',headers:bearer,body:JSON.stringify({password:newPassword}),cache:'no-store'});
+   if(!res.ok)return NextResponse.json({error:'Paroli neizdevās nomainīt. Pārbaudi paroles prasības.'},{status:400});
+   return NextResponse.json({ok:true});
   }
   if(!['list','add','remove','plan','unplan','visit','unvisit','dashboard','interest','reminder','follow','followLocation','locationFollows','share','unshare','readNotice'].includes(action)||typeof token!=='string')return NextResponse.json({error:'Nederīgs pieprasījums.'},{status:400});
   const me=await fetch(authUrl+'user',{headers:{...head,Authorization:'Bearer '+token},cache:'no-store'});
