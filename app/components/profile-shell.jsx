@@ -69,7 +69,6 @@ function Inner({children,session,displayName='',subtitle='',activeOrganization=n
 
  return <div className="meets-profile-shell">
   <aside className="meets-profile-aside" aria-label="Profila navigācija">
-   <Link href="/profils" className="meets-profile-aside-brand" aria-label="MEETS profils"><span className="meets-profile-brand-mark">M</span><span>MEETS <strong>PROFILS</strong></span></Link>
    <div className="meets-profile-identity">
     <div className="meets-profile-avatar" aria-hidden="true">{INITIALS(displayName||email)}</div>
     <div><strong>{title}</strong><small>{email||subtitle||'Tavs pasākumu centrs'}</small></div>
@@ -81,7 +80,7 @@ function Inner({children,session,displayName='',subtitle='',activeOrganization=n
    </div>
 
    {!organizerMode?<nav className="meets-profile-nav" aria-label="Mans MEETS">
-    <div className="meets-profile-nav-group"><span className="meets-profile-nav-label">MANS MEETS</span>
+    <div className="meets-profile-nav-group">
      {personalLinks.map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined}
        className={'meets-profile-nav-link'+(activePersonal(item.href)?' active':'')}>
       <ProfileIcon name={item.icon}/><span>{item.label}</span>{activePersonal(item.href)&&<ProfileIcon name="arrow" size={14}/>}
@@ -103,7 +102,7 @@ function Inner({children,session,displayName='',subtitle='',activeOrganization=n
    <div className="meets-profile-aside-footer">
     {organizerMode?<Link className="meets-profile-aside-action" href={eventHref}><ProfileIcon name="plus"/> Jauns pasākums</Link>:
      <Link className="meets-profile-aside-action" href="/karte"><ProfileIcon name="map"/> Atrast pasākumu</Link>}
-    <Link className="meets-profile-secondary-link" href="/karte"><ProfileIcon name="map"/> Atvērt karti</Link>
+
    </div>
   </aside>
 
