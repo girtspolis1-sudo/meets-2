@@ -60,7 +60,7 @@ export default function ProfilePage(){
  const display=(state?.registries?.profile?.display_name||'').trim(),email=account?.user?.email||'',nickname=display||email.split('@')[0]||'MEETS lietotājs',initial=(display||email).slice(0,1).toLocaleUpperCase('lv')||'M';
 
  if(loading)return <div className="meets-profile-skeleton" role="status">Ielādē tavu MEETS profilu…</div>;
- if(!account)return <section className="meets-profile-auth"><p className="eyebrow">Mans MEETS</p><h1>Mans profils</h1><p className="meets-muted">Pieslēdzies, lai saglabātu pasākumus, veidotu sarakstus un sekotu organizatoriem vai vietām.</p>{error&&<p className="meets-profile-error" role="alert">{error}</p>}<Authentication onSuccess={login}/></section>;
+ if(!account)return <section className="meets-profile-auth" aria-labelledby="meets-auth-title"><p className="eyebrow">MANS MEETS</p><h1 id="meets-auth-title">Tavs MEETS vienuviet</h1><p className="meets-auth-intro">Saglabā pasākumus, veido savus plānus un seko interesantām vietām.</p>{error&&<p className="meets-profile-error" role="alert">{error}</p>}<Authentication variant="profile" onSuccess={login}/></section>;
 
  return <ProfileShell session={account} displayName={display}><div className="meets-profile-overview">
   <div className="meets-profile-page-head"><div><p className="eyebrow">Mans MEETS</p><h1>Pārskats</h1><p>Tavi saglabātie pasākumi, saraksti un sekošana vienuviet.</p></div><Link href="/karte" className="meets-profile-top-cta"><ProfileIcon name="map"/> Atrast pasākumu</Link></div>
