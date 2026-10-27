@@ -41,6 +41,7 @@ const INITIALS=(name='')=>String(name).trim().slice(0,1).toLocaleUpperCase('lv')
 function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeOrganization=null,mode=''}) {
  const pathname=usePathname(),params=useSearchParams();
  const [identity,setIdentity]=useState(session||null);
+ const [loggingOut,setLoggingOut]=useState(false);
  useEffect(()=>{
   function read(){try{setIdentity(JSON.parse(localStorage.getItem('meets_user_session_v1')||'null'));}catch{setIdentity(null);}}
   read();
@@ -49,6 +50,13 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
  },[]);
  useEffect(()=>{if(session?.access_token)setIdentity(session);},[session]);
 
+ async function logout(){
+  if(loggingOut)return;
+  setLoggingOut(true);
+  const current=identity;
+  try{if(current?.access_token)await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout',token:current.access_token}),cache:'no-store'});}catch{}
+  finally{localStorage.removeItem('meets_user_session_v1');localStorage.removeItem('meets_favorites_v1');localStorage.removeItem('meets_favorites_owner_v1');window.dispatchEvent(new Event('meets-user-changed'));window.dispatchEvent(new Event('meets-favorites-changed'));window.location.assign('/profils');}
+ }
  const email=identity?.user?.email||'';
  const title=displayName||email?.split('@')[0]||'MEETS lietotājs';
  const organizerMode=mode==='organizer'||pathname==='/organizators'||pathname.startsWith('/registre-pasakumu')||pathname==='/registre-vietu';
@@ -74,8 +82,8 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
    </div>
 
    <div className="meets-profile-mode-switch" role="group" aria-label="Profila režīms">
-    <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}>Mans MEETS</Link>
-    <Link href={orgId?'/organizators?org='+encodeURIComponent(orgId):'/organizators'} aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}>Organizēšana</Link>
+    <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}><ProfileIcon name="heart" size={15}/> <span>Mans MEETS</span></Link>
+    <Link href={orgId?'/organizators?org='+encodeURIComponent(orgId):'/organizators'} aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={15}/> <span>Organizēšana</span></Link>
    </div>
 
    {!organizerMode?<nav className="meets-profile-nav" aria-label="Mans MEETS">
@@ -102,6 +110,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
     {organizerMode?<Link className="meets-profile-aside-action" href={eventHref}><ProfileIcon name="plus"/> Jauns pasākums</Link>:
      <Link className="meets-profile-aside-action" href="/karte"><ProfileIcon name="map"/> Atrast pasākumu</Link>}
 
+    <button type="button" className="meets-profile-logout" disabled={loggingOut} onClick={logout}><ProfileIcon name="logout" size={17}/>{loggingOut?"Iziet…":"Iziet no konta"}</button>
    </div>
   </aside>
 
