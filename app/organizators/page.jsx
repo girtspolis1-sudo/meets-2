@@ -6,7 +6,7 @@ import {rigaDate} from '../../lib/meets-personal.js';
 import {resolveOrganizationId,canWriteOrganization} from '../../lib/organizer-workspace.js';
 
 const SESSION='meets_user_session_v1';
-const PANELS=new Set(['overview','events','venues','lists','team','profile']);
+const PANELS=new Set(['overview','events','venues','profile']);
 const STATUS_LABELS={draft:'Melnraksts',pending_review:'Pārbaudē',rejected:'Jālabo',published:'Publicēts',closed:'Slēgts',archived:'Arhivēts',cancelled:'Atcelts'};
 const ROLE_LABELS={owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'};
 
@@ -246,26 +246,17 @@ export default function OrganizerPage(){
 
  return <ProfileShell session={session} activeOrganization={activeOrg}><section className="org-workspace">
   <header className="org-page-head"><div><p className="eyebrow">Organizēšana · {ROLE_LABELS[activeOrg?.role]||activeOrg?.role}</p><h1>{activeOrg?.name}</h1>
-   <p>{activeOrg?.description||'Pievieno organizatora aprakstu, lai profils būtu saprotams arī apmeklētājiem.'}</p></div>
+</div>
    <div className="org-head-actions"><select aria-label="Aktīvais organizators" value={orgId} onChange={e=>chooseOrganization(e.target.value)}>{organizations.map(org=><option value={org.id} key={org.id}>{org.name}</option>)}</select>
     <button className="button" type="button" onClick={()=>{setOrgId('');setCreating(false);window.history.replaceState(null,'','/organizators');}}>Visi organizatori</button>
-    {canEdit&&<Link className="button primary" href={'/registre-pasakumu/vienkarsi?org='+orgId}>+ Jauns pasākums</Link>}</div></header>
+    </div></header>
 
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
 
-  <nav className="org-section-tabs" aria-label="Organizatora sadaļas">
-   {[['overview','Pārskats'],['events','Pasākumi'],['venues','Norises vietas'],['lists','Publiskie saraksti'],['team','Komanda'],['profile','Organizatora profils']].map(([key,label])=>
-    <button key={key} type="button" className={panel===key?'active':''} aria-current={panel===key?'page':undefined} onClick={()=>choosePanel(key)}>{label}</button>)}
-  </nav>
-
   {panel==='overview'&&<div className="org-stack">
-   <section className="org-metric-grid">
-    <Link href={eventFilterLink('rejected')} className={metrics.fixes?'needs-action':''}><strong>{metrics.fixes}</strong><span>Jālabo</span><small>{metrics.fixes?'Nepieciešama darbība':'Nav neatrisinātu kļūdu'}</small></Link>
-    <Link href={eventFilterLink('draft')}><strong>{metrics.drafts}</strong><span>Melnraksti</span><small>Turpini nepabeigtos</small></Link>
-    <Link href={eventFilterLink('pending_review')}><strong>{metrics.review}</strong><span>Pārbaudē</span><small>Gaida moderatoru</small></Link>
-    <Link href={eventFilterLink('published')}><strong>{metrics.published}</strong><span>Publicētie</span><small>Gaidāmie pasākumi</small></Link>
-   </section>
-   <section className="org-panel"><div className="org-panel-head"><div><h2>Tuvākie pasākumi</h2><p>Vispirms redzami gaidāmie pasākumi un darbības, kurām jāpievērš uzmanība.</p></div><button className="button" onClick={()=>choosePanel('events')}>Visi pasākumi →</button></div>
+   <section className="org-simple-summary" aria-label="Organizatora kopsavilkums"><span><strong>{managedVenues.length}</strong> objekti</span><span><strong>{orgSubmissions.length}</strong> pasākumi</span><span><strong>{metrics.published}</strong> publicēti</span></section>
+   <section className="org-panel"><div className="org-panel-head"><h2>Mani objekti</h2>{canEdit&&<Link className="button primary" href={'/registre-vietu?org='+orgId}>+ Pievienot objektu</Link>}</div><div className="org-list">{managedVenues.slice(0,5).map(v=><div className="org-row" key={v.id}><div><strong>{v.name}</strong><small>{v.address} · {orgSubmissions.filter(x=>x.venue_id===v.id).length} pasākumi</small></div><div className="org-row-actions"><button type="button" className="button" onClick={()=>choosePanel('venues')}>Atvērt</button>{canEdit&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&venue='+v.id}>+ Pasākums</Link>}</div></div>)}{!managedVenues.length&&<p className="org-empty">Vēl nav objektu. Pievieno pirmo objektu, lai sāktu reģistrēt pasākumus.</p>}</div></section>
+   <section className="org-panel"><div className="org-panel-head"><div><h2>Tuvākie pasākumi</h2></div><button className="button" onClick={()=>choosePanel('events')}>Visi pasākumi →</button></div>
     <div className="org-list">{orgSubmissions.filter(future).sort((a,b)=>(a.date_from||'9999').localeCompare(b.date_from||'9999')).slice(0,6).map(item=><div className="org-row" key={item.id}>
      <div><strong>{item.title||'Bez nosaukuma'}</strong><small>{eventDate(item)} · {item.venue_name||'Vieta nav norādīta'}</small>{item.status==='rejected'&&item.admin_note&&<em>Jālabo: {item.admin_note}</em>}</div>
      <span className={statusClass(item.status)}>{STATUS_LABELS[item.status]||item.status}</span>
@@ -300,8 +291,8 @@ export default function OrganizerPage(){
   </section>}
 
   {panel==='venues'&&<section className="org-panel">
-   <div className="org-panel-head"><div><h2>Norises vietas</h2><p>Pārvaldītas vietas vari labot. Izmantotas publiskās vietas ir tikai piesaistītas pasākumiem un nerada rediģēšanas tiesības.</p></div>{canEdit&&<Link className="button primary" href={'/registre-vietu?org='+orgId}>+ Pievienot vietu</Link>}</div>
-   <h3>Pārvaldītās vietas</h3><div className="org-list">{managedVenues.map(v=><div className="org-row" key={v.id}>
+   <div className="org-panel-head"><div><h2>Mani objekti</h2></div>{canEdit&&<Link className="button primary" href={'/registre-vietu?org='+orgId}>+ Pievienot objektu</Link>}</div>
+   <div className="org-list">{managedVenues.map(v=><div className="org-row" key={v.id}>
     <div><strong>{v.name}</strong><small>{v.address||'Adrese nav norādīta'} · {v.is_public?'Publiska':'Privāta'} · {orgSubmissions.filter(x=>x.venue_id===v.id&&future(x)).length} gaidāmi pasākumi</small></div>
     <span className="org-status">Pārvaldīta</span><div className="org-row-actions">{v.is_public&&<Link className="button" href={'/vietas/'+v.id}>Atvērt</Link>}{canEdit&&<><Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&venue='+v.id}>Jauns pasākums</Link><Link className="button" href={'/registre-vietu?org='+orgId+'&edit='+v.id}>Labot</Link></>}</div>
    </div>)}{!managedVenues.length&&<p className="org-empty">Vēl nav pārvaldītu vietu.</p>}</div>
