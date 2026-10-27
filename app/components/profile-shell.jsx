@@ -25,8 +25,7 @@ const personalLinks=[
  {href:'/profils',label:'Pārskats',icon:'home'},
  {href:'/mani-pasakumi',label:'Saglabātie pasākumi',icon:'heart'},
  {href:'/mani-registri',label:'Manas kolekcijas',icon:'list'},
- {href:'/sekosana',label:'Sekošana',icon:'eye'},
- {href:'/profils#iestatijumi',label:'Konta iestatījumi',icon:'settings'}
+ {href:'/konta-iestatijumi',label:'Konta iestatījumi',icon:'settings'}
 ];
 const organizerPanels=[
  {panel:'overview',label:'Pārskats',icon:'home'},
@@ -39,7 +38,7 @@ const organizerPanels=[
 
 const INITIALS=(name='')=>String(name).trim().slice(0,1).toLocaleUpperCase('lv')||'M';
 
-function Inner({children,session,displayName='',subtitle='',activeOrganization=null,mode=''}) {
+function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeOrganization=null,mode=''}) {
  const pathname=usePathname(),params=useSearchParams();
  const [identity,setIdentity]=useState(session||null);
  useEffect(()=>{
@@ -70,7 +69,7 @@ function Inner({children,session,displayName='',subtitle='',activeOrganization=n
  return <div className="meets-profile-shell">
   <aside className="meets-profile-aside" aria-label="Profila navigācija">
    <div className="meets-profile-identity">
-    <div className="meets-profile-avatar" aria-hidden="true">{INITIALS(displayName||email)}</div>
+    <div className="meets-profile-avatar" aria-hidden="true">{avatarUrl?<img src={avatarUrl} alt="" className="meets-settings-avatar-image"/>:INITIALS(displayName||email)}</div>
     <div><strong>{title}</strong><small>{email||subtitle||'Tavs pasākumu centrs'}</small></div>
    </div>
 
@@ -108,7 +107,7 @@ function Inner({children,session,displayName='',subtitle='',activeOrganization=n
 
   <div className="meets-profile-content">
    <nav className="meets-profile-mobile-tabs" aria-label={organizerMode?'Organizēšanas sadaļas':'Mans MEETS sadaļas'}>
-    {!organizerMode?personalLinks.slice(0,4).map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.label}</Link>):
+    {!organizerMode?personalLinks.map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.label}</Link>):
      <><Link href="/organizators" className={!orgId?'active':''}>Organizatori</Link>{orgId&&organizerLinks.slice(0,4).map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined} className={activeOrganizer(item)?'active':''}>{item.label}</Link>)}</>}
    </nav>
    <div className="meets-profile-slot">{children}</div>
