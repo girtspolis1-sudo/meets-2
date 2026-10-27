@@ -23,7 +23,15 @@ export async function POST(request){
   if(!good)return NextResponse.json({error:'Attēla saturs neatbilst tā formātam.'},{status:400});
   const path=org+'/'+crypto.randomUUID()+'.'+MIME[file.type];
   const uploaded=await fetch(base+'/storage/v1/object/meets-org-logos/'+path,{method:'POST',headers:{...headers,'Content-Type':file.type,'x-upsert':'false'},body:bytes,cache:'no-store'});
-  if(!uploaded.ok)return NextResponse.json({error:'Logo neizdevās augšupielādēt.'},{status:502});
+  if(!uploaded.ok){
+   const detail=await uploaded.json().catch(()=>({}));
+   const reason=String(detail.message||detail.error||'').slice(0,240);
+   console.error('Organization logo upload failed:',{status:uploaded.status,code:detail.statusCode||detail.code||'unknown',message:reason});
+   const message=uploaded.status===413?'Logo pārsniedz atļauto izmēru.':
+    uploaded.status===403||/row-level security|permission|unauthorized/i.test(reason)?'Nav atļaujas augšupielādēt logo. Pārbaudi organizatora rediģēšanas tiesības.':
+    'Logo neizdevās augšupielādēt. Mēģini vēlreiz vai izvēlies citu attēlu.';
+   return NextResponse.json({error:message},{status:uploaded.status===403?403:502});
+  }
   return NextResponse.json({url:base+'/storage/v1/object/public/meets-org-logos/'+path});
  }catch{return NextResponse.json({error:'Logo apstrāde neizdevās.'},{status:500});}
 }
