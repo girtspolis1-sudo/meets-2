@@ -13,8 +13,9 @@ export async function POST(request){
   const auth=await fetch(base+'/auth/v1/user',{headers,cache:'no-store'});
   if(!auth.ok)return NextResponse.json({error:'Sesija beigusies.'},{status:401});
   const me=await auth.json();
-  const own=await fetch(base+'/rest/v1/meets_organizations?id=eq.'+org+'&owner_id=eq.'+me.id+'&select=id',{headers,cache:'no-store'});
-  if(!own.ok||(await own.json()).length===0)return NextResponse.json({error:'Logo var mainīt tikai organizācijas īpašnieks.'},{status:403});
+  const permitted=await fetch(base+'/rest/v1/rpc/meets_org_can_edit',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({p_org:org}),cache:'no-store'});
+  const allowed=permitted.ok?await permitted.json():false;
+  if(allowed!==true)return NextResponse.json({error:'Nav tiesību mainīt šīs organizācijas logo.'},{status:403});
   const bytes=new Uint8Array(await file.arrayBuffer());
   const good=file.type==='image/jpeg'?bytes[0]===255&&bytes[1]===216:
    file.type==='image/png'?bytes[0]===137&&bytes[1]===80&&bytes[2]===78&&bytes[3]===71:
