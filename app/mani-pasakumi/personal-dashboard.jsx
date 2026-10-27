@@ -121,11 +121,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
  const list=items=>items.length?cardEvents(items):<div className="meets-account-empty"><span>♡</span><h3>Šeit vēl nav saglabātu pasākumu</h3><p>Atver karti un atzīmē interesējošos pasākumus ar sirsniņu.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>;
  async function copy(){if(!shareUrl)return;try{await navigator.clipboard.writeText(shareUrl);setMessage('Saite nokopēta.');}catch{setMessage('Saite ir laukā — iezīmē un kopē to.');}}
  return <div className="meets-personal-dashboard">
-  <div className="meets-account-stats">
-   <div><strong>{favorites.length}</strong><span>♡ Favorīti</span></div>
-   <div><strong>{plans.length}</strong><span><PlanIcon/> Plānoju</span></div>
-   <div><strong>{visits.length}</strong><span>✓ Apmeklēti</span></div>
-  </div>
+  <div className="meets-unified-counts" aria-label="Pasākumu kopsavilkums"><span><strong>{favorites.length}</strong> favorīti</span><span><strong>{plans.length}</strong> plānoti</span><span><strong>{visits.length}</strong> apmeklēti</span></div>
   {!!unread.length&&<div className="meets-personal-notices" role="status"><strong>🔔 {unread.length} atgādinājumi</strong>
    {unread.slice(0,5).map(n=><div key={n.id}><span>{n.message}: {eventIndex.get(n.event_id)?.title||'Saglabātais pasākums'}</span>
     <button disabled={saving} onClick={()=>mutate({action:'readNotice',notificationId:n.id},()=>setExtra(p=>({...p,notices:p.notices.map(x=>x.id===n.id?{...x,read_at:new Date().toISOString()}:x)})))}>Izlasīts</button></div>)}
@@ -147,10 +143,10 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
    {view==='overview'&&<section className="meets-personal-overview">
     <div className="meets-personal-overview-header"><h2>Tavi tuvākie pasākumi</h2><button type="button" className="button compact" onClick={()=>setView('calendar')}><CalendarIcon/> Kalendārs ↗</button></div>
     {upcoming.length?cardEvents(upcoming):<div className="meets-account-empty"><span>♡</span><h3>Sāc savu pasākumu plānu</h3><p>Saglabā interesējošos pasākumus kartē. Tos atradīsi šeit.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>}
-    <div className="meets-personal-overview-header"><h2>Atklāj ko jaunu</h2><button type="button" className="button compact" onClick={()=>setView('recommend')}>Mani ieteikumi ↗</button></div>
+    <div className="meets-unified-discovery-extra"><div className="meets-personal-overview-header"><h2>Atklāj ko jaunu</h2><button type="button" className="button compact" onClick={()=>setView('recommend')}>Mani ieteikumi ↗</button></div>
     <p className="meets-muted">Iestatot intereses, saņemsi pasākumu ieteikumus. Atgādinājumi pagaidām ir redzami tikai šajā kontā.</p>
     <div className="meets-personal-overview-header"><h2>Manas sekotās norises vietas ({followedLocations.length})</h2><button type="button" className="button compact" onClick={()=>setView('following')}>Apskatīt vietas ↗</button></div>
-    <p className="meets-muted">Seko konkrētai vietai <Link href="/pasakumi">pasākumu sarakstā</Link>, lai redzētu tās turpmākos pasākumus savā kontā.</p>
+    <p className="meets-muted">Seko konkrētai vietai <Link href="/pasakumi">pasākumu sarakstā</Link>, lai redzētu tās turpmākos pasākumus savā kontā.</p></div>
    </section>}
    {['favorites','planned','visited'].includes(view)&&list(selected)}
    {view==='calendar'&&<CalendarView events={saved} selectedDate={selectedDate} setSelectedDate={setSelectedDate} month={month} setMonth={setMonth} renderCards={cardEvents}/>}
