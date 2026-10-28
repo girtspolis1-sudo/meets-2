@@ -169,3 +169,96 @@
 .org-row-actions .org-add-event:hover{background:#5f36a0}
 .org-card>.button{min-height:44px}
 @media(max-width:760px){.org-card-counts{gap:5px}.org-card-counts span{font-size:11px;padding:5px 7px}.org-row-actions .org-add-event{width:100%;justify-content:center}}
+
+/* MEETS organizer profile v3: one-screen three-column editor */
+.meets-profile-shell:has(.org-workspace-profile){max-width:min(1580px,calc(100vw - 28px));grid-template-columns:220px minmax(0,1fr);gap:16px;margin:12px auto 20px}
+.org-workspace.org-workspace-profile{width:100%;max-width:none;min-width:0;margin:0;padding:3px 0 0;display:flex;flex-direction:column;gap:0}
+.org-workspace-profile .org-page-head{min-height:72px;flex:none;align-items:center;margin:0 0 10px}
+.org-workspace-profile .org-page-head h1{font-size:clamp(25px,2.4vw,34px);margin:3px 0 0}
+.org-workspace-profile .org-head-actions select{max-width:235px}
+.org-v3-profile-wrap{flex:1;min-height:0;display:flex;flex-direction:column}
+.org-v3-editor{--v3-border:#e8e1f2;--v3-text:#292743;display:flex;flex-direction:column;gap:11px;min-width:0;min-height:0;background:#fff;border:1px solid var(--v3-border);border-radius:18px;padding:13px 14px;box-shadow:0 8px 24px rgba(47,28,85,.035);color:var(--v3-text)}
+.org-v3-editor *{box-sizing:border-box}
+.org-v3-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:46px;flex:none}
+.org-v3-section-links{display:flex;gap:4px;align-items:center;min-width:0;flex-wrap:wrap}
+.org-v3-section-links button{border:1px solid transparent;background:#f7f5fc;color:#635a7c;border-radius:10px;min-height:40px;padding:7px 11px;font:inherit;font-weight:500;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.org-v3-section-links button span{font-size:17px;color:#7245bf}
+.org-v3-section-links button.is-active{background:#fff;border-color:#8c6ce0;color:#623abc}
+.org-v3-publish{display:flex;align-items:center;gap:8px;cursor:pointer;flex:none}
+.org-v3-publish>span{display:grid;gap:1px}
+.org-v3-publish strong{font-size:12px;font-weight:600;white-space:nowrap}
+.org-v3-publish small{font-size:10px;color:#82778b;white-space:nowrap}
+.org-v3-publish>input[type=checkbox]{appearance:none;width:39px;height:23px;border-radius:99px;position:relative;background:#d7d3e2;border:0;cursor:pointer;transition:background .16s;flex:none}
+.org-v3-publish>input[type=checkbox]:checked{background:#7445c5}
+.org-v3-publish>input[type=checkbox]:before{content:"";position:absolute;left:3px;top:3px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .16s;box-shadow:0 1px 3px #231f3426}
+.org-v3-publish>input[type=checkbox]:checked:before{transform:translateX(16px)}
+.org-v3-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.06fr) minmax(0,1.08fr);gap:10px;min-width:0;min-height:0;flex:1}
+.org-v3-column{min-width:0;min-height:0;border:1px solid var(--v3-border);border-radius:15px;padding:14px;display:flex;flex-direction:column;gap:12px;background:#fff;scroll-margin-top:18px}
+.org-v3-column.is-selected{border-color:#d5c9f0}
+.org-v3-heading{display:flex;align-items:flex-start;gap:9px;min-height:49px}
+.org-v3-heading-icon{width:32px;height:32px;border-radius:9px;background:#f2eaff;color:#6d40b0;display:grid;place-items:center;flex:none;font-size:19px}
+.org-v3-heading h2{font-size:15px;font-weight:650;margin:1px 0 4px;color:#242440;line-height:1.2}
+.org-v3-heading p{font-size:11px;color:#888092;margin:0;line-height:1.35}
+.org-v3-field{display:grid;gap:6px;min-width:0;font-size:12px;font-weight:550;color:#312948}
+.org-v3-field>span{display:flex;align-items:center;justify-content:space-between}
+.org-v3-field em{color:#9b2e64;font-style:normal}
+.org-v3-field span small{font-size:10px;font-weight:400;color:#81768e}
+.org-v3-field :is(input,textarea){border:1px solid #ddd5e9;border-radius:10px;background:#fff;font:inherit;font-size:13px;color:#24233e;min-width:0;width:100%;outline-offset:2px}
+.org-v3-field input{height:44px;padding:9px 11px}
+.org-v3-field textarea{resize:vertical;min-height:86px;max-height:190px;padding:10px 11px;line-height:1.5;font-weight:400}
+.org-v3-checkbox-band{background:#f6f1fe;border-radius:11px;padding:10px 11px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}
+.org-v3-checkbox-band span{display:grid;gap:2px}
+.org-v3-checkbox-band strong{font-size:11px;font-weight:600;color:#6442a4}
+.org-v3-checkbox-band small{font-size:10px;color:#80738d;font-weight:400}
+.org-v3-checkbox-band input{width:19px;height:19px;accent-color:#7446c2;flex:none}
+.org-v3-hint{display:flex;gap:9px;align-items:flex-start;background:#f7f4fd;border-radius:10px;padding:10px;color:#706283;font-size:10px;line-height:1.55;margin-top:auto}
+.org-v3-hint>span{color:#6f44b6;font-size:14px}
+.org-v3-contacts{display:flex;flex-direction:column;min-height:0;gap:8px;flex:1}
+.org-v3-contacts-head{display:flex;align-items:center;justify-content:space-between;gap:5px}
+.org-v3-contacts-head>span{font-size:11px;color:#81758f}
+.org-v3-add-contact{border:1px solid #dfd4f6;background:#faf8ff;color:#663ca5;border-radius:9px;padding:8px 10px;min-height:38px;font:inherit;font-size:11px;font-weight:600;cursor:pointer}
+.org-v3-contact-list{overflow:auto;min-height:0;flex:1;scrollbar-width:thin;padding-right:1px}
+.org-v3-contact{display:grid;grid-template-columns:23px minmax(60px,.75fr) minmax(75px,1.4fr) auto 22px;gap:4px;align-items:center;padding:6px 2px;border-bottom:1px solid #f0eaf5}
+.org-v3-contact-icon{color:#7245b3;text-align:center;font-size:15px}
+.org-v3-contact :is(input:not([type=checkbox]),select){width:100%;min-width:0;border:1px solid #e7e0f0;border-radius:8px;height:35px;padding:6px;font:inherit;font-size:11px;color:#313046;background:#fff}
+.org-v3-contact input:not([type=checkbox]){padding:6px 7px}
+.org-v3-public-checkbox{display:flex;gap:3px;align-items:center;font-size:10px;font-weight:500;color:#6b6179;white-space:nowrap;cursor:pointer}
+.org-v3-public-checkbox input{width:15px;height:15px;margin:0;accent-color:#7446c4;flex:none}
+.org-v3-remove-contact{font-size:21px;line-height:1;min-width:22px;min-height:34px;border:0;background:transparent;color:#777085;cursor:pointer}
+.org-v3-contact-label{grid-column:2/-1;color:#8a8193;font-size:10px}
+.org-v3-contact-label summary{cursor:pointer;list-style:none}
+.org-v3-contact-label summary:before{content:"›";margin-right:5px}
+.org-v3-contact-label[open] summary:before{content:"⌄"}
+.org-v3-contact-label input{margin-top:5px}
+.org-v3-no-contacts{color:#887e97;font-size:11px;line-height:1.5;margin:12px 0}
+.org-v3-logo-label{font-size:12px;font-weight:550;color:#32284d;margin-bottom:-6px}
+.org-v3-logo-row{display:flex;align-items:center;gap:11px;min-width:0}
+.org-v3-logo-preview{display:grid;place-items:center;width:72px;height:72px;flex:0 0 72px;border:1px solid #e8e0f0;border-radius:12px;overflow:hidden;background:#faf9fc;color:#9b85c4;font-size:26px}
+.org-v3-logo-preview img{width:100%;height:100%;object-fit:contain}
+.org-v3-logo-controls{display:flex;flex-direction:column;gap:4px;min-width:0;align-items:flex-start}
+.org-v3-logo-controls input[type=file]{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden}
+.org-v3-upload{border:1px solid #e0d7f2;background:#faf7ff;color:#6441ab;font-size:11px;font-weight:600;padding:8px 9px;border-radius:9px;cursor:pointer;display:inline-block}
+.org-v3-logo-controls small{font-size:10px;color:#8a8194}
+.org-v3-remove-logo{border:0;background:transparent;color:#86638e;padding:2px 0;font-size:10px;cursor:pointer}
+.org-v3-website{justify-content:flex-end}
+.org-v3-footer{min-height:66px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;border-top:1px solid #eee7f6;padding:12px 2px 0}
+.org-v3-statistics{display:flex;align-items:center;flex-wrap:wrap;gap:12px;color:#615872;font-size:11px}
+.org-v3-statistics>span{display:flex;align-items:baseline;gap:5px}
+.org-v3-statistics strong{font-size:16px;color:#523095}
+.org-v3-statistics small{font-size:10px;color:#877d90}
+.org-v3-statistics .org-v3-modified{font-size:10px;color:#898192}
+.org-v3-actions{display:flex;align-items:center;gap:9px}
+.org-v3-actions button{min-height:42px;padding:10px 14px;border-radius:10px;white-space:nowrap;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.org-v3-cancel{background:#fff;border:1px solid #e4ddec;color:#675c79}
+.org-v3-save{background:#7145c2;border:1px solid #7145c2;color:#fff;box-shadow:0 3px 9px #67409d22}
+.org-v3-actions button:disabled{cursor:not-allowed;opacity:.5}
+.org-v3-unsaved{color:#7849a9;font-size:11px;text-align:right}
+.org-v3-editor :is(button,input,textarea,select,summary,label.org-v3-upload):focus-visible{outline:2px solid #7549cc;outline-offset:2px}
+@media(min-width:1360px) and (min-height:760px){
+ .org-workspace.org-workspace-profile{height:calc(100dvh - 122px)}
+ .org-v3-column{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+}
+@media(max-width:1359px){.meets-profile-shell:has(.org-workspace-profile){grid-template-columns:205px minmax(0,1fr)}.org-v3-columns{grid-template-columns:repeat(2,minmax(0,1fr))}.org-v3-column:last-child{grid-column:1/-1}.org-v3-column{min-height:0}}
+@media(max-width:1080px){.org-v3-columns{grid-template-columns:1fr}.org-v3-column:last-child{grid-column:auto}.org-v3-toolbar{align-items:flex-start;flex-wrap:wrap}.org-v3-footer{align-items:flex-start;flex-wrap:wrap}.org-v3-contacts{flex:none}.org-v3-contact-list{max-height:360px}}
+@media(max-width:760px){.meets-profile-shell:has(.org-workspace-profile){display:block;max-width:100%;margin:0}.org-workspace.org-workspace-profile{height:auto;padding:6px 12px 32px}.org-v3-editor{padding:11px}.org-v3-toolbar{display:grid}.org-v3-section-links{gap:3px;flex-wrap:nowrap;overflow-x:auto}.org-v3-section-links button{min-height:42px;white-space:nowrap;padding:7px}.org-v3-column{padding:12px}.org-v3-footer{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--v3-border);padding:10px 0;z-index:5}.org-v3-actions{width:100%}.org-v3-actions button{flex:1}.org-v3-modified{display:none}}
+@media(max-width:390px){.org-v3-contact{grid-template-columns:20px minmax(58px,.8fr) minmax(80px,1.2fr) 21px}.org-v3-contact .org-v3-public-checkbox{grid-column:2/4;justify-self:end}.org-v3-remove-contact{grid-column:4;grid-row:1}.org-v3-contact-label{grid-column:2/-1}.org-v3-statistics{gap:6px}.org-v3-logo-preview{width:60px;height:60px;flex-basis:60px}}
