@@ -277,12 +277,31 @@ for(const width of [360,390]){
  await page.close();
 }
 
-// First-time user: event form first, sign-in only after preview, without losing data.
+// Organizer quick entry: a saved address is required, then preview and moderation.
 for(const width of [360,390]){
  const p=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Riga'}).format(new Date(Date.now()+86400000));
  const errors=[];p.on('pageerror',e=>errors.push(String(e)));
+ const orgId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb51';
+ const venueId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb52';
+ let submitted=null;
+ await p.addInitScript(()=>localStorage.setItem('meets_user_session_v1',JSON.stringify({
+  access_token:'quick-flow-test',refresh_token:'quick-flow-refresh',expires_in:3600,expires_at:Date.now()+3600000,
+  user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',email:'organizer@example.com'}
+ })));
  await p.route('**/api/venue-catalog*',r=>r.fulfill({status:200,contentType:'application/json',body:'{"locations":[]}'}));
+ await p.route('**/api/organizer',route=>{
+  const body=route.request().postDataJSON()||{};
+  if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+   organizations:[{id:orgId,name:'Testa organizators',kind:'organizer',owner_id:orgId,role:'owner',is_public:false}],
+   venues:[{id:venueId,organization_id:orgId,name:'MEETS Sporta zāle',address:'Sporta iela 1, Rīga',latitude:56.9496,longitude:24.1052,is_public:false}],
+   publicVenues:[],venueLinks:[{organization_id:orgId,venue_id:venueId,relation_type:'managed'}],submissions:[]})});
+  if(body.action==='saveEvent'){
+   submitted=body;
+   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({item:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb59',status:body.status}})});
+  }
+  return route.fulfill({status:200,contentType:'application/json',body:'{"item":{}}'});
+ });
  try{
   await p.goto(base+'/registre-pasakumu',{waitUntil:'domcontentloaded'});
   if(!(await p.getByRole('link',{name:/Pievienot pasākumu/}).count())||!(await p.getByRole('link',{name:/Pievienot vietu/}).count())){
@@ -292,44 +311,17 @@ for(const width of [360,390]){
   const form=p.locator('.quick-flow-card');
   await form.getByPlaceholder('Piemēram, Ģimenes sporta diena').fill('MEETS mobilais pasākums');
   await form.locator('input[type=date]').first().fill(day);
-  await form.getByRole('button',{name:/Nevari atrast vietu/}).click();
-  await form.getByRole('textbox',{name:'Adrese manuāli'}).fill('Sporta iela 1, Rīga');
-  await form.getByRole('button',{name:'Turpināt ar šo adresi'}).click();
-  await form.getByRole('textbox',{name:/Norises vietas nosaukums/}).fill('MEETS Sporta zāle');
+  await form.getByLabel('Pasākuma norises adrese').selectOption(venueId);
   await form.getByRole('button',{name:/Priekšskatīt/}).click();
-  if(!(await p.getByText('MEETS mobilais pasākums').count())){fails++;console.error('Preview lost event title',width);}
-  await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
-  if(!(await p.getByRole('heading',{name:/Pieslēdzies, lai turpinātu|Pieslēgties un turpināt/}).count())){fails++;console.error('Anonymous event flow should request login at end',width);}
-  const stored=await p.evaluate(()=>JSON.parse(localStorage.getItem('meets_event_draft_v3:guest:unassigned')||'{}'));
-  if(stored.title!=='MEETS mobilais pasākums'||stored.venue_name!=='MEETS Sporta zāle'){fails++;console.error('Draft lost when requesting login',width);}
+  await p.getByText('MEETS mobilais pasākums').first().waitFor({timeout:10000});
   await assertLayout(p,'quick-event',width);
   await p.screenshot({path:'ux-screenshots/'+width+'-quick-event.png',fullPage:true});
+  await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
+  await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei'}).waitFor({timeout:12000});
+  if(submitted?.venue_id!==venueId||submitted?.status!=='pending_review'||submitted?.date_from!==day){
+   fails++;console.error('Event submission lost data',width,submitted);
+  }
   if(width===390){
-   let submitted=null;
-   await p.route('**/api/account',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
-    access_token:'mock-user-session',refresh_token:'mock-refresh',expires_in:3600,
-    user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',email:'test@example.com'}
-   })}));
-   await p.route('**/api/organizer',route=>{
-    const body=route.request().postDataJSON()||{};
-    if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
-     organizations:[{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',name:'Testa organizators',role:'owner'}],
-     venues:[],publicVenues:[],venueLinks:[],submissions:[]})});
-    if(body.action==='saveEvent'){
-     submitted=body;
-     return route.fulfill({status:200,contentType:'application/json',body:'{"item":{"id":"9847198c-66d5-4bd1-8f2e-3b2f3a86bb51","status":"pending_review"}}'});
-    }
-    return route.fulfill({status:400,contentType:'application/json',body:'{"error":"Unsupported mock"}'});
-   });
-   await p.getByRole('textbox',{name:'E-pasts'}).fill('test@example.com');
-   await p.getByLabel('Parole',{exact:true}).fill('example-password');
-   await p.getByRole('button',{name:'Pieslēgties →'}).click();
-   await p.getByRole('button',{name:/Iesniegt pārbaudei/}).waitFor({timeout:12000});
-   await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
-   await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei'}).waitFor({timeout:12000});
-   if(submitted?.venue_name!=='MEETS Sporta zāle'||submitted?.status!=='pending_review'||submitted?.date_from!==day){
-    fails++;console.error('New event submission lost data after in-place login',submitted);
-   }
    // Recurrence + per-day time + EUR price should persist as one series to moderation.
    await p.getByRole('button',{name:/Pievienot nākamo pasākumu/}).click();
    const next=p.locator('.quick-flow-card');
@@ -342,10 +334,7 @@ for(const width of [360,390]){
    await next.getByLabel('Dalības maksa').selectOption('paid');
    await next.locator('input[type=number]').nth(0).fill('9.50');
    await next.locator('input[type=number]').nth(1).fill('15.00');
-   await next.getByRole('button',{name:/Nevari atrast vietu/}).click();
-   await next.getByRole('textbox',{name:'Adrese manuāli'}).fill('Sporta iela 1, Rīga');
-   await next.getByRole('button',{name:'Turpināt ar šo adresi'}).click();
-   await next.getByRole('textbox',{name:/Norises vietas nosaukums/}).fill('MEETS Sporta zāle');
+   await next.getByLabel('Pasākuma norises adrese').selectOption(venueId);
    await next.getByRole('button',{name:/Priekšskatīt/}).click();
    await p.getByText('Norises reizes:',{exact:false}).waitFor({timeout:10000});
    await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
@@ -360,7 +349,7 @@ for(const width of [360,390]){
   await assertLayout(p,'quick-venue',width);
   await p.screenshot({path:'ux-screenshots/'+width+'-quick-venue.png',fullPage:true});
   if(errors.length){fails++;console.error('Quick entry JS errors',width,errors.slice(0,3));}
- }catch(e){fails++;console.error('Quick flow mobile smoke failed',width,e.message,errors.slice(0,3));}
+ }catch(e){fails++;console.error('Quick flow mobile smoke failed',width,e.message,errors.slice(0,3));try{await p.screenshot({path:'ux-screenshots/'+width+'-quick-failure.png',fullPage:true});}catch{}}
  await p.close();
 }
 
@@ -424,9 +413,9 @@ for(const width of [360,390,768,1440]){
  try{
   await page.goto(base+'/profils',{waitUntil:'domcontentloaded',timeout:45000});
   await page.getByRole('heading',{name:'Pārskats'}).waitFor({timeout:15000});
-  await page.locator('.meets-profile-hero-info strong').getByText('Mārupes pasākumi').waitFor({timeout:12000});
-  const stats=page.locator('.meets-profile-stats');
-  if((await stats.locator('.meets-profile-stat').count())!==4){fails++;console.error('Profile stats count wrong',width);}
+  const stats=page.locator('.meets-profile-summary-stats');
+  await stats.waitFor({timeout:12000});
+  if((await stats.locator('.meets-profile-stat').count())!==3){fails++;console.error('Profile stats count wrong',width);}
   if(width<768){
    if(!(await page.locator('.meets-profile-mobile-tabs').isVisible())){fails++;console.error('Mobile profile navigation not visible',width);}
   }else if(!(await page.locator('.meets-profile-aside').isVisible())){fails++;console.error('Desktop profile sidebar not visible',width);}
@@ -435,21 +424,9 @@ for(const width of [360,390,768,1440]){
   }
   await assertLayout(page,'signed-profile',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-signed-profile.png',fullPage:true});
-  await page.goto(base+'/mani-registri',{waitUntil:'domcontentloaded',timeout:45000});
-  await page.getByRole('heading',{name:'Manas kolekcijas'}).waitFor({timeout:15000});
-  await page.getByRole('button',{name:/Mani saraksti/}).waitFor();
-  await page.locator('#new-playlist').fill('Brīvdienu idejas');
-  await page.getByRole('button',{name:/Izveidot sarakstu/}).click();
-  await page.getByRole('heading',{name:'Brīvdienu idejas'}).waitFor({timeout:15000});
-  await page.locator('#playlist-search').fill('MEETS pārbaudes');
-  await page.getByRole('button',{name:'+ Pievienot'}).first().click();
-  try{await page.locator('.meets-collection-event').first().waitFor({timeout:10000});}
-  catch(e){fails++;console.error('Manual collection did not receive the event',width,e.message);}
-  await assertLayout(page,'personal-playlist',width);
-  await page.getByRole('button',{name:/Visi saraksti/}).click();
-  await page.getByRole('button',{name:/Iecienītās vietas/}).click();
-  await assertLayout(page,'favorite-places',width);
-  await page.getByRole('button',{name:/Favorīti/}).click();
+  // Personal lists are hidden; saved events live on one page.
+  await page.goto(base+'/mani-pasakumi',{waitUntil:'domcontentloaded',timeout:45000});
+  await page.getByRole('heading',{name:'Saglabātie pasākumi'}).waitFor({timeout:15000});
   await assertLayout(page,'saved-favorites',width);
   await page.goto(base+'/organizators?panel=venues',{waitUntil:'domcontentloaded',timeout:45000});
   await page.getByRole('heading',{name:'MEETS Testa komanda'}).waitFor({timeout:12000});
