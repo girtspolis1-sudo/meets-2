@@ -2,7 +2,7 @@
 import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
 import {useSearchParams} from 'next/navigation';
-import VenueLocationPicker from '../../organizators/venue-location-picker.jsx';
+import EventVenueDialog from '../../components/event-venue-dialog.jsx';
 import Authentication from '../../components/account-auth-flow.jsx';
 import ProfileShell from '../../components/profile-shell.jsx';
 import {rigaDate} from '../../../lib/meets-personal.js';
@@ -36,6 +36,9 @@ function SimpleEventFlow(){
  const [orgId,setOrgId]=useState('');
  const [venues,setVenues]=useState([]);
  const [publicVenues,setPublicVenues]=useState([]);
+ const [venueLinks,setVenueLinks]=useState([]);
+ const [addressOpen,setAddressOpen]=useState(false);
+ const [addressBusy,setAddressBusy]=useState(false);
  const [stage,setStage]=useState('edit');
  const [saveVenue,setSaveVenue]=useState(false);
  const [busy,setBusy]=useState(false);
@@ -51,6 +54,13 @@ function SimpleEventFlow(){
  const activeOrg=orgs.find(o=>o.id===orgId)||null;
  const selectedVenue=[...venues,...publicVenues].find(v=>v.id===form.venue_id);
  const managedSelected=selectedVenue?.organization_id===orgId;
+ const addressOptions=useMemo(()=>{
+  const mine=venues.filter(v=>v.organization_id===orgId);
+  const linked=new Set(venueLinks.filter(l=>l.organization_id===orgId).map(l=>l.venue_id));
+  const shared=publicVenues.filter(v=>linked.has(v.id)&&!mine.some(m=>m.id===v.id));
+  return {mine,shared};
+ },[venues,publicVenues,venueLinks,orgId]);
+
  const canEdit=canWriteOrganization(activeOrg?.role);
 
  async function call(action,payload={},token=account?.access_token){
@@ -89,7 +99,7 @@ function SimpleEventFlow(){
    current=await refreshAccount(current);
    result=await call('list',{},current.access_token);
   }
-  setAccount(current);setOrgs(result.organizations||[]);setVenues(result.venues||[]);setPublicVenues(result.publicVenues||[]);
+  setAccount(current);setOrgs(result.organizations||[]);setVenues(result.venues||[]);setPublicVenues(result.publicVenues||[]);setVenueLinks(result.venueLinks||[]);
   return {account:current,result};
  }
 
@@ -142,12 +152,43 @@ function SimpleEventFlow(){
  },[form,saveVenue,savedId,loaded,stage,orgId,account?.user?.id]);
 
  function update(field,value){setForm(before=>({...before,[field]:value}));setError('');}
- function choose(place){
-  const all=[...venues,...publicVenues];
-  const picked=all.find(v=>v.id===place.venueId);
-  setForm(before=>({...before,venue_id:picked?.id||'',venue_name:picked?.name||place.name||before.venue_name,
-   address:picked?.address||place.address||'',latitude:picked?.latitude??place.latitude??'',longitude:picked?.longitude??place.longitude??''}));
+ function applyVenue(venue){
+  if(!venue)return;
+  setForm(prev=>({...prev,venue_id:venue.id,venue_name:venue.name,
+   address:venue.address||'',latitude:venue.latitude??'',longitude:venue.longitude??''}));
   setSaveVenue(false);setError('');
+ }
+ async function addOrChooseVenue(next){
+  if(!account?.access_token||!orgId||!canEdit)throw Error('Pieslēdzies organizatora kontam ar rediģēšanas tiesībām.');
+  setAddressBusy(true);
+  try{
+   const known=[...venues,...publicVenues].find(v=>v.id===next.venue_id);
+   let item=known;
+   if(known&&known.organization_id!==orgId){
+    const result=await call('useVenue',{organization_id:orgId,venue_id:known.id});
+    item=result.item||known;
+   }else if(!known){
+    const result=await call('createVenue',{organization_id:orgId,name:next.name,
+     address:next.address,latitude:next.latitude,longitude:next.longitude,
+     description:'',directions:'',is_public:false});
+    item=result.item;
+   }
+   if(!item?.id)throw Error('Adresi neizdevās izveidot.');
+   const refreshed=await call('list');
+   setVenues(refreshed.venues||[]);
+   setPublicVenues(refreshed.publicVenues||[]);
+   setVenueLinks(refreshed.venueLinks||[]);
+   applyVenue(item);
+   setNotice('Adrese saglabāta un piesaistīta pasākumam.');
+  }finally{setAddressBusy(false);}
+ }
+ function selectAddress(id){
+  if(!id){
+   setForm(prev=>({...prev,venue_id:'',venue_name:'',address:'',latitude:'',longitude:''}));
+   return;
+  }
+  const found=[...venues,...publicVenues].find(v=>v.id===id);
+  if(found)applyVenue(found);
  }
  function switchOrg(value){
   persistLocal(form,orgId,account);
@@ -156,6 +197,7 @@ function SimpleEventFlow(){
   const u=new URL(window.location.href);u.searchParams.set('org',value);u.searchParams.delete('edit');u.searchParams.delete('copy');u.searchParams.delete('venue');window.history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString());
  }
  function validateForPreview(){
+  if(!form.venue_id){setError('Izvēlies organizatora adresi no saraksta vai pievieno jaunu adresi.');return false;}
   const message=validateQuickEvent(form);
   if(message){setError(message);return false;}
   try{
@@ -181,7 +223,7 @@ function SimpleEventFlow(){
   try{
    const fields={...form,organization_id:orgId,
     venue_id:selectedVenue?.id||null,
-    save_venue:saveVenue,
+    save_venue:false,
     schedule_kind:form.schedule_kind==='recurring'?'recurring':form.schedule_kind==='ongoing'||(form.date_to&&form.date_to!==form.date_from)?'ongoing':'once'};
    let id=savedId;
    if(imageFile){
@@ -206,7 +248,7 @@ function SimpleEventFlow(){
 
  const editor=<section className="meets-organizer-page quick-flow unified-event-editor">
   <div className="meets-account-heading"><div><p className="eyebrow">MEETS · Pasākuma redaktors</p><h1>{stage==='done'?'Pasākums saglabāts':savedId?'Labot pasākumu':'Jauns pasākums'}</h1>
-   <p className="meets-muted">{activeOrg?<><strong>{activeOrg.name}</strong> vārdā · </>:null}viens redaktors jaunam pasākumam, labošanai un dublēšanai.</p></div>
+   <p className="meets-muted">{activeOrg?<><strong>{activeOrg.name}</strong> vārdā · </>:null}ātra pasākuma reģistrēšana ar saglabātām norises adresēm.</p></div>
    <Link className="button" href={orgId?'/organizators?org='+orgId+'&panel=events':'/organizators'}>← Pasākumu pārvaldība</Link></div>
 
   {orgs.length>1&&stage!=='done'&&<div className="event-editor-context"><label>Organizators<select value={orgId} onChange={e=>switchOrg(e.target.value)}><option value="">Izvēlies organizatoru</option>{orgs.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select></label></div>}
@@ -240,15 +282,20 @@ function SimpleEventFlow(){
      <label>Sākuma laiks<input type="time" value={form.time_from||''} onChange={e=>update('time_from',e.target.value)}/></label><label>Beigu laiks<input type="time" value={form.time_to||''} onChange={e=>update('time_to',e.target.value)}/></label></div>}
    </section>
 
-   <section className="event-editor-section"><div className="event-editor-section-title"><span>3</span><div><h2>Kur?</h2><p>Izmanto savu vietu, publisku MEETS vietu vai atzīmē jaunu punktu.</p></div></div>
-    <VenueLocationPicker value={{name:form.venue_name,venueId:form.venue_id,address:form.address,latitude:form.latitude,longitude:form.longitude}}
-      existingVenues={venues.filter(v=>v.organization_id===orgId)} publicVenues={publicVenues} onSelect={choose}/>
-    {venueChosen&&<>
-     <label>Norises vietas nosaukums *<input required minLength={2} maxLength={200} value={form.venue_name||''} onChange={e=>update('venue_name',e.target.value)}/></label>
-     <label>Adrese<input maxLength={300} value={form.address||''} onChange={e=>update('address',e.target.value)}/></label>
-     {selectedVenue?<p className="quick-flow-note">✓ {managedSelected?'Pārvaldīta organizācijas vieta.':'Publiska MEETS vieta. Vari to izmantot, bet tās profils paliek vietas pārvaldītāja īpašumā.'}</p>:
-      <label className="quick-flow-check"><input type="checkbox" checked={saveVenue} onChange={e=>setSaveVenue(e.target.checked)}/> Saglabāt kā šīs organizācijas pārvaldītu vietu</label>}
-    </>}
+   <section className="event-editor-section event-editor-location"><div className="event-editor-section-title"><span>3</span><div><h2>Kur notiks?</h2><p>Izvēlies saglabāto adresi vai pievieno jaunu.</p></div></div>
+    <div className="event-address-choice">
+     <label>Norises adrese *
+      <select aria-label="Pasākuma norises adrese" required value={form.venue_id||''} onChange={e=>selectAddress(e.target.value)}>
+       <option value="">Izvēlies adresi no saraksta</option>
+       {addressOptions.mine.length>0&&<optgroup label="Manas adreses">{addressOptions.mine.map(v=><option key={v.id} value={v.id}>{v.name} — {v.address}</option>)}</optgroup>}
+       {addressOptions.shared.length>0&&<optgroup label="Pievienotās publiskās vietas">{addressOptions.shared.map(v=><option key={v.id} value={v.id}>{v.name} — {v.address}</option>)}</optgroup>}
+       {form.venue_id&&!selectedVenue&&<option value={form.venue_id}>Iepriekš izvēlētā adrese (nav pieejama)</option>}
+      </select>
+     </label>
+     <button className="button event-add-address" type="button" disabled={!account||!orgId||!canEdit||busy} onClick={()=>setAddressOpen(true)}>+ Pievienot jaunu</button>
+    </div>
+    {selectedVenue?<p className="event-selected-address" role="status"><strong>⌖ {selectedVenue.name}</strong><span>{selectedVenue.address}</span></p>:
+      <p className="event-address-help">{addressOptions.mine.length? 'Izvēlies organizatora reģistrētu adresi, vai pievieno jaunu.':'Šai organizācijai vēl nav saglabātu adrešu. Pievieno pirmo adresi.'}</p>}
    </section>
 
    <section className="event-editor-section"><div className="event-editor-section-title"><span>4</span><div><h2>Dalība</h2><p>Norādi, vai pasākums ir bezmaksas vai maksas.</p></div></div>
@@ -262,6 +309,9 @@ function SimpleEventFlow(){
     <button type="button" className="button" onClick={()=>{if(window.confirm('Notīrīt aizpildīto formu?')){clearLocal();setForm({...DEFAULT});setSaveVenue(false);setSavedId('');setNotice('Forma notīrīta.');}}}>Notīrīt</button>
    </div>
   </form>}
+
+  <EventVenueDialog open={addressOpen&&stage==='edit'} onClose={()=>setAddressOpen(false)} onSave={addOrChooseVenue}
+    busy={addressBusy} existingVenues={addressOptions.mine} publicVenues={publicVenues}/>
 
   {stage==='preview'&&<div className="quick-flow-card quick-flow-preview">
    <div className="event-editor-section-title"><span>5</span><div><h2>Priekšskatījums un iesniegšana</h2><p>Pārbaudi svarīgāko pirms nosūtīšanas moderatoram.</p></div></div>
