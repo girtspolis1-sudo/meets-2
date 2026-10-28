@@ -1,8 +1,8 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {loadLeaflet,addRasterLayer} from '../../lib/leaflet-runtime.js';
-import {eventMapIcon} from '../../lib/event-map-icons.js';
-import {coordinates,navigationLinks} from '../../lib/meets-personal.js';
+import {loadLeaflet,addRasterLayer} from '../../../lib/leaflet-runtime.js';
+import {eventMapIcon} from '../../../lib/event-map-icons.js';
+import {coordinates,navigationLinks} from '../../../lib/meets-personal.js';
 
 export default function PersonalMap({events=[]}){
  const el=useRef(null),instance=useRef(null);

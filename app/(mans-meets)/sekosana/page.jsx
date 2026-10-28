@@ -1,21 +1,14 @@
 'use client';
-import {useEffect,useMemo,useState} from 'react';
+import {useMemo,useState} from 'react';
 import Link from 'next/link';
-import ProfileShell from '../components/profile-shell.jsx';
-import {useEvents} from '../../lib/use-events.js';
-import {eventsAtPlace} from '../../lib/location-follow.js';
+import {useEvents} from '../../../lib/use-events.js';
+import {eventsAtPlace} from '../../../lib/location-follow.js';
+import {accountRequest,useAccountData} from '../../../lib/account-store.js';
 
-const SESSION='meets_user_session_v1';
-function readSession(){try{return JSON.parse(localStorage.getItem(SESSION)||'null');}catch{return null;}}
-async function account(action,values={},session=readSession()){
- const r=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token:session?.access_token,...values})});
- const b=await r.json().catch(()=>({}));if(!r.ok)throw Error(b.error||'Darbība neizdevās.');return b;
-}
 export default function FollowingPage(){
  const {data,loading:eventsLoading}=useEvents();
- const [session,setSession]=useState(null),[dashboard,setDashboard]=useState(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(''),[error,setError]=useState('');
- async function load(current){const b=await account('dashboard',{},current);setDashboard(b);}
- useEffect(()=>{let active=true;(async()=>{const current=readSession();if(!current?.access_token){setLoading(false);return;}try{await load(current);if(active)setSession(current);}catch(e){if(active)setError(e.message);}finally{if(active)setLoading(false);}})();return()=>{active=false;};},[]);
+ const {data:dashboard,error:loadError,loading,reload}=useAccountData('dashboard');
+ const [busy,setBusy]=useState(''),[error,setError]=useState('');
  const directory=dashboard?.directory||{organizations:[],venues:[],sources:[]},follows=dashboard?.follows||[];
  const byKind=kind=>follows.filter(x=>x.target_kind===kind).map(x=>x.target_id);
  const orgIds=byKind('organization'),venueIds=byKind('venue'),sourceIds=byKind('source');
@@ -29,20 +22,20 @@ export default function FollowingPage(){
  async function unfollowLocation(place){
   setBusy(place.location_key);setError('');
   try{
-   await account('followLocation',{locationKey:place.location_key,locationName:place.location_name,municipality:place.municipality,enabled:false},session);
-   await load(session);
+   await accountRequest('/api/account','followLocation',{locationKey:place.location_key,locationName:place.location_name,municipality:place.municipality,enabled:false});
+   await reload();
    window.dispatchEvent(new Event('meets-location-follows-changed'));
   }catch(e){setError(e.message);}finally{setBusy('');}
  }
- async function unfollow(kind,id){setBusy(kind+id);setError('');try{await account('follow',{targetKind:kind,targetId:id,enabled:false},session);await load(session);}catch(e){setError(e.message);}finally{setBusy('');}}
- const page=<section className="meets-account-page following-page">
+ async function unfollow(kind,id){setBusy(kind+id);setError('');try{await accountRequest('/api/account','follow',{targetKind:kind,targetId:id,enabled:false});await reload();}catch(e){setError(e.message);}finally{setBusy('');}}
+ return <section className="meets-account-page following-page">
   <div className="meets-account-heading"><div><p className="eyebrow">Mans MEETS</p><h1>Sekošana</h1><p className="meets-muted">Organizatori un norises vietas, kuru jaunajiem publicētajiem pasākumiem seko platformā.</p></div><Link className="button" href="/karte">Atrast pasākumus →</Link></div>
-  {error&&<p className="meets-inline-error" role="alert">{error}</p>}
-  {loading?<p role="status">Ielādē sekošanu…</p>:!session?<div className="org-empty-state"><h2>Pieslēdzies savam MEETS kontam</h2><p>Sekošana tiek glabāta tavā kontā.</p><Link className="button primary" href="/profils">Pieslēgties →</Link></div>:<>
+  {(error||loadError)&&<p className="meets-inline-error" role="alert">{error||loadError.message} {loadError&&<button type="button" className="text-button" onClick={()=>reload().catch(()=>{})}>Mēģināt vēlreiz</button>}</p>}
+  {loading?<p role="status">Ielādē sekošanu…</p>:!dashboard?null:<>
    <div className="following-grid"><section className="org-panel"><h2>Organizatori ({orgs.length})</h2><div className="org-list">{orgs.map(x=><div className="org-row" key={x.id}><div><strong>{x.name}</strong><small>Organizators</small></div><div className="org-row-actions"><Link className="button" href={'/organizatori/'+x.id}>Atvērt</Link><button className="button" disabled={busy===('organization'+x.id)} onClick={()=>unfollow('organization',x.id)}>Nesekot</button></div></div>)}{!orgs.length&&<p className="org-empty">Vēl neseko nevienam organizatoram.</p>}</div></section>
     <section className="org-panel"><h2>Norises vietas ({venues.length})</h2><div className="org-list">{venues.map(x=><div className="org-row" key={x.id}><div><strong>{x.name}</strong><small>Norises vieta</small></div><div className="org-row-actions"><Link className="button" href={'/vietas/'+x.id}>Atvērt</Link><button className="button" disabled={busy===('venue'+x.id)} onClick={()=>unfollow('venue',x.id)}>Nesekot</button></div></div>)}{!venues.length&&<p className="org-empty">Vēl neseko nevienai publiskai vietai.</p>}</div></section></div>
    <section className="org-panel"><div className="org-panel-head"><div><h2>Manas iecienītās vietas ({savedLocations.length})</h2>
-    <p>Vietas, kurām esi pieslēdzies no pasākumiem. Tās ir saglabātas atsevišķi no pasākumu favorītiem.</p></div><Link href="/mani-registri?tab=places">Pārvaldīt →</Link></div>
+    <p>Norises vietas, kurām seko no pasākumu kartītēm. Tās glabājas atsevišķi no saglabātajiem pasākumiem.</p></div></div>
     <div className="org-list">{savedLocations.map(place=><div className="org-row" key={place.location_key}><div><strong>{place.location_name}</strong>
       <small>{place.municipality} · {eventsAtPlace(data?.events||[],place.location_key).length} aktuāli pasākumi</small></div>
       <div className="org-row-actions"><Link className="button" href={'/pasakumi?place='+encodeURIComponent(place.location_key)}>Pasākumi →</Link>
@@ -56,5 +49,4 @@ export default function FollowingPage(){
    </section>
   </>}
  </section>;
- return session?<ProfileShell session={session}>{page}</ProfileShell>:page;
 }
