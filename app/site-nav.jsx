@@ -8,7 +8,7 @@ const SESSION_KEY='meets_user_session_v1';
 const items=[
  {href:'/karte',label:'Karte'},
  {href:'/pasakumi',label:'Pasākumi'},
- {href:'/profils',label:'◉ Mans profils'}
+ {href:'/profils',label:'Mans profils'}
 ];
 function readSession(){
  try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch{return null;}
@@ -54,7 +54,8 @@ export default function SiteNav(){
  const exit=<button className="meets-header-logout" type="button" onClick={logout} disabled={loggingOut}
   aria-label="Iziet no MEETS konta">{loggingOut?'Iziet…':'Iziet'}</button>;
  return <nav aria-label="Galvenā izvēlne">
-  {signedIn&&!profileArea&&<button className="meets-mobile-header-exit" type="button" disabled={loggingOut}
+  {/* Phones have no profile sidebar, so the header exit stays available there too. */}
+  {signedIn&&<button className="meets-mobile-header-exit" type="button" disabled={loggingOut}
    onClick={logout} aria-label="Iziet no MEETS konta" title="Iziet no konta">
    {loggingOut?'…':<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M13 3h5a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-5"/></svg>}
   </button>}

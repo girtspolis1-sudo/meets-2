@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {eventSharePath,eventShareUrl,eventShareTargets,officialEventUrl} from '../lib/event-sharing.js';
 const event={id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',title:'MEETS koncerts & draugi'};
 test('individual share links are safe and do not expose account or location parameters',()=>{
- assert.equal(eventSharePath(event),'/pasakumi?event='+event.id);
- assert.equal(eventShareUrl(event,'https://meets-2.vercel.app'), 'https://meets-2.vercel.app/pasakumi?event='+event.id);
+ assert.equal(eventSharePath(event),'/pasakumi/'+event.id);
+ assert.equal(eventShareUrl(event,'https://meets.lv'), 'https://meets.lv/pasakumi/'+event.id);
  assert.equal(eventSharePath({id:'invalid'}),'/pasakumi');
 });
 test('social links use properly encoded public event URL',()=>{

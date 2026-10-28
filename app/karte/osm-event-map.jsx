@@ -1,7 +1,6 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
-import EventQuickActions from '../components/event-quick-actions.jsx';
 import {placeFromEvent} from '../../lib/location-follow.js';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
@@ -152,7 +151,6 @@ function popupActionsHtml(e,favorites,editLink){
   .map(([name,url])=>'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">'+esc(name)+'</a>').join('');
  return '<div class="popup-event-actions meets-event-action-grid meets-circle-actions" role="group" aria-label="Pasākuma darbības">'+
   '<button type="button" class="meets-circle-action popup-save-favorite" data-event-id="'+id+'" aria-label="'+favoriteLabel+'" title="'+favoriteLabel+'" aria-pressed="'+saved+'">'+popupActionIcon('heart')+'<small class="meets-quiet-label">Favorīts</small></button>'+
-  '<button type="button" class="meets-circle-action popup-add-list" data-event-id="'+id+'" aria-label="Pievienot pasākumu sarakstam" title="Pievienot sarakstam">'+popupActionIcon('list')+'<small class="meets-quiet-label">Saraksts</small></button>'+
   button('calendar','Pievienot kalendāram','popup-save-calendar','Kalendārs')+
   (google?'<details class="meets-popup-route"><summary class="meets-circle-action" aria-label="Maršruts" title="Maršruts">'+popupActionIcon('pin')+'<small class="meets-quiet-label">Norādes</small></summary><div class="meets-event-action-choices"><a target="_blank" rel="noopener noreferrer" href="'+esc(google)+'">Google Maps ↗</a>'+(waze?'<a target="_blank" rel="noopener noreferrer" href="'+esc(waze)+'">Waze ↗</a>':'')+'</div></details>'
    :'<button type="button" class="meets-circle-action" disabled aria-label="Nav adreses maršrutam" title="Nav adreses maršrutam">'+popupActionIcon('pin')+'<small class="meets-quiet-label">Norādes</small></button>')+
@@ -188,7 +186,7 @@ function popupHtml(group,activeIds,isAdminSession,now,favorites){
      '<strong>'+esc(e.title)+'</strong>'+
      '<span class="popup-event-datetime">'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span>'+
      (address?'<span class="popup-event-address">'+esc(address)+'</span>':'')+
-     (address?'<a class="meets-popup-venue-inline" href="/pasakumi?event='+encodeURIComponent(e.id)+'">⌖ Sekot vietai ↗</a>':'')+
+     (address?'<a class="meets-popup-venue-inline" href="/pasakumi/'+encodeURIComponent(e.id)+'">⌖ Sekot vietai ↗</a>':'')+
      (compactMeta?'<small>'+esc(compactMeta)+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>':'')+
      (price?'<span class="popup-event-price">'+esc(price)+'</span>':'')+
      (description?'<div class="popup-description"><p class="popup-event-description">'+esc(summary)+'</p>'+
@@ -296,13 +294,14 @@ export default function OsmEventMap(){
  const [mapMode,setMapMode]=useState('loading');
  const [mapError,setMapError]=useState('');
  const [mobileGroupKey,setMobileGroupKey]=useState('');
- const [listEvent,setListEvent]=useState(null);
  const [mapRetry,setMapRetry]=useState(0);
  const [isAdminSession,setIsAdminSession]=useState(false);
  const [clockNow,setClockNow]=useState(()=>new Date());
  const {data,loading,error,refresh}=useEvents();
  const mapEl=useRef(null),mapRef=useRef(null),leafletRef=useRef(null),baseMapLayerRef=useRef(null),baseLayerCleanupRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
  const defaultsSetRef=useRef(false);
+ const focusEventId=searchParams.get('event')||'';
+ const focusDatesSetRef=useRef(false),focusOpenedRef=useRef(false),markerByEventRef=useRef(new Map());
 
  useEffect(()=>{
   try{
@@ -408,6 +407,15 @@ export default function OsmEventMap(){
   const next=periodDates(periodMode,rigaTodayIso(clockNow),publicTo,from,to);
   setFrom(next.from);setTo(next.to);
  },[publicFrom,publicTo]);
+
+ // A shared /karte?event=… link must show that event even outside the default week.
+ useEffect(()=>{
+  if(focusDatesSetRef.current||!focusEventId||!events.length)return;
+  focusDatesSetRef.current=true;
+  const target=events.find(e=>String(e.id)===focusEventId);
+  if(!target?.date_from)return;
+  setPeriodMode('manual');setFrom(target.date_from);setTo(target.date_to||target.date_from);
+ },[events,focusEventId]);
 
  const typedEvents=useMemo(()=>eventTypes.length?events.filter(e=>eventTypes.includes(sourceType(e))):events,[events,eventTypes]);
  const competitionOptions=useMemo(()=>{
@@ -634,6 +642,7 @@ export default function OsmEventMap(){
   backgroundLayerRef.current=bg;activeLayerRef.current=active;
 
   const indexByCoordinate=new Map();
+  markerByEventRef.current=new Map();
   for(const group of locationGroups){
    const [displayLat,displayLon]=groupPosition(group,indexByCoordinate);
    const activeInGroup=group.events.filter(e=>activeIds.has(e.id));
@@ -694,12 +703,20 @@ export default function OsmEventMap(){
      setMobileGroupKey(group.key);
      return;
     }
+    // Leaflet auto-pans only when the popup opens, before it is resized here or
+    // grows upwards (share options), so it could end up under the filter overlay.
+    const keepClearOfControls=()=>{
+     const overlayBottom=mapEl.current?.parentElement?.querySelector('.map-controls-overlay')?.getBoundingClientRect().bottom;
+     const popupTop=marker.getPopup()?.getElement()?.getBoundingClientRect().top;
+     if(Number.isFinite(overlayBottom)&&Number.isFinite(popupTop)&&popupTop<overlayBottom+12){
+      map.panBy([0,popupTop-overlayBottom-12],{animate:false});
+     }
+    };
     const actions=async event=>{
      const button=event.target.closest('button[data-event-id]');
      if(!button)return;
      const item=group.events.find(e=>String(e.id)===button.dataset.eventId);
      if(!item)return;
-     if(button.classList.contains('popup-add-list')){setListEvent(item);return;}
      if(button.classList.contains('popup-save-calendar')){calendarDownload(item);return;}
      if(button.classList.contains('popup-save-favorite')){
       toggleFavorite(item.id);
@@ -717,6 +734,7 @@ export default function OsmEventMap(){
        catch(e){if(e?.name==='AbortError')return;}
       }
       if(panel)panel.hidden=!panel.hidden;
+      marker.getPopup()?.update();keepClearOfControls();
       return;
      }
      if(button.classList.contains('popup-share-copy')){
@@ -741,8 +759,10 @@ export default function OsmEventMap(){
     popup.getElement()?.querySelector('.leaflet-popup-close-button')?.setAttribute('aria-label','Aizvērt pasākumu logu');
     popup.getElement()?.addEventListener('toggle',updatePopup,true);
     if(resized)popup.update();
+    keepClearOfControls();
    });
    marker.on('popupclose',()=>marker.getPopup()?.getElement()?.removeEventListener('toggle',updatePopup,true));
+   for(const e of group.events)markerByEventRef.current.set(String(e.id),marker);
    marker.addTo(isActive?active:bg);
   }
  },[mapReady,locationGroups,activeIds,isAdminSession,clockNow,favorites]);
@@ -764,9 +784,22 @@ export default function OsmEventMap(){
   }
  },[mapReady,userLocation,radiusKm]);
 
+ useEffect(()=>{
+  if(focusOpenedRef.current||!focusEventId||!mapReady||!mapRef.current)return;
+  // Wait until the event's own dates are applied, so the marker is not rebuilt right after opening.
+  if(!activeIds.has(focusEventId)&&periodMode!=='manual')return;
+  const marker=markerByEventRef.current.get(focusEventId);
+  if(!marker)return;
+  focusOpenedRef.current=true;
+  mapRef.current.setView(marker.getLatLng(),14,{animate:false});
+  marker.openPopup();
+ },[mapReady,locationGroups,activeIds,focusEventId,periodMode]);
+
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;leafletRef.current=null;},[]);
 
- const advancedFilterCount=[homeCategory,audience,placeFilter,radiusKm>0,periodMode!=='week',eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
+ // Radius, period, group and audience are visible outside the panel, so the badge skips them.
+ const advancedFilterCount=[placeFilter,eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
+ const audienceOptions=Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key)));
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
   {value:'municipality',label:'Pašvaldības',glyph:'📅'},
@@ -906,10 +939,10 @@ export default function OsmEventMap(){
       
       <option value="civic">Pašvaldības un līdzdalība</option>
      </select></label>
-     <label><span>Kam piemērots?</span><select aria-label="Auditorija" value={audience} onChange={e=>setDiscoveryFilter('audience',e.target.value)}>
+     {audienceOptions.length>0&&<label><span>Kam piemērots?</span><select aria-label="Auditorija" value={audience} onChange={e=>setDiscoveryFilter('audience',e.target.value)}>
       <option value="">Jebkura auditorija</option>
-      {Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key))).map(([key,title])=><option key={key} value={key}>{title}</option>)}
-     </select></label>
+      {audienceOptions.map(([key,title])=><option key={key} value={key}>{title}</option>)}
+     </select></label>}
     </div>
 
 
@@ -1001,7 +1034,6 @@ export default function OsmEventMap(){
 
   {!loading&&!error&&activeEvents.length===0&&!audience&&!homeCategory&&<div className="map-no-results" role="status"><strong>Šajos filtros pasākumi nav atrasti.</strong><span>Palielini meklēšanas attālumu vai izvēlies plašāku datumu.</span><div><button type="button" className="button compact" onClick={()=>setRadiusKm(0)}>Visa karte</button><button type="button" className="button compact" onClick={()=>changePeriod('month')}>Šomēnes</button><button type="button" className="button compact" onClick={resetFilters}>Notīrīt filtrus</button></div></div>}
   {mobileSheetGroup&&<MobileEventSheet group={mobileSheetGroup} activeIds={activeIds} favorites={favorites} onFavorite={toggleFavorite} onCalendar={calendarDownload} onClose={()=>setMobileGroupKey('')}/>}
-  {listEvent&&<MapListDialog key={listEvent.id} event={listEvent} onClose={()=>setListEvent(null)}/>}
   {audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">Izvēlētajai auditorijai šajā laikā un rādiusā nav pasākumu ar pārbaudītu piemērotību. Izvēlies citu auditoriju vai maini laiku un rādiusu.</p>}
   {homeCategory&&!audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">
    {HOME_CATEGORY_FILTERS[homeCategory].emptyMessage||'Šajā kategorijā izvēlētajā laikā un rādiusā pasākumi nav atrasti. Maini datumu vai rādiusu, vai noņem kategorijas filtru.'}
@@ -1018,19 +1050,3 @@ export default function OsmEventMap(){
  </>;
 }
 
-function MapListDialog({event,onClose}){
- const dialogRef=useRef(null);
- useEffect(()=>{
-  const dialog=dialogRef.current;
-  dialog?.showModal();
-  return()=>{if(dialog?.open)dialog.close();};
- },[]);
- return <dialog ref={dialogRef} className="meets-map-list-dialog" aria-label={'Pievienot sarakstam: '+event.title} onClose={onClose} onCancel={onClose}>
-  <header className="meets-map-list-dialog-header">
-   <div><small>Mani saraksti</small><h2>{event.title}</h2></div>
-   <button type="button" aria-label="Aizvērt saraksta izvēli" onClick={onClose}>✕</button>
-  </header>
-  <p>Izvēlies sarakstu vai izveido jaunu.</p>
-  <EventQuickActions event={event} listOnly autoOpenList/>
- </dialog>;
-}

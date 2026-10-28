@@ -113,7 +113,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
  }));
  const unread=extra.notices.filter(n=>!n.read_at);
  const shared=extra.shared?.is_enabled&&extra.shared.share_token?'/saraksts/'+extra.shared.share_token:'';
- const shareUrl=shared?typeof window!=='undefined'?window.location.origin+shared:'https://meets-2.vercel.app'+shared:'';
+ const shareUrl=shared?typeof window!=='undefined'?window.location.origin+shared:'https://meets.lv'+shared:'';
  const cardEvents=items=><div className="meets-account-list">{items.map(event=><EventCard key={event.id} event={event} favorites={favorites} plans={plans} visits={visits} reminders={extra.reminders} busy={busy||saving} onToggle={onToggle}
   onReminder={(id,minutes)=>mutate({action:'reminder',eventId:id,enabled:minutes>0,leadMinutes:minutes||1440},()=>{
    setExtra(p=>({...p,reminders:minutes?[...p.reminders.filter(x=>x.event_id!==id),{event_id:id,lead_minutes:minutes}]:p.reminders.filter(x=>x.event_id!==id)}));
