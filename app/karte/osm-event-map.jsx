@@ -706,6 +706,15 @@ export default function OsmEventMap(){
      setMobileGroupKey(group.key);
      return;
     }
+    // Leaflet auto-pans only when the popup opens, before it is resized here or
+    // grows upwards (share options), so it could end up under the filter overlay.
+    const keepClearOfControls=()=>{
+     const overlayBottom=mapEl.current?.parentElement?.querySelector('.map-controls-overlay')?.getBoundingClientRect().bottom;
+     const popupTop=marker.getPopup()?.getElement()?.getBoundingClientRect().top;
+     if(Number.isFinite(overlayBottom)&&Number.isFinite(popupTop)&&popupTop<overlayBottom+12){
+      map.panBy([0,popupTop-overlayBottom-12],{animate:false});
+     }
+    };
     const actions=async event=>{
      const button=event.target.closest('button[data-event-id]');
      if(!button)return;
@@ -729,6 +738,7 @@ export default function OsmEventMap(){
        catch(e){if(e?.name==='AbortError')return;}
       }
       if(panel)panel.hidden=!panel.hidden;
+      marker.getPopup()?.update();keepClearOfControls();
       return;
      }
      if(button.classList.contains('popup-share-copy')){
@@ -753,6 +763,7 @@ export default function OsmEventMap(){
     popup.getElement()?.querySelector('.leaflet-popup-close-button')?.setAttribute('aria-label','Aizvērt pasākumu logu');
     popup.getElement()?.addEventListener('toggle',updatePopup,true);
     if(resized)popup.update();
+    keepClearOfControls();
    });
    marker.on('popupclose',()=>marker.getPopup()?.getElement()?.removeEventListener('toggle',updatePopup,true));
    for(const e of group.events)markerByEventRef.current.set(String(e.id),marker);
