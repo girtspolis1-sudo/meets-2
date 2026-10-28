@@ -248,10 +248,12 @@ function SimpleEventFlow(){
 
  const editor=<section className="meets-organizer-page quick-flow unified-event-editor">
   <div className="meets-account-heading"><div><p className="eyebrow">MEETS · Pasākuma redaktors</p><h1>{stage==='done'?'Pasākums saglabāts':savedId?'Labot pasākumu':'Jauns pasākums'}</h1>
-   <p className="meets-muted">{activeOrg?<><strong>{activeOrg.name}</strong> vārdā · </>:null}ātra pasākuma reģistrēšana ar saglabātām norises adresēm.</p></div>
-   <Link className="button" href={orgId?'/organizators?org='+orgId+'&panel=events':'/organizators'}>← Pasākumu pārvaldība</Link></div>
+   <p className="meets-muted">{activeOrg?<><strong>{activeOrg.name}</strong> · </>:null}Nosaukums, datums un norises adrese vienā pārskatā.</p></div>
+   <div className="event-editor-header-actions">
+    {orgs.length>1&&stage!=='done'&&<label>Organizators<select value={orgId} onChange={e=>switchOrg(e.target.value)}><option value="">Izvēlies organizatoru</option>{orgs.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select></label>}
+    <Link className="button" href={orgId?'/organizators?org='+orgId+'&panel=events':'/organizators'}>← Pasākumu pārvaldība</Link>
+   </div></div>
 
-  {orgs.length>1&&stage!=='done'&&<div className="event-editor-context"><label>Organizators<select value={orgId} onChange={e=>switchOrg(e.target.value)}><option value="">Izvēlies organizatoru</option>{orgs.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select></label></div>}
   {account&&orgs.length===0&&stage!=='done'&&<div className="event-editor-org-needed"><strong>Lai iesniegtu pasākumu, aktivizē organizēšanu.</strong><p>Esošais ievadītais saturs tiks saglabāts un atjaunots pēc organizatora izveides.</p><button className="button primary" type="button" onClick={organizerSetup}>Sākt organizēt →</button></div>}
   {account&&orgId&&activeOrg?.role==='viewer'&&<p className="meets-inline-error">Tev ir skatītāja loma. Pasākumu vari apskatīt, bet ne saglabāt vai iesniegt.</p>}
   {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
@@ -259,16 +261,19 @@ function SimpleEventFlow(){
   {stage!=='done'&&stage!=='auth'&&<div className="event-save-state" role="status"><span>{busy?'Saglabā…':lastSaved?'Pēdējā lokālā saglabāšana '+lastSaved:'Izmaiņas automātiski saglabājas šajā ierīcē.'}</span>{account&&orgId&&<span>· Melnrakstu vari saglabāt arī kontā.</span>}</div>}
 
   {stage==='edit'&&<form className="quick-flow-card event-editor-form" onSubmit={e=>{e.preventDefault();preview();}}>
-   <section className="event-editor-section"><div className="event-editor-section-title"><span>1</span><div><h2>Kas notiks?</h2><p>Nosaukums, kategorija, īss apraksts un attēls.</p></div></div>
+   <section className="event-editor-section"><div className="event-editor-section-title"><span>1</span><div><h2>Kas notiks?</h2><p>Nosaukums un kategorija. Apraksts un attēls pēc izvēles.</p></div></div>
     <label>Pasākuma nosaukums *<input required minLength={3} maxLength={200} autoComplete="off" value={form.title} placeholder="Piemēram, Ģimenes sporta diena" onChange={e=>update('title',e.target.value)}/></label>
-    <div className="quick-flow-two"><label>Kategorija<select value={form.category} onChange={e=>update('category',e.target.value)}>{EVENT_CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></label>
+    <label>Kategorija<select value={form.category} onChange={e=>update('category',e.target.value)}>{EVENT_CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></label>
+    <details className="event-extra-details" defaultOpen={Boolean(form.description||imagePreview)}>
+     <summary>+ Apraksts un attēls <small>(neobligāti)</small></summary>
      <label>Pasākuma attēls<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{
       const file=e.target.files?.[0];if(!file){setImageFile(null);setImagePreview('');return;}
       if(file.size>4*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){setError('Atļauti JPG, PNG un WebP attēli līdz 4 MB.');e.target.value='';return;}
       if(imagePreview)URL.revokeObjectURL(imagePreview);setImageFile(file);setImagePreview(URL.createObjectURL(file));setError('');
-     }}/></label></div>
-    {imagePreview&&<div className="event-image-preview"><img src={imagePreview} alt="Pasākuma attēla priekšskatījums"/><button className="button" type="button" onClick={()=>{URL.revokeObjectURL(imagePreview);setImageFile(null);setImagePreview('');}}>Noņemt attēlu</button></div>}
-    <label>Īss apraksts<textarea rows={4} maxLength={6000} value={form.description} placeholder="Kas notiks un kam pasākums paredzēts?" onChange={e=>update('description',e.target.value)}/></label>
+     }}/></label>
+     {imagePreview&&<div className="event-image-preview"><img src={imagePreview} alt="Pasākuma attēla priekšskatījums"/><button className="button" type="button" onClick={()=>{URL.revokeObjectURL(imagePreview);setImageFile(null);setImagePreview('');}}>Noņemt attēlu</button></div>}
+     <label>Apraksts<textarea rows={3} maxLength={6000} value={form.description} placeholder="Kas notiks un kam pasākums paredzēts?" onChange={e=>update('description',e.target.value)}/></label>
+    </details>
    </section>
 
    <section className="event-editor-section"><div className="event-editor-section-title"><span>2</span><div><h2>Kad?</h2><p>Izvēlies vienreizēju, vairāku dienu vai atkārtotu norisi.</p></div></div>
