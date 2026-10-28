@@ -8,7 +8,7 @@ import ProfileShell from '../../components/profile-shell.jsx';
 import {rigaDate} from '../../../lib/meets-personal.js';
 import WeeklySchedule from '../../components/weekly-schedule.jsx';
 import {countOccurrences,cleanPrice} from '../../../lib/event-schedule.js';
-import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
+import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,normalizeEventTime,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
 import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
 
 const SESSION='meets_user_session_v1';
@@ -16,7 +16,7 @@ const DEFAULT={...QUICK_EVENT_EMPTY,recurrence_note:''};
 
 function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION)||'null');}catch{return null;}}
 function safeRead(key){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v&&typeof v==='object'&&!Array.isArray(v)?v:null;}catch{return null;}}
-function cleanDraft(value){return {...DEFAULT,...Object.fromEntries(Object.keys(DEFAULT).map(k=>[k,value?.[k]??DEFAULT[k]]))};}
+function cleanDraft(value){const restored={...DEFAULT,...Object.fromEntries(Object.keys(DEFAULT).map(k=>[k,value?.[k]??DEFAULT[k]]))};return {...restored,time_from:normalizeEventTime(restored.time_from),time_to:normalizeEventTime(restored.time_to)};}
 function prettyDate(date){if(!date)return 'Nav norādīts';const [y,m,d]=date.split('-');return d+'.'+m+'.'+y;}
 async function refreshAccount(session){
  if(!session?.refresh_token)throw Error('Sesija beigusies.');
@@ -257,7 +257,14 @@ function SimpleEventFlow(){
   {account&&orgs.length===0&&stage!=='done'&&<div className="event-editor-org-needed"><strong>Lai iesniegtu pasākumu, aktivizē organizēšanu.</strong><p>Esošais ievadītais saturs tiks saglabāts un atjaunots pēc organizatora izveides.</p><button className="button primary" type="button" onClick={organizerSetup}>Sākt organizēt →</button></div>}
   {account&&orgId&&activeOrg?.role==='viewer'&&<p className="meets-inline-error">Tev ir skatītāja loma. Pasākumu vari apskatīt, bet ne saglabāt vai iesniegt.</p>}
   {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
-  {error&&<p className="meets-inline-error" role="alert">{error}</p>}
+  {error&&<>
+   <p className="meets-inline-error event-inline-validation">{error}</p>
+   <div className="event-editor-error-toast" role="alert" aria-atomic="true">
+    <span className="event-editor-error-icon" aria-hidden="true">!</span>
+    <div className="event-editor-error-content"><strong>Jāpārbauda pasākuma informācija</strong><p>{error}</p></div>
+    <button type="button" className="event-editor-error-dismiss" aria-label="Aizvērt kļūdas paziņojumu" onClick={()=>setError('')}>×</button>
+   </div>
+  </>}
   {stage!=='done'&&stage!=='auth'&&<div className="event-save-state" role="status"><span>{busy?'Saglabā…':lastSaved?'Pēdējā lokālā saglabāšana '+lastSaved:'Izmaiņas automātiski saglabājas šajā ierīcē.'}</span>{account&&orgId&&<span>· Melnrakstu vari saglabāt arī kontā.</span>}</div>}
 
   {stage==='edit'&&<form className="quick-flow-card event-editor-form" onSubmit={e=>{e.preventDefault();preview();}}>

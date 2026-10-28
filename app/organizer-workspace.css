@@ -228,3 +228,24 @@
 .event-address-dialog :is(input,button,select):focus-visible{outline:2px solid #7248c0;outline-offset:2px}
 @media(max-width:1090px){.unified-event-editor .event-editor-form{grid-template-columns:1fr}.unified-event-editor .event-editor-actions{grid-column:auto}.unified-event-editor .meets-account-heading{align-items:flex-start;flex-wrap:wrap}}
 @media(max-width:700px){.meets-profile-slot .unified-event-editor{padding:4px 8px 28px}.unified-event-editor .event-editor-section{padding:12px}.event-address-choice{grid-template-columns:1fr}.event-add-address{width:100%;justify-content:center}.event-editor-header-actions{width:100%;justify-content:stretch}.event-editor-header-actions label{flex:1}.event-editor-header-actions .button{flex:1;text-align:center}.unified-event-editor .event-editor-actions{bottom:4px}.unified-event-editor .event-editor-actions .button{flex:1 1 110px}.event-address-dialog-content{padding:13px}.event-address-dialog-heading h2{font-size:19px}.event-address-dialog-actions .button{flex:1}}
+
+/* Visible validation feedback in the event editor, independent of scroll position. */
+.event-editor-error-toast{
+ position:fixed;z-index:1200;top:clamp(78px,11vh,120px);right:clamp(12px,2vw,32px);
+ width:min(430px,calc(100vw - 24px));display:flex;align-items:flex-start;gap:11px;
+ padding:15px 13px;border:1px solid #f3b9bc;border-left:4px solid #c83248;
+ border-radius:13px;background:#fff8f8;color:#8c182a;
+ box-shadow:0 12px 36px rgba(95,22,37,.18);overflow-wrap:anywhere;
+}
+.event-editor-error-icon{display:grid;place-items:center;flex:none;width:25px;height:25px;border-radius:50%;background:#be304b;color:white;font-weight:700;font-size:14px}
+.event-editor-error-content{flex:1;min-width:0}
+.event-editor-error-content strong{display:block;font-size:13px;font-weight:650;line-height:1.45}
+.event-editor-error-content p{font-size:12px;line-height:1.5;margin:3px 0 0;color:#972b3c}
+.event-editor-error-dismiss{flex:none;display:grid;place-items:center;border:0;border-radius:7px;background:transparent;color:#802738;cursor:pointer;font-size:22px;line-height:1;width:32px;height:32px}
+.event-editor-error-dismiss:hover{background:#fae5e8}
+.event-editor-error-dismiss:focus-visible{outline:2px solid #b12a45;outline-offset:2px}
+@media(max-width:700px){
+ .event-editor-error-toast{top:calc(env(safe-area-inset-top,0px) + 8px);left:10px;right:10px;width:auto;padding:12px}
+ .event-editor-error-content strong{font-size:12px}
+ .event-editor-error-content p{font-size:12px}
+}
