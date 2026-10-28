@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {Suspense,useEffect,useMemo,useState} from 'react';
 import {useSearchParams} from 'next/navigation';
 import ProfileShell from '../components/profile-shell.jsx';
+import OrganizerProfileEditor from '../components/organizer-profile-editor.jsx';
 import {rigaDate} from '../../lib/meets-personal.js';
 import {resolveOrganizationId,canWriteOrganization} from '../../lib/organizer-workspace.js';
 
@@ -35,20 +36,14 @@ function statusClass(status){return 'org-status org-status-'+String(status||'dra
 function eventDate(item){return item.date_from||'Datums nav norādīts';}
 function future(item){const end=item.date_to||item.date_from;return end?end>=rigaDate():true;}
 
-const EMPTY_CONTACT={type:'email',label:'',value:'',public:false};
-function ContactFields({value=[],onChange,disabled=false}){
- const fields=Array.isArray(value)?value:[];
- const update=(i,key,v)=>onChange(fields.map((x,j)=>i===j?{...x,[key]:v}:x));
- return <fieldset className="org-contact-fields" disabled={disabled}><legend>Kontaktinformācija</legend>
-  {fields.map((item,i)=><div className="org-contact-row" key={i}>
-   <label>Veids<select value={item.type} onChange={e=>update(i,'type',e.target.value)}><option value="email">E-pasts</option><option value="phone">Telefons</option><option value="person">Kontaktpersona</option><option value="other">Cits kontakts</option></select></label>
-   <label>Apzīmējums<input maxLength={80} placeholder="Piem., administrācija" value={item.label||''} onChange={e=>update(i,'label',e.target.value)}/></label>
-   <label>Kontaktinformācija<input type={item.type==='email'?'email':item.type==='phone'?'tel':'text'} maxLength={254} required placeholder={item.type==='email'?'epasts@piemers.lv':item.type==='phone'?'+371 ...':'Vārds vai cita informācija'} value={item.value||''} onChange={e=>update(i,'value',e.target.value)}/></label>
-   <label className="org-contact-visibility"><input type="checkbox" checked={item.public===true} onChange={e=>update(i,'public',e.target.checked)}/> Publisks</label>
-   <button className="button" type="button" aria-label={'Noņemt kontaktu '+(i+1)} onClick={()=>onChange(fields.filter((_,j)=>i!==j))}>Noņemt</button>
-  </div>)}
-  {fields.length<25&&<button className="button org-add-contact" type="button" onClick={()=>onChange([...fields,{...EMPTY_CONTACT}])}>+ Pievienot kontaktu</button>}
- </fieldset>;
+function normalizeWebsite(value){
+ const raw=String(value||'').trim();
+ if(!raw)return '';
+ let parsed;
+ try{parsed=new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw);}
+ catch{throw Error('Norādi korektu mājaslapas adresi.');}
+ if(!['http:','https:'].includes(parsed.protocol))throw Error('Mājaslapai jāizmanto http vai https.');
+ return parsed.href;
 }
 async function uploadOrgLogo(file,id,token){
  if(!file)return '';
@@ -68,7 +63,7 @@ function OrganizerPageInner(){
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
  const [creating,setCreating]=useState(false);
- const [newOrg,setNewOrg]=useState({name:'',description:'',address:'',address_public:false,contacts:[],is_public:false,image_url:''});
+ const [newOrg,setNewOrg]=useState({name:'',description:'',address:'',address_public:false,website_public:false,contacts:[],is_public:false,image_url:'',public_url:''});
  const [newLogo,setNewLogo]=useState(null),[profileLogo,setProfileLogo]=useState(null);
  const [profile,setProfile]=useState(null);
  const [profileDirty,setProfileDirty]=useState(false);
@@ -194,26 +189,44 @@ function OrganizerPageInner(){
  async function createOrganization(e){
   e.preventDefault();setBusy(true);setError('');setNotice('');
   try{
+   const public_url=normalizeWebsite(newOrg.public_url);
    const created=await rpc('createOrganization',{name:newOrg.name,description:newOrg.description,kind:'organizer',address:newOrg.address,contacts:newOrg.contacts},session);
    const id=created.item?.id;if(!id)throw Error('Organizatoru neizdevās izveidot.');
-   const image_url=newLogo?await uploadOrgLogo(newLogo,id,session.access_token):'';
-   if(newOrg.is_public||image_url)await rpc('updateOrganization',{organization_id:id,name:newOrg.name,description:newOrg.description,image_url,is_public:newOrg.is_public},session);
-   await rpc('saveOrgContacts',{organization_id:id,address:newOrg.address,contacts:newOrg.contacts,contacts_public:newOrg.is_public,address_public:newOrg.address_public===true},session);
+   await rpc('updateOrganization',{organization_id:id,name:newOrg.name,description:newOrg.description,is_public:newOrg.is_public,public_url,image_url:''},session);
+   await rpc('saveOrgContacts',{organization_id:id,address:newOrg.address,contacts:newOrg.contacts,contacts_public:newOrg.is_public,address_public:newOrg.address_public===true,website_public:newOrg.website_public===true},session);
+   let logoError='';
+   if(newLogo)try{
+    const image_url=await uploadOrgLogo(newLogo,id,session.access_token);
+    await rpc('updateOrganization',{organization_id:id,...newOrg,public_url,image_url},session);
+   }catch(e){logoError=e.message;}
    const data=await rpc('list',{},session);setItems(data);
-   setNewOrg({name:'',description:'',address:'',contacts:[],is_public:false,image_url:''});setNewLogo(null);setCreating(false);setOrgId(id);setPanel('overview');
+   setNewOrg({name:'',description:'',address:'',address_public:false,website_public:false,contacts:[],is_public:false,image_url:'',public_url:''});
+   setNewLogo(null);setCreating(false);setOrgId(id);setPanel('profile');
    const returnTo=new URLSearchParams(window.location.search).get('return');
    if(returnTo&&returnTo.startsWith('/')&&!returnTo.startsWith('//')){const join=returnTo.includes('?')?'&':'?';window.location.assign(returnTo+join+'org='+encodeURIComponent(id));return;}
-   replaceUrl(id,'overview');setNotice('Organizators izveidots.');
+   replaceUrl(id,'profile');
+   if(logoError)setError('Organizators izveidots, bet logo neizdevās augšupielādēt: '+logoError);
+   else setNotice('Organizators izveidots. Tagad vari pievienot adresi vai pasākumu.');
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
  async function saveProfile(e){
   e.preventDefault();if(!profile||!orgId)return;
   setBusy(true);setError('');setNotice('');
   try{
-   const image_url=profileLogo?await uploadOrgLogo(profileLogo,orgId,session.access_token):profile.image_url;
-   await rpc('updateOrganization',{organization_id:orgId,...profile,image_url},session);
-   await rpc('saveOrgContacts',{organization_id:orgId,address:profile.address||'',contacts:profile.contacts||[],contacts_public:profile.is_public===true,address_public:profile.address_public===true},session);
-   const data=await rpc('list',{},session);setItems(data);setProfileLogo(null);setProfileDirty(false);setNotice('Organizatora profils saglabāts.');
+   const public_url=normalizeWebsite(profile.public_url);
+   const record={...profile,public_url};
+   await rpc('updateOrganization',{organization_id:orgId,...record},session);
+   await rpc('saveOrgContacts',{organization_id:orgId,address:profile.address||'',contacts:profile.contacts||[],contacts_public:profile.is_public===true,address_public:profile.address_public===true,website_public:profile.website_public===true},session);
+   let logoError='';
+   if(profileLogo)try{
+    const image_url=await uploadOrgLogo(profileLogo,orgId,session.access_token);
+    await rpc('updateOrganization',{organization_id:orgId,...record,image_url},session);
+   }catch(e){logoError=e.message;}
+   const data=await rpc('list',{},session);setItems(data);
+   setProfileLogo(logoError?profileLogo:null);
+   setProfileDirty(Boolean(logoError));
+   if(logoError)setError('Pārējā profila informācija saglabāta, bet logo augšupielāde neizdevās: '+logoError);
+   else setNotice('Organizatora profils saglabāts.');
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
  async function createInvitation(){
@@ -276,39 +289,24 @@ function OrganizerPageInner(){
  </div></section></ProfileShell>;
 
  if(!orgId||creating){
-  return <ProfileShell session={session}><section className="org-workspace">
+  return <ProfileShell session={session}><section className={creating?'org-workspace org-workspace-profile':'org-workspace'}>
    <header className="org-page-head"><div><p className="eyebrow">Organizēšana</p><h1>{creating?'Jauns organizators':'Tavi organizatori'}</h1>
     <p>Izveido organizatora profilu un pievieno tam norises vietas un pasākumus.</p></div>
     {!creating&&<button className="button primary" type="button" onClick={()=>setCreating(true)}>+ Jauns organizators</button>}</header>
    {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
-   {creating?<form className="org-form-card org-split-editor" onSubmit={createOrganization}>
-    <h2>Organizatora profils</h2><p className="meets-muted">Sāc ar nosaukumu. Adresi, logo un vairākus kontaktus vari norādīt tagad vai papildināt vēlāk.</p>
-    <div className="org-editor-columns">
-      <section className="org-editor-column org-editor-private"><h3>🔒 Pārvaldības informācija</h3><p>Informāciju vari saglabāt privāti. Publiskos laukus atzīmē atsevišķi.</p>
-    <label>Nosaukums *<input required minLength={2} maxLength={160} value={newOrg.name} onChange={e=>setNewOrg(v=>({...v,name:e.target.value}))}/></label>
-    <label>Galvenā adrese<input maxLength={300} value={newOrg.address||''} onChange={e=>setNewOrg(v=>({...v,address:e.target.value}))} placeholder="Pilsēta, iela, mājas numurs"/></label><label className="org-contact-visibility"><input type="checkbox" checked={newOrg.address_public===true} onChange={e=>setNewOrg(v=>({...v,address_public:e.target.checked}))}/> Rādīt adresi publiski</label>
-    <ContactFields value={newOrg.contacts} onChange={contacts=>setNewOrg(v=>({...v,contacts}))}/>
-
-      </section>
-      <section className="org-editor-column org-editor-public"><h3>◉ Publiskais profils</h3><p>Apstiprini, ko par organizāciju redzēs apmeklētāji.</p>
-    <label>Organizatora logo<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setNewLogo(e.target.files?.[0]||null)}/>{newLogo&&<small>{newLogo.name}</small>}</label>
-    <label>Īss apraksts<textarea rows={3} maxLength={2000} value={newOrg.description} onChange={e=>setNewOrg(v=>({...v,description:e.target.value}))} placeholder="Ko organizējat un kam paredzēti jūsu pasākumi?"/></label>
-    <label className="org-public-choice"><input type="checkbox" checked={newOrg.is_public===true} onChange={e=>setNewOrg(v=>({...v,is_public:e.target.checked}))}/><span><strong>Publisks organizatora profils</strong><small>{newOrg.is_public?'Profils būs redzams publiski. Adrese un kontakti tikai ar atsevišķu atzīmi.':'Privāts — informācija pieejama tikai organizatora pārvaldībai.'}</small></span></label>
-
-      </section>
-    </div>
-    <div className="org-actions"><button className="button" type="button" onClick={()=>setCreating(false)}>Atcelt</button><button className="button primary" disabled={busy}>Izveidot organizatoru →</button></div>
-   </form>:organizations.length?<div className="org-card-grid">{organizations.map(orgCard)}</div>:<div className="org-empty-state">
+   {creating?<OrganizerProfileEditor isNew value={newOrg} onChange={patch=>setNewOrg(v=>({...v,...patch}))} onSubmit={createOrganization} onCancel={()=>setCreating(false)}
+    logoFile={newLogo} onLogoChange={setNewLogo} busy={busy}/>
+   :organizations.length?<div className="org-card-grid">{organizations.map(orgCard)}</div>:<div className="org-empty-state">
     <h2>Sāc organizēt</h2><p>Izveido organizatora profilu tikai tad, kad vēlies publicēt savus pasākumus. Otrs lietotāja konts nav vajadzīgs.</p>
     <button className="button primary" type="button" onClick={()=>setCreating(true)}>Sākt organizēt →</button>
    </div>}
   </section></ProfileShell>;
  }
 
- return <ProfileShell session={session} activeOrganization={activeOrg}><section className="org-workspace">
-  <header className="org-page-head"><div><p className="eyebrow">Organizēšana · {ROLE_LABELS[activeOrg?.role]||activeOrg?.role}</p><h1>{activeOrg?.name}</h1>
+ return <ProfileShell session={session} activeOrganization={activeOrg}><section className={'org-workspace'+(panel==='profile'?' org-workspace-profile':'')}>
+  <header className="org-page-head"><div><p className="eyebrow">Organizēšana · {ROLE_LABELS[activeOrg?.role]||activeOrg?.role}</p><h1>{activeOrg?.name} {panel==='profile'&&<span className="org-v3-status">{activeOrg?.is_public?'Publisks':'Privāts'}</span>}</h1>
 </div>
-   <div className="org-head-actions"><select aria-label="Aktīvais organizators" value={orgId} onChange={e=>chooseOrganization(e.target.value)}>{organizations.map(org=><option value={org.id} key={org.id}>{org.name}</option>)}</select>
+   <div className="org-head-actions">{panel==='profile'&&activeOrg?.is_public&&<Link className="button org-v3-preview-link" href={'/organizatori/'+orgId}>Publiskais priekšskatījums ↗</Link>}<select aria-label="Aktīvais organizators" value={orgId} onChange={e=>chooseOrganization(e.target.value)}>{organizations.map(org=><option value={org.id} key={org.id}>{org.name}</option>)}</select>
     <button className="button" type="button" onClick={()=>{setOrgId('');setCreating(false);window.history.replaceState(null,'','/organizators');}}>Visi organizatori</button>
     </div></header>
 
@@ -376,27 +374,15 @@ function OrganizerPageInner(){
     <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>Izveidot uzaicinājumu</button>{inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/></label>}</div>}
   </section>}
 
-  {panel==='profile'&&profile&&<section className="org-panel">
-   <div className="org-panel-head"><div><h2>Organizatora profils</h2><p>Personas profila vārds un organizatora nosaukums tiek pārvaldīti atsevišķi.</p></div>{(profile.is_public||metrics.published>0)&&<Link className="button" href={'/organizatori/'+orgId}>Publiskais priekšskatījums ↗</Link>}</div>
-   <form className="org-profile-form org-split-editor" onSubmit={saveProfile}>
-    <div className="org-editor-columns">
-      <section className="org-editor-column org-editor-private"><h3>🔒 Pārvaldības informācija</h3><p>Informāciju vari saglabāt privāti. Publiskos laukus atzīmē atsevišķi.</p>
-    <label>Organizatora nosaukums<input disabled={!canEdit} required minLength={2} maxLength={160} value={profile.name||''} onChange={e=>{setProfile(v=>({...v,name:e.target.value}));setProfileDirty(true);}}/></label>
-    <label>Galvenā adrese<input disabled={!canEdit} maxLength={300} value={profile.address||''} onChange={e=>{setProfile(v=>({...v,address:e.target.value}));setProfileDirty(true);}}/></label><label className="org-contact-visibility"><input type="checkbox" disabled={!canEdit} checked={profile.address_public===true} onChange={e=>{setProfile(v=>({...v,address_public:e.target.checked}));setProfileDirty(true);}}/> Rādīt adresi publiski</label>
-    <ContactFields disabled={!canEdit} value={profile.contacts||[]} onChange={contacts=>{setProfile(v=>({...v,contacts}));setProfileDirty(true);}}/>
+  {panel==='profile'&&profile&&<div className="org-v3-profile-wrap">
+   <OrganizerProfileEditor value={profile} onChange={patch=>{setProfile(v=>({...v,...patch}));setProfileDirty(true);}}
+    logoFile={profileLogo} onLogoChange={file=>{setProfileLogo(file);setProfileDirty(true);}}
+    busy={busy} dirty={profileDirty} canEdit={Boolean(canEdit)} onSubmit={saveProfile}
+    onCancel={()=>{setProfile({...activeOrg});setProfileLogo(null);setProfileDirty(false);setError('');setNotice('');}}
+    stats={{addresses:managedVenues.length,publicAddresses:managedVenues.filter(v=>v.is_public).length,events:orgSubmissions.length,published:orgSubmissions.filter(e=>e.status==='published').length}}
+    lastModified={activeOrg?.updated_at}/>
+   </div>}
 
-      </section>
-      <section className="org-editor-column org-editor-public"><h3>◉ Publiskais profils</h3><p>Apstiprini, ko par organizāciju redzēs apmeklētāji.</p>
-    <div className="org-profile-logo">{profile.image_url&&<img src={profile.image_url} alt="Organizatora logo" width="80" height="80"/>}<label>Logo attēls<input disabled={!canEdit} type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{setProfileLogo(e.target.files?.[0]||null);setProfileDirty(true);}}/></label></div>
-    <label>Apraksts<textarea disabled={!canEdit} rows={5} maxLength={2000} value={profile.description||''} onChange={e=>{setProfile(v=>({...v,description:e.target.value}));setProfileDirty(true);}}/></label>
-    <label>Mājaslapa<input disabled={!canEdit} type="url" maxLength={1000} value={profile.public_url||''} onChange={e=>{setProfile(v=>({...v,public_url:e.target.value}));setProfileDirty(true);}}/></label>
-    <label className="quick-flow-check"><input disabled={!canEdit} type="checkbox" checked={profile.is_public===true} onChange={e=>{setProfile(v=>({...v,is_public:e.target.checked}));setProfileDirty(true);}}/> Publiskot organizatora profilu</label>
-
-      </section>
-    </div>
-    {canEdit&&<div className="org-actions"><button className="button primary" disabled={busy||!profileDirty}>Saglabāt profilu</button>{profileDirty&&<span className="org-unsaved">Ir nesaglabātas izmaiņas</span>}</div>}
-   </form>
-  </section>}
  </section></ProfileShell>;
 }
 

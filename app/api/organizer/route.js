@@ -60,7 +60,7 @@ function publicVenue(item,orgIds){
 
 function cleanOrgContacts(input){
  if(!Array.isArray(input))return [];
- return input.slice(0,25).map(x=>({type:['email','phone','person','other'].includes(x?.type)?x.type:'other',label:String(x?.label||'').trim().slice(0,80),value:String(x?.value||'').trim().slice(0,254),public:x?.public===true})).filter(x=>x.value);
+ return input.slice(0,25).map(x=>({type:['email','phone','website','facebook','instagram','person','other'].includes(x?.type)?x.type:'other',label:String(x?.label||'').trim().slice(0,80),value:String(x?.value||'').trim().slice(0,254),public:x?.public===true})).filter(x=>x.value);
 }
 export async function POST(request){
  try{
@@ -81,7 +81,7 @@ export async function POST(request){
     api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,directions,description,is_public,created_at&order=created_at.desc'),
     api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,price_min,price_max,cover_image_path,recurrence_slots,admin_note,latitude,longitude,schedule_kind,recurrence_note,event_id,created_at,updated_at&order=created_at.desc'),
     api(TABLES.venueLinks,token,'GET',null,'?select=organization_id,venue_id,relation_type,created_at'),
-    api(TABLES.contacts,token,'GET',null,'?select=organization_id,address,contacts,contacts_public')
+    api(TABLES.contacts,token,'GET',null,'?select=organization_id,address,contacts,contacts_public,address_public,website_public')
    ]);
    const memberRole=new Map((memberships||[]).map(x=>[x.organization_id,x.role]));
    const details=new Map((contacts||[]).map(c=>[c.organization_id,c]));
@@ -115,7 +115,7 @@ export async function POST(request){
    const mayEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
    if(!owned.length||mayEdit!==true)return NextResponse.json({error:'Nav tiesību mainīt organizācijas kontaktus.'},{status:403});
    const contacts=cleanOrgContacts(data.contacts);
-   const details={organization_id:data.organization_id,address:String(data.address||'').trim().slice(0,300),contacts,contacts_public:data.contacts_public===true&&owned[0].is_public===true,address_public:data.address_public===true,updated_at:new Date().toISOString()};
+   const details={organization_id:data.organization_id,address:String(data.address||'').trim().slice(0,300),contacts,contacts_public:data.contacts_public===true&&owned[0].is_public===true,address_public:data.address_public===true,website_public:data.website_public===true,updated_at:new Date().toISOString()};
    const saved=await api(TABLES.contacts,token,'POST',details,'?on_conflict=organization_id');
    return NextResponse.json({item:saved[0]||details});
   }
