@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 export default function CopyVenueEmbed({id,title}){
- const [base,setBase]=useState('https://meets-2.vercel.app'),[copied,setCopied]=useState(false);
+ const [base,setBase]=useState('https://meets.lv'),[copied,setCopied]=useState(false);
  useEffect(()=>{setBase(window.location.origin);},[]);
  const code='<iframe src="'+base+'/iegult-vietu/'+id+'" title="'+title.replaceAll('"','&quot;')+'" width="100%" height="700" loading="lazy" style="border:0;border-radius:12px"></iframe>';
  return <div style={{display:'grid',gap:8}}>

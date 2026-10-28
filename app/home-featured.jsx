@@ -52,7 +52,7 @@ export default function HomeFeatured(){
     </div>
     <div className="meets-home-side-card">
      <div className="meets-home-side-head"><h3>Mani saglabātie</h3><Link href="/mani-pasakumi">Skatīt visus →</Link></div>
-     {saved.length?<div className="meets-home-saved-list">{saved.map(e=><Link href={'/pasakumi?event='+encodeURIComponent(e.id)} key={e.id}>
+     {saved.length?<div className="meets-home-saved-list">{saved.map(e=><Link href={'/pasakumi/'+encodeURIComponent(e.id)} key={e.id}>
       {cardImage(e)?<img src={cardImage(e)} alt="" loading="lazy"/>:<span className="meets-saved-fallback" aria-hidden="true">✦</span>}
       <span><strong>{e.title}</strong><small>{cardDate(e)} · {cardLocation(e)}</small></span>
      </Link>)}</div>:<p className="meets-muted">Saglabā iepatikušos pasākumus ar <span aria-label="sirds">♡</span> ikonu, lai tos ātri atrastu šeit.</p>}

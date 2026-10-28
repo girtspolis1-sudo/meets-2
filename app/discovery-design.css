@@ -345,7 +345,7 @@ body:not(.admin-environment) .button{border-radius:13px}
  border:1px solid rgba(224,225,239,.42);
  border-radius:22px;
  background-color:#142543;
- background-image:linear-gradient(90deg,rgba(8,21,47,.84) 0%,rgba(9,23,50,.74) 36%,rgba(11,28,59,.40) 66%,rgba(11,28,59,.10) 100%),url('/images/b30e6ba4-be32-4b1c-88a2-b15d689c70d6.png');
+ background-image:linear-gradient(90deg,rgba(8,21,47,.84) 0%,rgba(9,23,50,.74) 36%,rgba(11,28,59,.40) 66%,rgba(11,28,59,.10) 100%),url('/images/meets-hero-concert-full.webp');
  background-size:cover;
  background-position:center;
  background-repeat:no-repeat;
@@ -365,7 +365,7 @@ body:not(.admin-environment) .button{border-radius:13px}
 @media(max-width:760px){
  .meets-discovery-hero{
   display:block;min-height:0;padding:25px 18px 21px;border-radius:17px;
-  background-image:linear-gradient(90deg,rgba(8,21,47,.88) 0%,rgba(8,21,47,.82) 54%,rgba(8,21,47,.66) 100%),url('/images/b30e6ba4-be32-4b1c-88a2-b15d689c70d6.png');
+  background-image:linear-gradient(90deg,rgba(8,21,47,.88) 0%,rgba(8,21,47,.82) 54%,rgba(8,21,47,.66) 100%),url('/images/meets-hero-concert-mobile.webp');
   background-position:60% center
  }
  .meets-hero-message{max-width:none}
@@ -402,7 +402,7 @@ body:not(.admin-environment) .button{border-radius:13px}
 .meets-discovery-hero{
  min-height:clamp(440px,44vw,610px);
  padding:clamp(26px,3.6vw,58px);
- background-image:linear-gradient(90deg,rgba(7,23,49,.62) 0%,rgba(7,23,49,.41) 37%,rgba(7,23,49,.07) 74%,transparent 100%),url('/images/b30e6ba4-be32-4b1c-88a2-b15d689c70d6.png');
+ background-image:linear-gradient(90deg,rgba(7,23,49,.62) 0%,rgba(7,23,49,.41) 37%,rgba(7,23,49,.07) 74%,transparent 100%),url('/images/meets-hero-concert-full.webp');
  background-position:center;
 }
 .meets-hero-message{max-width:none}
@@ -413,8 +413,23 @@ body:not(.admin-environment) .button{border-radius:13px}
 .meets-hero-chips{gap:11px;align-content:flex-start}
 .meets-hero-chips>a{font-size:12px;padding:10px 17px;border-radius:999px}
 @media(max-width:760px){
- .meets-discovery-hero{min-height:0;padding:26px 18px;background-image:linear-gradient(90deg,rgba(7,23,49,.86),rgba(7,23,49,.48)),url('/images/b30e6ba4-be32-4b1c-88a2-b15d689c70d6.png');background-position:62% center}
+ .meets-discovery-hero{min-height:0;padding:26px 18px;background-image:linear-gradient(90deg,rgba(7,23,49,.86),rgba(7,23,49,.48)),url('/images/meets-hero-concert-mobile.webp');background-position:62% center}
  .meets-hero-message h1{max-width:100%}
  .meets-hero-ctas a{font-size:12px;padding:10px 14px}
  .meets-hero-chips>a{font-size:11px;padding:8px 11px}
+}
+
+/* Standalone event page (/pasakumi/[id]) reuses the detail dialog styles. */
+.meets-event-page{max-width:760px;margin:0 auto 48px;background:#fff;border:1px solid #e7e9f5;border-radius:20px;overflow:hidden}
+.meets-event-page-back{padding:14px 25px 0;font-size:13px;font-weight:700}
+.meets-event-page .meets-detail-hero{margin-top:12px}
+.meets-event-page .meets-detail-hero img.catalog-detail-cover{width:100%;height:300px;display:block;object-fit:cover;margin:0;border-radius:0}
+.meets-detail-headline h1{font-size:clamp(24px,3.4vw,32px);font-weight:800;color:#17213e;letter-spacing:-.65px;line-height:1.2;margin:8px 0 0}
+.meets-detail-description h2,.meets-detail-quick h2{font-size:14px;margin:0 0 7px;font-weight:800}
+.meets-event-page .meets-detail-description p{display:block;-webkit-line-clamp:unset;overflow:visible;white-space:pre-line}
+@media(max-width:760px){
+ .meets-event-page{margin:0 0 32px;border-radius:0;border-left:0;border-right:0}
+ .meets-event-page-back{padding:12px 16px 0}
+ .meets-event-page .meets-detail-body{padding:18px 16px 22px}
+ .meets-event-page .meets-detail-hero img.catalog-detail-cover{height:210px}
 }

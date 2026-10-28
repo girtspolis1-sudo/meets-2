@@ -13,8 +13,10 @@ import './discovery-design.css';
 import './personal-collections.css';
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://meets.lv'),
   title: { default: 'MEETS — Pasākumi Latvijā', template: '%s | MEETS' },
   description: 'Atrodi pasākumus Latvijā un Baltijā kartē un pasākumu sarakstā.',
+  openGraph: { siteName: 'MEETS', locale: 'lv_LV', type: 'website' },
   icons: {
     icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
     shortcut: '/icon.svg',
@@ -37,6 +39,12 @@ export default function RootLayout({ children }) {
     <footer>
       <img className="footer-logo" src="/meets-logo-purple.png" alt="MEETS"/>
       <p>Pasākumi, kas saved cilvēkus kopā.</p>
+      <nav className="footer-links" aria-label="Kājenes saites">
+        <Link href="/karte">Karte</Link>
+        <Link href="/pasakumi">Pasākumi</Link>
+        <Link href="/registre-pasakumu">Pievienot pasākumu</Link>
+        <Link href="/organizators">Organizatoriem</Link>
+      </nav>
       <div className="footer-side">
         <span>Latvija</span>
         <AdminFooterControl/>

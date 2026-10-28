@@ -8,7 +8,7 @@ const SESSION_KEY='meets_user_session_v1';
 const items=[
  {href:'/karte',label:'Karte'},
  {href:'/pasakumi',label:'Pasākumi'},
- {href:'/profils',label:'◉ Mans profils'}
+ {href:'/profils',label:'Mans profils'}
 ];
 function readSession(){
  try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch{return null;}

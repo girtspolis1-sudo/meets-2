@@ -7,7 +7,7 @@ import {cardCategory,cardDate,cardDescription,cardGroup,cardImage,cardLocation,c
 const EMOJI={music:'🎵',stage:'🎭',culture:'🖼️',sport:'⚽',active:'🌿',markets:'🎉',learning:'💡',community:'🤝',other:'✦'};
 export default function DiscoveryEventCard({event,onOpen,actions=false,footer=null}){
  const image=cardImage(event),group=cardGroup(event),price=cardPrice(event),summary=cardDescription(event);
- const detailHref='/pasakumi?event='+encodeURIComponent(event.id);
+ const detailHref='/pasakumi/'+encodeURIComponent(event.id);
  return <article className={'meets-discovery-card catalog-event-card theme-'+group}>
   <div className={'meets-discovery-card-media'+(!image?' has-no-image':'')}>
    {image?<img src={image} alt="" loading="lazy" decoding="async" onError={e=>{e.currentTarget.hidden=true;e.currentTarget.parentElement.classList.add('has-no-image');}}/>:null}

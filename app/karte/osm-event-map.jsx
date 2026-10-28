@@ -188,7 +188,7 @@ function popupHtml(group,activeIds,isAdminSession,now,favorites){
      '<strong>'+esc(e.title)+'</strong>'+
      '<span class="popup-event-datetime">'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span>'+
      (address?'<span class="popup-event-address">'+esc(address)+'</span>':'')+
-     (address?'<a class="meets-popup-venue-inline" href="/pasakumi?event='+encodeURIComponent(e.id)+'">⌖ Sekot vietai ↗</a>':'')+
+     (address?'<a class="meets-popup-venue-inline" href="/pasakumi/'+encodeURIComponent(e.id)+'">⌖ Sekot vietai ↗</a>':'')+
      (compactMeta?'<small>'+esc(compactMeta)+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>':'')+
      (price?'<span class="popup-event-price">'+esc(price)+'</span>':'')+
      (description?'<div class="popup-description"><p class="popup-event-description">'+esc(summary)+'</p>'+
@@ -303,6 +303,8 @@ export default function OsmEventMap(){
  const {data,loading,error,refresh}=useEvents();
  const mapEl=useRef(null),mapRef=useRef(null),leafletRef=useRef(null),baseMapLayerRef=useRef(null),baseLayerCleanupRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
  const defaultsSetRef=useRef(false);
+ const focusEventId=searchParams.get('event')||'';
+ const focusDatesSetRef=useRef(false),focusOpenedRef=useRef(false),markerByEventRef=useRef(new Map());
 
  useEffect(()=>{
   try{
@@ -408,6 +410,15 @@ export default function OsmEventMap(){
   const next=periodDates(periodMode,rigaTodayIso(clockNow),publicTo,from,to);
   setFrom(next.from);setTo(next.to);
  },[publicFrom,publicTo]);
+
+ // A shared /karte?event=… link must show that event even outside the default week.
+ useEffect(()=>{
+  if(focusDatesSetRef.current||!focusEventId||!events.length)return;
+  focusDatesSetRef.current=true;
+  const target=events.find(e=>String(e.id)===focusEventId);
+  if(!target?.date_from)return;
+  setPeriodMode('manual');setFrom(target.date_from);setTo(target.date_to||target.date_from);
+ },[events,focusEventId]);
 
  const typedEvents=useMemo(()=>eventTypes.length?events.filter(e=>eventTypes.includes(sourceType(e))):events,[events,eventTypes]);
  const competitionOptions=useMemo(()=>{
@@ -634,6 +645,7 @@ export default function OsmEventMap(){
   backgroundLayerRef.current=bg;activeLayerRef.current=active;
 
   const indexByCoordinate=new Map();
+  markerByEventRef.current=new Map();
   for(const group of locationGroups){
    const [displayLat,displayLon]=groupPosition(group,indexByCoordinate);
    const activeInGroup=group.events.filter(e=>activeIds.has(e.id));
@@ -743,6 +755,7 @@ export default function OsmEventMap(){
     if(resized)popup.update();
    });
    marker.on('popupclose',()=>marker.getPopup()?.getElement()?.removeEventListener('toggle',updatePopup,true));
+   for(const e of group.events)markerByEventRef.current.set(String(e.id),marker);
    marker.addTo(isActive?active:bg);
   }
  },[mapReady,locationGroups,activeIds,isAdminSession,clockNow,favorites]);
@@ -764,9 +777,22 @@ export default function OsmEventMap(){
   }
  },[mapReady,userLocation,radiusKm]);
 
+ useEffect(()=>{
+  if(focusOpenedRef.current||!focusEventId||!mapReady||!mapRef.current)return;
+  // Wait until the event's own dates are applied, so the marker is not rebuilt right after opening.
+  if(!activeIds.has(focusEventId)&&periodMode!=='manual')return;
+  const marker=markerByEventRef.current.get(focusEventId);
+  if(!marker)return;
+  focusOpenedRef.current=true;
+  mapRef.current.setView(marker.getLatLng(),14,{animate:false});
+  marker.openPopup();
+ },[mapReady,locationGroups,activeIds,focusEventId,periodMode]);
+
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;leafletRef.current=null;},[]);
 
- const advancedFilterCount=[homeCategory,audience,placeFilter,radiusKm>0,periodMode!=='week',eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
+ // Radius, period, group and audience are visible outside the panel, so the badge skips them.
+ const advancedFilterCount=[placeFilter,eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
+ const audienceOptions=Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key)));
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
   {value:'municipality',label:'Pašvaldības',glyph:'📅'},
@@ -906,10 +932,10 @@ export default function OsmEventMap(){
       
       <option value="civic">Pašvaldības un līdzdalība</option>
      </select></label>
-     <label><span>Kam piemērots?</span><select aria-label="Auditorija" value={audience} onChange={e=>setDiscoveryFilter('audience',e.target.value)}>
+     {audienceOptions.length>0&&<label><span>Kam piemērots?</span><select aria-label="Auditorija" value={audience} onChange={e=>setDiscoveryFilter('audience',e.target.value)}>
       <option value="">Jebkura auditorija</option>
-      {Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key))).map(([key,title])=><option key={key} value={key}>{title}</option>)}
-     </select></label>
+      {audienceOptions.map(([key,title])=><option key={key} value={key}>{title}</option>)}
+     </select></label>}
     </div>
 
 

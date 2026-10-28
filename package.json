@@ -10,7 +10,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --conditions=react-server --test tests/catalog.test.js tests/registry-filters.test.js tests/event-entry.test.js tests/event-schedule.test.js tests/organizer-workspace.test.js tests/discovery-card.test.js tests/personal-collections.test.js"
+    "test": "node --conditions=react-server --test tests/catalog.test.js tests/registry-filters.test.js tests/event-entry.test.js tests/event-schedule.test.js tests/organizer-workspace.test.js tests/discovery-card.test.js tests/personal-collections.test.js tests/event-sharing.test.mjs tests/location-follow.test.mjs"
   },
   "dependencies": {
     "@maplibre/maplibre-gl-leaflet": "0.0.20",
