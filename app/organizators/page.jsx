@@ -289,7 +289,7 @@ function OrganizerPageInner(){
  </div></section></ProfileShell>;
 
  if(!orgId||creating){
-  return <ProfileShell session={session}><section className="org-workspace">
+  return <ProfileShell session={session}><section className={creating?'org-workspace org-workspace-profile':'org-workspace'}>
    <header className="org-page-head"><div><p className="eyebrow">Organizēšana</p><h1>{creating?'Jauns organizators':'Tavi organizatori'}</h1>
     <p>Izveido organizatora profilu un pievieno tam norises vietas un pasākumus.</p></div>
     {!creating&&<button className="button primary" type="button" onClick={()=>setCreating(true)}>+ Jauns organizators</button>}</header>
@@ -304,9 +304,9 @@ function OrganizerPageInner(){
  }
 
  return <ProfileShell session={session} activeOrganization={activeOrg}><section className={'org-workspace'+(panel==='profile'?' org-workspace-profile':'')}>
-  <header className="org-page-head"><div><p className="eyebrow">Organizēšana · {ROLE_LABELS[activeOrg?.role]||activeOrg?.role}</p><h1>{activeOrg?.name}</h1>
+  <header className="org-page-head"><div><p className="eyebrow">Organizēšana · {ROLE_LABELS[activeOrg?.role]||activeOrg?.role}</p><h1>{activeOrg?.name} {panel==='profile'&&<span className="org-v3-status">{activeOrg?.is_public?'Publisks':'Privāts'}</span>}</h1>
 </div>
-   <div className="org-head-actions"><select aria-label="Aktīvais organizators" value={orgId} onChange={e=>chooseOrganization(e.target.value)}>{organizations.map(org=><option value={org.id} key={org.id}>{org.name}</option>)}</select>
+   <div className="org-head-actions">{panel==='profile'&&activeOrg?.is_public&&<Link className="button org-v3-preview-link" href={'/organizatori/'+orgId}>Publiskais priekšskatījums ↗</Link>}<select aria-label="Aktīvais organizators" value={orgId} onChange={e=>chooseOrganization(e.target.value)}>{organizations.map(org=><option value={org.id} key={org.id}>{org.name}</option>)}</select>
     <button className="button" type="button" onClick={()=>{setOrgId('');setCreating(false);window.history.replaceState(null,'','/organizators');}}>Visi organizatori</button>
     </div></header>
 
