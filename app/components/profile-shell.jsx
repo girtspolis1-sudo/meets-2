@@ -13,7 +13,7 @@ const symbols={
  plus:<path d="M12 5v14M5 12h14"/>,
  arrow:<path d="m9 18 6-6-6-6"/>,
  settings:<><circle cx="12" cy="12" r="3"/><path d="M5 12H3m18 0h-2M12 5V3m0 18v-2M6.5 6.5 5 5m14 14-1.5-1.5M17.5 6.5 19 5M5 19l1.5-1.5"/></>,
- logout:<><path d="M10 17l5-5-5-5M15 12H3M13 3h5a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-5"/></>,
+ logout:<path d="M9 21H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h3M16 17l5-5-5-5M21 12H9"/>,
  users:<><circle cx="9" cy="8" r="3"/><path d="M3 20c.5-4 2.5-6 6-6s5.5 2 6 6M16 5.5a3 3 0 0 1 0 5.8M17 14c2.4.5 3.7 2.3 4 5"/></>,
  building:<><path d="M4 21V5l8-3 8 3v16M8 9h2M14 9h2M8 13h2M14 13h2M10 21v-4h4v4"/></>,
  eye:<><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></>
@@ -21,11 +21,12 @@ const symbols={
 export function ProfileIcon({name,size=19}){
  return <svg aria-hidden="true" viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{symbols[name]||symbols.home}</svg>;
 }
+// short labels keep all four phone tabs visible without sideways scrolling.
 const personalLinks=[
- {href:'/profils',label:'Pārskats',icon:'home'},
- {href:'/mani-pasakumi',label:'Saglabātie pasākumi',icon:'heart'},
- {href:'/sekosana',label:'Sekoju',icon:'pin'},
- {href:'/konta-iestatijumi',label:'Konta iestatījumi',icon:'settings'}
+ {href:'/profils',label:'Pārskats',short:'Pārskats',icon:'home'},
+ {href:'/mani-pasakumi',label:'Saglabātie pasākumi',short:'Saglabātie',icon:'heart'},
+ {href:'/sekosana',label:'Sekoju',short:'Sekoju',icon:'pin'},
+ {href:'/konta-iestatijumi',label:'Konta iestatījumi',short:'Konts',icon:'settings'}
 ];
 const organizerPanels=[
  {panel:'overview',label:'Pārskats',icon:'home'},
@@ -105,8 +106,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
    </nav>}
 
    <div className="meets-profile-aside-footer">
-    {organizerMode?<Link className="meets-profile-aside-action org-sidebar-event-action" href={eventHref}><ProfileIcon name="plus"/> Jauns pasākums</Link>:
-     <Link className="meets-profile-aside-action" href="/karte"><ProfileIcon name="map"/> Atrast pasākumu</Link>}
+    {organizerMode&&<Link className="meets-profile-aside-action org-sidebar-event-action" href={eventHref}><ProfileIcon name="plus"/> Jauns pasākums</Link>}
 
     <button type="button" className="meets-profile-logout" disabled={loggingOut} onClick={logout}><ProfileIcon name="logout" size={17}/>{loggingOut?"Iziet…":"Iziet no konta"}</button>
    </div>
@@ -114,7 +114,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
 
   <div className="meets-profile-content">
    <nav className="meets-profile-mobile-tabs" aria-label={organizerMode?'Organizēšanas sadaļas':'Mans MEETS sadaļas'}>
-    {!organizerMode?personalLinks.map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.label}</Link>):
+    {!organizerMode?personalLinks.map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.short}</Link>):
      <><Link href="/organizators" className={!orgId?'active':''}>Organizatori</Link>{orgId&&organizerLinks.slice(0,4).map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined} className={activeOrganizer(item)?'active':''}>{item.label}</Link>)}</>}
    </nav>
    <div className="meets-profile-slot">{children}</div>

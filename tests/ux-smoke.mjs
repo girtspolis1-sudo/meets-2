@@ -153,12 +153,14 @@ for(const width of cases){
     return route.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'});
    }
    if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({favorites:[mockEvent.id],plans:[],visits:[]})});
+   if(body.action==='getProfile')return route.fulfill({status:200,contentType:'application/json',body:'{"avatar_data_url":null}'});
    if(body.action==='dashboard')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
     interests:[],reminders:[],notices:[],follows:[],shared:null,
     directory:{organizations:[],venues:[],sources:[]},followedEvents:[],savedDetails:[],locationFollows:followed
    })});
    return route.fulfill({status:400,contentType:'application/json',body:'{"error":"Unsupported test action"}'});
   });
+  await page.route('**/api/registries',route=>route.fulfill({status:200,contentType:'application/json',body:'{"registries":[],"profile":{"display_name":""}}'}));
   await page.evaluate(()=>localStorage.setItem('meets_user_session_v1',JSON.stringify({
    access_token:'test-token',refresh_token:'test-refresh',expires_in:3600,
    expires_at:Date.now()+3600000,user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',email:'test@example.com'}

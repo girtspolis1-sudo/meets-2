@@ -1,18 +1,15 @@
 'use client';
-import {useCallback,useEffect,useMemo,useState} from 'react';
+import {useMemo,useState} from 'react';
 import Link from 'next/link';
 import PersonalMap from './personal-map.jsx';
-import EventQuickActions from '../components/event-quick-actions.jsx';
+import EventQuickActions from '../../components/event-quick-actions.jsx';
 import {PlanIcon,HeartIcon,CheckIcon,CalendarIcon,RouteIcon,ExternalIcon,BellIcon} from './event-icons.jsx';
-import {eventsAtPlace} from '../../lib/location-follow.js';
-import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,eventGroup} from '../../lib/home-category-filters.js';
-import {coordinates,rigaDate,eventOverlapsDate,recommendEvents,icsContent} from '../../lib/meets-personal.js';
+import {eventsAtPlace} from '../../../lib/location-follow.js';
+import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,eventGroup} from '../../../lib/home-category-filters.js';
+import {coordinates,rigaDate,eventOverlapsDate,recommendEvents,icsContent} from '../../../lib/meets-personal.js';
+import {accountRequest,setAccountData,useAccountData} from '../../../lib/account-store.js';
 
 const DEFAULT={interests:[],reminders:[],notices:[],follows:[],locationFollows:[],shared:null,directory:{organizations:[],venues:[],sources:[]},followedEvents:[],savedDetails:[]};
-async function request(body){
- const res=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
- const data=await res.json();if(!res.ok)throw new Error(data.error||'Darbība neizdevās.');return data;
-}
 function dateText(value){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return 'Datums nav norādīts';
  return new Intl.DateTimeFormat('lv-LV',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'));
@@ -82,19 +79,18 @@ function CalendarView({events,selectedDate,setSelectedDate,month,setMonth,render
   </div>
  </div>;
 }
-export default function PersonalDashboard({session,favorites,plans,visits,onToggle,busy,events=[],loading}){
- const [view,setView]=useState('overview'),[moreOpen,setMoreOpen]=useState(false),[extra,setExtra]=useState(DEFAULT),[tabError,setTabError]=useState(''),[message,setMessage]=useState(''),[saving,setSaving]=useState(false);
+export default function PersonalDashboard({favorites,plans,visits,onToggle,busy,events=[],loading}){
+ const [view,setView]=useState('overview'),[moreOpen,setMoreOpen]=useState(false),[tabError,setTabError]=useState(''),[message,setMessage]=useState(''),[saving,setSaving]=useState(false);
  const [month,setMonth]=useState(rigaDate().slice(0,7)),[selectedDate,setSelectedDate]=useState(rigaDate()),[mapScope,setMapScope]=useState('all'),[followQuery,setFollowQuery]=useState('');
  const [origin,setOrigin]=useState(null),[radius,setRadius]=useState(30),[locationError,setLocationError]=useState('');
- const token=session.access_token;
 
- const reload=useCallback(async()=>{const result=await request({action:'dashboard',token});setExtra({...DEFAULT,...result});},[token]);
- useEffect(()=>{let cancelled=false;async function load(){try{const result=await request({action:'dashboard',token});if(!cancelled)setExtra({...DEFAULT,...result});}catch(e){if(!cancelled)setTabError(e.message);}}
- load();const timer=setInterval(()=>{if(document.visibilityState==='visible')load();},60000);
- return()=>{cancelled=true;clearInterval(timer);};},[token]);
+ const dashboard=useAccountData('dashboard');
+ const extra=useMemo(()=>({...DEFAULT,...dashboard.data}),[dashboard.data]);
+ const setExtra=update=>setAccountData('dashboard',d=>({...DEFAULT,...d,...update({...DEFAULT,...d})}));
+ const loadError=dashboard.error?.message||'';
  async function mutate(payload,onSuccess){
   setSaving(true);setTabError('');setMessage('');
-  try{const value=await request({token,...payload});onSuccess?.(value);setMessage('Saglabāts.');}
+  try{const {action,...fields}=payload;const value=await accountRequest('/api/account',action,fields);onSuccess?.(value);setMessage('Saglabāts.');}
   catch(e){setTabError(e.message);}finally{setSaving(false);}
  }
  const eventIndex=useMemo(()=>new Map([...(extra.savedDetails||[]).map(e=>[e.id,e]),...events.map(e=>[e.id,e])]),[events,extra.savedDetails]);
@@ -137,7 +133,7 @@ export default function PersonalDashboard({session,favorites,plans,visits,onTogg
     ['map','⌖ Karte'],['recommend','✦ Ieteikumi'],['visited','✓ Apmeklēti']
    ].map(([key,label])=><button type="button" key={key} aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
   </div>}
-  {tabError&&<p className="meets-inline-error" role="alert">{tabError}</p>}
+  {(tabError||loadError)&&<p className="meets-inline-error" role="alert">{tabError||loadError}</p>}
   {message&&<p className="meets-organizer-success" role="status">{message}</p>}
   {loading?<p className="meets-muted">Ielādē pasākumus…</p>:<>
    {view==='overview'&&<section className="meets-personal-overview">

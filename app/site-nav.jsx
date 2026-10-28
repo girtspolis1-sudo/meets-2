@@ -57,7 +57,7 @@ export default function SiteNav(){
   {/* Phones have no profile sidebar, so the header exit stays available there too. */}
   {signedIn&&<button className="meets-mobile-header-exit" type="button" disabled={loggingOut}
    onClick={logout} aria-label="Iziet no MEETS konta" title="Iziet no konta">
-   {loggingOut?'…':<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M13 3h5a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-5"/></svg>}
+   {loggingOut?'…':<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h3M16 17l5-5-5-5M21 12H9"/></svg>}
   </button>}
   <div className="meets-nav-desktop">{visibleItems.map(navLink)}{signedIn&&!profileArea&&exit}</div>
   <div className="meets-nav-mobile">{visibleItems.filter(item=>item.href!='/admin').map(navLink)}
