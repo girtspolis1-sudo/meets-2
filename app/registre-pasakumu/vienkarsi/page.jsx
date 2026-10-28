@@ -257,7 +257,14 @@ function SimpleEventFlow(){
   {account&&orgs.length===0&&stage!=='done'&&<div className="event-editor-org-needed"><strong>Lai iesniegtu pasākumu, aktivizē organizēšanu.</strong><p>Esošais ievadītais saturs tiks saglabāts un atjaunots pēc organizatora izveides.</p><button className="button primary" type="button" onClick={organizerSetup}>Sākt organizēt →</button></div>}
   {account&&orgId&&activeOrg?.role==='viewer'&&<p className="meets-inline-error">Tev ir skatītāja loma. Pasākumu vari apskatīt, bet ne saglabāt vai iesniegt.</p>}
   {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
-  {error&&<p className="meets-inline-error" role="alert">{error}</p>}
+  {error&&<>
+   <p className="meets-inline-error event-inline-validation">{error}</p>
+   <div className="event-editor-error-toast" role="alert" aria-atomic="true">
+    <span className="event-editor-error-icon" aria-hidden="true">!</span>
+    <div className="event-editor-error-content"><strong>Jāpārbauda pasākuma informācija</strong><p>{error}</p></div>
+    <button type="button" className="event-editor-error-dismiss" aria-label="Aizvērt kļūdas paziņojumu" onClick={()=>setError('')}>×</button>
+   </div>
+  </>}
   {stage!=='done'&&stage!=='auth'&&<div className="event-save-state" role="status"><span>{busy?'Saglabā…':lastSaved?'Pēdējā lokālā saglabāšana '+lastSaved:'Izmaiņas automātiski saglabājas šajā ierīcē.'}</span>{account&&orgId&&<span>· Melnrakstu vari saglabāt arī kontā.</span>}</div>}
 
   {stage==='edit'&&<form className="quick-flow-card event-editor-form" onSubmit={e=>{e.preventDefault();preview();}}>
