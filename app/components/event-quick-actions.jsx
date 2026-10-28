@@ -4,6 +4,7 @@ import {icsContent,navigationLinks} from '../../lib/meets-personal.js';
 import {eventShareUrl,eventShareTargets,officialEventUrl} from '../../lib/event-sharing.js';
 import {filterRegistryEvents} from '../../lib/registry-filters.js';
 import {isManualCollection,eventInCollection} from '../../lib/personal-collections.js';
+import {refreshSession} from '../../lib/auth-client.js';
 
 const FAVORITES_KEY='meets_favorites_v1';
 const SESSION_KEY='meets_user_session_v1';
@@ -51,9 +52,8 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
    let session=sessionRead();
    if(session?.access_token){
     if(session.expires_at&&session.expires_at<Date.now()+120000&&session.refresh_token){
-     const res=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'refresh',token:session.refresh_token})});
-     if(!res.ok)throw Error('Pieslēdzies atkārtoti, lai saglabātu kontā.');
-     const value=await res.json();session={...value,expires_at:Date.now()+(value.expires_in||3600)*1000};localStorage.setItem(SESSION_KEY,JSON.stringify(session));
+     try{session=await refreshSession(session.refresh_token);}catch{throw Error('Pieslēdzies atkārtoti, lai saglabātu kontā.');}
+     localStorage.setItem(SESSION_KEY,JSON.stringify(session));
     }
     const res=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:next?'add':'remove',token:session.access_token,eventId:event.id})});if(!res.ok)throw Error('Saglabāšana kontā neizdevās.');
    }

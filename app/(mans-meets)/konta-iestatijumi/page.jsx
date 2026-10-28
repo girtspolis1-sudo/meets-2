@@ -18,7 +18,7 @@ async function resizeImage(file){
 export default function AccountSettings(){
  const {session}=useAccountSession();
  const registries=useAccountData('registries'),profile=useAccountData('avatar');
- const savedName=registries.data?.profile?.display_name||'',avatar=profile.data?.avatar_data_url||'';
+ const savedName=registries.data?.profile?.display_name||'',avatar=profile.data?.avatar_url||profile.data?.avatar_data_url||'';
  const [name,setName]=useState(null),[busy,setBusy]=useState(''),[message,setMessage]=useState(''),[error,setError]=useState('');
  const [currentPassword,setCurrentPassword]=useState(''),[password,setPassword]=useState(''),[repeat,setRepeat]=useState('');
  // Show the saved name until the person starts editing it.
@@ -27,9 +27,9 @@ export default function AccountSettings(){
  async function act(fn,key){setBusy(key);setError('');setMessage('');try{await fn();setMessage('Izmaiņas saglabātas.')}catch(e){setError(e.message)}finally{setBusy('')}}
  async function saveName(e){e.preventDefault();const display_name=nameValue.trim();await act(async()=>{await accountRequest('/api/registries','profile',{display_name});setAccountData('registries',d=>({...d,profile:{...d.profile,display_name}}));setName(null);},'name')}
  async function savePhoto(e){const file=e.target.files?.[0];if(!file)return;
-  await act(async()=>{const value=await resizeImage(file);await accountRequest('/api/account','updateAvatar',{avatarDataUrl:value});setAccountData('avatar',d=>({...d,avatar_data_url:value}));},'avatar');e.target.value='';
+  await act(async()=>{const value=await resizeImage(file);const saved=await accountRequest('/api/account','updateAvatar',{avatarDataUrl:value});setAccountData('avatar',d=>({...d,avatar_url:saved.avatar_url,avatar_data_url:null}));},'avatar');e.target.value='';
  }
- async function removePhoto(){await act(async()=>{await accountRequest('/api/account','updateAvatar',{avatarDataUrl:null});setAccountData('avatar',d=>({...d,avatar_data_url:null}));},'avatar')}
+ async function removePhoto(){await act(async()=>{await accountRequest('/api/account','updateAvatar',{avatarDataUrl:null});setAccountData('avatar',d=>({...d,avatar_url:null,avatar_data_url:null}));},'avatar')}
  async function changePassword(e){e.preventDefault();if(password!==repeat){setError('Jaunās paroles nesakrīt.');return}
   await act(async()=>{await accountRequest('/api/account','changePassword',{currentPassword,newPassword:password});setCurrentPassword('');setPassword('');setRepeat('');},'password')
  }

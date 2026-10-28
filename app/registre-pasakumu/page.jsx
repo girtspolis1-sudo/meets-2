@@ -3,7 +3,7 @@ export const metadata={title:'Pievienot pasākumu vai norises vietu'};
 export default function RegisterEntry(){
  return <section className="meets-organizer-page quick-flow">
   <div className="meets-account-heading"><div><p className="eyebrow">MEETS · Organizatoriem</p>
-   <h1>Ko vēlies pievienot?</h1><p className="meets-muted">Izvēlies darbību. Pasākumu var sākt veidot arī bez pieslēgšanās.</p></div>
+   <h1>Ko vēlies pievienot?</h1><p className="meets-muted">Izvēlies darbību. Pasākumu vari sākt aizpildīt uzreiz; adreses izvēlei un iesniegšanai būs jāpieslēdzas.</p></div>
    <Link className="button" href="/organizators">Organizatora kabinets →</Link></div>
   <div className="quick-flow-choices">
    <Link href="/registre-pasakumu/vienkarsi" className="quick-flow-choice">

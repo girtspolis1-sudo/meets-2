@@ -5,6 +5,7 @@ import {useSearchParams} from 'next/navigation';
 import ProfileShell from '../components/profile-shell.jsx';
 import {rigaDate} from '../../lib/meets-personal.js';
 import {resolveOrganizationId,canWriteOrganization} from '../../lib/organizer-workspace.js';
+import {refreshSession as renewToken} from '../../lib/auth-client.js';
 
 const SESSION='meets_user_session_v1';
 const PANELS=new Set(['overview','events','venues','profile']);
@@ -23,10 +24,7 @@ async function rpc(action,values={},session=sessionRead()){
 }
 async function refreshSession(session){
  if(!session?.refresh_token)throw Error('Sesija beigusies.');
- const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'refresh',token:session.refresh_token})});
- const body=await response.json().catch(()=>({}));
- if(!response.ok)throw Error(body.error||'Sesija beigusies.');
- const value={...body,expires_at:Date.now()+(body.expires_in||3600)*1000};
+ const value=await renewToken(session.refresh_token);
  localStorage.setItem(SESSION,JSON.stringify(value));
  window.dispatchEvent(new Event('meets-user-changed'));
  return value;
