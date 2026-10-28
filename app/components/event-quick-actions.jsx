@@ -29,7 +29,7 @@ async function copyLink(value){
 }
 function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch{return null;}}
 
-export default function EventQuickActions({event,saved,onSave,onCalendar,compact=false,disabledFavorite=false,favoriteOnly=false,listOnly=false,quiet=false,autoOpenList=false}){
+export default function EventQuickActions({event,saved,onSave,onCalendar,compact=false,disabledFavorite=false,favoriteOnly=false,listOnly=false,quiet=false}){
  const [localSaved,setLocalSaved]=useState(false),[busy,setBusy]=useState(false),[menu,setMenu]=useState(''),[status,setStatus]=useState('');
  const [registries,setRegistries]=useState([]),[listLoading,setListLoading]=useState(false),[newList,setNewList]=useState('');
  const controlled=typeof saved==='boolean'&&typeof onSave==='function',isSaved=controlled?saved:localSaved;
@@ -76,7 +76,6 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
    const b=await r.json();if(!r.ok)throw Error(b.error||'Sarakstus neizdevās ielādēt.');setRegistries(b.registries||[]);setMenu('lists');
   }catch(e){setStatus(e.message);}finally{setListLoading(false);}
  }
- useEffect(()=>{if(autoOpenList&&listOnly)loadLists();},[autoOpenList,listOnly,event.id]);
  function belongs(item){return isManualCollection(item)?eventInCollection(item,event.id):filterRegistryEvents([event],item.filters||{},item.included_event_ids||[],item.excluded_event_ids||[]).length>0;}
  async function toggleList(item){
   const session=sessionRead();if(!session?.access_token)return;

@@ -1,7 +1,6 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
-import EventQuickActions from '../components/event-quick-actions.jsx';
 import {placeFromEvent} from '../../lib/location-follow.js';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
@@ -152,7 +151,6 @@ function popupActionsHtml(e,favorites,editLink){
   .map(([name,url])=>'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">'+esc(name)+'</a>').join('');
  return '<div class="popup-event-actions meets-event-action-grid meets-circle-actions" role="group" aria-label="Pasākuma darbības">'+
   '<button type="button" class="meets-circle-action popup-save-favorite" data-event-id="'+id+'" aria-label="'+favoriteLabel+'" title="'+favoriteLabel+'" aria-pressed="'+saved+'">'+popupActionIcon('heart')+'<small class="meets-quiet-label">Favorīts</small></button>'+
-  '<button type="button" class="meets-circle-action popup-add-list" data-event-id="'+id+'" aria-label="Pievienot pasākumu sarakstam" title="Pievienot sarakstam">'+popupActionIcon('list')+'<small class="meets-quiet-label">Saraksts</small></button>'+
   button('calendar','Pievienot kalendāram','popup-save-calendar','Kalendārs')+
   (google?'<details class="meets-popup-route"><summary class="meets-circle-action" aria-label="Maršruts" title="Maršruts">'+popupActionIcon('pin')+'<small class="meets-quiet-label">Norādes</small></summary><div class="meets-event-action-choices"><a target="_blank" rel="noopener noreferrer" href="'+esc(google)+'">Google Maps ↗</a>'+(waze?'<a target="_blank" rel="noopener noreferrer" href="'+esc(waze)+'">Waze ↗</a>':'')+'</div></details>'
    :'<button type="button" class="meets-circle-action" disabled aria-label="Nav adreses maršrutam" title="Nav adreses maršrutam">'+popupActionIcon('pin')+'<small class="meets-quiet-label">Norādes</small></button>')+
@@ -296,7 +294,6 @@ export default function OsmEventMap(){
  const [mapMode,setMapMode]=useState('loading');
  const [mapError,setMapError]=useState('');
  const [mobileGroupKey,setMobileGroupKey]=useState('');
- const [listEvent,setListEvent]=useState(null);
  const [mapRetry,setMapRetry]=useState(0);
  const [isAdminSession,setIsAdminSession]=useState(false);
  const [clockNow,setClockNow]=useState(()=>new Date());
@@ -720,7 +717,6 @@ export default function OsmEventMap(){
      if(!button)return;
      const item=group.events.find(e=>String(e.id)===button.dataset.eventId);
      if(!item)return;
-     if(button.classList.contains('popup-add-list')){setListEvent(item);return;}
      if(button.classList.contains('popup-save-calendar')){calendarDownload(item);return;}
      if(button.classList.contains('popup-save-favorite')){
       toggleFavorite(item.id);
@@ -1038,7 +1034,6 @@ export default function OsmEventMap(){
 
   {!loading&&!error&&activeEvents.length===0&&!audience&&!homeCategory&&<div className="map-no-results" role="status"><strong>Šajos filtros pasākumi nav atrasti.</strong><span>Palielini meklēšanas attālumu vai izvēlies plašāku datumu.</span><div><button type="button" className="button compact" onClick={()=>setRadiusKm(0)}>Visa karte</button><button type="button" className="button compact" onClick={()=>changePeriod('month')}>Šomēnes</button><button type="button" className="button compact" onClick={resetFilters}>Notīrīt filtrus</button></div></div>}
   {mobileSheetGroup&&<MobileEventSheet group={mobileSheetGroup} activeIds={activeIds} favorites={favorites} onFavorite={toggleFavorite} onCalendar={calendarDownload} onClose={()=>setMobileGroupKey('')}/>}
-  {listEvent&&<MapListDialog key={listEvent.id} event={listEvent} onClose={()=>setListEvent(null)}/>}
   {audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">Izvēlētajai auditorijai šajā laikā un rādiusā nav pasākumu ar pārbaudītu piemērotību. Izvēlies citu auditoriju vai maini laiku un rādiusu.</p>}
   {homeCategory&&!audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">
    {HOME_CATEGORY_FILTERS[homeCategory].emptyMessage||'Šajā kategorijā izvēlētajā laikā un rādiusā pasākumi nav atrasti. Maini datumu vai rādiusu, vai noņem kategorijas filtru.'}
@@ -1055,19 +1050,3 @@ export default function OsmEventMap(){
  </>;
 }
 
-function MapListDialog({event,onClose}){
- const dialogRef=useRef(null);
- useEffect(()=>{
-  const dialog=dialogRef.current;
-  dialog?.showModal();
-  return()=>{if(dialog?.open)dialog.close();};
- },[]);
- return <dialog ref={dialogRef} className="meets-map-list-dialog" aria-label={'Pievienot sarakstam: '+event.title} onClose={onClose} onCancel={onClose}>
-  <header className="meets-map-list-dialog-header">
-   <div><small>Mani saraksti</small><h2>{event.title}</h2></div>
-   <button type="button" aria-label="Aizvērt saraksta izvēli" onClick={onClose}>✕</button>
-  </header>
-  <p>Izvēlies sarakstu vai izveido jaunu.</p>
-  <EventQuickActions event={event} listOnly autoOpenList/>
- </dialog>;
-}

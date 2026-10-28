@@ -241,7 +241,7 @@ export default function EventCatalog(){
   {sharedFilterCount>0&&<p className="catalog-active-map-filters" role="status">Pielietota atlase no kartes — {sharedFilterCount} papildu kritēriji. Izmanto <strong>Notīrīt filtrus</strong>, lai redzētu visus pasākumus.</p>}
   <div className="catalog-follow-info">
    <span>⌖ Seko norises vietai un vienuviet redzi tur gaidāmos pasākumus.</span>
-   <Link href="/mani-pasakumi?view=following">Manas sekotās vietas ↗</Link>
+   <Link href="/sekosana">Manas sekotās vietas ↗</Link>
   </div>
   <div className="result-toolbar">
    <p aria-live="polite"><strong>{filtered.length}</strong> no {rows.length} ierakstiem{activeFilterCount||period!=='all'||sharedFilterCount?<> · <strong>{activeFilterCount+(period!=='all'?1:0)+sharedFilterCount}</strong> aktīvi filtri</>:null}</p>
