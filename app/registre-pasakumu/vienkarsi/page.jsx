@@ -8,7 +8,7 @@ import ProfileShell from '../../components/profile-shell.jsx';
 import {rigaDate} from '../../../lib/meets-personal.js';
 import WeeklySchedule from '../../components/weekly-schedule.jsx';
 import {countOccurrences,cleanPrice} from '../../../lib/event-schedule.js';
-import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
+import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,normalizeEventTime,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
 import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
 
 const SESSION='meets_user_session_v1';
@@ -16,7 +16,7 @@ const DEFAULT={...QUICK_EVENT_EMPTY,recurrence_note:''};
 
 function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION)||'null');}catch{return null;}}
 function safeRead(key){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v&&typeof v==='object'&&!Array.isArray(v)?v:null;}catch{return null;}}
-function cleanDraft(value){return {...DEFAULT,...Object.fromEntries(Object.keys(DEFAULT).map(k=>[k,value?.[k]??DEFAULT[k]]))};}
+function cleanDraft(value){const restored={...DEFAULT,...Object.fromEntries(Object.keys(DEFAULT).map(k=>[k,value?.[k]??DEFAULT[k]]))};return {...restored,time_from:normalizeEventTime(restored.time_from),time_to:normalizeEventTime(restored.time_to)};}
 function prettyDate(date){if(!date)return 'Nav norādīts';const [y,m,d]=date.split('-');return d+'.'+m+'.'+y;}
 async function refreshAccount(session){
  if(!session?.refresh_token)throw Error('Sesija beigusies.');
