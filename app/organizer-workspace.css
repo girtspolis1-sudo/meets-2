@@ -169,3 +169,62 @@
 .org-row-actions .org-add-event:hover{background:#5f36a0}
 .org-card>.button{min-height:44px}
 @media(max-width:760px){.org-card-counts{gap:5px}.org-card-counts span{font-size:11px;padding:5px 7px}.org-row-actions .org-add-event{width:100%;justify-content:center}}
+
+/* MEETS organizer event editor: compact form, saved address picker and map modal */
+.meets-profile-slot .unified-event-editor{max-width:none;width:100%;padding:6px 8px 35px;margin:0}
+.unified-event-editor .meets-account-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 10px}
+.unified-event-editor .meets-account-heading h1{font-size:clamp(27px,2.8vw,36px);margin:4px 0 5px}
+.unified-event-editor .meets-account-heading .meets-muted{font-size:13px;margin:0;line-height:1.35}
+.unified-event-editor .meets-account-heading .eyebrow{font-size:10px;letter-spacing:.12em}
+.event-editor-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+.event-editor-header-actions label{display:grid;gap:4px;font-size:11px;color:#65566e;font-weight:500}
+.event-editor-header-actions select{min-height:40px;min-width:160px;max-width:235px;background:#fff;border:1px solid #ded3eb;border-radius:10px;padding:8px;font:inherit;font-size:12px}
+.event-editor-header-actions .button{min-height:42px;padding:10px 14px;font-size:12px;font-weight:550}
+.unified-event-editor .meets-organizer-success,.unified-event-editor .meets-inline-error{margin:7px 0;padding:10px 13px;border-radius:11px;font-size:12px}
+.unified-event-editor .event-save-state{margin:3px 0 9px;font-size:11px}
+.unified-event-editor .event-editor-form{width:100%;max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px!important;padding:0;border:0;background:transparent;box-shadow:none}
+.unified-event-editor .event-editor-section{display:grid;align-content:start;gap:10px;background:#fff;border:1px solid #e7dfee;border-radius:15px;padding:15px;min-width:0}
+.unified-event-editor .event-editor-section-title{gap:9px;align-items:center}
+.unified-event-editor .event-editor-section-title>span{height:27px;min-width:27px;font-size:13px;border-radius:8px}
+.unified-event-editor .event-editor-section-title h2{font-size:17px;font-weight:650;margin:0 0 2px}
+.unified-event-editor .event-editor-section-title p{font-size:11px;line-height:1.35}
+.unified-event-editor .event-editor-form label{font-size:12px;font-weight:550;gap:5px}
+.unified-event-editor .event-editor-section :is(input:not([type=checkbox]),select,textarea){padding:9px 10px;border-color:#ddd4e8;border-radius:10px;font-size:13px;min-height:42px}
+.unified-event-editor .event-editor-section textarea{min-height:76px;resize:vertical}
+.unified-event-editor .quick-flow-two{gap:9px 12px}
+.unified-event-editor .event-extra-details{border:1px solid #eee6f4;border-radius:10px;padding:10px 12px}
+.unified-event-editor .event-extra-details summary{font-size:12px;font-weight:600;color:#6240a1;cursor:pointer;list-style:none}
+.unified-event-editor .event-extra-details summary::before{content:'▸';display:inline-block;margin-right:6px}
+.unified-event-editor .event-extra-details[open] summary::before{content:'▾'}
+.unified-event-editor .event-extra-details summary small{font-size:10px;color:#887c93;font-weight:400}
+.unified-event-editor .event-extra-details[open]{display:grid;gap:9px}
+.unified-event-editor .event-editor-actions{grid-column:1/-1;margin:0;gap:8px;justify-content:flex-end;position:sticky;bottom:7px;z-index:4;padding:9px;border:1px solid #ece5f4;border-radius:12px;box-shadow:0 7px 18px rgba(53,29,80,.055)}
+.unified-event-editor .event-editor-actions .button{font-size:12px;min-height:42px;padding:9px 13px}
+.event-address-choice{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:9px;min-width:0}
+.event-address-choice label{min-width:0}
+.event-address-choice select{width:100%;text-overflow:ellipsis}
+.event-add-address{background:#7041ae!important;color:white!important;border:1px solid #7041ae!important;font-weight:600!important;min-height:42px;white-space:nowrap;font-size:12px;padding:9px 13px}
+.event-add-address:hover{background:#60339e!important}
+.event-add-address:disabled{opacity:.5}
+.event-selected-address{display:flex;flex-direction:column;gap:3px;background:#f5f0fd;border:1px solid #e3daf5;border-radius:10px;margin:0;padding:10px 12px;font-size:12px}
+.event-selected-address strong{font-weight:600;color:#573291}
+.event-selected-address span{color:#7d708c;font-size:11px;overflow-wrap:anywhere}
+.event-address-help{color:#766a85;font-size:11px;margin:0;line-height:1.45}
+.event-address-dialog{width:min(770px,calc(100vw - 24px));max-height:min(92dvh,940px);border:1px solid #e6dbf2;border-radius:20px;padding:0;background:#fff;box-shadow:0 25px 85px #21102e4f;color:#26233f;overflow:auto}
+.event-address-dialog::backdrop{background:rgba(26,19,42,.56);backdrop-filter:blur(3px)}
+.event-address-dialog-content{display:flex;flex-direction:column;gap:14px;padding:18px}
+.event-address-dialog-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.event-address-dialog-heading h2{font-size:22px;margin:1px 0 4px;line-height:1.2}
+.event-address-dialog-heading p:last-child{font-size:12px;color:#7a7087;line-height:1.45;margin:0}
+.event-address-dialog-heading .eyebrow{font-size:10px;margin:0;color:#8558b8}
+.event-address-dialog-close{min-width:40px;height:40px;border:1px solid #e6dff1;border-radius:10px;background:#fff;color:#554667;font-size:24px;cursor:pointer}
+.event-address-dialog-name{display:grid;gap:6px;font-size:12px;font-weight:550}
+.event-address-dialog-name input{min-height:44px;width:100%;border:1px solid #dacee8;border-radius:10px;padding:10px;font:inherit}
+.event-address-dialog-selected{border:1px solid #e1d6f0;background:#f7f4fc;border-radius:10px;padding:9px 12px;display:grid;gap:3px;font-size:12px}
+.event-address-dialog-selected small{color:#806e92}
+.event-address-dialog-actions{display:flex;justify-content:flex-end;gap:9px;position:sticky;bottom:0;background:#fff;border-top:1px solid #eee7f4;padding:13px 0 2px;z-index:2}
+.event-address-dialog-actions .button{min-height:44px;font-size:12px;font-weight:600}
+.event-address-dialog .meets-location-picker{margin:0;min-width:0}
+.event-address-dialog :is(input,button,select):focus-visible{outline:2px solid #7248c0;outline-offset:2px}
+@media(max-width:1090px){.unified-event-editor .event-editor-form{grid-template-columns:1fr}.unified-event-editor .event-editor-actions{grid-column:auto}.unified-event-editor .meets-account-heading{align-items:flex-start;flex-wrap:wrap}}
+@media(max-width:700px){.meets-profile-slot .unified-event-editor{padding:4px 8px 28px}.unified-event-editor .event-editor-section{padding:12px}.event-address-choice{grid-template-columns:1fr}.event-add-address{width:100%;justify-content:center}.event-editor-header-actions{width:100%;justify-content:stretch}.event-editor-header-actions label{flex:1}.event-editor-header-actions .button{flex:1;text-align:center}.unified-event-editor .event-editor-actions{bottom:4px}.unified-event-editor .event-editor-actions .button{flex:1 1 110px}.event-address-dialog-content{padding:13px}.event-address-dialog-heading h2{font-size:19px}.event-address-dialog-actions .button{flex:1}}
