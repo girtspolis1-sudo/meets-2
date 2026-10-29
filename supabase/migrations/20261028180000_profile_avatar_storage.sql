@@ -24,3 +24,12 @@ using (
   bucket_id = 'meets-avatars'
   and (storage.foldername(name))[1] = (select auth.uid())::text
 );
+
+-- Storage deletes also need select access to the owner's own objects.
+drop policy if exists "avatars owner select" on storage.objects;
+create policy "avatars owner select"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'meets-avatars'
+  and (storage.foldername(name))[1] = (select auth.uid())::text
+);
