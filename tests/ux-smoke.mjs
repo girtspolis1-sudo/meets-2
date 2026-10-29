@@ -441,6 +441,60 @@ for(const width of [360,390,768,1440]){
  await page.close();
 }
 
+// Sign-in, password reset request and reset page run against the browser auth client.
+{
+ const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+ const faults=[];page.on('pageerror',e=>faults.push(e.message));
+ const userId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb51';
+ const authCalls=[];
+ const token={access_token:'browser-auth-access-token',refresh_token:'browser-auth-refresh',expires_in:3600,user:{id:userId,email:'test@example.com'}};
+ await page.route('**/api/auth-config',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({url:'https://auth.example.test',key:'publishable-test-key'})}));
+ await page.route('https://auth.example.test/auth/v1/**',route=>{
+  const url=new URL(route.request().url()),method=route.request().method();
+  authCalls.push(method+' '+url.pathname+url.search);
+  const json=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'*'},body:JSON.stringify(value)});
+  if(method==='OPTIONS')return json({});
+  if(url.pathname==='/auth/v1/token')return json(token);
+  if(url.pathname==='/auth/v1/recover')return json({});
+  if(url.pathname==='/auth/v1/user')return json({id:userId,email:'test@example.com'});
+  return json({msg:'unexpected'},400);
+ });
+ await page.route('**/api/account',r=>{const b=r.request().postDataJSON()||{};
+  const body={list:{favorites:[],plans:[],visits:[]},dashboard:{interests:[],reminders:[],notices:[],follows:[],locationFollows:[],shared:null,directory:{organizations:[],venues:[],sources:[]},followedEvents:[],savedDetails:[]},getProfile:{avatar_url:null}}[b.action]||{};
+  return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});});
+ await page.route('**/api/registries',r=>r.fulfill({status:200,contentType:'application/json',body:'{"registries":[],"profile":{"display_name":""}}'}));
+ try{
+  await page.goto(base+'/profils',{waitUntil:'domcontentloaded',timeout:45000});
+  await page.getByRole('textbox',{name:'E-pasts'}).fill('test@example.com');
+  await page.getByRole('button',{name:'Turpināt →'}).click();
+  await page.getByRole('button',{name:'Aizmirsi paroli?'}).click();
+  await page.getByRole('button',{name:'Nosūtīt saiti'}).click();
+  await page.getByText('nosūtījām saiti paroles atjaunošanai',{exact:false}).waitFor({timeout:10000});
+  if(!authCalls.some(x=>x.startsWith('POST /auth/v1/recover?redirect_to='))){fails++;console.error('Password reset did not call recover',authCalls);}
+  await page.getByRole('button',{name:/Atpakaļ uz pieslēgšanos/}).click();
+  await page.getByLabel('Parole',{exact:true}).fill('example-password');
+  await page.getByRole('button',{name:'Pieslēgties →'}).click();
+  await page.getByRole('heading',{name:'Pārskats'}).waitFor({timeout:12000});
+  const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('meets_user_session_v1')||'null'));
+  if(stored?.access_token!==token.access_token||stored?.user?.id!==userId){fails++;console.error('Browser sign-in did not store the session',stored);}
+  if(!authCalls.some(x=>x.startsWith('POST /auth/v1/token?grant_type=password'))){fails++;console.error('Sign-in did not go to Supabase Auth from the browser',authCalls);}
+  await assertLayout(page,'signed-in-from-browser',390);
+
+  await page.evaluate(()=>localStorage.removeItem('meets_user_session_v1'));
+  await page.goto(base+'/atjaunot-paroli#access_token=recovery-access-token&refresh_token=recovery-refresh&expires_in=3600&type=recovery',{waitUntil:'domcontentloaded',timeout:45000});
+  await page.getByLabel('Jaunā parole').fill('new-example-password');
+  await page.getByLabel('Atkārtot paroli').fill('new-example-password');
+  await page.getByRole('button',{name:'Saglabāt jauno paroli'}).click();
+  await page.getByRole('heading',{name:'Parole nomainīta'}).waitFor({timeout:10000});
+  if(!authCalls.some(x=>x==='PUT /auth/v1/user')){fails++;console.error('Password update did not call Supabase Auth',authCalls);}
+  if(await page.evaluate(()=>window.location.hash)){fails++;console.error('Recovery tokens left in the address bar');}
+  await assertLayout(page,'password-reset',390);
+  await page.screenshot({path:'ux-screenshots/390-password-reset.png',fullPage:true});
+  if(faults.length){fails++;console.error('Auth JS errors',faults.slice(0,3));}
+ }catch(error){fails++;console.error('Auth smoke failed',error.message,authCalls,faults.slice(0,3));try{await page.screenshot({path:'ux-screenshots/auth-failure.png',fullPage:true});}catch{}}
+ await page.close();
+}
+
 await browser.close();
 if(fails){console.error('UX smoke failures:',fails);process.exit(1);}
 console.log('PASS: responsive smoke checks include 360px, 390px, 768px and 1440px');

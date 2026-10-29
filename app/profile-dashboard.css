@@ -271,3 +271,7 @@ body:has(.meets-profile-auth) .meets-auth-inline-alert{margin:2px 0;padding:9px 
 /* Mode switch labels must not break inside a word ("Organizēšan-a"). */
 .meets-profile-mode-switch a span{white-space:nowrap;overflow-wrap:normal;word-break:normal}
 .meets-profile-mode-switch a{padding-inline:4px}
+
+/* Sign-in feedback and password reset entry */
+.meets-auth-notice{margin:0;padding:10px 12px;border-radius:10px;background:#eef8f1;color:#1f5f3a;font-size:13px;line-height:1.5}
+.meets-auth-forgot{justify-self:center;font-size:13px}

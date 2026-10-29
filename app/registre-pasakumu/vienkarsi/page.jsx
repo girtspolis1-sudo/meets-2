@@ -10,6 +10,7 @@ import WeeklySchedule from '../../components/weekly-schedule.jsx';
 import {countOccurrences,cleanPrice} from '../../../lib/event-schedule.js';
 import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,normalizeEventTime,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
 import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
+import {refreshSession} from '../../../lib/auth-client.js';
 
 const SESSION='meets_user_session_v1';
 const DEFAULT={...QUICK_EVENT_EMPTY,recurrence_note:''};
@@ -20,10 +21,7 @@ function cleanDraft(value){const restored={...DEFAULT,...Object.fromEntries(Obje
 function prettyDate(date){if(!date)return 'Nav norādīts';const [y,m,d]=date.split('-');return d+'.'+m+'.'+y;}
 async function refreshAccount(session){
  if(!session?.refresh_token)throw Error('Sesija beigusies.');
- const response=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'refresh',token:session.refresh_token})});
- const body=await response.json().catch(()=>({}));
- if(!response.ok)throw Error(body.error||'Sesija beigusies.');
- const next={...body,expires_at:Date.now()+(body.expires_in||3600)*1000};
+ const next=await refreshSession(session.refresh_token);
  localStorage.setItem(SESSION,JSON.stringify(next));window.dispatchEvent(new Event('meets-user-changed'));
  return next;
 }
@@ -306,7 +304,8 @@ function SimpleEventFlow(){
      </label>
      <button className="button event-add-address" type="button" disabled={!account||!orgId||!canEdit||busy} onClick={()=>setAddressOpen(true)}>+ Pievienot jaunu</button>
     </div>
-    {selectedVenue?<p className="event-selected-address" role="status"><strong>⌖ {selectedVenue.name}</strong><span>{selectedVenue.address}</span></p>:
+    {!account&&<p className="event-address-help event-address-signin">Norises adreses glabājas organizatora kontā. <button type="button" className="text-button" onClick={startAuth}>Pieslēdzies</button>, lai izvēlētos vai pievienotu adresi — ievadītais saturs saglabāsies.</p>}
+    {!account?null:selectedVenue?<p className="event-selected-address" role="status"><strong>⌖ {selectedVenue.name}</strong><span>{selectedVenue.address}</span></p>:
       <p className="event-address-help">{addressOptions.mine.length? 'Izvēlies organizatora reģistrētu adresi, vai pievieno jaunu.':'Šai organizācijai vēl nav saglabātu adrešu. Pievieno pirmo adresi.'}</p>}
    </section>
 
@@ -344,7 +343,10 @@ function SimpleEventFlow(){
      const oldGuest=scopedDraftKey(null,orgId);const result=await load(value);
      const chosen=result.result.organizations?.find(o=>o.id===orgId)?.id||(result.result.organizations?.length===1?result.result.organizations[0].id:'');
      setOrgId(chosen);try{localStorage.removeItem(oldGuest);localStorage.removeItem(EVENT_DRAFT_KEY);}catch{}
-     setStage('preview');setError('');setNotice('Pieslēgšanās veiksmīga. Pārbaudi organizatoru un iesniedz pasākumu.');
+     // Without a chosen address the form cannot be previewed yet, so return to it.
+     if(form.venue_id){setStage('preview');setNotice('Pieslēgšanās veiksmīga. Pārbaudi organizatoru un iesniedz pasākumu.');}
+     else{setStage('edit');setNotice('Pieslēgšanās veiksmīga. Izvēlies vai pievieno norises adresi.');}
+     setError('');
     }catch(e){setError(e.message);}
    }}/><button className="button" type="button" onClick={()=>setStage('preview')}>← Atpakaļ</button></div>}
 

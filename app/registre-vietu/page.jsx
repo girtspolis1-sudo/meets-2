@@ -6,6 +6,7 @@ import VenueLocationPicker from '../organizators/venue-location-picker.jsx';
 import Authentication from '../components/account-auth-flow.jsx';
 import ProfileShell from '../components/profile-shell.jsx';
 import {QUICK_VENUE_EMPTY,validateQuickVenue,isCoordinatePair} from '../../lib/event-entry.js';
+import {refreshSession} from '../../lib/auth-client.js';
 
 const SESSION='meets_user_session_v1';
 const PREFIX='meets_venue_draft_v3';
@@ -13,9 +14,7 @@ function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION)||'nul
 function key(userId,orgId){return PREFIX+':'+(userId||'guest')+':'+(orgId||'unassigned');}
 function readDraft(userId,orgId){try{return JSON.parse(localStorage.getItem(key(userId,orgId))||'null');}catch{return null;}}
 async function refreshAccount(session){
- const r=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'refresh',token:session.refresh_token})});
- const b=await r.json().catch(()=>({}));if(!r.ok)throw Error(b.error||'Sesija beigusies.');
- const next={...b,expires_at:Date.now()+(b.expires_in||3600)*1000};localStorage.setItem(SESSION,JSON.stringify(next));window.dispatchEvent(new Event('meets-user-changed'));return next;
+ const next=await refreshSession(session.refresh_token);localStorage.setItem(SESSION,JSON.stringify(next));window.dispatchEvent(new Event('meets-user-changed'));return next;
 }
 
 function VenueRegistrationInner(){

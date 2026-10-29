@@ -7,15 +7,14 @@ import {useEvents} from '../../lib/use-events.js';
 import ProfileShell from '../components/profile-shell.jsx';
 import {HOME_GROUP_KEYS,HOME_CATEGORY_FILTERS} from '../../lib/home-category-filters.js';
 import {cleanRegistryFilters,filterRegistryEvents} from '../../lib/registry-filters.js';
+import {refreshSession as renewToken} from '../../lib/auth-client.js';
 
 const KEY='meets_user_session_v1';
 const DEFAULT={title:'',description:'',filters:{period:'month'},is_published:false,included_event_ids:[],excluded_event_ids:[],organization_id:null};
 function sessionRead(){try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch{return null;}}
 function short(item){return (item.date_from||'Bez datuma')+' · '+item.title;}
 async function refreshSession(account){
- const r=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'refresh',token:account.refresh_token})});
- const b=await r.json().catch(()=>({}));if(!r.ok)throw Error(b.error||'Sesija beigusies.');
- const next={...b,expires_at:Date.now()+(b.expires_in||3600)*1000};localStorage.setItem(KEY,JSON.stringify(next));window.dispatchEvent(new Event('meets-user-changed'));return next;
+ const next=await renewToken(account.refresh_token);localStorage.setItem(KEY,JSON.stringify(next));window.dispatchEvent(new Event('meets-user-changed'));return next;
 }
 
 function ListsInner(){

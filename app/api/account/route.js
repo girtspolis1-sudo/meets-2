@@ -3,6 +3,31 @@ import {placeFromEvent} from '../../../lib/location-follow.js';
 export const dynamic='force-dynamic';
 const BASE=()=>process.env.SUPABASE_URL;
 const KEY=()=>process.env.SUPABASE_PUBLISHABLE_KEY;
+const AVATAR_BUCKET='meets-avatars';
+// Avatars live in Storage; only their public URL goes into user metadata, so the
+// JWT (which carries user metadata) stays small.
+async function storeAvatar(user,bearer,dataUrl){
+ const bytes=Buffer.from(dataUrl.slice(dataUrl.indexOf(',')+1),'base64');
+ const path=user.id+'/'+crypto.randomUUID()+'.jpg';
+ const upload=await fetch(BASE()+'/storage/v1/object/'+AVATAR_BUCKET+'/'+path,{method:'POST',
+  headers:{apikey:KEY(),Authorization:bearer.Authorization,'Content-Type':'image/jpeg','Cache-Control':'31536000','x-upsert':'false'},body:bytes,cache:'no-store'});
+ if(!upload.ok){
+  console.error('avatar_upload_failed',{status:upload.status});
+  return null;
+ }
+ return BASE()+'/storage/v1/object/public/'+AVATAR_BUCKET+'/'+path;
+}
+async function removeAvatar(user,bearer,url){
+ const base=BASE()+'/storage/v1/object/public/'+AVATAR_BUCKET+'/';
+ if(typeof url!=='string'||!url.startsWith(base+user.id+'/'))return;
+ await fetch(BASE()+'/storage/v1/object/'+AVATAR_BUCKET+'/'+url.slice(base.length),{method:'DELETE',
+  headers:{apikey:KEY(),Authorization:bearer.Authorization},cache:'no-store'}).catch(()=>{});
+}
+async function setAvatarMetadata(bearer,avatarUrl){
+ const res=await fetch(BASE()+'/auth/v1/user',{method:'PUT',headers:bearer,body:JSON.stringify({data:{avatar_url:avatarUrl,avatar_data_url:null}}),cache:'no-store'});
+ return res.ok;
+}
+
 export async function POST(request){
  try{
   const {action,email,token,password,eventId,category,enabled,leadMinutes,targetKind,targetId,notificationId,locationKey,locationName,municipality,avatarDataUrl,currentPassword,newPassword}=await request.json();
@@ -22,7 +47,7 @@ export async function POST(request){
     if(res.status===429||code.includes('rate_limit'))error='Sasniegts reģistrācijas vai e-pasta sūtīšanas limits. Uzgaidi un mēģini vēlāk.';
     else if(code==='email_address_invalid'||/email address.+invalid/i.test(message))error='Šī e-pasta adrese nav pieņemta. Pārbaudi adresi un izmanto derīgu e-pastu.';
     else if(code==='email_exists'||code==='user_already_exists')error='Šāds konts jau pastāv. Izvēlies “Man jau ir konts”.';
-    else if(code==='email_not_confirmed')error='Kontam nepieciešams e-pasta apstiprinājums. Tas šobrīd ir ieslēgts Supabase Auth iestatījumos.';
+    else if(code==='email_not_confirmed')error='Vispirms apstiprini e-pastu: atver saiti, ko nosūtījām uz tavu e-pastu.';
     else if(code==='weak_password')error='Parole neatbilst drošības prasībām. Izvēlies garāku un drošāku paroli.';
     else if(code==='signup_disabled')error='Jaunu lietotāju reģistrācija šobrīd ir atspējota.';
     return NextResponse.json({error},{status:res.status===429?429:action==='register'?400:401});
@@ -58,12 +83,24 @@ export async function POST(request){
    const me=await fetch(authUrl+'user',{headers:bearer,cache:'no-store'});
    if(!me.ok)return NextResponse.json({error:'Sesija beigusies. Pieslēdzies vēlreiz.'},{status:401});
    const user=await me.json();
-   if(action==='getProfile')return NextResponse.json({avatar_data_url:typeof user.user_metadata?.avatar_data_url==='string'?user.user_metadata.avatar_data_url:null});
+   const metadata=user.user_metadata||{};
+   const storedUrl=typeof metadata.avatar_url==='string'?metadata.avatar_url:null;
+   if(action==='getProfile'){
+    const legacy=typeof metadata.avatar_data_url==='string'?metadata.avatar_data_url:null;
+    // Move an avatar saved inside the token into Storage the first time it is read.
+    if(legacy&&!storedUrl&&/^data:image\/jpeg;base64,/.test(legacy)){
+     const url=await storeAvatar(user,bearer,legacy);
+     if(url&&await setAvatarMetadata(bearer,url))return NextResponse.json({avatar_url:url,avatar_data_url:null});
+    }
+    return NextResponse.json({avatar_url:storedUrl,avatar_data_url:storedUrl?null:legacy});
+   }
    if(action==='updateAvatar'){
     if(avatarDataUrl!==null&&(typeof avatarDataUrl!=='string'||avatarDataUrl.length>50000||!new RegExp('^data:image/jpeg;base64,[A-Za-z0-9+/]+={0,2}$').test(avatarDataUrl)))return NextResponse.json({error:'Nepieciešams neliels JPEG attēls.'},{status:400});
-    const res=await fetch(authUrl+'user',{method:'PUT',headers:bearer,body:JSON.stringify({data:{avatar_data_url:avatarDataUrl}}),cache:'no-store'});
-    if(!res.ok)return NextResponse.json({error:'Attēlu neizdevās saglabāt.'},{status:400});
-    return NextResponse.json({ok:true,avatar_data_url:avatarDataUrl});
+    const url=avatarDataUrl?await storeAvatar(user,bearer,avatarDataUrl):null;
+    if(avatarDataUrl&&!url)return NextResponse.json({error:'Attēlu neizdevās augšupielādēt. Mēģini vēlreiz.'},{status:502});
+    if(!await setAvatarMetadata(bearer,url))return NextResponse.json({error:'Attēlu neizdevās saglabāt.'},{status:400});
+    if(storedUrl&&storedUrl!==url)await removeAvatar(user,bearer,storedUrl);
+    return NextResponse.json({ok:true,avatar_url:url});
    }
    if(typeof currentPassword!=='string'||typeof newPassword!=='string'||newPassword.length<8||newPassword.length>128||currentPassword===newPassword)return NextResponse.json({error:'Pārbaudi esošo un jauno paroli (vismaz 8 rakstzīmes).'}, {status:400});
    const check=await fetch(authUrl+'token?grant_type=password',{method:'POST',headers:head,body:JSON.stringify({email:user.email,password:currentPassword}),cache:'no-store'});
