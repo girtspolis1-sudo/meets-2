@@ -249,3 +249,34 @@
  .event-editor-error-content strong{font-size:12px}
  .event-editor-error-content p{font-size:12px}
 }
+
+/* First steps for a new organizer */
+.org-steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.org-steps li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid #ece4f1;border-radius:13px;background:#fff}
+.org-steps li>span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#f1ecf7;color:#6f6278;font-weight:800;font-size:13px}
+.org-steps li.done>span{background:#e3f5ea;color:#1f7a45}
+.org-steps li.current{border-color:#c9b5f2;background:#faf7ff}
+.org-steps li.current>span{background:#6a3fd1;color:#fff}
+.org-steps strong{display:block;font-size:14px}
+.org-steps small{display:block;color:#7f7087;font-size:12px;margin-top:2px}
+/* Items that need the organizer's attention */
+.org-row-attention{border-color:#f3c9c2;background:#fff8f6}
+.org-row-attention em{display:block;margin-top:4px;color:#a1351f;font-style:normal;font-size:12px}
+.org-review-note{margin:0;padding:10px 14px;border-radius:12px;background:#fff8e6;color:#7a5a00;font-size:13px}
+/* New organizer: optional fields stay folded */
+.org-more-details{border:1px solid #ece4f1;border-radius:13px;padding:12px 14px;background:#fcfaff}
+.org-more-details>summary{cursor:pointer;font-weight:700;color:#5b3fb0}
+.org-more-details>summary small{font-weight:500;color:#7f7087}
+.org-more-details[open]{display:grid;gap:12px}
+@media(max-width:760px){
+ .org-steps li{grid-template-columns:30px minmax(0,1fr)}
+ .org-steps li>.button{grid-column:1 / -1}
+ /* Compact event rows on phones: no per-field captions */
+ .org-table-row{gap:3px;padding:12px}
+ .org-table-row>*::before{display:none!important}
+ .org-table-row>[data-label="Datums"],.org-table-row>[data-label="Vieta"]{font-size:12px;color:#6f6278}
+ .org-table-row>[data-label="Statuss"]{margin-top:4px}
+ .org-table-row>.org-row-actions{margin-top:6px}
+ /* The tabs above already lead to all organizers */
+ .org-head-actions>.button{display:none}
+}
