@@ -48,6 +48,11 @@ function publicationMeta(event){
  }
  return {key:'other',label:event?.status||'Nav statusa',tone:'warn'};
 }
+function publishedText(count){
+ const n=Number(count)||0;
+ if(!n)return 'Pasākumi paliek pārbaudē (nav importēti vai avots ir paslēpts).';
+ return (n%10===1&&n%100!==11?n+' pasākums publicēts':n+' pasākumi publicēti')+' kartē un sarakstā.';
+}
 function dateRangeText(event){
  const from=dateText(event?.date_from);
  const to=event?.date_to&&event.date_to!==event.date_from?dateText(event.date_to):'';
@@ -182,8 +187,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [submissionMatches,setSubmissionMatches]=useState({}),[emailStatus,setEmailStatus]=useState(null);
  const [organizations,setOrganizations]=useState([]),[bulkProgress,setBulkProgress]=useState('');
 
- async function loadEvents(){
-  setLoading(true);
+ async function loadEvents({quiet=false}={}){
+  if(!quiet)setLoading(true);
   try{
    const [data,mappingData,healthData,sourceData,submissionData]=await Promise.all([
     adminRpc(supabaseUrl,publishableKey,'meets_admin_catalog',{}),
@@ -197,10 +202,10 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    setImportHealth(healthData&&typeof healthData==='object'?healthData:{sports:[],municipalities:[]});
    setSources(Array.isArray(sourceData?.sources)?sourceData.sources:[]);
    setUserSubmissions(Array.isArray(submissionData)?submissionData:[]);
-   setSelectedIds(new Set());
-   setBulkResult(null);
+   // A background reload after an action keeps its result and the selection.
+   if(!quiet){setSelectedIds(new Set());setBulkResult(null);}
    setCatalogLoaded(true);
-   setMessage('');
+   if(!quiet)setMessage('');
    adminRpc(supabaseUrl,publishableKey,'meets_admin_email_status',{}).then(setEmailStatus).catch(()=>setEmailStatus(null));
    loadPlaceSearch();
    adminRpc(supabaseUrl,publishableKey,'meets_admin_organizations',{}).then(list=>setOrganizations(Array.isArray(list)?list:[])).catch(()=>{});
@@ -212,6 +217,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  // Loads the workspace once the signed-in account is confirmed as admin.
  const adminUserId=isAdmin?session?.user?.id:'';
  useEffect(()=>{if(adminUserId)loadEvents();},[adminUserId]);
+ // Messages stay long enough to read, then clear themselves.
+ useEffect(()=>{if(!message)return;const t=setTimeout(()=>setMessage(''),12000);return()=>clearTimeout(t);},[message]);
 
  async function saveUserSubmission(values){
   if(!values?.id)throw new Error('Nav ieraksta identifikatora.');
@@ -265,7 +272,9 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   try{
    await adminRpc(supabaseUrl,publishableKey,'meets_admin_update_event',{p_event_id:event.id,p_status:newStatus,p_venue_name:null,p_latitude:null,p_longitude:null
    });
-   await loadEvents();setMessage(newStatus==='published'?'Pasākums publicēts.':'Pasākuma statuss atjaunots.');
+   setEvents(list=>list.map(item=>item.id===event.id?{...item,status:newStatus}:item));
+   setMessage(newStatus==='published'?`“${event.title}” publicēts kartē un sarakstā.`:'Pasākuma statuss atjaunots.');
+   loadEvents({quiet:true});
   }catch{setMessage('Statusu neizdevās mainīt.');}
   finally{setLoading(false);}
  }
@@ -276,12 +285,21 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     p_address_text:values.addressText||null,p_location_source:values.locationSource||null,
     p_latitude:Number(values.latitude),p_longitude:Number(values.longitude)
    });
-   setEditing(null);await loadEvents();
-   setMessage(publish?'Lokācija verificēta un pasākums publicēts.':'Lokācija verificēta. Pasākums paliek pārbaudē līdz publicēšanai.');
+   setEditing(null);
+   setEvents(list=>list.map(item=>item.id===event.id?{...item,status:publish?'published':item.status,location_quality:'verified_exact',
+    venue_name:values.venueName,latitude:Number(values.latitude),longitude:Number(values.longitude)}:item));
+   setMessage(publish?`Lokācija verificēta un “${event.title}” publicēts.`:'Lokācija verificēta. Pasākums paliek pārbaudē līdz publicēšanai.');
+   loadEvents({quiet:true});
   }catch{setMessage('Lokāciju neizdevās saglabāt.');}
   finally{setLoading(false);}
  }
 
+ // The place's events count as verified at once, so the Mapping list updates without waiting for a reload.
+ function markPlaceVerified(group,values){
+  const ids=new Set(group.events.map(event=>event.id));
+  setEvents(list=>list.map(event=>ids.has(event.id)?{...event,location_quality:'verified_exact',venue_name:values.venueName,
+   latitude:Number(values.latitude),longitude:Number(values.longitude)}:event));
+ }
  async function saveMapping(group,values){
   setLoading(true);
   try{
@@ -293,8 +311,9 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     p_longitude:Number(values.longitude)
    });
    setMappingEditing(null);
-   await loadEvents();
-   setMessage(`Mapping saglabāts: “${result?.alias_text||group.alias}”. Izlaboti ${result?.updated_events||group.events.length} esošie pasākumi; nākamajos importos korekcija tiks piemērota automātiski.`);
+   markPlaceVerified(group,values);
+   setMessage(`Vieta apstiprināta: “${result?.alias_text||group.alias}”. ${publishedText(result?.published_events)} Nākamie importi šo vietu piemēros automātiski.`);
+   loadEvents({quiet:true});
   }catch{
    setMessage('Mappingu neizdevās saglabāt. Pārbaudi vietu, adresi un koordinātas.');
   }finally{setLoading(false);}
@@ -319,18 +338,20 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  }
  // Saves every confident suggestion as a mapping, then reloads once.
  async function acceptManySuggestions(items){
-  let saved=0,failed=0;
+  let saved=0,failed=0,published=0;
   for(const [index,{group,candidate}] of items.entries()){
    setBulkProgress(`Saglabā ${index+1}/${items.length}: ${group.alias}`);
    try{
-    await adminRpc(supabaseUrl,publishableKey,'meets_admin_save_location_mapping',{p_sample_event_id:group.events[0].id,p_venue_name:group.alias,
+    const result=await adminRpc(supabaseUrl,publishableKey,'meets_admin_save_location_mapping',{p_sample_event_id:group.events[0].id,p_venue_name:group.alias,
      p_address_text:candidate.displayName||candidate.label||group.alias,p_latitude:Number(candidate.latitude),p_longitude:Number(candidate.longitude)});
+    markPlaceVerified(group,{venueName:group.alias,latitude:candidate.latitude,longitude:candidate.longitude});
+    published+=Number(result?.published_events)||0;
     saved++;
    }catch{failed++;}
   }
   setBulkProgress('');
-  await loadEvents();
-  setMessage(`${saved===1?'Apstiprināta 1 vieta':'Apstiprinātas '+saved+' vietas'}${failed?', '+failed+' neizdevās — tās paliek sarakstā':''}. Nākamie importi tās piemēros automātiski.`);
+  setMessage(`${saved===1?'Apstiprināta 1 vieta':'Apstiprinātas '+saved+' vietas'}${failed?', '+failed+' neizdevās — tās paliek sarakstā':''}. ${publishedText(published)} Nākamie importi tās piemēros automātiski.`);
+  loadEvents({quiet:true});
  }
  async function setOrganizationTrust(organization,trusted){
   try{
@@ -415,8 +436,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     p_event_ids:ids
    });
    setBulkResult(result);
-   await loadEvents();
-   const published=Array.isArray(result?.published)?result.published.length:0;
+   const publishedIds=new Set((Array.isArray(result?.published)?result.published:[]).map(item=>String(item?.id??item)));
+   setEvents(list=>list.map(item=>publishedIds.has(String(item.id))?{...item,status:'published'}:item));
+   setSelectedIds(new Set());
+   loadEvents({quiet:true});
+   const published=publishedIds.size;
    const skipped=Array.isArray(result?.skipped)?result.skipped.length:0;
    const errors=Array.isArray(result?.errors)?result.errors.length:0;
    setMessage(`Masveida publicēšana pabeigta: publicēti ${published}, izlaisti ${skipped}, kļūdas ${errors}.`);
@@ -648,7 +672,10 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    >Karte / masveida darbības <span>{activeEvents.length}</span></button>
   </div>
 
-  {message&&<p className="sync-text admin-workspace-message" role="status">{message}</p>}
+  {message&&<div className="admin-toast" role="status">
+   <p>{message}</p>
+   <button type="button" className="text-button" onClick={()=>setMessage('')} aria-label="Aizvērt paziņojumu">✕</button>
+  </div>}
 
   {workspaceView==='register'&&<AdminEventRegister
    events={events}
