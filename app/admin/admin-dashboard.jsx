@@ -180,6 +180,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [suggestionRunning,setSuggestionRunning]=useState(false),[suggestionProgress,setSuggestionProgress]=useState('');
  const suggestionStop=useRef(false);
  const [submissionMatches,setSubmissionMatches]=useState({}),[emailStatus,setEmailStatus]=useState(null);
+ const [organizations,setOrganizations]=useState([]),[bulkProgress,setBulkProgress]=useState('');
 
  async function loadEvents(){
   setLoading(true);
@@ -201,6 +202,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    setCatalogLoaded(true);
    setMessage('');
    adminRpc(supabaseUrl,publishableKey,'meets_admin_email_status',{}).then(setEmailStatus).catch(()=>setEmailStatus(null));
+   adminRpc(supabaseUrl,publishableKey,'meets_admin_organizations',{}).then(list=>setOrganizations(Array.isArray(list)?list:[])).catch(()=>{});
   }catch{
    setCatalogLoaded(false);
    setMessage('Admin datus neizdevās ielādēt.');
@@ -340,6 +342,28 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   await loadEvents();
   setSuggestionProgress(`${suggestionStop.current?'Apturēts':'Pabeigts'}: apstrādātas ${done} vietas, ieteikumi atrasti ${found}.`);
   setSuggestionRunning(false);
+ }
+ // Saves every confident suggestion as a mapping, then reloads once.
+ async function acceptManySuggestions(items){
+  let saved=0,failed=0;
+  for(const [index,{group,candidate}] of items.entries()){
+   setBulkProgress(`Saglabā ${index+1}/${items.length}: ${group.alias}`);
+   try{
+    await adminRpc(supabaseUrl,publishableKey,'meets_admin_save_location_mapping',{p_sample_event_id:group.events[0].id,p_venue_name:group.alias,
+     p_address_text:candidate.displayName||candidate.label||group.alias,p_latitude:Number(candidate.latitude),p_longitude:Number(candidate.longitude)});
+    saved++;
+   }catch{failed++;}
+  }
+  setBulkProgress('');
+  await loadEvents();
+  setMessage(`${saved===1?'Apstiprināta 1 vieta':'Apstiprinātas '+saved+' vietas'}${failed?', '+failed+' neizdevās — tās paliek sarakstā':''}. Nākamie importi tās piemēros automātiski.`);
+ }
+ async function setOrganizationTrust(organization,trusted){
+  try{
+   await adminRpc(supabaseUrl,publishableKey,'meets_admin_set_organization_trust',{p_organization_id:organization.id,p_trusted:trusted});
+   setOrganizations(list=>list.map(o=>o.id===organization.id?{...o,trusted,suggested:false}:o));
+   setMessage(trusted?`“${organization.name}” pasākumi turpmāk tiks publicēti automātiski, ja pārbaudes būs kārtībā.`:`“${organization.name}” pasākumi atkal tiks pārbaudīti manuāli.`);
+  }catch{setMessage('Organizatora statusu neizdevās mainīt.');}
  }
  async function acceptSuggestion(group,candidate){
   await saveMapping(group,{venueName:group.alias,addressText:candidate.displayName||candidate.label||group.alias,
@@ -688,7 +712,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   </>}
 
   {workspaceView==='userSubmissions'&&<AdminUserSubmissions items={userSubmissions} focusedId={focusedSubmissionId} onReview={reviewUserSubmission}
-   busy={reviewingSubmission} supabaseUrl={supabaseUrl} matches={submissionMatches} onSearchPlace={searchSubmissionPlace}/>}
+   busy={reviewingSubmission} supabaseUrl={supabaseUrl} matches={submissionMatches} onSearchPlace={searchSubmissionPlace}
+   organizations={organizations} onSetTrust={setOrganizationTrust}/>}
 
   {workspaceView==='sources'&&<AdminSourceChannels
    sources={sources}
@@ -707,6 +732,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    onFindSuggestions={()=>findPlaceSuggestions(mappingGroups)}
    onStopSuggestions={()=>{suggestionStop.current=true;}}
    onAcceptSuggestion={acceptSuggestion}
+   onAcceptMany={acceptManySuggestions}
+   bulkProgress={bulkProgress}
    mappings={mappings}
    onMap={setMappingEditing}
    onEditEvent={setEditing}

@@ -25,3 +25,16 @@ test('search query combines alias and municipality without repeating',()=>{
  assert.equal(suggestionQuery({alias:'Saldus',municipality:'Saldus'}),'Saldus');
  assert.equal(suggestionQuery({alias:'Imantas vsk.',municipality:'Rīga'}),'Imantas vsk., Rīga');
 });
+
+test('only strong, unambiguous suggestions can be approved in bulk',async()=>{
+ const {confidentSuggestion}=await import('../lib/admin-location.js');
+ const known={type:'meets_known',score:0.95,sameArea:true,latitude:57.38,longitude:21.57,label:'OC Ventspils'};
+ assert.equal(confidentSuggestion({alias:'OC Ventspils',candidates:[known]}),known);
+ assert.equal(confidentSuggestion({alias:'OC Ventspils',candidates:[{...known,score:0.7}]}),null);
+ assert.equal(confidentSuggestion({alias:'OC Ventspils',candidates:[{...known,sameArea:false}]}),null);
+ const hall={type:'sports_hall',label:'Jelgavas sporta halle',displayName:'Jelgavas sporta halle, Jelgava, Latvija',latitude:56.65,longitude:23.72};
+ assert.equal(confidentSuggestion({alias:'Jelgavas sporta halle',municipality:'Jelgavas valstspilsēta',candidates:[hall]}),hall);
+ assert.equal(confidentSuggestion({alias:'Jelgavas sporta halle',municipality:'Rīgas valstspilsēta',candidates:[hall]}),null,'other municipality');
+ assert.equal(confidentSuggestion({alias:'Jelgavas sporta halle',candidates:[hall,{...hall,latitude:56.7}]}),null,'two exact results');
+ assert.equal(confidentSuggestion({alias:'Jelgavas sporta halle',candidates:[{...hall,type:'town'}]}),null,'area only');
+});

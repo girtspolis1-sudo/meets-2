@@ -29,7 +29,7 @@ function Priorities({items,onOpenView,emailStatus}){
   <div className="admin-overview-panel-head">
    <div><span>Darba kārtība</span><h3 id="admin-priorities-title">Ko darīt vispirms</h3></div>
    {emailStatus&&<span className={'admin-email-status'+(emailStatus.failed?' bad':'')} title={emailStatus.last_error||''}>
-    E-pasti: {emailStatus.sent_7d} nosūtīti 7 dienās{emailStatus.waiting?' · '+emailStatus.waiting+' rindā':''}{emailStatus.failed?' · '+emailStatus.failed+' neizdevās':''}</span>}
+    E-pasti: {emailStatus.sent_7d} nosūtīti 7 dienās{emailStatus.waiting?' · '+emailStatus.waiting+' rindā':''}{emailStatus.held?' · '+emailStatus.held+' gaida dienas kopsavilkumu':''}{emailStatus.failed?' · '+emailStatus.failed+' neizdevās':''}</span>}
   </div>
   {items.length?<ol>
    {items.map((item,index)=><li key={item.key} className={'priority-'+item.tone}>
