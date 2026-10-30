@@ -301,7 +301,13 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
  // Address suggestions are searched in the background by the database; this shows how far it is.
  async function loadPlaceSearch(){
-  try{setPlaceSearch(await adminRpc(supabaseUrl,publishableKey,'meets_admin_place_search_status',{}));}catch{setPlaceSearch(null);}
+  try{
+   const [search,register]=await Promise.all([
+    adminRpc(supabaseUrl,publishableKey,'meets_admin_place_search_status',{}),
+    adminRpc(supabaseUrl,publishableKey,'meets_admin_address_register_status',{}).catch(()=>null)
+   ]);
+   setPlaceSearch(search?{...search,register}:null);
+  }catch{setPlaceSearch(null);}
  }
  async function retryPlaceSearch(){
   try{
