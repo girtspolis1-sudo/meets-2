@@ -53,3 +53,15 @@ test('labels read naturally in Latvian',()=>{
  assert.equal(periodPhrase('weekend'),'šajā nedēļas nogalē');
  assert.deepEqual(widerOptions(30,'7days').map(o=>o.label),['Paplašināt līdz 50 km','Visa Latvija','Rādīt 30 dienas']);
 });
+
+test('live badges only for today, by the Riga clock',async()=>{
+ const {liveBadge,isApproximatePlace}=await import('../lib/map-nearby.js');
+ const today='2026-10-28';
+ const event={date_from:today,time_from:'18:00:00',time_to:'20:00:00'};
+ assert.equal(liveBadge(event,today,18*60+30),'now');
+ assert.equal(liveBadge(event,today,16*60+30),'soon');
+ assert.equal(liveBadge(event,today,12*60),'');
+ assert.equal(liveBadge({...event,date_from:'2026-10-29'},today,18*60+30),'');
+ assert.equal(isApproximatePlace({location_precision:'municipality_center'}),true);
+ assert.equal(isApproximatePlace({location_precision:'venue'}),false);
+});

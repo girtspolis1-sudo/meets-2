@@ -2331,3 +2331,25 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
  .map-location-prompt small{display:none}
  .map-shell:has(.map-location-prompt) .map-list-jump{display:none}
 }
+/* Map round 2: clustered markers, date legend, "search this area" */
+.map-cluster-wrap{background:transparent!important;border:0!important}
+.map-cluster{display:grid;place-items:center;border:3px solid #fff;border-radius:50%;color:#fff;font:900 14px/1 Arial,Helvetica,sans-serif;background:#626a89;box-shadow:0 0 0 5px rgba(98,106,137,.22),0 6px 14px rgba(40,30,70,.25);cursor:pointer;transition:transform .15s ease}
+.map-cluster:hover{transform:scale(1.08)}
+.map-cluster.today{background:#2f8f57;box-shadow:0 0 0 5px rgba(47,143,87,.22),0 6px 14px rgba(30,92,61,.25)}
+.map-cluster.ended-today{background:#c54242;box-shadow:0 0 0 5px rgba(197,66,66,.2),0 6px 14px rgba(100,32,32,.25)}
+.map-cluster.tomorrow{background:#7028e8;box-shadow:0 0 0 5px rgba(112,40,232,.22),0 6px 14px rgba(73,38,111,.25)}
+.map-cluster.dimmed{opacity:.5;filter:grayscale(.85);transform:scale(.8)}
+.map-cluster-wrap.is-hovered .map-cluster{transform:scale(1.15);outline:3px solid var(--accent,#7f00ff)}
+.legend-dot{display:inline-block;width:12px;height:12px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+.legend-dot.today{background:#2f8f57}
+.legend-dot.tomorrow{background:#7028e8}
+.legend-dot.future{background:#626a89}
+.legend-dot.outside{background:#c4c7d1}
+.map-search-area{position:absolute;z-index:705;left:50%;top:calc(100% - 64px);display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:1px solid #d0d5dd;border-radius:999px;background:#fff;color:#1d2939;font:inherit;font-size:14px;font-weight:700;box-shadow:0 6px 18px rgba(16,24,40,.18);transform:translateX(-50%);cursor:pointer}
+.map-search-area svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
+.map-search-area:hover{border-color:var(--accent,#7f00ff);color:var(--accent-dark,#5b00bd)}
+@media(max-width:1000px){.map-search-area{top:auto;bottom:96px}}
+.nearby-live{margin-left:8px;padding:1px 7px;border-radius:999px;font-style:normal;font-size:11px;font-weight:800}
+.nearby-live.now{background:#dcfae6;color:#067647}
+.nearby-live.soon{background:#fef0c7;color:#93370d}
+.nearby-approx{font-size:12px;color:#b54708}
