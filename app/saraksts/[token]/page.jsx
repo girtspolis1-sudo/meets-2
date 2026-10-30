@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import {readEvents} from '../../../lib/events-server.js';
+import {readEventsCached as readEvents} from '../../../lib/events-server.js';
 import EventQuickActions from '../../components/event-quick-actions.jsx';
 
 export const dynamic='force-dynamic';

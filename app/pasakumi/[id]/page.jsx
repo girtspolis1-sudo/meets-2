@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {cache} from 'react';
-import {readEvents} from '../../../lib/events-server.js';
-import {cardCategory,cardDate,cardDescription,cardGroup,cardImage,cardLocation,cardPrice} from '../../../lib/discovery-card.js';
+import {readEventsCached} from '../../../lib/events-server.js';
+import {cardCategory,cardDate,cardDescription,cardGroup,cardImage,cardLocation} from '../../../lib/discovery-card.js';
 import {timeLabel} from '../../../lib/catalog.js';
 import {officialEventUrl} from '../../../lib/event-sharing.js';
 import EventQuickActions from '../../components/event-quick-actions.jsx';
 import EventVenueFavorite from '../../components/event-venue-favorite.jsx';
+import EventFacts from '../../components/event-facts.jsx';
+import {rigaClockMinutes,rigaTodayIso} from '../../../lib/event-date.js';
 
 export const dynamic='force-dynamic';
 
@@ -15,7 +17,7 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // generateMetadata and the page share one catalogue read per request.
 const findEvent=cache(async id=>{
  if(!UUID.test(String(id||'')))return null;
- const {events}=await readEvents();
+ const {events}=await readEventsCached();
  return events.find(event=>String(event.id)===String(id))||null;
 });
 
@@ -78,8 +80,8 @@ export default async function EventPage({params}){
  const {id}=await params;
  const event=await findEvent(id);
  if(!event)notFound();
- const image=cardImage(event),description=cardDescription(event),price=cardPrice(event),official=officialEventUrl(event);
- const time=timeLabel(event),address=addressLine(event);
+ const image=cardImage(event),description=cardDescription(event),official=officialEventUrl(event);
+ const time=timeLabel(event);
  return <article className="meets-event-page">
   <script type="application/ld+json" dangerouslySetInnerHTML={{__html:structuredData(event)}}/>
   <nav className="meets-event-page-back" aria-label="Atpakaļ"><Link href="/pasakumi">← Visi pasākumi</Link></nav>
@@ -89,12 +91,12 @@ export default async function EventPage({params}){
   </div>
   <div className="meets-detail-body">
    <div className="meets-detail-headline"><span className="meets-detail-tag">{cardCategory(event)}</span><h1>{event.title}</h1></div>
-   <div className="meets-detail-key-facts">
-    <p>▦ <strong>{cardDate({...event,time_from:null})}{time!=='Nav norādīts'?' · '+time:''}</strong></p>
-    <div className="meets-detail-location-line"><span>⌖ <strong>{cardLocation(event)}</strong></span><EventVenueFavorite event={event} compact/></div>
-    {price&&<span className="meets-detail-price">{price}</span>}
+   {/* The same facts as on the map card, plus the full date. */}
+   <div className="meets-detail-key-facts event-facts-page">
+    <EventFacts event={event} today={rigaTodayIso()} clock={rigaClockMinutes()}/>
+    <span className="event-facts-date">{cardDate({...event,time_from:null})}{time!=='Nav norādīts'?' · '+time:''}</span>
+    <EventVenueFavorite event={event} compact/>
    </div>
-   {address&&address!==cardLocation(event)&&<p className="meets-muted">{address}</p>}
    {description&&<section className="meets-detail-description"><h2>Par pasākumu</h2><p>{description}</p></section>}
    <div className="meets-detail-follow"><EventQuickActions event={event} listOnly/></div>
    <div className="meets-detail-primary-actions">

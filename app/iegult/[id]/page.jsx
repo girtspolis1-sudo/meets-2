@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
-import {readEvents} from '../../../lib/events-server.js';
+import {readEventsCached as readEvents} from '../../../lib/events-server.js';
 import {filterRegistryEvents,validUuid} from '../../../lib/registry-filters.js';
 export const dynamic='force-dynamic';
 export const metadata={title:'MEETS pasākumu reģistrs',robots:{index:false,follow:false}};

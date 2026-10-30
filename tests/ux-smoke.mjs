@@ -222,14 +222,15 @@ try{
  const marker=desktop.locator('.event-drop-marker-wrap').first();
  await marker.waitFor({timeout:20000});
  await marker.click({force:true});
- const popup=desktop.locator('.leaflet-popup-content .meets-circle-actions').first();
+ // A marker opens its place in the side panel, with the same cards as on phones.
+ const popup=desktop.locator('.nearby-place .meets-circle-actions').first();
  await popup.waitFor({timeout:15000});
  const count=await popup.locator(':scope > *').count();
  if(count!==5){fails++;console.error('Desktop popup requires five action icons, got',count);}
  const icons=await popup.locator('svg').count();
  if(icons!==5){fails++;console.error('Desktop popup requires five SVG icons, got',icons);}
  await popup.getByRole('button',{name:'Dalīties ar pasākumu'}).click();
- const panel=desktop.locator('.leaflet-popup-content .meets-popup-share-options').first();
+ const panel=desktop.locator('.nearby-place .meets-circle-options').first();
  if(await panel.isHidden()){fails++;console.error('Desktop sharing fallback did not open');}
  const telegram=await panel.getByRole('link',{name:'Telegram'}).getAttribute('href');
  if(!telegram?.includes(encodeURIComponent(mockEvent.id))){fails++;console.error('Desktop sharing URL wrong',telegram);}

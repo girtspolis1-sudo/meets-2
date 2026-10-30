@@ -1,11 +1,10 @@
 'use client';
 import {useEffect,useRef} from 'react';
-import {dateLabel,timeLabel} from '../../lib/catalog.js';
-import {eventDateRangeLabel,eventDateState,rigaTodayIso} from '../../lib/event-date.js';
-import EventQuickActions from '../components/event-quick-actions.jsx';
+import EventDetailCard from '../components/event-detail-card.jsx';
 import EventVenueFavorite from '../components/event-venue-favorite.jsx';
 
-export default function MobileEventSheet({group,activeIds,favorites,onFavorite,onCalendar,onClose}){
+// Events at one place on a phone, as the same cards the desktop place panel uses.
+export default function MobileEventSheet({group,activeIds,favorites,onFavorite,onCalendar,onClose,today,clock,distance,isAdmin=false}){
  const closeRef=useRef(null);
  useEffect(()=>{
   const old=document.activeElement;
@@ -43,29 +42,9 @@ export default function MobileEventSheet({group,activeIds,favorites,onFavorite,o
     <button type="button" ref={closeRef} onClick={onClose} aria-label="Aizvērt pasākumu informāciju">✕</button>
    </header>
    <div className="meets-mobile-sheet-events">
-    {events.map(event=>{
-     const selected=activeIds.has(event.id);
-     const state=eventDateState(event,rigaTodayIso());
-     const source=event.sources?.find(x=>x.source)?.source||event.competition_group||'';
-     return <article key={event.id} className={'meets-mobile-sheet-event'+(selected?' is-highlighted':' outside')} data-selected={selected}>
-      <div className="meets-mobile-sheet-event-top">
-       <span className={'event-date-badge '+state.tone}>{state.badge}</span>
-       <small>{event.primary_category||event.event_type||'Pasākums'}</small>
-       {selected&&<span className="meets-sheet-filter-status">Atlasīts</span>}
-      </div>
-      <h3>{event.title}</h3>
-      <p className="meets-mobile-sheet-meta meets-sheet-primary-date">{eventDateRangeLabel(event,dateLabel)}{event.time_from?' · '+timeLabel(event):''}</p>
-      {event.address_raw&&<p className="meets-mobile-sheet-meta meets-sheet-address"><span aria-hidden="true">⌖</span><span>{event.address_raw}</span></p>}
-      {source&&<p className="meets-mobile-sheet-meta meets-sheet-source">{source}</p>}
-      {event.description&&<details className="meets-sheet-description-details"><summary>Apraksts</summary><p>{event.description}</p></details>}
-      {selected?<EventQuickActions event={event} quiet saved={favorites.has(String(event.id))}
-       onSave={onFavorite} onCalendar={onCalendar}/>:
-       <details className="meets-sheet-more-actions"><summary>Pasākuma darbības</summary>
-        <EventQuickActions event={event} quiet saved={favorites.has(String(event.id))}
-         onSave={onFavorite} onCalendar={onCalendar}/></details>}
-      {!selected&&<small className="meets-mobile-sheet-outside-label">Neatbilst izvēlētajiem filtriem</small>}
-     </article>;
-    })}
+    {events.map(event=><EventDetailCard key={event.id} event={event} today={today} clock={clock} km={distance?.(event)}
+     className="meets-mobile-sheet-event" highlighted={activeIds.has(event.id)} outside={!activeIds.has(event.id)} isAdmin={isAdmin}
+     saved={favorites.has(String(event.id))} onSave={onFavorite} onCalendar={onCalendar}/>)}
    </div>
   </section>
  </div>;

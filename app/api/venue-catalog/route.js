@@ -1,4 +1,4 @@
-import {readEvents} from '../../../lib/events-server.js';
+import {readEventsCached as readEvents} from '../../../lib/events-server.js';
 
 export const dynamic='force-dynamic';
 
