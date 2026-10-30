@@ -1094,6 +1094,14 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .municipality-health.expanded{margin-top:8px}
 .admin-import-health details{margin-top:8px}
 .admin-import-health summary{cursor:pointer;font-size:11px;font-weight:800}
+.admin-calendar-feeds{margin:0 0 14px}
+.calendar-feeds-help{margin:0;padding:10px 12px 0;font-size:12px}
+.calendar-feed-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;padding:12px}
+.calendar-feed-form label{display:grid;gap:4px;font-size:12px;font-weight:700}
+.calendar-feed-actions{display:flex;gap:8px;align-items:end}
+.calendar-feed-list{padding:0 12px 12px}
+.calendar-feed-row-actions{display:flex;gap:12px;flex-wrap:wrap}
+.admin-calendar-feeds .meets-inline-error,.admin-calendar-feeds .meets-organizer-success{margin:10px 12px 0}
 
 /* Mobile public catalogue: list-first instead of wide-table behaviour */
 @media(max-width:640px){
