@@ -9,6 +9,7 @@ import AdminSourceChannels from './admin-source-channels.jsx';
 import AdminUserSubmissions from './admin-user-submissions.jsx';
 import AdminEventRegister from './admin-event-register.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
+import {pendingSubmissions} from '../../lib/admin-submissions.js';
 
 const SESSION_KEY='meets_admin_access_token';
 function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
@@ -514,6 +515,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }finally{setBulkLoading(false);}
  }
  const today=rigaTodayIso();
+ const submissionQueue=useMemo(()=>pendingSubmissions(userSubmissions,today),[userSubmissions,today]);
  const activeEvents=useMemo(()=>events.filter(event=>eventIsCurrent(event,today)),[events,today]);
  const lffMissingGroups=useMemo(()=>groupMissingLff(activeEvents),[activeEvents]);
  const lffMissingEvents=useMemo(()=>lffMissingGroups.reduce((sum,g)=>sum+g.events.length,0),[lffMissingGroups]);
@@ -751,9 +753,13 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  }
 
  return <>
+  {submissionQueue.count>0&&workspaceView!=='userSubmissions'&&<div className="admin-submission-alert" role="status">
+   <div><strong>{submissionQueue.count===1?'1 organizatora pasākums gaida':submissionQueue.count+' organizatoru pasākumi gaida'} tavu pārbaudi</strong>
+    <span>Vecākais iesniegts pirms {submissionQueue.oldestDays} {submissionQueue.oldestDays===1?'dienas':'dienām'}{submissionQueue.expired>0?' · '+(submissionQueue.expired===1?'1 jau noticis':submissionQueue.expired+' jau notikuši')+', jāatgriež organizatoram':''}</span></div>
+   <button type="button" className="button primary" onClick={()=>setWorkspaceView('userSubmissions')}>Izskatīt →</button>
+  </div>}
   <div className="admin-workspace-tabs" role="group" aria-label="Admin darba skati">
    <button
-    type="button"
     type="button"
     aria-pressed={workspaceView==='register'}
     className={workspaceView==='register'?'active':''}
@@ -761,17 +767,15 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    >Ierakstu reģistrs <span>{events.length+userSubmissions.filter(item=>item.status!=='published'||!item.event_id).length}</span></button>
    <button
     type="button"
-    type="button"
     aria-pressed={workspaceView==='overview'}
     className={workspaceView==='overview'?'active':''}
     onClick={()=>setWorkspaceView('overview')}
    >Pārskats <span>{readyToPublish.length+publishedNeedsReview.length}</span></button>
-   <button type="button" type="button" aria-pressed={workspaceView==='userSubmissions'}
-    className={workspaceView==='userSubmissions'?'active':''} onClick={()=>setWorkspaceView('userSubmissions')}>
-    Lietotāju pasākumi <span>{userSubmissions.filter(x=>x.status==='pending_review').length}</span>
+   <button type="button" aria-pressed={workspaceView==='userSubmissions'}
+    className={(workspaceView==='userSubmissions'?'active':'')+(submissionQueue.count?' attention':'')} onClick={()=>setWorkspaceView('userSubmissions')}>
+    Lietotāju pasākumi <span>{submissionQueue.count}</span>
    </button>
    <button
-    type="button"
     type="button"
     aria-pressed={workspaceView==='sources'}
     className={workspaceView==='sources'?'active':''}
@@ -779,13 +783,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    >Datu avoti <span>{sources.filter(source=>source.map_visible!==false).length}/{sources.length}</span></button>
    <button
     type="button"
-    type="button"
     aria-pressed={workspaceView==='mapping'}
     className={workspaceView==='mapping'?'active attention':''}
     onClick={()=>setWorkspaceView('mapping')}
    >Mapping <span>{mappingGroups.length}</span></button>
    <button
-    type="button"
     type="button"
     aria-pressed={workspaceView==='all'}
     className={workspaceView==='all'?'active':''}

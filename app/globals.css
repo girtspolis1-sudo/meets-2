@@ -2164,3 +2164,12 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .footer-links a{color:var(--muted);font-weight:600}
 .footer-links a:hover{color:var(--text)}
 @media(max-width:760px){.footer-links{order:2;width:100%}}
+
+/* Organizer submissions waiting for admin review */
+.admin-submission-alert{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 12px;padding:12px 16px;border:1px solid #e3b45d;border-radius:12px;background:#fff8e7}
+.admin-submission-alert strong{display:block;color:#5c4100}
+.admin-submission-alert span{display:block;font-size:13px;color:#7a5a00;margin-top:2px}
+.admin-workspace-tabs button.attention:not(.active){border-color:#e3b45d;background:#fff8e7}
+.meets-organizer-waiting{display:block;margin-top:2px;color:#7a5a00;font-size:12px;font-weight:700}
+.meets-organizer-expired{margin:0;padding:8px 12px;border-radius:10px;background:#fdecea;color:#8a2a1a;font-size:13px}
+@media(max-width:700px){.admin-submission-alert{flex-direction:column;align-items:stretch}}
