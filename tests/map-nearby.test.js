@@ -65,3 +65,10 @@ test('live badges only for today, by the Riga clock',async()=>{
  assert.equal(isApproximatePlace({location_precision:'municipality_center'}),true);
  assert.equal(isApproximatePlace({location_precision:'venue'}),false);
 });
+
+test('day headings for date-sorted lists',async()=>{
+ const {dayHeading}=await import('../lib/map-nearby.js');
+ assert.equal(dayHeading({date_from:'2026-10-28'},'2026-10-28'),'Šodien');
+ assert.equal(dayHeading({date_from:'2026-10-29'},'2026-10-28'),'Rīt');
+ assert.equal(dayHeading({date_from:'2026-10-31'},'2026-10-28'),'Sestdiena, 31. oktobris');
+});

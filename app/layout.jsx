@@ -11,6 +11,7 @@ import './profile-dashboard.css';
 import './organizer-workspace.css';
 import './discovery-design.css';
 import './personal-collections.css';
+import './design-refresh.css';
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://meets.lv'),
