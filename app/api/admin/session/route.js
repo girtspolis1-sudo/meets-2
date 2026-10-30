@@ -3,7 +3,7 @@ export const dynamic='force-dynamic';
 export async function POST(request){
  const authorization=request.headers.get('authorization')||'';
  const token=authorization.startsWith('Bearer ')?authorization.slice(7).trim():'';
- if(!token||token.length>512){
+ if(!token||token.length>4096){
   return Response.json({valid:false},{headers:{'Cache-Control':'no-store'}});
  }
 
@@ -16,8 +16,8 @@ export async function POST(request){
  try{
   const response=await fetch(url+'/rest/v1/rpc/meets_admin_session_valid',{
    method:'POST',
-   headers:{apikey:key,'Content-Type':'application/json'},
-   body:JSON.stringify({p_session_token:token}),
+   headers:{apikey:key,'Content-Type':'application/json',Authorization:'Bearer '+token},
+   body:JSON.stringify({p_session_token:null}),
    cache:'no-store'
   });
   if(!response.ok)return Response.json({valid:false},{headers:{'Cache-Control':'no-store'}});

@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
+import {useAdminSession} from '../use-admin-session.js';
 import {placeFromEvent} from '../../lib/location-follow.js';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
@@ -295,7 +296,7 @@ export default function OsmEventMap(){
  const [mapError,setMapError]=useState('');
  const [mobileGroupKey,setMobileGroupKey]=useState('');
  const [mapRetry,setMapRetry]=useState(0);
- const [isAdminSession,setIsAdminSession]=useState(false);
+ const {isAdmin:isAdminSession}=useAdminSession();
  const [clockNow,setClockNow]=useState(()=>new Date());
  const {data,loading,error,refresh}=useEvents();
  const mapEl=useRef(null),mapRef=useRef(null),leafletRef=useRef(null),baseMapLayerRef=useRef(null),baseLayerCleanupRef=useRef(null),backgroundLayerRef=useRef(null),activeLayerRef=useRef(null),focusLayerRef=useRef(null);
@@ -367,34 +368,6 @@ export default function OsmEventMap(){
   if(next!==window.location.pathname+window.location.search+window.location.hash)window.history.replaceState(null,'',next);
  },[radiusKm,periodMode,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,mapStyle,userLocation]);
 
-
- useEffect(()=>{
-  let cancelled=false;
-  const syncAdminSession=async()=>{
-   const token=sessionStorage.getItem('meets_admin_access_token')||'';
-   if(!token){if(!cancelled)setIsAdminSession(false);return;}
-   try{
-    const response=await fetch('/api/admin/session',{method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store'});
-    const data=await response.json();
-    if(cancelled)return;
-    if(data?.valid===true)setIsAdminSession(true);
-    else{
-     sessionStorage.removeItem('meets_admin_access_token');
-     setIsAdminSession(false);
-    }
-   }catch{
-    if(!cancelled)setIsAdminSession(false);
-   }
-  };
-  syncAdminSession();
-  window.addEventListener('storage',syncAdminSession);
-  window.addEventListener('meets-admin-session-change',syncAdminSession);
-  return()=>{
-   cancelled=true;
-   window.removeEventListener('storage',syncAdminSession);
-   window.removeEventListener('meets-admin-session-change',syncAdminSession);
-  };
- },[]);
 
  useEffect(()=>{
   const timer=window.setInterval(()=>setClockNow(new Date()),30000);

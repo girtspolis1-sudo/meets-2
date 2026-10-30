@@ -11,9 +11,10 @@ import AdminEventRegister from './admin-event-register.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
 import {pendingSubmissions} from '../../lib/admin-submissions.js';
 import {groupCandidates,groupSuggestedAt,suggestionQuery} from '../../lib/admin-location.js';
-
-const SESSION_KEY='meets_admin_access_token';
-function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
+import {adminAuthorization,adminRpc,signOutAccount} from '../../lib/admin-auth.js';
+import {useAccountSession} from '../../lib/account-store.js';
+import {useAdminSession} from '../use-admin-session.js';
+import Authentication from '../components/account-auth-flow.jsx';
 
 const QUALITY={
  verified_exact:{label:'Precīzi verificēta',tone:'ok',priority:6},
@@ -145,24 +146,9 @@ function groupMissingLff(events){
   .map(g=>({...g,competitions:[...g.competitions].sort((a,b)=>a.localeCompare(b,'lv'))}))
   .sort((a,b)=>b.events.length-a.events.length||a.venueName.localeCompare(b.venueName,'lv'));
 }
-async function apiFetch(url,key,path,body,authorization=''){
- const headers={apikey:key,'Content-Type':'application/json'};
- if(authorization)headers.Authorization='Bearer '+authorization;
- const response=await fetch(url+'/rest/v1/rpc/'+path,{method:'POST',headers,body:JSON.stringify(body||{}),cache:'no-store'});
- const text=await response.text();
- if(!response.ok)throw new Error(text||('HTTP '+response.status));
- return text?JSON.parse(text):null;
-}
-
 export default function AdminDashboard({supabaseUrl,publishableKey}){
- const [token,setToken]=useState('');
- const [email,setEmail]=useState('');
- const [password,setPassword]=useState('');
- const [confirmPassword,setConfirmPassword]=useState('');
- const [recoveryCode,setRecoveryCode]=useState('');
- const [passwordReady,setPasswordReady]=useState(null);
- const [authChecked,setAuthChecked]=useState(false);
- const [isAdmin,setIsAdmin]=useState(false);
+ const {session}=useAccountSession();
+ const {isAdmin,checked:authChecked}=useAdminSession();
  const [message,setMessage]=useState('');
  const [events,setEvents]=useState([]);
  const [mappings,setMappings]=useState([]);
@@ -193,26 +179,15 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [suggestionRunning,setSuggestionRunning]=useState(false),[suggestionProgress,setSuggestionProgress]=useState('');
  const suggestionStop=useRef(false);
 
- async function checkAdmin(activeToken){
-  if(!activeToken){setAuthChecked(true);return;}
-  try{
-   const ok=await apiFetch(supabaseUrl,publishableKey,'meets_admin_session_valid',{p_session_token:activeToken});
-   setIsAdmin(ok===true);
-   if(ok===true)await loadEvents(activeToken);
-   else{sessionStorage.removeItem(SESSION_KEY);notifyAdminSession();setToken('');setIsAdmin(false);}
-  }catch{sessionStorage.removeItem(SESSION_KEY);notifyAdminSession();setToken('');setIsAdmin(false);}
-  finally{setAuthChecked(true);}
- }
- async function loadEvents(activeToken=token){
-  if(!activeToken)return;
+ async function loadEvents(){
   setLoading(true);
   try{
    const [data,mappingData,healthData,sourceData,submissionData]=await Promise.all([
-    apiFetch(supabaseUrl,publishableKey,'meets_admin_catalog',{p_session_token:activeToken}),
-    apiFetch(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{p_session_token:activeToken}),
-    apiFetch(supabaseUrl,publishableKey,'meets_admin_import_health',{p_session_token:activeToken}),
-    apiFetch(supabaseUrl,publishableKey,'meets_admin_source_visibility_catalog',{p_session_token:activeToken}),
-    apiFetch(supabaseUrl,publishableKey,'meets_admin_user_submissions',{p_session_token:activeToken})
+    adminRpc(supabaseUrl,publishableKey,'meets_admin_catalog',{}),
+    adminRpc(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{}),
+    adminRpc(supabaseUrl,publishableKey,'meets_admin_import_health',{}),
+    adminRpc(supabaseUrl,publishableKey,'meets_admin_source_visibility_catalog',{}),
+    adminRpc(supabaseUrl,publishableKey,'meets_admin_user_submissions',{})
    ]);
    setEvents(Array.isArray(data?.events)?data.events:[]);
    setMappings(Array.isArray(mappingData?.mappings)?mappingData.mappings:[]);
@@ -228,137 +203,14 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    setMessage('Admin datus neizdevās ielādēt.');
   }finally{setLoading(false);}
  }
- useEffect(()=>{
-  let cancelled=false;
-
-  async function bootstrap(){
-   const active=sessionStorage.getItem(SESSION_KEY)||'';
-   setEmail(localStorage.getItem('meets_admin_email')||'');
-
-   try{
-    const ready=await apiFetch(supabaseUrl,publishableKey,'meets_admin_password_ready',{});
-    if(!cancelled)setPasswordReady(ready===true);
-   }catch{
-    if(!cancelled){
-     setPasswordReady(false);
-     setMessage('Admin paroles statusu neizdevās pārbaudīt.');
-    }
-   }
-
-   if(cancelled)return;
-   setToken(active);
-   await checkAdmin(active);
-  }
-
-  bootstrap();
-  return()=>{cancelled=true;};
- },[]);
-
- async function authenticatePassword(normalizedEmail,secret){
-  return apiFetch(
-   supabaseUrl,
-   publishableKey,
-   'meets_admin_password_login',
-   {p_email:normalizedEmail,p_password:secret}
-  );
- }
-
- async function setupPassword(event){
-  event.preventDefault();
-  const normalizedEmail=String(email||'').trim().toLowerCase();
-
-  if(!normalizedEmail||!normalizedEmail.includes('@')){
-   setMessage('Ievadi admin e-pastu.');
-   return;
-  }
-  if(String(recoveryCode||'').replace(/[^A-Za-z0-9]/g,'').length<20){
-   setMessage('Ievadi emergency recovery kodu.');
-   return;
-  }
-  if(password.length<12||!/[A-Z]/.test(password)||!/[a-z]/.test(password)||!/[0-9]/.test(password)){
-   setMessage('Parolei jābūt vismaz 12 rakstzīmēm ar lielo burtu, mazo burtu un ciparu.');
-   return;
-  }
-  if(password!==confirmPassword){
-   setMessage('Abas paroles nesakrīt.');
-   return;
-  }
-
-  setLoading(true);setMessage('');
-  try{
-   const ok=await apiFetch(
-    supabaseUrl,
-    publishableKey,
-    'meets_admin_setup_password',
-    {p_email:normalizedEmail,p_recovery_code:recoveryCode,p_password:password}
-   );
-   if(ok!==true)throw new Error('Setup failed');
-
-   const sessionToken=await authenticatePassword(normalizedEmail,password);
-   if(!sessionToken||typeof sessionToken!=='string')throw new Error('Missing admin session');
-
-   localStorage.setItem('meets_admin_email',normalizedEmail);
-   sessionStorage.setItem(SESSION_KEY,sessionToken);
-   notifyAdminSession();
-
-   setPasswordReady(true);
-   setToken(sessionToken);
-   setRecoveryCode('');
-   setConfirmPassword('');
-   setPassword('');
-   setIsAdmin(true);
-   setAuthChecked(true);
-   await loadEvents(sessionToken);
-  }catch{
-   setMessage('Paroli neizdevās aktivizēt. Pārbaudi e-pastu, recovery kodu un paroles prasības.');
-  }finally{
-   setLoading(false);
-  }
- }
-
- async function login(event){
-  event.preventDefault();
-  const normalizedEmail=String(email||'').trim().toLowerCase();
-
-  if(!normalizedEmail||!normalizedEmail.includes('@')){
-   setMessage('Ievadi admin e-pastu.');
-   return;
-  }
-  if(password.length<8){
-   setMessage('Ievadi admin paroli.');
-   return;
-  }
-
-  setLoading(true);setMessage('');
-  try{
-   const sessionToken=await authenticatePassword(normalizedEmail,password);
-
-   if(!sessionToken||typeof sessionToken!=='string'){
-    throw new Error('Missing admin session');
-   }
-
-   sessionStorage.setItem(SESSION_KEY,sessionToken);
-   localStorage.setItem('meets_admin_email',normalizedEmail);
-   notifyAdminSession();
-
-   setToken(sessionToken);
-   setPassword('');
-   setIsAdmin(true);
-   setAuthChecked(true);
-   await loadEvents(sessionToken);
-  }catch{
-   setMessage('Nepareizs e-pasts vai parole.');
-  }finally{
-   setLoading(false);
-   setAuthChecked(true);
-  }
- }
+ // Loads the workspace once the signed-in account is confirmed as admin.
+ const adminUserId=isAdmin?session?.user?.id:'';
+ useEffect(()=>{if(adminUserId)loadEvents();},[adminUserId]);
 
  async function saveUserSubmission(values){
   if(!values?.id)throw new Error('Nav ieraksta identifikatora.');
   try{
-   await apiFetch(supabaseUrl,publishableKey,'meets_admin_edit_user_submission',{
-    p_session_token:token,
+   await adminRpc(supabaseUrl,publishableKey,'meets_admin_edit_user_submission',{
     p_id:values.id,
     p_values:{
      title:values.title,category:values.category,description:values.description,
@@ -377,8 +229,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  async function reviewUserSubmission(item,approve,note,latitude=null,longitude=null){
   setReviewingSubmission(true);setMessage('');
   try{
-   await apiFetch(supabaseUrl,publishableKey,'meets_admin_review_submission_v2',{
-    p_session_token:token,p_id:item.id,p_approve:approve,p_note:note,
+   await adminRpc(supabaseUrl,publishableKey,'meets_admin_review_submission_v2',{p_id:item.id,p_approve:approve,p_note:note,
     p_latitude:latitude,p_longitude:longitude
    });
    await loadEvents();
@@ -394,8 +245,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }
   setLoading(true);
   try{
-   await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_event',{
-    p_session_token:token,p_event_id:event.id,p_status:newStatus,p_venue_name:null,p_latitude:null,p_longitude:null
+   await adminRpc(supabaseUrl,publishableKey,'meets_admin_update_event',{p_event_id:event.id,p_status:newStatus,p_venue_name:null,p_latitude:null,p_longitude:null
    });
    await loadEvents();setMessage(newStatus==='published'?'Pasākums publicēts.':'Pasākuma statuss atjaunots.');
   }catch{setMessage('Statusu neizdevās mainīt.');}
@@ -404,8 +254,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  async function saveLocation(event,values,publish){
   setLoading(true);
   try{
-   await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_event_v2',{
-    p_session_token:token,p_event_id:event.id,p_status:publish?'published':null,p_venue_name:values.venueName,
+   await adminRpc(supabaseUrl,publishableKey,'meets_admin_update_event_v2',{p_event_id:event.id,p_status:publish?'published':null,p_venue_name:values.venueName,
     p_address_text:values.addressText||null,p_location_source:values.locationSource||null,
     p_latitude:Number(values.latitude),p_longitude:Number(values.longitude)
    });
@@ -418,8 +267,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  async function saveMapping(group,values){
   setLoading(true);
   try{
-   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_save_location_mapping',{
-    p_session_token:token,
+   const result=await adminRpc(supabaseUrl,publishableKey,'meets_admin_save_location_mapping',{
     p_sample_event_id:group.events[0].id,
     p_venue_name:values.venueName,
     p_address_text:values.addressText||null,
@@ -445,13 +293,13 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    const query=suggestionQuery(group);
    setSuggestionProgress(`Meklē ${done+1}/${pending.length}: ${group.alias}`);
    try{
-    const response=await fetch('/api/admin/geocode',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    const response=await fetch('/api/admin/geocode',{method:'POST',headers:{Authorization:await adminAuthorization(),'Content-Type':'application/json'},
      body:JSON.stringify({query,venueName:group.alias,municipality:group.municipality})});
     const data=await response.json();
     if(!response.ok)throw new Error(data?.error||'Meklēšana neizdevās.');
     const candidates=(Array.isArray(data.results)?data.results:[]).slice(0,5);
     if(candidates.length)found++;
-    await apiFetch(supabaseUrl,publishableKey,'meets_admin_store_place_candidates',{p_session_token:token,p_venue_name:group.alias,p_query:query,p_candidates:candidates});
+    await adminRpc(supabaseUrl,publishableKey,'meets_admin_store_place_candidates',{p_venue_name:group.alias,p_query:query,p_candidates:candidates});
    }catch(error){console.error('place_suggestion_failed',{venue:group.alias,message:error?.message||'Error'});}
    done++;
    // Show results as they come, without reloading the catalogue after every place.
@@ -470,8 +318,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  async function updateMapping(mapping,values){
   setBusyMappingId(mapping.id);
   try{
-   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_location_mapping',{
-    p_session_token:token,
+   const result=await adminRpc(supabaseUrl,publishableKey,'meets_admin_update_location_mapping',{
     p_mapping_id:mapping.id,
     p_venue_name:values.venueName,
     p_address_text:values.addressText||null,
@@ -491,8 +338,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   setBusyMappingId(mapping.id);
   try{
    const nextActive=!mapping.active;
-   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_location_mapping',{
-    p_session_token:token,
+   const result=await adminRpc(supabaseUrl,publishableKey,'meets_admin_update_location_mapping',{
     p_mapping_id:mapping.id,
     p_venue_name:mapping.canonical_venue_name,
     p_address_text:mapping.canonical_address_text||null,
@@ -516,8 +362,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   setSources(current=>current.map(item=>item.id===source.id?{...item,map_visible:nextVisible}:item));
   setMessage('');
   try{
-   await apiFetch(supabaseUrl,publishableKey,'meets_admin_update_source_visibility',{
-    p_session_token:token,
+   await adminRpc(supabaseUrl,publishableKey,'meets_admin_update_source_visibility',{
     p_source_id:source.id,
     p_map_visible:nextVisible
    });
@@ -537,8 +382,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!ids.length||bulkLoading)return;
   setBulkLoading(true);setBulkResult(null);
   try{
-   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_bulk_publish',{
-    p_session_token:token,
+   const result=await adminRpc(supabaseUrl,publishableKey,'meets_admin_bulk_publish',{
     p_event_ids:ids
    });
    setBulkResult(result);
@@ -569,7 +413,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    try{
     const response=await fetch('/api/admin/geocode',{
      method:'POST',
-     headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+     headers:{Authorization:await adminAuthorization(),'Content-Type':'application/json'},
      body:JSON.stringify({
       query,
       venueName:group.venueName,
@@ -581,8 +425,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     if(!response.ok)throw new Error(data?.error||'Meklēšana neizdevās.');
     const candidates=(Array.isArray(data.results)?data.results:[]).slice(0,5);
     if(candidates.length)found++;
-    await apiFetch(supabaseUrl,publishableKey,'meets_admin_store_location_candidates',{
-     p_session_token:token,
+    await adminRpc(supabaseUrl,publishableKey,'meets_admin_store_location_candidates',{
      p_venue_name:group.venueName,
      p_query:query,
      p_candidates:candidates
@@ -602,8 +445,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!candidate)return;
   setApplyingVenue(group.venueName);
   try{
-   const result=await apiFetch(supabaseUrl,publishableKey,'meets_admin_apply_location_candidate',{
-    p_session_token:token,
+   const result=await adminRpc(supabaseUrl,publishableKey,'meets_admin_apply_location_candidate',{
     p_venue_name:group.venueName,
     p_candidate:candidate
    });
@@ -682,103 +524,26 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   window.history.replaceState(null,'','/admin');
  },[isAdmin,events,editing]);
 
- if(!authChecked||passwordReady===null)return <div className="admin-login"><p>Pārbaudām admin piekļuvi…</p></div>;
+ if(session===undefined||(session&&!authChecked))return <div className="admin-login"><p role="status">Pārbaudām admin piekļuvi…</p></div>;
 
- if(!token||!isAdmin){
-  if(passwordReady===false){
-   return <form className="admin-login admin-simple-login" onSubmit={setupPassword}>
-    <p className="eyebrow">MEETS · admin</p>
-    <h2>Aktivizēt admin paroli</h2>
-    <p>Vienreizēja aktivizācija. Pēc tās turpmāk izmantosi tikai e-pastu un paroli.</p>
+ if(!session)return <section className="admin-login admin-simple-login" aria-labelledby="admin-login-title">
+  <p className="eyebrow">MEETS · admin</p>
+  <h2 id="admin-login-title">Admin pieslēgšanās</h2>
+  <p>Pieslēdzies ar savu MEETS kontu. Admin vide atveras kontiem, kuriem piešķirtas admin tiesības.</p>
+  <Authentication variant="profile"/>
+ </section>;
 
-    <label>E-pasts
-     <input
-      type="email"
-      value={email}
-      onChange={event=>setEmail(event.target.value)}
-      autoComplete="username"
-      placeholder="admin@gmail.com"
-      autoFocus
-     />
-    </label>
+ if(!isAdmin)return <section className="admin-login admin-simple-login" aria-labelledby="admin-denied-title">
+  <p className="eyebrow">MEETS · admin</p>
+  <h2 id="admin-denied-title">Šim kontam nav admin tiesību</h2>
+  <p>Pieslēgts konts: <strong>{session.user?.email}</strong>. Lai atvērtu admin vidi, pieslēdzies ar admin kontu.</p>
+  <div className="actions">
+   <button className="button primary" type="button" onClick={signOutAccount}>Pieslēgties ar citu kontu</button>
+   <a className="button" href="/profils">Atvērt Mans MEETS</a>
+  </div>
+ </section>;
 
-    <label>Emergency recovery kods
-     <input
-      type="text"
-      value={recoveryCode}
-      onChange={event=>setRecoveryCode(event.target.value)}
-      autoComplete="off"
-      spellCheck={false}
-      placeholder="XXXXXX-XXXXXX-XXXXXX-XXXXXX"
-     />
-    </label>
-
-    <label>Jaunā parole
-     <input
-      type="password"
-      value={password}
-      onChange={event=>setPassword(event.target.value)}
-      autoComplete="new-password"
-      placeholder="Vismaz 12 rakstzīmes"
-     />
-    </label>
-
-    <label>Atkārto paroli
-     <input
-      type="password"
-      value={confirmPassword}
-      onChange={event=>setConfirmPassword(event.target.value)}
-      autoComplete="new-password"
-      placeholder="Atkārto paroli"
-     />
-    </label>
-
-    <div className="actions">
-     <button className="button primary" type="submit" disabled={loading}>
-      {loading?'Aktivizē…':'Aktivizēt un ielogoties'}
-     </button>
-    </div>
-
-    {message&&<p className="sync-text admin-auth-message" role="status">{message}</p>}
-   </form>;
-  }
-
-  return <form className="admin-login admin-simple-login" onSubmit={login}>
-   <p className="eyebrow">MEETS · admin</p>
-   <h2>Admin pieslēgšanās</h2>
-   <p>Pieslēdzies ar savu admin e-pastu un paroli.</p>
-
-   <label>E-pasts
-    <input
-     type="email"
-     value={email}
-     onChange={event=>setEmail(event.target.value)}
-     autoComplete="username"
-     placeholder="admin@gmail.com"
-     autoFocus
-    />
-   </label>
-
-   <label>Parole
-    <input
-     type="password"
-     value={password}
-     onChange={event=>setPassword(event.target.value)}
-     autoComplete="current-password"
-     placeholder="••••••••••••"
-    />
-   </label>
-
-   <div className="actions">
-    <button className="button primary" type="submit" disabled={loading}>
-     {loading?'Pārbaudām…':'Ielogoties'}
-    </button>
-   </div>
-
-   {message&&<p className="sync-text admin-auth-message" role="status">{message}</p>}
-  </form>;
- }
-
+ if(!catalogLoaded&&!message)return <div className="admin-login"><p role="status">Ielādē admin datus…</p></div>;
  if(!catalogLoaded){
   return <div className="admin-catalog-error" role="alert">
    <strong>Admin katalogu neizdevās ielādēt.</strong>
@@ -991,7 +756,6 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
   {mappingEditing&&<LocationEditor
    event={mappingEditing.events[0]}
-   token={token}
    mode="mapping"
    mappingAlias={mappingEditing.alias}
    mappingCount={mappingEditing.events.length}
@@ -1010,7 +774,6 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     location_quality:'verified_exact',
     sources:[]
    }}
-   token={token}
    mode="saved-mapping"
    mappingAlias={mappingRuleEditing.alias_text}
    mappingCount={mappingRuleEditing.current_events||0}
@@ -1018,11 +781,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    save={values=>updateMapping(mappingRuleEditing,values)}
   />}
 
-  {editing&&<LocationEditor event={editing} token={token} close={()=>setEditing(null)} save={(values,publish)=>saveLocation(editing,values,publish)}/>} 
+  {editing&&<LocationEditor event={editing} close={()=>setEditing(null)} save={(values,publish)=>saveLocation(editing,values,publish)}/>} 
  </>;
 }
 
-function LocationEditor({event,token,close,save,mode='event',mappingAlias='',mappingCount=1}){
+function LocationEditor({event,close,save,mode='event',mappingAlias='',mappingCount=1}){
  const dialog=useRef(null),mapEl=useRef(null),mapRef=useRef(null),markerRef=useRef(null);
  const [venueName,setVenueName]=useState(event.venue_name||event.address_raw||'');
  const initialSearch=[event.venue_name,event.address_raw,event.municipality||event.settlement].filter(Boolean).join(', ');
@@ -1070,7 +833,7 @@ function LocationEditor({event,token,close,save,mode='event',mappingAlias='',map
   try{
    const response=await fetch('/api/admin/geocode',{
     method:'POST',
-    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    headers:{Authorization:await adminAuthorization(),'Content-Type':'application/json'},
     body:JSON.stringify({query})
    });
    const data=await response.json();

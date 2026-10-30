@@ -2,13 +2,14 @@ export const dynamic='force-dynamic';
 
 let lastNominatimRequestAt=0;
 
-async function validateSession(sessionToken){
+// The bearer token is the signed-in MEETS account; the database checks admin rights.
+async function validateSession(accessToken){
  const {SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY}=process.env;
  if(!SUPABASE_URL||!SUPABASE_PUBLISHABLE_KEY)return false;
  const response=await fetch(`${SUPABASE_URL}/rest/v1/rpc/meets_admin_session_valid`,{
   method:'POST',
-  headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
-  body:JSON.stringify({p_session_token:sessionToken}),
+  headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',Authorization:'Bearer '+accessToken},
+  body:JSON.stringify({p_session_token:null}),
   cache:'no-store',
   signal:AbortSignal.timeout(10000)
  });
@@ -41,8 +42,8 @@ function scorePlace(item,{venueName,settlement,municipality}){
 export async function POST(request){
  try{
   const auth=request.headers.get('authorization')||'';
-  const sessionToken=auth.startsWith('Bearer ')?auth.slice(7).trim():'';
-  if(!sessionToken||!(await validateSession(sessionToken))){
+  const accessToken=auth.startsWith('Bearer ')?auth.slice(7).trim():'';
+  if(!accessToken||accessToken.length>4096||!(await validateSession(accessToken))){
    return Response.json({error:'Nav admin autorizācijas.'},{status:401});
   }
 

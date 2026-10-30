@@ -169,11 +169,17 @@ test('column filters apply only to their own catalogue column',()=>{
  assert.equal(filterEventsByColumns(rows,{title:'arēna'}).length,0);
 });
 
-test('admin logout endpoint is safe without a session token',async()=>{
- const {POST}=await import('../app/api/admin/logout/route.js');
- const response=await POST(new Request('http://localhost/api/admin/logout',{method:'POST'}));
- assert.equal(response.status,204);
- assert.equal(response.headers.get('cache-control'),'no-store');
+test('admin session endpoint checks the signed-in account token',async()=>{
+ const {POST}=await import('../app/api/admin/session/route.js');
+ const original=globalThis.fetch;let seen=null;
+ globalThis.fetch=async(url,init)=>{seen={url,init};return new Response('true',{status:200});};
+ try{
+  const response=await POST(new Request('http://localhost/api/admin/session',{method:'POST',headers:{Authorization:'Bearer account-jwt'}}));
+  assert.deepEqual(await response.json(),{valid:true});
+ }finally{globalThis.fetch=original;}
+ assert.match(String(seen.url),/meets_admin_session_valid$/);
+ assert.equal(seen.init.headers.Authorization,'Bearer account-jwt');
+ assert.deepEqual(JSON.parse(seen.init.body),{p_session_token:null});
 });
 
 test('admin session endpoint rejects missing tokens without upstream access',async()=>{
