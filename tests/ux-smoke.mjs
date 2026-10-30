@@ -57,7 +57,13 @@ for(const width of cases){
   await page.screenshot({path:'ux-screenshots/'+width+'-home.png',fullPage:true});
   await page.goto(base+'/karte?period=week',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.map-controls-overlay').waitFor({timeout:30000});
-  const button=page.getByRole('button',{name:'Paplašinātie filtri'});
+  // First visit asks where to look; "Visa Latvija" keeps the whole map.
+  const prompt=page.locator('.map-location-prompt');
+  await prompt.waitFor({timeout:15000});
+  if(!(await prompt.getByRole('button',{name:'Mana atrašanās vieta'}).count())){fails++;console.error('Location prompt lacks the locate button',width);}
+  await prompt.getByRole('button',{name:'Rādīt visu Latviju'}).click();
+  if(!(await page.locator('.nearby-item').filter({hasText:mockEvent.title}).count())){fails++;console.error('Nearby list does not show the event',width);}
+  const button=page.getByRole('button',{name:'Vairāk filtru'});
   await button.click();
   await page.locator('.map-advanced-panel').waitFor();
   const panelBounds=await page.locator('.map-advanced-panel').boundingBox();
@@ -210,6 +216,9 @@ await desktop.addInitScript(()=>{
 await desktop.route('**/api/events*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)}));
 try{
  await desktop.goto(base+'/karte?period=week',{waitUntil:'domcontentloaded',timeout:45000});
+ await desktop.locator('.map-location-prompt').getByRole('button',{name:'Rīga'}).click();
+ const head=await desktop.locator('.nearby-head').innerText();
+ if(!/1 pasākums/.test(head)||!/līdz 30 km no: Rīga/.test(head)){fails++;console.error('Nearby summary wrong after choosing a city',head);}
  const marker=desktop.locator('.event-drop-marker-wrap').first();
  await marker.waitFor({timeout:20000});
  await marker.click({force:true});

@@ -1,6 +1,8 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
+import NearbyList from './nearby-list.jsx';
+import {PERIODS,RADII,DEFAULT_PERIOD,DEFAULT_RADIUS,periodKey,periodRange,periodPhrase,radiusLabel,nearbyGroups,widerOptions,countLabel} from '../../lib/map-nearby.js';
 import {useAdminSession} from '../use-admin-session.js';
 import {placeFromEvent} from '../../lib/location-follow.js';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
@@ -23,7 +25,14 @@ const BALTIC_VIEW={south:53.5,west:16,north:60.8,east:31.5};
 const DEFAULT_LOCATION={lat:56.9496,lon:24.1052,label:'Rīgas centrs',source:'fallback'};
 const LOCATION_CHOICE_KEY='meets_location_choice_v1';
 const FAVORITES_KEY='meets_favorites_v1';
-const RADIUS_OPTIONS=[5,10,25,30,50,0];
+// Quick picks on first visit; the search box finds any other place.
+const CITIES=[
+ {label:'Rīga',latitude:56.9496,longitude:24.1052},{label:'Jūrmala',latitude:56.968,longitude:23.77},
+ {label:'Liepāja',latitude:56.5047,longitude:21.0108},{label:'Daugavpils',latitude:55.8747,longitude:26.5362},
+ {label:'Jelgava',latitude:56.6511,longitude:23.7214},{label:'Valmiera',latitude:57.5385,longitude:25.4264},
+ {label:'Ventspils',latitude:57.3894,longitude:21.5606},{label:'Rēzekne',latitude:56.5099,longitude:27.3332},
+ {label:'Ogre',latitude:56.8162,longitude:24.614},{label:'Cēsis',latitude:57.3119,longitude:25.2706}
+];
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function norm(v=''){return String(v).toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
@@ -238,18 +247,7 @@ function monthEndIso(iso){
 function minIso(a,b){return !a?b:!b?a:(a<b?a:b);}
 function periodDates(mode,today,windowTo,currentFrom,currentTo){
  if(!today)return {from:currentFrom,to:currentTo};
- if(mode==='today')return {from:today,to:today};
- if(mode==='tomorrow'){
-  const tomorrow=addDaysIso(today,1);
-  return {from:tomorrow,to:minIso(tomorrow,windowTo)};
- }
- if(mode==='3days')return {from:today,to:minIso(addDaysIso(today,2),windowTo)};
- if(mode==='month')return {from:today,to:minIso(monthEndIso(today),windowTo)};
- if(mode==='week')return {from:today,to:minIso(weekEndIso(today),windowTo)};
- return {
-  from:currentFrom&&currentFrom>=today?currentFrom:today,
-  to:currentTo&&currentTo>=today&&(!windowTo||currentTo<=windowTo)?currentTo:minIso(weekEndIso(today),windowTo)
- };
+ return periodRange(mode,today,windowTo,{from:currentFrom,to:currentTo});
 }
 
 export default function OsmEventMap(){
@@ -280,14 +278,19 @@ export default function OsmEventMap(){
  const [country,setCountry]=useState(searchParams.get('country')||'');
  const [from,setFrom]=useState(searchParams.get('from')||'');
  const [to,setTo]=useState(searchParams.get('to')||'');
- const [radiusKm,setRadiusKm]=useState(()=>{const q=Number(searchParams.get('radius'));return [0,5,10,25,30,50].includes(q)?q:0;});
- const [periodMode,setPeriodMode]=useState(()=>['today','tomorrow','3days','week','month','manual'].includes(searchParams.get('period'))?searchParams.get('period'):'week');
+ // null until we know whether a place was chosen: then 30 km around it, otherwise all of Latvia.
+ const [radiusKm,setRadiusKm]=useState(()=>{const q=searchParams.get('radius'),n=Number(q);return q!==null&&[0,5,10,25,30,50].includes(n)?n:null;});
+ const [periodMode,setPeriodMode]=useState(()=>periodKey(searchParams.get('period')));
+ const [locationPrompt,setLocationPrompt]=useState(false);
+ const [highlightedId,setHighlightedId]=useState('');
+ const [styleMenuOpen,setStyleMenuOpen]=useState(false);
+ const listRef=useRef(null),hoveredMarkerRef=useRef(null);
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [mapStyle,setMapStyle]=useState(()=>Object.hasOwn(MAP_STYLES,searchParams.get('style'))?searchParams.get('style'):'positron');
  const [userLocation,setUserLocation]=useState(DEFAULT_LOCATION);
 
  const [favorites,setFavorites]=useState(()=>new Set());
- const [locationQuery,setLocationQuery]=useState(DEFAULT_LOCATION.label);
+ const [locationQuery,setLocationQuery]=useState('');
  const [locationResults,setLocationResults]=useState([]);
  const [locationMessage,setLocationMessage]=useState('');
  const [locationSearching,setLocationSearching]=useState(false);
@@ -308,10 +311,21 @@ export default function OsmEventMap(){
   try{
    const sharedLat=Number(searchParams.get('lat')),sharedLon=Number(searchParams.get('lon'));
    const hasShared=searchParams.has('lat')&&searchParams.has('lon')&&Number.isFinite(sharedLat)&&Number.isFinite(sharedLon)&&insideBalticView(sharedLat,sharedLon);
+   // known: a shared or remembered place; "Visa Latvija" is remembered as the fallback centre.
+   let known=hasShared,wholeCountry=false;
    if(hasShared){setUserLocation({lat:sharedLat,lon:sharedLon,label:'Izvēlētā vieta',source:'shared'});setLocationQuery('Izvēlētā vieta');}
-   const saved=hasShared?null:window.localStorage.getItem(LOCATION_CHOICE_KEY);
-   if(saved){const location=JSON.parse(saved);if(Number.isFinite(location.lat)&&Number.isFinite(location.lon)&&insideBalticView(location.lat,location.lon)){setUserLocation(location);setLocationQuery(location.label);}}
-  }catch{/* Default to browsing all locations without a permission prompt. */}
+   const saved=hasShared?null:JSON.parse(window.localStorage.getItem(LOCATION_CHOICE_KEY)||'null');
+   if(saved&&Number.isFinite(saved.lat)&&Number.isFinite(saved.lon)&&insideBalticView(saved.lat,saved.lon)){
+    known=true;wholeCountry=saved.source==='fallback';
+    setUserLocation(saved);setLocationQuery(wholeCountry?'':saved.label);
+   }
+   setRadiusKm(current=>current??(known&&!wholeCountry?DEFAULT_RADIUS:0));
+   // First visit: offer a place. If the browser already allows location, use it without asking.
+   if(!known&&!searchParams.has('municipality')&&!searchParams.has('event')){
+    setLocationPrompt(true);
+    navigator.permissions?.query({name:'geolocation'}).then(status=>{if(status.state==='granted')useCurrentLocation();}).catch(()=>{});
+   }
+  }catch{setRadiusKm(current=>current??0);/* Default to browsing all locations without a permission prompt. */}
   try{const ids=JSON.parse(window.localStorage.getItem(FAVORITES_KEY)||'[]');if(Array.isArray(ids))setFavorites(new Set(ids.map(String)));}catch{/* Browser storage can be disabled. */}
  },[]);
 
@@ -330,7 +344,8 @@ export default function OsmEventMap(){
    }
   }catch{/* Local favorites remain available until account session is renewed. */}
  }
- function chooseRiga(){setUserLocation(DEFAULT_LOCATION);setRadiusKm(0);setLocationQuery(DEFAULT_LOCATION.label);setLocationResults([]);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(DEFAULT_LOCATION));}catch{}}
+ // "Visa Latvija": no centre point, no radius.
+ function chooseRiga(){setUserLocation(DEFAULT_LOCATION);setRadiusKm(0);setLocationQuery('');setLocationResults([]);setLocationPrompt(false);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(DEFAULT_LOCATION));}catch{}}
  function calendarDownload(event){
   const from=String(event.date_from||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(from))return;
   const escapeIcs=value=>String(value||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
@@ -356,7 +371,7 @@ export default function OsmEventMap(){
  useEffect(()=>{
   const url=new URL(window.location.href);
   const params=url.searchParams;
-  const state={radius:radiusKm>0?String(radiusKm):'',period:periodMode==='week'?'':periodMode,
+  const state={radius:radiusKm>0?String(radiusKm):radiusKm===0&&userLocation.source!=='fallback'?'0':'',period:periodMode===DEFAULT_PERIOD?'':periodMode,
    types:eventTypes.join(','),competition,subcategory:category,q:eventSearch,price,municipality,country,
    from:periodMode==='manual'?from:'',to:periodMode==='manual'?to:'',style:mapStyle==='positron'?'':mapStyle};
   for(const [key,value] of Object.entries(state)){if(value)params.set(key,value);else params.delete(key);}
@@ -428,7 +443,7 @@ export default function OsmEventMap(){
   return [...map.values()].sort((a,b)=>a.label.localeCompare(b.label,'lv'));
  },[events]);
 
- const matchesEvent=useMemo(()=>e=>{
+ const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to}={})=>{
   if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
   if(placeFilter&&placeFromEvent(e)?.key!==placeFilter)return false;
   if(eventTypeFilter&&e.event_type!==eventTypeFilter)return false;
@@ -439,15 +454,16 @@ export default function OsmEventMap(){
   if(price&&e.price_status!==price)return false;
   if(municipality&&e.municipality!==municipality)return false;
   if(country&&e.country_code!==country)return false;
-  if(from&&(e.date_to||e.date_from)<from)return false;
-  if(to&&e.date_from>to)return false;
-  if(userLocation&&radiusKm>0){
+  if(start&&(e.date_to||e.date_from)<start)return false;
+  if(end&&e.date_from>end)return false;
+  if(userLocation&&radius>0){
    const lat=Number(e.latitude),lon=Number(e.longitude);
    if(!Number.isFinite(lat)||!Number.isFinite(lon))return false;
-   if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radiusKm)return false;
+   if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radius)return false;
   }
   return true;
  },[homeCategory,audience,placeFilter,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
+ const matchesEvent=useMemo(()=>e=>matchesWith(e),[matchesWith]);
 
  const catalogHref=useMemo(()=>{
   const params=new URLSearchParams();
@@ -463,8 +479,8 @@ export default function OsmEventMap(){
   if(municipality)params.set('municipality',municipality);
   if(country)params.set('country',country);
   if(radiusKm)params.set('radius',String(radiusKm));
-  params.set('period',periodMode);
-  if(periodMode==='manual'){if(from)params.set('from',from);if(to)params.set('to',to);}
+  params.set('period','manual');
+  if(from)params.set('from',from);if(to)params.set('to',to);
   if(['search','events','shared'].includes(userLocation?.source)&&insideBalticView(userLocation.lat,userLocation.lon)){
    params.set('lat',String(Number(userLocation.lat.toFixed(4))));
    params.set('lon',String(Number(userLocation.lon.toFixed(4))));
@@ -658,6 +674,8 @@ export default function OsmEventMap(){
     autoPanPaddingBottomRight:isMobileViewport?[14,18]:[28,32]
    });
    marker.on('click',()=>{
+    setHighlightedId(String(nearest?.id||''));
+    setLocationPrompt(false);
     setFiltersOpen(false);
     setLocationResults([]);
     setLocationMessage('');
@@ -771,7 +789,8 @@ export default function OsmEventMap(){
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;leafletRef.current=null;},[]);
 
  // Radius, period, group and audience are visible outside the panel, so the badge skips them.
- const advancedFilterCount=[placeFilter,eventTypes.length>0,competition,category,eventSearch,price,country,municipality,mapStyle!=='positron'].filter(Boolean).length;
+ // Everything inside "Vairāk filtru"; time, distance and the chip rows are visible outside it.
+ const advancedFilterCount=[placeFilter,audience,eventTypes.length>0,competition,category,eventSearch,price&&price!=='free',country,municipality].filter(Boolean).length;
  const audienceOptions=Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key)));
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
@@ -798,27 +817,29 @@ export default function OsmEventMap(){
  function resetFilters(){
   const params=new URLSearchParams(searchParams.toString());params.delete('category');params.delete('audience');params.delete('event_type');params.delete('place');
   router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
-  setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(0);setMapStyle('positron');setPeriodMode('week');
-  {const filterToday=rigaTodayIso(clockNow);const next=periodDates('week',filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
+  setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(userLocation.source==='fallback'?0:DEFAULT_RADIUS);setPeriodMode(DEFAULT_PERIOD);
+  {const filterToday=rigaTodayIso(clockNow);const next=periodDates(DEFAULT_PERIOD,filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
-  if(!navigator.geolocation){chooseRiga();setLocationMessage('Pārlūks neatbalsta atrašanās vietas noteikšanu.');return;}
+  if(!navigator.geolocation){setLocationMessage('Pārlūks neatbalsta atrašanās vietas noteikšanu. Izvēlies pilsētu.');setLocationPrompt(true);return;}
   setLocationMessage('Nosakām atrašanās vietu…');
   navigator.geolocation.getCurrentPosition(
    pos=>{
     const lat=pos.coords.latitude,lon=pos.coords.longitude;
-    if(!insideBalticView(lat,lon)){chooseRiga();setLocationMessage('Atrašanās vieta ir ārpus Baltijas kartes. Izmantots Rīgas centrs.');return;}
-    const chosen={lat,lon,label:'Mana atrašanās vieta',source:'browser'};setUserLocation(chosen);setRadiusKm(30);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(chosen));}catch{}
-    setLocationQuery('Mana atrašanās vieta');setLocationResults([]);setLocationMessage('');
+    if(!insideBalticView(lat,lon)){setLocationMessage('Atrašanās vieta ir ārpus Baltijas. Izvēlies pilsētu.');setLocationPrompt(true);return;}
+    const chosen={lat,lon,label:'Mana atrašanās vieta',source:'browser'};setUserLocation(chosen);setRadiusKm(DEFAULT_RADIUS);try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(chosen));}catch{}
+    setLocationQuery('Mana atrašanās vieta');setLocationResults([]);setLocationMessage('');setLocationPrompt(false);
    },
-   ()=>{setLocationMessage('Atrašanās vietu neizdevās noteikt. Izmantots Rīgas centrs.');chooseRiga();},
+   ()=>{setLocationMessage('Atrašanās vietu neizdevās noteikt. Izvēlies pilsētu vai ieraksti vietu.');setLocationPrompt(true);},
    {enableHighAccuracy:true,timeout:8000,maximumAge:300000}
   );
  }
  function selectLocation(place){
-  setUserLocation({lat:Number(place.latitude),lon:Number(place.longitude),label:place.displayName||place.label,source:place.local?'events':'search'});
+  const chosen={lat:Number(place.latitude),lon:Number(place.longitude),label:place.label||place.displayName,source:place.local?'events':'search'};
+  setUserLocation(chosen);
   if(place.eventTitle)setEventSearch(place.eventTitle);
-  setRadiusKm(30);setLocationQuery(place.eventTitle||place.displayName||place.label);setLocationResults([]);setLocationMessage('');
+  else try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(chosen));}catch{}
+  setRadiusKm(DEFAULT_RADIUS);setLocationQuery(place.eventTitle||place.label||place.displayName);setLocationResults([]);setLocationMessage('');setLocationPrompt(false);
  }
  async function searchLocation(){
   const q=locationQuery.trim();
@@ -845,7 +866,68 @@ export default function OsmEventMap(){
   finally{setLocationSearching(false);}
  }
 
+ const today=rigaTodayIso(clockNow);
+ const origin=userLocation&&userLocation.source!=='fallback'?userLocation:null;
+ const nearby=useMemo(()=>nearbyGroups(activeEvents,today,origin),[activeEvents,today,origin]);
+ const placeName=origin?(userLocation.label||'izvēlētā vieta'):'';
+ const periodText=periodPhrase(periodMode,from,to);
+ const summary=(periodText.charAt(0).toUpperCase()+periodText.slice(1))+
+  (radiusKm>0&&origin?' · līdz '+radiusKm+' km no: '+placeName:origin?' · visa Latvija, attālums no: '+placeName:' · visa Latvija');
+ // When nothing matches, offer the next wider search together with how many it would show.
+ const wider=useMemo(()=>{
+  if(activeEvents.length)return [];
+  return widerOptions(origin?radiusKm:0,periodMode).map(option=>{
+   const range=option.period?periodDates(option.period,today,publicTo,from,to):{from,to};
+   const count=events.filter(e=>matchesWith(e,{radius:option.radius??radiusKm,from:range.from,to:range.to})).length;
+   return {...option,count};
+  }).filter(option=>option.count>0);
+ },[activeEvents.length,origin,radiusKm,periodMode,today,publicTo,from,to,events,matchesWith]);
+ const activeChips=[
+  homeCategory&&{key:'category',label:HOME_CATEGORY_FILTERS[homeCategory].title,clear:clearHomeCategory},
+  audience&&{key:'audience',label:AUDIENCE_FILTERS[audience],clear:()=>setDiscoveryFilter('audience','')},
+  ...eventTypes.map(type=>({key:'type-'+type,label:quickTypes.find(t=>t.value===type)?.label||type,clear:()=>toggleEventType(type)})),
+  competition&&{key:'competition',label:competitionOptions.find(c=>c.key===competition)?.name||'Turnīrs',clear:()=>setCompetition('')},
+  category&&{key:'subcategory',label:category,clear:()=>setCategory('')},
+  eventSearch&&{key:'q',label:'„'+eventSearch+'”',clear:()=>setEventSearch('')},
+  price&&price!=='free'&&{key:'price',label:{paid:'Maksas',mixed:'Daļēji maksas',unknown:'Maksa nav zināma'}[price]||price,clear:()=>setPrice('')},
+  municipality&&{key:'municipality',label:municipality,clear:()=>setMunicipality('')},
+  country&&{key:'country',label:countryLabel(country),clear:()=>setCountry('')}
+ ].filter(Boolean);
+
+ function showOnMap(event){
+  const marker=markerByEventRef.current.get(String(event.id));
+  setHighlightedId(String(event.id));
+  if(window.innerWidth<=1000){
+   const group=locationGroups.find(g=>g.events.some(e=>String(e.id)===String(event.id)));
+   if(group){setMobileGroupKey(group.key);return;}
+   window.location.assign('/pasakumi/'+encodeURIComponent(event.id));
+   return;
+  }
+  if(!marker||!mapRef.current){window.location.assign('/pasakumi/'+encodeURIComponent(event.id));return;}
+  mapRef.current.setView(marker.getLatLng(),Math.max(mapRef.current.getZoom(),13),{animate:true});
+  marker.openPopup();
+ }
+ function hoverEvent(event){
+  hoveredMarkerRef.current?.getElement()?.classList.remove('is-hovered');
+  const marker=event?markerByEventRef.current.get(String(event.id)):null;
+  marker?.getElement()?.classList.add('is-hovered');
+  hoveredMarkerRef.current=marker||null;
+ }
+
+ const emptyState=<div className="nearby-empty" role="status">
+  <strong>{radiusKm>0&&origin?'Šajā laikā līdz '+radiusKm+' km pasākumu nav.':'Šajos filtros pasākumu nav.'}</strong>
+  {wider.length>0?<div className="nearby-empty-actions">{wider.map(option=><button key={option.label} type="button" className="button compact"
+   onClick={()=>{if(option.radius!==undefined)setRadiusKm(option.radius);if(option.period)changePeriod(option.period);}}>
+   {option.label} <span>({countLabel(option.count)})</span></button>)}</div>
+   :<span>Pamēģini citu laiku vai noņem kādu filtru.</span>}
+  {activeChips.length>0&&<button type="button" className="text-button" onClick={resetFilters}>Notīrīt filtrus</button>}
+ </div>;
+
  return <>
+  <div className="map-layout">
+  <NearbyList groups={nearby} total={activeEvents.length} today={today} summary={summary} loading={loading&&!events.length}
+   favorites={favorites} highlightedId={highlightedId} onSelect={showOnMap} onHover={hoverEvent} onFavorite={toggleFavorite}
+   empty={emptyState} listRef={listRef}/>
   <div className="map-shell">
    <div className="map-controls map-controls-overlay" aria-label="Kartes filtri">
     <div className="map-primary-controls">
@@ -861,13 +943,13 @@ export default function OsmEventMap(){
        onFocus={()=>setFiltersOpen(false)}
        onChange={e=>setLocationQuery(e.target.value)}
        onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();searchLocation();}}}
-       placeholder="Meklēt lokāciju vai pasākumu…"
-       aria-label="Meklēt lokāciju vai pasākumu"
+       placeholder={userLocation.source==='fallback'?'Pilsēta, adrese vai pasākums…':'Meklēt vietu vai pasākumu…'}
+       aria-label="Meklēt vietu vai pasākumu"
       />
       <button type="button" className="map-search-button" onClick={searchLocation} disabled={locationSearching} title="Meklēt" aria-label="Meklēt">
        {locationSearching?'…':<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>}
       </button>
-      <button type="button" className={'map-control-button filters-button'+(filtersOpen?' active':'')} onClick={()=>setFiltersOpen(v=>!v)} aria-expanded={filtersOpen} aria-label="Paplašinātie filtri" title="Paplašinātie filtri">
+      <button type="button" className={'map-control-button filters-button'+(filtersOpen?' active':'')} onClick={()=>setFiltersOpen(v=>!v)} aria-expanded={filtersOpen} aria-label="Vairāk filtru" title="Vairāk filtru">
        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h6M14 18h6"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg>
        {advancedFilterCount>0&&<span className="filter-count">{advancedFilterCount}</span>}
       </button>
@@ -875,58 +957,41 @@ export default function OsmEventMap(){
      </div>
     </div>
 
-    <div className="map-quick-settings" aria-label="Ātrie kartes filtri">
-     <label>
-      <span>Radiuss</span>
-      <select className="map-compact-select radius-select" value={radiusKm} onChange={e=>setRadiusKm(Number(e.target.value))} aria-label="Meklēšanas radiuss">
-       {RADIUS_OPTIONS.map(v=><option key={v} value={v}>{v===0?'Visa karte':v+' km'}</option>)}
-      </select>
-     </label>
-     <label>
-      <span>Datums</span>
-      <select className="map-compact-select period-select" value={periodMode} onChange={e=>changePeriod(e.target.value)} aria-label="Laika periods">
-       <option value="today">Šodien</option>
-       <option value="tomorrow">Rīt</option>
-       <option value="3days">3 dienas</option>
-       <option value="week">Šonedēļ</option>
-       <option value="month">Šomēnes</option>
-       <option value="manual">Manuāli</option>
-      </select>
-     </label>
-     {(homeCategory||audience)&&<div className="map-inline-selected-filters" aria-label="Aktīvie pasākumu filtri">
-      {homeCategory&&<span className="map-inline-filter-chip"><span title={HOME_CATEGORY_FILTERS[homeCategory].title}>{HOME_CATEGORY_FILTERS[homeCategory].title}</span><button type="button" onClick={clearHomeCategory} aria-label="Noņemt kategorijas filtru">×</button></span>}
-      {audience&&<span className="map-inline-filter-chip"><span title={AUDIENCE_FILTERS[audience]}>{AUDIENCE_FILTERS[audience]}</span><button type="button" onClick={()=>setDiscoveryFilter('audience','')} aria-label="Noņemt auditorijas filtru">×</button></span>}
-     </div>}
+    <div className="map-chip-row" role="group" aria-label="Kad">
+     {PERIODS.map(p=><button key={p.key} type="button" aria-pressed={periodMode===p.key} className={periodMode===p.key?'active':''} onClick={()=>changePeriod(p.key)}>{p.label}</button>)}
     </div>
-
     {periodMode==='manual'&&<div className="map-primary-manual-period">
-     <input aria-label="Datums no" title="Datums no" type="date" min={rigaTodayIso(clockNow)} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setPeriodMode('manual');setFrom(value);if(!to||value>to)setTo(value);}}/>
+     <input aria-label="Datums no" title="Datums no" type="date" min={today} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setPeriodMode('manual');setFrom(value);if(!to||value>to)setTo(value);}}/>
      <span aria-hidden="true">–</span>
-     <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||rigaTodayIso(clockNow)} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
+     <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||today} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
+    </div>}
+    <div className="map-chip-row" role="group" aria-label="Cik tālu">
+     {RADII.map(km=><button key={km} type="button" aria-pressed={radiusKm===km} className={radiusKm===km?'active':''}
+      onClick={()=>{if(km>0&&!origin){setLocationPrompt(true);setLocationMessage('Vispirms izvēlies vietu, no kuras skaitīt attālumu.');return;}setRadiusKm(km);}}>{radiusLabel(km)}</button>)}
+    </div>
+    <div className="map-chip-row map-chip-row-what" role="group" aria-label="Ko darīt">
+     {HOME_GROUP_KEYS.map(key=><button key={key} type="button" aria-pressed={homeCategory===key} className={homeCategory===key?'active':''}
+      onClick={()=>setDiscoveryFilter('category',homeCategory===key?'':key)}><span aria-hidden="true">{HOME_CATEGORY_FILTERS[key].icon}</span> {HOME_CATEGORY_FILTERS[key].title}</button>)}
+     <button type="button" aria-pressed={price==='free'} className={price==='free'?'active':''} onClick={()=>setPrice(price==='free'?'':'free')}>Bezmaksas</button>
+    </div>
+    {activeChips.filter(c=>c.key!=='category').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
+     {activeChips.filter(c=>c.key!=='category').map(chip=><span key={chip.key} className="map-inline-filter-chip"><span>{chip.label}</span><button type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>×</button></span>)}
+     <button type="button" className="text-button" onClick={resetFilters}>Notīrīt visu</button>
     </div>}
 
-    <div className="map-discovery-settings">
-     <label><span>Ko vēlies darīt?</span><select aria-label="Pasākumu grupa" value={homeCategory} onChange={e=>setDiscoveryFilter('category',e.target.value)}>
-      <option value="">Visas atpūtas iespējas</option>
-      {HOME_GROUP_KEYS.map(key=><option key={key} value={key}>{HOME_CATEGORY_FILTERS[key].title}</option>)}
-      
-      <option value="civic">Pašvaldības un līdzdalība</option>
-     </select></label>
-     {audienceOptions.length>0&&<label><span>Kam piemērots?</span><select aria-label="Auditorija" value={audience} onChange={e=>setDiscoveryFilter('audience',e.target.value)}>
-      <option value="">Jebkura auditorija</option>
-      {audienceOptions.map(([key,title])=><option key={key} value={key}>{title}</option>)}
-     </select></label>}
-    </div>
-
-
-    {filtersOpen&&<div className="map-advanced-panel" role="dialog" aria-label="Paplašinātie filtri">
+    {filtersOpen&&<div className="map-advanced-panel" role="dialog" aria-label="Vairāk filtru">
      <div className="map-filter-head">
-      <strong>Filtri</strong>
+      <strong>Vairāk filtru</strong>
       <button type="button" className="map-filter-close" onClick={()=>setFiltersOpen(false)} aria-label="Aizvērt filtrus">×</button>
      </div>
 
+     {audienceOptions.length>0&&<label className="map-filter-field"><span>Kam piemērots?</span><select aria-label="Auditorija" value={audience} onChange={e=>setDiscoveryFilter('audience',e.target.value)}>
+      <option value="">Jebkura auditorija</option>
+      {audienceOptions.map(([key,title])=><option key={key} value={key}>{title}</option>)}
+     </select></label>}
+
      <fieldset className="map-type-options">
-      <legend>Avoti un sporta veidi</legend>
+      <legend>Sporta līgas un avoti</legend>
       {quickTypes.map(item=><label key={item.value} className={eventTypes.includes(item.value)?'active':''}>
        <input type="checkbox" checked={eventTypes.includes(item.value)} onChange={()=>toggleEventType(item.value)}/>
        <span aria-hidden="true">{item.glyph}</span>{item.label} <small>({sourceCounts[item.value]||0})</small>
@@ -968,12 +1033,6 @@ export default function OsmEventMap(){
       </select>
      </label>
 
-     <label className="map-filter-field"><span>Kartes stils</span>
-      <select value={mapStyle} onChange={e=>setMapStyle(e.target.value)} aria-label="Kartes stils" disabled={mapMode==='raster'}>
-       {mapMode==='raster'?<option value={mapStyle}>Rastra rezerves karte</option>:Object.entries(MAP_STYLES).map(([key,style])=><option key={key} value={key}>{style.label}</option>)}
-      </select>
-     </label>
-
      <button className="map-reset-button" type="button" onClick={resetFilters}>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6"/><path d="M5.5 15a8 8 0 1 0 1-8.5L4 10"/></svg>
       Atiestatīt filtrus
@@ -986,7 +1045,22 @@ export default function OsmEventMap(){
      <strong>{place.label||place.displayName}</strong><span>{place.displayName||place.label}</span>
     </button>)}
    </div>}
-   {locationMessage&&<div className="map-location-message" role="status">{locationMessage}</div>}
+   {locationMessage&&!locationPrompt&&<div className="map-location-message" role="status">{locationMessage}</div>}
+
+   {locationPrompt&&locationResults.length===0&&<section className="map-location-prompt" aria-labelledby="map-location-prompt-title">
+    <strong id="map-location-prompt-title">Kur meklēt pasākumus?</strong>
+    <p>Parādīsim tuvākos pasākumus {DEFAULT_RADIUS} km rādiusā.</p>
+    {locationMessage&&<p className="map-location-prompt-note" role="status">{locationMessage}</p>}
+    <button type="button" className="button primary" onClick={useCurrentLocation}>
+     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+     Mana atrašanās vieta
+    </button>
+    <div className="map-city-chips" role="group" aria-label="Pilsētas">
+     {CITIES.map(city=><button key={city.label} type="button" onClick={()=>selectLocation({...city,displayName:city.label})}>{city.label}</button>)}
+    </div>
+    <small>Cita vieta? Ieraksti to meklēšanas laukā augšā.</small>
+    <button type="button" className="text-button" onClick={chooseRiga}>Rādīt visu Latviju</button>
+   </section>}
 
    <div ref={mapEl} className="osm-map" aria-label="Pasākumu karte"/>
    {mapMode==='raster'&&<div className="map-fallback-note" role="status">Rastra rezerves karte</div>}
@@ -999,27 +1073,35 @@ export default function OsmEventMap(){
     </div>
    </div>}
 
+   <button type="button" className="map-list-jump" onClick={()=>listRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}>
+    Saraksts · {activeEvents.length}
+   </button>
+
    <div className="map-legend map-legend-overlay" aria-label="Kartes leģenda">
     <span className="legend-ended-example"><i aria-hidden="true"></i>iespējams noslēdzies</span>
     <span className="legend-muted-example"><i>⚽</i>ārpus filtra</span>
+    {mapMode!=='raster'&&<span className="map-style-switch">
+     <button type="button" aria-expanded={styleMenuOpen} onClick={()=>setStyleMenuOpen(v=>!v)}>Kartes stils</button>
+     {styleMenuOpen&&<span className="map-style-menu" role="group" aria-label="Kartes stils">
+      {Object.entries(MAP_STYLES).map(([key,style])=><button key={key} type="button" aria-pressed={mapStyle===key} className={mapStyle===key?'active':''}
+       onClick={()=>{setMapStyle(key);setStyleMenuOpen(false);}}>{style.label}</button>)}
+     </span>}
+    </span>}
    </div>
   </div>
+  </div>
 
-  {!loading&&!error&&activeEvents.length===0&&!audience&&!homeCategory&&<div className="map-no-results" role="status"><strong>Šajos filtros pasākumi nav atrasti.</strong><span>Palielini meklēšanas attālumu vai izvēlies plašāku datumu.</span><div><button type="button" className="button compact" onClick={()=>setRadiusKm(0)}>Visa karte</button><button type="button" className="button compact" onClick={()=>changePeriod('month')}>Šomēnes</button><button type="button" className="button compact" onClick={resetFilters}>Notīrīt filtrus</button></div></div>}
   {mobileSheetGroup&&<MobileEventSheet group={mobileSheetGroup} activeIds={activeIds} favorites={favorites} onFavorite={toggleFavorite} onCalendar={calendarDownload} onClose={()=>setMobileGroupKey('')}/>}
   {audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">Izvēlētajai auditorijai šajā laikā un rādiusā nav pasākumu ar pārbaudītu piemērotību. Izvēlies citu auditoriju vai maini laiku un rādiusu.</p>}
   {homeCategory&&!audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">
    {HOME_CATEGORY_FILTERS[homeCategory].emptyMessage||'Šajā kategorijā izvēlētajā laikā un rādiusā pasākumi nav atrasti. Maini datumu vai rādiusu, vai noņem kategorijas filtru.'}
   </p>}
   <div className="map-summary">
-   <strong>{activeEvents.length}</strong> atlasīti pasākumi · <strong>{activeGroupCount}</strong> vietas
-   {userLocation&&radiusKm>0?' · '+radiusKm+' km no '+userLocation.label:''}
-   {from&&to?' · '+from+'–'+to:''}
-   <button className="text-button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Pārlasīt'}</button>
+   <span>{countLabel(activeEvents.length)} · {activeGroupCount} {activeGroupCount%10===1&&activeGroupCount%100!==11?'vietā':'vietās'}</span>
+   <button className="text-button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Atjaunot datus'}</button>
    <button className="text-button" type="button" onClick={()=>{navigator.clipboard?.writeText(window.location.href).then(()=>setLocationMessage('Atlases saite nokopēta.'),()=>setLocationMessage('Nokopē saiti no pārlūka adreses joslas.'));}}>↗ Kopīgot atlasi</button>
-   <a className="text-button" href={catalogHref}>Saraksts ↗</a>
+   <a className="text-button" href={catalogHref}>Tabulas skats ↗</a>
   </div>
   {error&&<div className="error-message">{error}</div>}
  </>;
 }
-
