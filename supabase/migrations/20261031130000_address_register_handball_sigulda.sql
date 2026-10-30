@@ -535,3 +535,7 @@ $cron$);
 
 select meets_private.address_register_start();
 select meets_private.place_search_enqueue();
+
+-- Imports write locations as the service role, which may not call the private
+-- municipality lookup used by this trigger; it runs with its owner's rights instead.
+alter function meets_private.assign_known_lv_municipality() security definer;

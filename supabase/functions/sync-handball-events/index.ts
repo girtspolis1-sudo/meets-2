@@ -6,6 +6,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const U=Deno.env.get("SUPABASE_URL")!,K=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const H={"apikey":K,"Authorization":"Bearer "+K,"Content-Type":"application/json"};
 const CALENDAR="https://handball.lv/calendar";
+// National team games abroad ("Opole, Polija") are not events in the Baltics.
+const ABROAD=/,\s*(Polija|Vācija|Zviedrija|Somija|Norvēģija|Dānija|Spānija|Itālija|Francija|Čehija|Slovākija|Ungārija|Austrija|Šveice|Horvātija|Serbija|Slovēnija|Portugāle|Nīderlande|Beļģija|Grieķija|Turcija|Ukraina|Islande|Rumānija|Bulgārija|Gruzija|Izraēla|Kipra|Luksemburga|Melnkalne|Bosnija|Ziemeļmaķedonija|Albānija|Moldova|Kosova|Īrija|Lielbritānija|Anglija|Skotija|Fēru salas|Farēru salas)\s*$/i;
 const MONTHS:Record<string,number>={january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12};
 
 async function q(p:string,o:RequestInit={}){
@@ -70,7 +72,7 @@ Deno.serve(async()=>{
   const page=await fetch(CALENDAR,{headers:{"User-Agent":"MEETS/1.0 (+https://meets.lv)"}});
   if(!page.ok)throw new Error("Calendar HTTP "+page.status);
   const games=[...new Map(parseCalendar(await page.text(),today).map(g=>[g.id,g])).values()]
-   .filter(g=>g.date>=today&&g.date<=windowTo);
+   .filter(g=>g.date>=today&&g.date<=windowTo&&!ABROAD.test(g.address));
   if(!games.length)throw new Error("No matches found on "+CALENDAR);
   await q("import_runs?id=eq."+rid,{method:"PATCH",body:JSON.stringify({expected_count:games.length})});
 
@@ -95,7 +97,7 @@ Deno.serve(async()=>{
    await q("event_occurrences?on_conflict=event_id,occurrence_key",{method:"POST",headers:{"Prefer":"resolution=merge-duplicates"},
     body:JSON.stringify({event_id:eid,occurrence_key:"source",occurrence_kind:"confirmed_date",date_from:g.date,date_to:g.date,
      time_from:base.time_from,time_type:base.time_type,timezone:"Europe/Riga"})});
-   const loc={venue_name:g.venue,address_raw:g.address,country_code:"LV",location_basis:"handball.lv calendar",location_source:g.url};
+   const loc={venue_name:g.venue,address_raw:g.address,location_basis:"handball.lv calendar",location_source:g.url};
    const existingLoc=await q("event_locations?event_id=eq."+eid+"&select=event_id");
    if(existingLoc.length)await q("event_locations?event_id=eq."+eid,{method:"PATCH",body:JSON.stringify(loc)});
    else await q("event_locations",{method:"POST",body:JSON.stringify({event_id:eid,...loc,location_precision:"unresolved",
