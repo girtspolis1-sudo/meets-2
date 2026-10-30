@@ -889,6 +889,13 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 }
 .events-table.admin-mapping-table.saved{min-width:1000px}
 
+.admin-toast{
+ position:fixed;left:50%;bottom:24px;z-index:3000;transform:translateX(-50%);
+ display:flex;gap:12px;align-items:flex-start;width:min(560px,calc(100vw - 32px));
+ padding:12px 14px;border:1px solid #b9a5cc;border-radius:12px;background:#fff;
+ box-shadow:0 10px 30px rgba(40,20,60,.18);font-size:14px;line-height:1.45
+}
+.admin-toast p{margin:0;flex:1}
 .admin-workspace-message{
  margin:0 0 12px;
  min-height:0;
