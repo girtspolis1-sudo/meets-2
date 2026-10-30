@@ -10,9 +10,7 @@ import {useSearchParams,useRouter,usePathname} from 'next/navigation';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
 import {groupedMapIcon} from '../../lib/event-map-icons.js';
 import {useEvents} from '../../lib/use-events.js';
-import {dateLabel,timeLabel,display} from '../../lib/catalog.js';
-import {eventShareUrl,eventShareTargets,officialEventUrl} from '../../lib/event-sharing.js';
-import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
+import {eventDateState,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 
 const MAP_STYLES={
@@ -42,53 +40,7 @@ function markerTimeText(e,now){
  if(state.tone==='ended-today')return 'BEIDZIES?';
  return markerLabel(e,rigaTodayIso(now));
 }
-function sourceLabel(e){
- const type=sourceType(e);
- if(type==='lff')return e.competition_name?('LFF · '+e.competition_name):'LFF · Futbols';
- if(type==='basketball')return e.competition_name?('Basketbols · '+e.competition_name):'Basketbols';
- if(type==='athletics')return 'Athletics.lv · Vieglatlētika';
- return (e.sources||[]).map(s=>s.source).filter(Boolean).join(', ')||'MEETS';
-}
-function sourceLinksHtml(e){
- const links=(e.sources||[]).filter(s=>s?.url);
- if(!links.length)return '';
- const first=links[0];
- return '<a class="popup-source-link" href="'+esc(first.url)+'" target="_blank" rel="noopener noreferrer">Vairāk oficiālajā lapā ↗</a>';
-}
-function shortDescription(value,limit=170){
- const text=String(value||'').replace(/\s+/g,' ').trim();
- if(!text)return '';
- if(text.length<=limit)return text;
- const cut=text.lastIndexOf(' ',limit);
- return text.slice(0,cut>limit/2?cut:limit).trimEnd()+'…';
-}
-function navigationLinksHtml(e){
- const accurate=!['municipality_center','settlement_center','unresolved','approximate'].includes(e.location_precision);
- const lat=Number(e.latitude),lon=Number(e.longitude);
- const hasPoint=accurate&&e.latitude!=null&&e.longitude!=null&&insideBalticView(lat,lon);
- const query=hasPoint?lat+','+lon:String(e.address_raw||e.venue_name||'').trim();
- if(!query)return '';
- const google='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
- const waze=hasPoint?'https://waze.com/ul?ll='+encodeURIComponent(lat+','+lon)+'&navigate=yes':'';
- return '<a class="popup-navigation-link" href="'+esc(google)+'" target="_blank" rel="noopener noreferrer" aria-label="Atvērt pasākuma maršrutu Google Maps">⌖ Maršruts</a>'+
-   (waze?'<a class="popup-navigation-link" href="'+esc(waze)+'" target="_blank" rel="noopener noreferrer">Waze ↗</a>':'');
-}
 function countryLabel(code){return ({LV:'Latvija',EE:'Igaunija',LT:'Lietuva'})[code]||'';}
-function competitionMeta(e){return [e.competition_season,e.competition_group,e.competition_stage,e.age_group].filter(Boolean).join(' · ');}
-function popupEventType(e){
- const key=String(e.competition_key||'').toLowerCase();
- if(key.startsWith('ljbl:'))return 'LJBL';
- if(e.competition_name)return String(e.competition_name);
- const generic=display(e,'event_type');
- return generic&&generic!=='Sporta spēle'?generic:(generic||'');
-}
-function popupDayLabel(state){
- if(state.tone==='ended-today')return 'BEIDZIES?';
- if(state.tone==='today')return 'ŠODIEN';
- if(state.tone==='tomorrow')return 'RĪT';
- if(Number.isFinite(state.days)&&state.days>1)return state.days+' DIENAS';
- return state.badge||'—';
-}
 function insideBalticView(lat,lon){return lat>=BALTIC_VIEW.south&&lat<=BALTIC_VIEW.north&&lon>=BALTIC_VIEW.west&&lon<=BALTIC_VIEW.east;}
 function isSupportedMapEvent(e){
  const code=String(e.country_code||'').toUpperCase();
@@ -129,94 +81,6 @@ function groupPosition(group,indexByCoordinate){
   lon+=Math.cos(angle)*0.004;
  }
  return [lat,lon];
-}
-function popupActionIcon(name){
- const icons={
-  heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
-  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M12 13v5M9.5 15.5h5"/>',
-  list:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h10M8 14h10M5 9h.01M5 14h.01"/>',
-  pin:'<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.8"/>',
-  external:'<path d="M13 5h6v6M19 5l-9 9"/><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
-  share:'<circle cx="18" cy="5" r="2.2"/><circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="m8 11 8-5m-8 8 8 4"/>'
- };
- return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(icons[name]||'')+'</svg>';
-}
-function popupActionsHtml(e,favorites,editLink){
- const id=esc(e.id),saved=favorites.has(String(e.id));
- const official=officialEventUrl(e);
- const verified=!['municipality_center','settlement_center','unresolved','approximate'].includes(e.location_precision);
- const lat=Number(e.latitude),lon=Number(e.longitude);
- const hasPoint=verified&&e.latitude!=null&&e.longitude!=null&&insideBalticView(lat,lon);
- const query=hasPoint?lat+','+lon:String(e.address_raw||e.venue_name||'').trim();
- const google=query?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query):'';
- const waze=hasPoint?'https://waze.com/ul?ll='+encodeURIComponent(lat+','+lon)+'&navigate=yes':'';
- const shareUrl=eventShareUrl(e,window.location.origin);
- const targets=eventShareTargets(e,shareUrl);
- const favoriteLabel=saved?'Noņemt no saglabātajiem':'Saglabāt pasākumu';
- const button=(name,label,extra='',short=label)=>'<button type="button" class="meets-circle-action '+extra+'" data-event-id="'+id+'" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+popupActionIcon(name)+'<small class="meets-quiet-label">'+esc(short)+'</small></button>';
- const social=[['WhatsApp',targets.whatsapp],['Messenger',targets.messenger],
-  ['Telegram',targets.telegram],['Facebook',targets.facebook],['X',targets.x]]
-  .map(([name,url])=>'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">'+esc(name)+'</a>').join('');
- return '<div class="popup-event-actions meets-event-action-grid meets-circle-actions" role="group" aria-label="Pasākuma darbības">'+
-  '<button type="button" class="meets-circle-action popup-save-favorite" data-event-id="'+id+'" aria-label="'+favoriteLabel+'" title="'+favoriteLabel+'" aria-pressed="'+saved+'">'+popupActionIcon('heart')+'<small class="meets-quiet-label">Favorīts</small></button>'+
-  button('calendar','Pievienot kalendāram','popup-save-calendar','Kalendārs')+
-  (google?'<details class="meets-popup-route"><summary class="meets-circle-action" aria-label="Maršruts" title="Maršruts">'+popupActionIcon('pin')+'<small class="meets-quiet-label">Norādes</small></summary><div class="meets-event-action-choices"><a target="_blank" rel="noopener noreferrer" href="'+esc(google)+'">Google Maps ↗</a>'+(waze?'<a target="_blank" rel="noopener noreferrer" href="'+esc(waze)+'">Waze ↗</a>':'')+'</div></details>'
-   :'<button type="button" class="meets-circle-action" disabled aria-label="Nav adreses maršrutam" title="Nav adreses maršrutam">'+popupActionIcon('pin')+'<small class="meets-quiet-label">Norādes</small></button>')+
-  (official?'<a class="meets-circle-action" href="'+esc(official)+'" aria-label="Oficiālā pasākuma lapa" title="Oficiālā lapa" target="_blank" rel="noopener noreferrer">'+popupActionIcon('external')+'<small class="meets-quiet-label">Atvērt</small></a>'
-   :'<span class="meets-circle-action disabled" aria-label="Nav oficiālās saites" title="Nav oficiālās saites">'+popupActionIcon('external')+'<small class="meets-quiet-label">Atvērt</small></span>')+
-  button('share','Dalīties ar pasākumu','popup-share-event','Dalīties')+
-  '</div><div class="meets-circle-options meets-popup-share-options" hidden>'+social+
-  '<button type="button" class="popup-share-copy" data-event-id="'+id+'">Kopēt saiti ⧉</button></div>'+
-
-  (editLink?'<div class="popup-admin-actions">'+editLink+'</div>':'');
-}
-function popupHtml(group,activeIds,isAdminSession,now,favorites){
- const sorted=closestFirst(group.events);
- const renderRow=(e,active)=>{
-  const approximate=['settlement_center','municipality_center'].includes(e.location_precision);
-  const meta=competitionMeta(e),country=countryLabel(e.country_code);
-  const dateState=eventDateState(e,rigaTodayIso(now),now);
-  const rangeLabel=eventDateRangeLabel(e,dateLabel);
-  const editLink=isAdminSession&&active?'<a class="admin-popup-edit" href="/admin?edit='+encodeURIComponent(e.id)+'">Labot</a>':'';
-  const rowClass=[active?'popup-event-active':'popup-event-muted',dateState.tone==='ended-today'?'popup-event-ended':''].filter(Boolean).join(' ');
-  const eventType=popupEventType(e);
-  const compactMeta=sourceType(e)==='basketball'
-   ? [eventType,e.competition_group,e.age_group].filter(Boolean).join(' · ')
-   : [eventType||sourceLabel(e),meta].filter(Boolean).join(' · ');
-  const description=String(e.description||'').replace(/\s+/g,' ').trim();
-  const summary=shortDescription(description);
-  const address=[e.address_raw,e.settlement||e.municipality].filter(Boolean).join(', ');
-  const price=e.price_status&&e.price_status!=='unknown'?(e.price_text||display(e,'price_status')):'';
-  return '<li class="'+rowClass+'">'+
-   '<div class="popup-event-main">'+
-    '<span class="event-date-badge event-date-badge-prominent '+esc(dateState.tone)+'" title="'+esc(dateState.label)+'">'+esc(popupDayLabel(dateState))+'</span>'+
-    '<div class="popup-event-copy">'+
-     '<strong>'+esc(e.title)+'</strong>'+
-     '<span class="popup-event-datetime">'+esc(rangeLabel)+' · '+esc(timeLabel(e))+'</span>'+
-     (address?'<span class="popup-event-address">'+esc(address)+'</span>':'')+
-     (address?'<a class="meets-popup-venue-inline" href="/pasakumi/'+encodeURIComponent(e.id)+'">⌖ Sekot vietai ↗</a>':'')+
-     (compactMeta?'<small>'+esc(compactMeta)+(country?' · '+esc(country):'')+(approximate?' · aptuvena lokācija':'')+'</small>':'')+
-     (price?'<span class="popup-event-price">'+esc(price)+'</span>':'')+
-     (description?'<div class="popup-description"><p class="popup-event-description">'+esc(summary)+'</p>'+
-      (description.length>170?'<details><summary>Pilns apraksts</summary><p class="popup-event-description">'+esc(description)+'</p></details>':'')+'</div>':
-      '<p class="popup-event-description popup-description-empty">Apraksts nav norādīts.'+(e.sources?.some(s=>s.url)?' Vairāk informācijas pasākuma avotā.':'')+'</p>')+
-     popupActionsHtml(e,favorites,editLink)+
-    '</div>'+
-   '</div>'+
-  '</li>';
- };
- const activeEvents=sorted.filter(e=>activeIds.has(e.id));
- const otherEvents=sorted.filter(e=>!activeIds.has(e.id));
- const activeRows=activeEvents.map(e=>renderRow(e,true)).join('');
- const otherRows=otherEvents.map(e=>renderRow(e,false)).join('');
- const activeCount=activeEvents.length;
- const activeSection=activeRows
-  ? '<div class="popup-section-title active">ATBILST FILTRAM · '+activeCount+'</div><ol class="popup-active-list">'+activeRows+'</ol>'
-  : '';
- const otherSection=otherRows
-  ? '<details class="popup-other-events"'+(!activeCount?' open':'')+'><summary>Citi pasākumi šajā vietā ('+otherEvents.length+')</summary><p class="popup-other-note">Neatbilst pašreizējiem filtriem</p><ol class="popup-other-list">'+otherRows+'</ol></details>'
-  : '';
- return '<div class="location-popup"><div class="location-popup-head"><strong>'+esc(group.label)+'</strong><span>'+activeCount+'/'+group.events.length+' atlasīti</span></div>'+activeSection+otherSection+'</div>';
 }
 function distanceKm(aLat,aLon,bLat,bLon){
  const r=6371,toRad=v=>v*Math.PI/180;
@@ -296,7 +160,9 @@ export default function OsmEventMap(){
  const [mapReady,setMapReady]=useState(false);
  const [mapMode,setMapMode]=useState('loading');
  const [mapError,setMapError]=useState('');
- const [mobileGroupKey,setMobileGroupKey]=useState('');
+ // The map place whose events are open: side panel on desktop, sheet on phones.
+ const [placeKey,setPlaceKey]=useState('');
+ const [isPhone,setIsPhone]=useState(false);
  const [mapRetry,setMapRetry]=useState(0);
  const {isAdmin:isAdminSession}=useAdminSession();
  const [clockNow,setClockNow]=useState(()=>new Date());
@@ -490,7 +356,13 @@ export default function OsmEventMap(){
  const activeIds=useMemo(()=>new Set(activeEvents.map(e=>e.id)),[activeEvents]);
  const mapEvents=useMemo(()=>events.filter(e=>matchesHomeCategory(e,homeCategory)&&matchesAudience(e,audience)&&(!placeFilter||placeFromEvent(e)?.key===placeFilter)&&Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))&&isSupportedMapEvent(e)&&insideBalticView(Number(e.latitude),Number(e.longitude))),[events,homeCategory,audience,placeFilter]);
  const locationGroups=useMemo(()=>groupEvents(mapEvents),[mapEvents]);
- const mobileSheetGroup=useMemo(()=>locationGroups.find(g=>g.key===mobileGroupKey)||null,[locationGroups,mobileGroupKey]);
+ const openPlace=useMemo(()=>locationGroups.find(g=>g.key===placeKey)||null,[locationGroups,placeKey]);
+ useEffect(()=>{
+  const query=window.matchMedia('(max-width:1000px)');
+  const sync=()=>setIsPhone(query.matches);
+  sync();query.addEventListener('change',sync);
+  return()=>query.removeEventListener('change',sync);
+ },[]);
  const activeGroupCount=useMemo(()=>locationGroups.filter(g=>g.events.some(e=>activeIds.has(e.id))).length,[locationGroups,activeIds]);
 
  useEffect(()=>{
@@ -655,106 +527,14 @@ export default function OsmEventMap(){
    '</span>';
    const icon=L.divIcon({className:'event-drop-marker-wrap',html,iconSize:[size,size+12],iconAnchor:[size/2,size+10]});
    const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
-   const viewportWidth=typeof window!=='undefined'?window.innerWidth:1366;
-   const isMobileViewport=viewportWidth<=700;
-   const controlsHeight=mapEl.current?.parentElement?.querySelector('.map-controls-overlay')?.getBoundingClientRect().height||118;
-   const popupTopPadding=isMobileViewport?18:controlsHeight+16;
-   const popupMaxWidth=Math.min(430,Math.max(220,map.getSize().x-64));
-   const popupMaxHeight=Math.max(180,Math.min(isMobileViewport?420:520,map.getSize().y-popupTopPadding-64,window.innerHeight-160));
-   // Keep the same DOM nodes when Leaflet updates the popup dimensions, so
-   // native details retain their expanded state instead of being recreated.
-   const popupContent=document.createElement('div');
-   popupContent.innerHTML=popupHtml(group,activeIds,isAdminSession,clockNow,favorites);
-   marker.bindPopup(popupContent,{
-    className:'meets-event-popup',
-    minWidth:popupMaxWidth,
-    maxWidth:popupMaxWidth,
-    maxHeight:popupMaxHeight,
-    autoPan:true,
-    keepInView:true,
-    autoPanPaddingTopLeft:[isMobileViewport?14:28,popupTopPadding],
-    autoPanPaddingBottomRight:isMobileViewport?[14,18]:[28,32]
-   });
    marker.on('click',()=>{
     setHighlightedId(String(nearest?.id||''));
+    setPlaceKey(group.key);
     setLocationPrompt(false);
     setFiltersOpen(false);
     setLocationResults([]);
     setLocationMessage('');
    });
-   const updatePopup=()=>{
-    const popup=marker.getPopup();
-    if(!popup?.isOpen?.())return;
-    const scrollContainer=popup.getElement()?.querySelector('.leaflet-popup-content');
-    const scrollTop=scrollContainer?.scrollTop||0;
-    popup.update();
-    if(scrollContainer)scrollContainer.scrollTop=scrollTop;
-   };
-   marker.on('popupopen',()=>{
-    if(window.innerWidth<=700){
-     marker.closePopup();
-     setMobileGroupKey(group.key);
-     return;
-    }
-    // Leaflet auto-pans only when the popup opens, before it is resized here or
-    // grows upwards (share options), so it could end up under the filter overlay.
-    const keepClearOfControls=()=>{
-     const overlayBottom=mapEl.current?.parentElement?.querySelector('.map-controls-overlay')?.getBoundingClientRect().bottom;
-     const popupTop=marker.getPopup()?.getElement()?.getBoundingClientRect().top;
-     if(Number.isFinite(overlayBottom)&&Number.isFinite(popupTop)&&popupTop<overlayBottom+12){
-      map.panBy([0,popupTop-overlayBottom-12],{animate:false});
-     }
-    };
-    const actions=async event=>{
-     const button=event.target.closest('button[data-event-id]');
-     if(!button)return;
-     const item=group.events.find(e=>String(e.id)===button.dataset.eventId);
-     if(!item)return;
-     if(button.classList.contains('popup-save-calendar')){calendarDownload(item);return;}
-     if(button.classList.contains('popup-save-favorite')){
-      toggleFavorite(item.id);
-      const selected=button.getAttribute('aria-pressed')!=='true';
-      button.setAttribute('aria-pressed',String(selected));
-      const label=selected?'Noņemt no saglabātajiem':'Saglabāt pasākumu';
-      button.setAttribute('aria-label',label);button.title=label;
-      return;
-     }
-     const panel=button.closest('.popup-event-copy')?.querySelector('.meets-popup-share-options');
-     if(button.classList.contains('popup-share-event')){
-      const url=eventShareUrl(item,window.location.origin);
-      if(navigator.share){
-       try{await navigator.share({title:item.title||'MEETS pasākums',url});if(panel)panel.hidden=true;return;}
-       catch(e){if(e?.name==='AbortError')return;}
-      }
-      if(panel)panel.hidden=!panel.hidden;
-      marker.getPopup()?.update();keepClearOfControls();
-      return;
-     }
-     if(button.classList.contains('popup-share-copy')){
-      const url=eventShareUrl(item,window.location.origin);
-      try{await navigator.clipboard.writeText(url);if(panel){panel.hidden=true;}}
-      catch{if(panel){const hint=document.createElement('span');hint.textContent='Kopē saiti: '+url;panel.appendChild(hint);}}
-     }
-    };
-    if(popupContent._actionHandler)popupContent.removeEventListener('click',popupContent._actionHandler);
-    popupContent._actionHandler=actions;
-    popupContent.addEventListener('click',actions);
-    const popup=marker.getPopup();
-    const mobile=window.innerWidth<=700;
-    const width=Math.min(430,Math.max(220,map.getSize().x-64));
-    const topPadding=mobile?18:(mapEl.current?.parentElement?.querySelector('.map-controls-overlay')?.getBoundingClientRect().height||118)+16;
-    const maxHeight=Math.max(180,Math.min(mobile?420:520,map.getSize().y-topPadding-64,window.innerHeight-160));
-    const resized=popup.options.maxWidth!==width||popup.options.maxHeight!==maxHeight;
-    popup.options.minWidth=width;
-    popup.options.maxWidth=width;
-    popup.options.maxHeight=maxHeight;
-    popup.options.autoPanPaddingTopLeft=[mobile?14:28,topPadding];
-    popup.getElement()?.querySelector('.leaflet-popup-close-button')?.setAttribute('aria-label','Aizvērt pasākumu logu');
-    popup.getElement()?.addEventListener('toggle',updatePopup,true);
-    if(resized)popup.update();
-    keepClearOfControls();
-   });
-   marker.on('popupclose',()=>marker.getPopup()?.getElement()?.removeEventListener('toggle',updatePopup,true));
    for(const e of group.events)markerByEventRef.current.set(String(e.id),marker);
    built.push({marker,isActive,events:group.events,latlng:[displayLat,displayLon],tone:dateTone,count:shownCount});
   }
@@ -783,7 +563,7 @@ export default function OsmEventMap(){
   layout();
   map.on('zoomend',layout);
   return()=>{map.off('zoomend',layout);};
- },[mapReady,locationGroups,activeIds,isAdminSession,clockNow,favorites]);
+ },[mapReady,locationGroups,activeIds,clockNow]);
 
  useEffect(()=>{
   if(!mapReady||!mapRef.current)return;
@@ -809,8 +589,9 @@ export default function OsmEventMap(){
   const marker=markerByEventRef.current.get(focusEventId);
   if(!marker)return;
   focusOpenedRef.current=true;
-  mapRef.current.setView(marker.getLatLng(),14,{animate:false});
-  marker.openPopup();
+  mapRef.current.setView(marker.getLatLng(),CLUSTER_MAX_ZOOM,{animate:false});
+  setHighlightedId(focusEventId);
+  setPlaceKey(locationGroups.find(g=>g.events.some(e=>String(e.id)===focusEventId))?.key||'');
  },[mapReady,locationGroups,activeIds,focusEventId,periodMode]);
 
  useEffect(()=>()=>{mapRef.current?.remove();mapRef.current=null;leafletRef.current=null;},[]);
@@ -921,19 +702,19 @@ export default function OsmEventMap(){
   country&&{key:'country',label:countryLabel(country),clear:()=>setCountry('')}
  ].filter(Boolean);
 
+ // A list item opens its place: on desktop in the panel with the map centred on it.
  function showOnMap(event){
   const marker=markerByEventRef.current.get(String(event.id));
+  const group=locationGroups.find(g=>g.events.some(e=>String(e.id)===String(event.id)));
   setHighlightedId(String(event.id));
-  if(window.innerWidth<=1000){
-   const group=locationGroups.find(g=>g.events.some(e=>String(e.id)===String(event.id)));
-   if(group){setMobileGroupKey(group.key);return;}
-   window.location.assign('/pasakumi/'+encodeURIComponent(event.id));
-   return;
-  }
-  if(!marker||!mapRef.current){window.location.assign('/pasakumi/'+encodeURIComponent(event.id));return;}
-  mapRef.current.setView(marker.getLatLng(),Math.max(mapRef.current.getZoom(),CLUSTER_MAX_ZOOM),{animate:false});
-  marker.openPopup();
+  if(!group){window.location.assign('/pasakumi/'+encodeURIComponent(event.id));return;}
+  setPlaceKey(group.key);
+  if(!isPhone&&marker&&mapRef.current)mapRef.current.setView(marker.getLatLng(),Math.max(mapRef.current.getZoom(),CLUSTER_MAX_ZOOM),{animate:false});
  }
+ const distanceFrom=useMemo(()=>origin?e=>{
+  const lat=Number(e.latitude),lon=Number(e.longitude);
+  return Number.isFinite(lat)&&Number.isFinite(lon)?distanceKm(origin.lat,origin.lon,lat,lon):null;
+ }:()=>null,[origin]);
  useEffect(()=>{setAreaMoved(false);},[userLocation,radiusKm]);
  function searchThisArea(){
   const map=mapRef.current;if(!map)return;
@@ -963,7 +744,8 @@ export default function OsmEventMap(){
   <div className="map-layout">
   <NearbyList groups={nearby} total={activeEvents.length} today={today} clock={rigaClockMinutes(clockNow)} summary={summary} loading={loading&&!events.length}
    favorites={favorites} highlightedId={highlightedId} onSelect={showOnMap} onHover={hoverEvent} onFavorite={toggleFavorite}
-   empty={emptyState} listRef={listRef}/>
+   onCalendar={calendarDownload} empty={emptyState} listRef={listRef} activeIds={activeIds} distance={distanceFrom} isAdmin={isAdminSession}
+   place={!isPhone?openPlace:null} onClosePlace={()=>setPlaceKey('')} collapsed={locationPrompt}/>
   <div className="map-shell">
    <div className="map-controls map-controls-overlay" aria-label="Kartes filtri">
     <div className="map-primary-controls">
@@ -1133,7 +915,8 @@ export default function OsmEventMap(){
   </div>
   </div>
 
-  {mobileSheetGroup&&<MobileEventSheet group={mobileSheetGroup} activeIds={activeIds} favorites={favorites} onFavorite={toggleFavorite} onCalendar={calendarDownload} onClose={()=>setMobileGroupKey('')}/>}
+  {isPhone&&openPlace&&<MobileEventSheet group={openPlace} activeIds={activeIds} favorites={favorites} onFavorite={toggleFavorite} onCalendar={calendarDownload}
+   onClose={()=>setPlaceKey('')} today={today} clock={rigaClockMinutes(clockNow)} distance={distanceFrom} isAdmin={isAdminSession}/>}
   {audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">Izvēlētajai auditorijai šajā laikā un rādiusā nav pasākumu ar pārbaudītu piemērotību. Izvēlies citu auditoriju vai maini laiku un rādiusu.</p>}
   {homeCategory&&!audience&&!loading&&!error&&activeEvents.length===0&&<p className="data-note" role="status">
    {HOME_CATEGORY_FILTERS[homeCategory].emptyMessage||'Šajā kategorijā izvēlētajā laikā un rādiusā pasākumi nav atrasti. Maini datumu vai rādiusu, vai noņem kategorijas filtru.'}
