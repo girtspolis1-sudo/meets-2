@@ -2,7 +2,8 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
 import NearbyList from './nearby-list.jsx';
-import {PERIODS,RADII,DEFAULT_PERIOD,DEFAULT_RADIUS,periodKey,periodRange,periodPhrase,radiusLabel,nearbyGroups,widerOptions,countLabel} from '../../lib/map-nearby.js';
+import {PERIODS,RADII,DEFAULT_PERIOD,DEFAULT_RADIUS,periodKey,periodRange,periodPhrase,radiusLabel,nearbyGroups,widerOptions,countLabel,markerLabel} from '../../lib/map-nearby.js';
+import {CLUSTER_MAX_ZOOM,clusterPoints,clusterTone,radiusForView} from '../../lib/map-cluster.js';
 import {useAdminSession} from '../use-admin-session.js';
 import {placeFromEvent} from '../../lib/location-follow.js';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
@@ -11,7 +12,7 @@ import {groupedMapIcon} from '../../lib/event-map-icons.js';
 import {useEvents} from '../../lib/use-events.js';
 import {dateLabel,timeLabel,display} from '../../lib/catalog.js';
 import {eventShareUrl,eventShareTargets,officialEventUrl} from '../../lib/event-sharing.js';
-import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaTodayIso} from '../../lib/event-date.js';
+import {eventDateRangeLabel,eventDateState,groupDateTone,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 
 const MAP_STYLES={
@@ -39,10 +40,7 @@ function norm(v=''){return String(v).toLocaleLowerCase('lv').normalize('NFD').re
 function markerTimeText(e,now){
  const state=eventDateState(e,rigaTodayIso(now),now);
  if(state.tone==='ended-today')return 'BEIDZIES?';
- if(state.tone==='today')return 'ŠODIEN';
- if(state.tone==='tomorrow')return 'RĪT';
- if(Number.isFinite(state.days)&&state.days>1)return state.days+' d.';
- return state.badge||'—';
+ return markerLabel(e,rigaTodayIso(now));
 }
 function sourceLabel(e){
  const type=sourceType(e);
@@ -284,7 +282,8 @@ export default function OsmEventMap(){
  const [locationPrompt,setLocationPrompt]=useState(false);
  const [highlightedId,setHighlightedId]=useState('');
  const [styleMenuOpen,setStyleMenuOpen]=useState(false);
- const listRef=useRef(null),hoveredMarkerRef=useRef(null);
+ const listRef=useRef(null),hoveredMarkerRef=useRef(null),shownMarkerRef=useRef(new Map());
+ const [areaMoved,setAreaMoved]=useState(false);
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [mapStyle,setMapStyle]=useState(()=>Object.hasOwn(MAP_STYLES,searchParams.get('style'))?searchParams.get('style'):'positron');
  const [userLocation,setUserLocation]=useState(DEFAULT_LOCATION);
@@ -528,6 +527,8 @@ export default function OsmEventMap(){
     if(map.getPane('popupPane'))map.getPane('popupPane').style.zIndex='920';
     leafletRef.current=L;
     mapRef.current=map;
+    // Only a drag by the visitor offers "Meklēt šajā apgabalā", not our own zooming.
+    map.on('dragend',()=>setAreaMoved(true));
 
     const requested=requestedMapMode();
     let vectorError=null;
@@ -632,6 +633,7 @@ export default function OsmEventMap(){
 
   const indexByCoordinate=new Map();
   markerByEventRef.current=new Map();
+  const built=[];
   for(const group of locationGroups){
    const [displayLat,displayLon]=groupPosition(group,indexByCoordinate);
    const activeInGroup=group.events.filter(e=>activeIds.has(e.id));
@@ -754,8 +756,33 @@ export default function OsmEventMap(){
    });
    marker.on('popupclose',()=>marker.getPopup()?.getElement()?.removeEventListener('toggle',updatePopup,true));
    for(const e of group.events)markerByEventRef.current.set(String(e.id),marker);
-   marker.addTo(isActive?active:bg);
+   built.push({marker,isActive,events:group.events,latlng:[displayLat,displayLon],tone:dateTone,count:shownCount});
   }
+
+  // Below CLUSTER_MAX_ZOOM nearby places join into one bubble with a count.
+  const layout=()=>{
+   active.clearLayers();bg.clearLayers();
+   const shown=new Map();
+   const place=(item,marker)=>{marker.addTo(item.isActive?active:bg);for(const e of item.events)shown.set(String(e.id),marker);};
+   if(map.getZoom()>=CLUSTER_MAX_ZOOM){for(const item of built)place(item,item.marker);shownMarkerRef.current=shown;return;}
+   const points=built.map((item,i)=>{const p=map.latLngToLayerPoint(item.latlng);return {i,x:p.x,y:p.y,weight:item.count,layer:item.isActive?'active':'other'};});
+   for(const cluster of clusterPoints(points,52)){
+    const items=cluster.members.map(m=>built[m.i]);
+    if(items.length===1){place(items[0],items[0].marker);continue;}
+    const isActive=items[0].isActive,count=items.reduce((sum,item)=>sum+item.count,0);
+    const bounds=L.latLngBounds(items.map(item=>item.latlng));
+    const size=count>=100?54:count>=10?46:40;
+    const icon=L.divIcon({className:'map-cluster-wrap',iconSize:[size,size],iconAnchor:[size/2,size/2],
+     html:'<span class="map-cluster '+clusterTone(items.map(item=>item.tone))+(isActive?'':' dimmed')+'" style="width:'+size+'px;height:'+size+'px"><b>'+count+'</b></span>'});
+    const bubble=L.marker(bounds.getCenter(),{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:countLabel(count)+' · pietuvināt'});
+    bubble.on('click',()=>map.fitBounds(bounds.pad(.35),{maxZoom:CLUSTER_MAX_ZOOM,animate:true}));
+    for(const item of items)place(item,bubble);
+   }
+   shownMarkerRef.current=shown;
+  };
+  layout();
+  map.on('zoomend',layout);
+  return()=>{map.off('zoomend',layout);};
  },[mapReady,locationGroups,activeIds,isAdminSession,clockNow,favorites]);
 
  useEffect(()=>{
@@ -904,12 +931,21 @@ export default function OsmEventMap(){
    return;
   }
   if(!marker||!mapRef.current){window.location.assign('/pasakumi/'+encodeURIComponent(event.id));return;}
-  mapRef.current.setView(marker.getLatLng(),Math.max(mapRef.current.getZoom(),13),{animate:true});
+  mapRef.current.setView(marker.getLatLng(),Math.max(mapRef.current.getZoom(),CLUSTER_MAX_ZOOM),{animate:false});
   marker.openPopup();
+ }
+ useEffect(()=>{setAreaMoved(false);},[userLocation,radiusKm]);
+ function searchThisArea(){
+  const map=mapRef.current;if(!map)return;
+  const c=map.getCenter(),b=map.getBounds();
+  const halfKm=Math.min(distanceKm(c.lat,c.lng,b.getNorth(),c.lng),distanceKm(c.lat,c.lng,c.lat,b.getEast()));
+  setUserLocation({lat:c.lat,lon:c.lng,label:'kartes apgabals',source:'search'});
+  setLocationQuery('');setLocationPrompt(false);
+  setRadiusKm(radiusForView(halfKm));
  }
  function hoverEvent(event){
   hoveredMarkerRef.current?.getElement()?.classList.remove('is-hovered');
-  const marker=event?markerByEventRef.current.get(String(event.id)):null;
+  const marker=event?shownMarkerRef.current.get(String(event.id)):null;
   marker?.getElement()?.classList.add('is-hovered');
   hoveredMarkerRef.current=marker||null;
  }
@@ -925,7 +961,7 @@ export default function OsmEventMap(){
 
  return <>
   <div className="map-layout">
-  <NearbyList groups={nearby} total={activeEvents.length} today={today} summary={summary} loading={loading&&!events.length}
+  <NearbyList groups={nearby} total={activeEvents.length} today={today} clock={rigaClockMinutes(clockNow)} summary={summary} loading={loading&&!events.length}
    favorites={favorites} highlightedId={highlightedId} onSelect={showOnMap} onHover={hoverEvent} onFavorite={toggleFavorite}
    empty={emptyState} listRef={listRef}/>
   <div className="map-shell">
@@ -1073,13 +1109,19 @@ export default function OsmEventMap(){
     </div>
    </div>}
 
+   {areaMoved&&!locationPrompt&&<button type="button" className="map-search-area" onClick={searchThisArea}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg> Meklēt šajā apgabalā
+   </button>}
+
    <button type="button" className="map-list-jump" onClick={()=>listRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}>
     Saraksts · {activeEvents.length}
    </button>
 
    <div className="map-legend map-legend-overlay" aria-label="Kartes leģenda">
-    <span className="legend-ended-example"><i aria-hidden="true"></i>iespējams noslēdzies</span>
-    <span className="legend-muted-example"><i>⚽</i>ārpus filtra</span>
+    <span><i className="legend-dot today" aria-hidden="true"></i>Šodien</span>
+    <span><i className="legend-dot tomorrow" aria-hidden="true"></i>Rīt</span>
+    <span><i className="legend-dot future" aria-hidden="true"></i>Vēlāk</span>
+    <span><i className="legend-dot outside" aria-hidden="true"></i>Neatbilst filtriem</span>
     {mapMode!=='raster'&&<span className="map-style-switch">
      <button type="button" aria-expanded={styleMenuOpen} onClick={()=>setStyleMenuOpen(v=>!v)}>Kartes stils</button>
      {styleMenuOpen&&<span className="map-style-menu" role="group" aria-label="Kartes stils">
