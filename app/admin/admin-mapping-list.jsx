@@ -18,6 +18,12 @@ function Suggestion({group,onAccept}){
 
 function placeCount(n){return n%10===1&&n%100!==11?n+' vietai':n+' vietām';}
 function eventCount(n){return n+(n%10===1&&n%100!==11?' pasākums':' pasākumi');}
+// The State Address Register is checked first; this says whether it is loaded.
+function registerText(register){
+ if(register.state==='running')return `Adrešu reģistrs tiek ielādēts: ${register.total?Math.round(100*register.offset/register.total):0}%.`;
+ if(register.state==='done')return `Adrešu reģistrā ${Number(register.rows||0).toLocaleString('lv-LV')} adreses.`;
+ return register.error?'Adrešu reģistru neizdevās ielādēt: '+register.error:'';
+}
 
 export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEditMapping,onToggleMapping,busyMappingId,placeSearch=null,onRefreshPlaceSearch,onRetryPlaceSearch,onAcceptSuggestion,onAcceptMany,bulkProgress=''}){
  const [reviewing,setReviewing]=useState(false);
@@ -72,7 +78,8 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
     <span>{placeSearch.waiting>0
      ?`Vēl jāpārbauda ${placeCount(placeSearch.waiting)} (${eventCount(placeSearch.waitingEvents)}); vietas ar visvairāk pasākumiem pirmās, ~6 vietas minūtē.`
      :'Visas vietas ir pārbaudītas.'}
-     {' '}Ieteikums atrasts {placeCount(placeSearch.found||0)}{placeSearch.notFound?`, nav atrasts ${placeCount(placeSearch.notFound)}`:''}{placeSearch.failed?`, kļūda ${placeCount(placeSearch.failed)}`:''}.</span></div>
+     {' '}Ieteikums atrasts {placeCount(placeSearch.found||0)}{placeSearch.notFound?`, nav atrasts ${placeCount(placeSearch.notFound)}`:''}{placeSearch.failed?`, kļūda ${placeCount(placeSearch.failed)}`:''}.
+     {placeSearch.register&&<> {registerText(placeSearch.register)}</>}</span></div>
    {onRefreshPlaceSearch&&<button type="button" className="button" onClick={onRefreshPlaceSearch}>Atjaunot</button>}
    {onRetryPlaceSearch&&(placeSearch.notFound>0||placeSearch.failed>0)&&<button type="button" className="button" onClick={onRetryPlaceSearch}>Meklēt vēlreiz neatrastās</button>}
   </div>}

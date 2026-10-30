@@ -58,3 +58,12 @@ test('known places must agree on numbers and kind of building',async()=>{
  const talsi={type:'meets_known',score:1.25,sameArea:true,label:'Talsu SN',displayName:'Talsu sporta halle, Talsi',latitude:57.24,longitude:22.58};
  assert.equal(confidentSuggestion({alias:'Talsu SN',municipality:'Talsu novads',candidates:[talsi]}),talsi);
 });
+
+test('a single address register match is approved in bulk',async()=>{
+ const {confidentSuggestion}=await import('../lib/admin-location.js');
+ const address={type:'address',category:'building',unique:true,label:'Kalēju iela 9/11',displayName:'Kalēju iela 9/11, Rīga, LV-1050',latitude:56.946,longitude:24.108};
+ const group={alias:'Rīgas Porcelāna muzejs, Kalēju iela 9/11, LV-1050',municipality:'Rīgas valstspilsēta',candidates:[address]};
+ assert.equal(confidentSuggestion(group),address);
+ assert.equal(confidentSuggestion({...group,candidates:[{...address,unique:false}]}),null,'several matches');
+ assert.equal(confidentSuggestion({...group,municipality:'Talsu novads'}),null,'other municipality');
+});
