@@ -6,6 +6,7 @@ import AdminReviewOverview from './admin-review-overview.jsx';
 import AdminMappingList from './admin-mapping-list.jsx';
 import AdminImportHealth from './admin-import-health.jsx';
 import AdminSourceChannels from './admin-source-channels.jsx';
+import AdminCalendarFeeds from './admin-calendar-feeds.jsx';
 import AdminUserSubmissions from './admin-user-submissions.jsx';
 import AdminEventRegister from './admin-event-register.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
@@ -688,6 +689,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    busy={reviewingSubmission} supabaseUrl={supabaseUrl} matches={submissionMatches} onSearchPlace={searchSubmissionPlace}
    organizations={organizations} onSetTrust={setOrganizationTrust}/>}
 
+  {workspaceView==='sources'&&<AdminCalendarFeeds supabaseUrl={supabaseUrl} publishableKey={publishableKey}/>}
   {workspaceView==='sources'&&<AdminSourceChannels
    sources={sources}
    events={activeEvents}
