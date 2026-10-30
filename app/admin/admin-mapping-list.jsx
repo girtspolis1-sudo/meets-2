@@ -1,7 +1,7 @@
 'use client';
 
 import {useMemo,useState} from 'react';
-import {bestSuggestion} from '../../lib/admin-location.js';
+import {bestSuggestion,confidentSuggestion} from '../../lib/admin-location.js';
 
 function Suggestion({group,onAccept}){
  const best=bestSuggestion(group.candidates);
@@ -16,7 +16,8 @@ function Suggestion({group,onAccept}){
  </div>;
 }
 
-export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEditMapping,onToggleMapping,busyMappingId,suggestionRunning=false,suggestionProgress='',onFindSuggestions,onStopSuggestions,onAcceptSuggestion}){
+export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEditMapping,onToggleMapping,busyMappingId,suggestionRunning=false,suggestionProgress='',onFindSuggestions,onStopSuggestions,onAcceptSuggestion,onAcceptMany,bulkProgress=''}){
+ const [reviewing,setReviewing]=useState(false);
  const [query,setQuery]=useState('');
  const [view,setView]=useState('issues');
  const q=query.trim().toLocaleLowerCase('lv');
@@ -37,6 +38,9 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
 
  const activeMappings=mappings.filter(mapping=>mapping.active);
  const withoutSuggestion=groups.filter(group=>group.alias&&!group.suggestedAt).length;
+ // Strong, unambiguous suggestions that can be approved together after a quick look.
+ const confident=useMemo(()=>groups.filter(g=>g.alias).map(group=>({group,candidate:confidentSuggestion(group)})).filter(x=>x.candidate),[groups]);
+ const confidentEvents=confident.reduce((sum,x)=>sum+x.group.events.length,0);
 
  return <div className="admin-mapping-workspace">
   <div className="admin-sheet-intro compact">
@@ -66,6 +70,19 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
    {suggestionRunning?<button type="button" className="button" onClick={onStopSuggestions}>Apturēt</button>
     :withoutSuggestion>0&&<button type="button" className="button primary" onClick={onFindSuggestions}>Atrast ieteikumus</button>}
   </div>}
+  {view==='issues'&&onAcceptMany&&(confident.length>0||bulkProgress)&&<div className="mapping-bulk-bar" role="status">
+   <div><strong>{bulkProgress||(confident.length===1?'1 vietai':confident.length+' vietām')+' ir droša atbilstība'}</strong>
+    {!bulkProgress&&<span>Var apstiprināt uzreiz — tas sakārtos {confidentEvents} {confidentEvents%10===1&&confidentEvents%100!==11?'pasākumu':'pasākumus'} un nākamos importus.</span>}</div>
+   {!bulkProgress&&<button type="button" className="button" onClick={()=>setReviewing(v=>!v)} aria-expanded={reviewing}>{reviewing?'Paslēpt sarakstu':'Pārskatīt'}</button>}
+   {!bulkProgress&&<button type="button" className="button primary" onClick={()=>onAcceptMany(confident)}>Apstiprināt visas ({confident.length})</button>}
+  </div>}
+  {view==='issues'&&reviewing&&!bulkProgress&&confident.length>0&&<ul className="mapping-bulk-list">
+   {confident.map(({group,candidate})=><li key={group.key}>
+    <strong>{group.alias}</strong> → {candidate.label||candidate.displayName}
+    <small>{[candidate.source||'Adrešu meklēšana',candidate.displayName!==candidate.label&&candidate.displayName,group.events.length+(group.events.length===1?' pasākums':' pasākumi')].filter(Boolean).join(' · ')}</small>
+    <a href={'https://www.openstreetmap.org/?mlat='+candidate.latitude+'&mlon='+candidate.longitude+'#map=17/'+candidate.latitude+'/'+candidate.longitude} target="_blank" rel="noreferrer">Kartē ↗</a>
+   </li>)}
+  </ul>}
   {view==='issues'&&<div className="admin-mapping-mobile-cards">{filteredGroups.map(group=><article key={group.key} className="admin-mapping-mobile-card">
     <div><span className="quality-badge bad">Jālabo</span><strong>{group.alias||'Nav adreses'}</strong><small>{group.municipality||group.countryCode||'Konteksts nav noteikts'} · {group.events.length} pasākumi</small>{group.alias&&onAcceptSuggestion&&<Suggestion group={group} onAccept={onAcceptSuggestion}/>}</div>
     <button type="button" className="button primary compact" onClick={()=>group.alias?onMap(group):onEditEvent(group.events[0])}>Labot vietu ↗</button>

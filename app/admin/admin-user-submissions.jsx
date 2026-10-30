@@ -6,7 +6,7 @@ import {rigaTodayIso} from '../../lib/event-date.js';
 import {CHANGE_REASONS,DECLINE_REASONS,historyLabel,inLatvia,reasonLabel,reasonTemplate,reviewProblem,submissionChecks} from '../../lib/submission-review.js';
 
 const WEEKDAYS=['','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena','Svētdiena'];
-const STATUS={published:'Publicēts',rejected:'Gaida organizatora labojumus',declined:'Noraidīts'};
+const STATUS={published:'Publicēts',auto:'Publicēts automātiski',rejected:'Gaida organizatora labojumus',declined:'Noraidīts'};
 const ACTIONS=[
  {key:'publish',label:'Publicēt'},
  {key:'request_changes',label:'Lūgt precizēt'},
@@ -34,7 +34,7 @@ function PlaceOption({place,onUse,active}){
  </li>;
 }
 
-function SubmissionCard({item,today,focused,matches,onSearchPlace,onReview,busy,supabaseUrl}){
+function SubmissionCard({item,today,focused,matches,onSearchPlace,onReview,busy,supabaseUrl,organization,onSetTrust}){
  const checks=submissionChecks(item,today);
  const blocked=checks.some(c=>c.level==='block');
  const [action,setAction]=useState(blocked?'':'publish');
@@ -71,6 +71,11 @@ function SubmissionCard({item,today,focused,matches,onSearchPlace,onReview,busy,
    <div>
     <h3>{item.title}</h3>
     <p>{item.organization_name} · {dateText(item.date_from)}{item.date_to&&item.date_to!==item.date_from?'–'+dateText(item.date_to):''} {item.time_from?String(item.time_from).slice(0,5):''}</p>
+    {organization&&onSetTrust&&<p className="admin-submission-trust">
+     {organization.trusted?<><span className="admin-trust-badge">Uzticams organizators</span> Šis pasākums netika publicēts automātiski — skatīt pārbaudes zemāk.</>
+      :<>{organization.published>0?(organization.published===1?'Publicēts 1 pasākums':'Publicēti '+organization.published+' pasākumi'):'Pirmais pasākums'}{organization.suggested?' · ieteicams atzīmēt kā uzticamu':''}
+       {' '}<button type="button" className="text-button" onClick={()=>onSetTrust(organization,true)}>Uzticēties — turpmāk publicēt automātiski</button></>}
+    </p>}
     {item.author_email&&<p className="admin-submission-contact">Iesniedza <a href={'mailto:'+item.author_email+'?subject='+encodeURIComponent('MEETS: '+item.title)}>{item.author_email}</a></p>}
    </div>
    <span className={'admin-submission-age'+(days>=2?' late':'')}>{days===0?'Iesniegts šodien':'Gaida '+days+' '+(days===1?'dienu':'dienas')}</span>
@@ -130,7 +135,23 @@ function SubmissionCard({item,today,focused,matches,onSearchPlace,onReview,busy,
  </article>;
 }
 
-export default function AdminUserSubmissions({items=[],focusedId='',onReview,busy=false,supabaseUrl='',matches={},onSearchPlace}){
+function Organizations({organizations,onSetTrust}){
+ const trusted=organizations.filter(o=>o.trusted),suggested=organizations.filter(o=>!o.trusted&&o.suggested);
+ if(!organizations.length)return null;
+ return <section className="admin-submission-secondary admin-organizations">
+  <h3>Uzticamie organizatori ({trusted.length})</h3>
+  <p className="meets-muted">Uzticamu organizatoru pasākumi tiek publicēti uzreiz, ja ir atzīmēta vieta kartē, datums nav pagājis, cena norādīta un nav līdzīga pasākuma tajā pašā datumā. Citādi tie nonāk šajā rindā. Tu par tiem saņem dienas kopsavilkumu.</p>
+  <ul>
+   {trusted.map(o=><li key={o.id}><strong>{o.name}</strong> · {o.published===1?'1 publicēts':o.published+' publicēti'}{o.owner_email?' · '+o.owner_email:''}
+    {' '}<button type="button" className="text-button" onClick={()=>onSetTrust(o,false)}>Atcelt uzticību</button></li>)}
+   {suggested.map(o=><li key={o.id}><strong>{o.name}</strong> · {o.published} publicēti bez labojumiem — ieteicams
+    {' '}<button type="button" className="text-button" onClick={()=>onSetTrust(o,true)}>Uzticēties</button></li>)}
+   {!trusted.length&&!suggested.length&&<li className="meets-muted">Vēl nav. Organizatoru ieteiksim, kad būs publicēti 3 pasākumi bez labojumiem.</li>}
+  </ul>
+ </section>;
+}
+
+export default function AdminUserSubmissions({items=[],focusedId='',onReview,busy=false,supabaseUrl='',matches={},onSearchPlace,organizations=[],onSetTrust}){
  const today=rigaTodayIso();
  const [showDone,setShowDone]=useState(false);
  // Oldest waiting first, so organizers are not left without an answer.
@@ -143,13 +164,15 @@ export default function AdminUserSubmissions({items=[],focusedId='',onReview,bus
   <div className="meets-organizer-review-list">
    {!pending.length&&<p className="meets-muted">Nav pasākumu, kas gaida pārbaudi.</p>}
    {pending.map(item=><SubmissionCard key={item.id} item={item} today={today} focused={item.id===focusedId}
-    matches={matches[item.id]} onSearchPlace={onSearchPlace} onReview={onReview} busy={busy} supabaseUrl={supabaseUrl}/>)}
+    matches={matches[item.id]} onSearchPlace={onSearchPlace} onReview={onReview} busy={busy} supabaseUrl={supabaseUrl}
+    organization={organizations.find(o=>o.id===item.organization_id)} onSetTrust={onSetTrust}/>)}
   </div>
   {waiting.length>0&&<section className="admin-submission-secondary"><h3>Gaida organizatora labojumus ({waiting.length})</h3>
    <ul>{waiting.map(x=><li key={x.id}><strong>{x.title}</strong> · {x.organization_name} · {reasonLabel(x.review_reason)||'Lūgts precizēt'}{x.reviewed_at?' · '+dateText(x.reviewed_at):''}</li>)}</ul></section>}
+  {onSetTrust&&<Organizations organizations={organizations} onSetTrust={onSetTrust}/>}
   {done.length>0&&<section className="admin-submission-secondary">
    <button type="button" className="text-button" onClick={()=>setShowDone(v=>!v)} aria-expanded={showDone}>{showDone?'Paslēpt':'Rādīt'} pēdējos lēmumus ({done.length})</button>
-   {showDone&&<ul>{done.map(x=><li key={x.id}><strong>{x.title}</strong> · {STATUS[x.status]}{x.review_reason?' · '+reasonLabel(x.review_reason):''}{x.reviewed_at?' · '+dateText(x.reviewed_at):''}</li>)}</ul>}
+   {showDone&&<ul>{done.map(x=><li key={x.id}><strong>{x.title}</strong> · {(x.history||[]).some(h=>h.action==='auto_published')?STATUS.auto:STATUS[x.status]}{x.review_reason?' · '+reasonLabel(x.review_reason):''}{x.reviewed_at?' · '+dateText(x.reviewed_at):''}</li>)}</ul>}
   </section>}
  </section>;
 }
