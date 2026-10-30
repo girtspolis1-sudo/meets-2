@@ -10,6 +10,9 @@ import {placeFromEvent,placesFromEvents} from '../../lib/location-follow.js';
 import Link from 'next/link';
 import {rigaTodayIso,addIsoDays} from '../../lib/event-date.js';
 import {eventGroup,matchesAudience,sourceType} from '../../lib/home-category-filters.js';
+import {dayHeading} from '../../lib/map-nearby.js';
+
+const PERIOD_CHIPS=[['all','Visi'],['today','Šodien'],['tomorrow','Rīt'],['3days','3 dienas'],['week','Šonedēļ'],['month','Šomēnes']];
 
 const pageSize=50;
 const mobileFilterKeys=new Set(['date_from','title','municipality','event_type','primary_category','price_status']);
@@ -121,6 +124,7 @@ export default function EventCatalog(){
  const pages=Math.max(1,Math.ceil(filtered.length/pageSize));
  const current=Math.min(page,pages-1);
  const visible=filtered.slice(current*pageSize,(current+1)*pageSize);
+ const today=rigaTodayIso();
  const activeFilterCount=Object.values(columnFilters).filter(value=>String(value||'').trim()).length;
  const sharedFilterCount=[placeFilter,shared.group,shared.audience,shared.types?.length,shared.competition,shared.radius>0,shared.from,shared.to].filter(Boolean).length;
 
@@ -217,21 +221,19 @@ export default function EventCatalog(){
  return <>
   <div className="catalog-toolbar">
    <div>
-    <strong>{data?`${rows.length} pasākumi`:'Ielādējam pasākumus…'}</strong>
-    <p className="sync-text">{data?`Dati pārlasīti ${new Date(data.fetchedAt).toLocaleString('lv-LV',{timeZone:'Europe/Riga'})}`:'Savienojamies ar datu avotu'} · automātiski ik minūti</p>
+    <strong>{data?`${rows.length} aktuāli pasākumi`:'Ielādējam pasākumus…'}</strong>
+    <p className="sync-text">Publicētie pasākumi nākamajos trīs mēnešos · dati atjaunojas automātiski</p>
    </div>
-   <button className="button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Pārlasīt datus'}</button>
+   <button className="text-button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Atjaunot'}</button>
   </div>
-
-  <p className="catalog-availability-note">Redzami tikai aktuālie publicētie pasākumi nākamo trīs mēnešu periodā. Atlasīto rezultātu var pārskatīt kartītēs vai detalizētā tabulā.</p>
 
   {error&&<div className="error-message" role="alert">{error} {data&&'Zemāk saglabāti pēdējie veiksmīgi ielādētie dati.'}</div>}
 
   <div className="catalog-view-switch" role="group" aria-label="Pasākumu attēlošanas veids"><button type="button" aria-pressed={viewMode==='cards'} className={viewMode==='cards'?'active':''} onClick={()=>setViewMode('cards')}>▦ Kartītes</button><button type="button" aria-pressed={viewMode==='table'} className={viewMode==='table'?'active':''} onClick={()=>setViewMode('table')}>☷ Tabula un Excel</button><a href={mapHref} className="catalog-map-shortcut">⌖ Skatīt kartē ↗</a></div>
+  {viewMode==='cards'&&<div className="map-chip-row catalog-period-chips" role="group" aria-label="Kad">
+   {PERIOD_CHIPS.map(([value,label])=><button key={value} type="button" aria-pressed={period===value} className={period===value?'active':''} onClick={()=>{setPeriod(value);setPage(0);}}>{label}</button>)}
+  </div>}
   {viewMode==='cards'&&<div className="catalog-card-filters" aria-label="Atlasīt pasākumus">
-   <label>Periods<select value={period} onChange={e=>{setPeriod(e.target.value);setPage(0);}}>
-    <option value="all">Visi aktuālie</option><option value="today">Šodien</option><option value="tomorrow">Rīt</option><option value="3days">3 dienas</option><option value="week">Šonedēļ</option><option value="month">Šomēnes</option>
-   </select></label>
    <label>Meklēt pasākumu{filterControl('title','Pasākums')}</label>
    <label>Pašvaldība{filterControl('municipality','Pašvaldība')}</label>
    <label>Veids{filterControl('event_type','Tips')}</label>
@@ -263,10 +265,13 @@ export default function EventCatalog(){
   {data&&filtered.length===0
    ?<div className="empty"><h2>Nav atrastu pasākumu</h2><p>{rows.length?'Pamēģini mainīt datumu, kategoriju vai noņemt aktīvos filtrus.':'Pašlaik nav publicētu pasākumu. Tiklīdz pasākums tiks publicēts, tas parādīsies šeit.'}</p></div>
    :<>
-    {viewMode==='cards'&&<div className="catalog-card-grid meets-catalog-image-grid">{visible.map(event=>
-     <DiscoveryEventCard key={event.id} event={event} onOpen={setSelected} actions
-       footer={null}/>
-    )}</div>}
+    {/* Sorted by date, the cards get day headings: Šodien, Rīt, Sestdiena, 31. oktobris… */}
+    {viewMode==='cards'&&<div className="catalog-card-grid meets-catalog-image-grid">{visible.map((event,index)=>{
+     const heading=sort==='date_from'?dayHeading(event,today):'';
+     const showHeading=heading&&(index===0||dayHeading(visible[index-1],today)!==heading);
+     return [showHeading&&<h2 key={'day-'+index} className="catalog-day-heading">{heading}</h2>,
+      <DiscoveryEventCard key={event.id} event={event} onOpen={setSelected} actions/>];
+    })}</div>}
     {viewMode==='table'&&<div className="table-scroll" role="region" aria-label="Pasākumu tabula — ritināma horizontāli" tabIndex={0}>
      <table className="events-table catalog-events-table">
       <caption>Atlasītie pasākumi. Otrajā galvenes rindā vari filtrēt katru kolonnu atsevišķi. Nospied nosaukumu, lai redzētu visu norises informāciju.</caption>

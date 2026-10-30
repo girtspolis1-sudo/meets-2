@@ -48,7 +48,8 @@ for(const width of cases){
    });
   }
   const homeCard=page.locator('.meets-discovery-grid .meets-discovery-card').first();
-  if(!await homeCard.getByRole('link',{name:/Skatīt vairāk/}).count()) {fails++;console.error('Home card CTA missing',width);}
+  // The card title opens the event page.
+  if(!await homeCard.locator('a.meets-card-open[href^="/pasakumi/"]').count()) {fails++;console.error('Home card link missing',width);}
   if(!await page.getByRole('navigation',{name:'Mobilā ātrā navigācija'}).isVisible()) {fails++;console.error('Mobile bottom navigation missing',width);}
   if(!await homeCard.getByRole('button',{name:'Saglabāt pasākumu'}).count()) {fails++;console.error('Card favorite missing',width);}
   if(!(await page.getByRole('link',{name:/Skatīt pasākumus/}).count())){fails++;console.error('Missing primary hero CTA',width);}
