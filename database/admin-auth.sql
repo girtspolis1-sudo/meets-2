@@ -1,26 +1,24 @@
--- MEETS start-stage admin authentication
+-- MEETS admin authentication
 --
--- Active login:
---   public.meets_admin_password_login(p_email text, p_password text)
+-- Admins sign in at /admin with their normal MEETS account (Supabase Auth:
+-- e-mail + password). Supabase Auth applies its per-IP sign-in rate limits, so
+-- failed attempts from one visitor no longer lock the admin out.
 --
--- One-time initial setup:
---   public.meets_admin_password_ready()
---   public.meets_admin_setup_password(p_email text, p_recovery_code text, p_password text)
---   setup consumes the existing emergency recovery code and stores only a bcrypt hash.
+-- Who is an admin:
+--   meets_private.admin_email_allowlist  e-mails allowed to be admins
+--   public.admin_users                   filled by trigger meets_admin_on_auth_user_created
+--                                        once an allowlisted e-mail is confirmed
+--   meets_private.is_meets_admin()       auth.uid() is in admin_users
 --
--- Private credential storage:
---   meets_private.admin_password_credentials
+-- Every public.meets_admin_* RPC checks meets_private.admin_session_valid(),
+-- which is is_meets_admin() (the p_session_token parameter is kept for
+-- compatibility and ignored once the legacy login is removed).
 --
--- Security properties:
--- - approved email stored only as SHA-256 hash;
--- - password stored only as bcrypt hash (pgcrypto crypt/gen_salt);
--- - five failed attempts lock login for 15 minutes;
--- - successful login resets the failed-attempt counter;
--- - successful login issues the existing short-lived MEETS admin session token;
--- - credential table is not readable by anon/authenticated roles.
+-- Add an admin:
+--   insert into meets_private.admin_email_allowlist(email) values ('name@example.com');
+--   The account gets admin rights when it confirms that e-mail (or immediately,
+--   if it already has): run the backfill in
+--   supabase/migrations/20261030120000_admin_login_with_meets_account.sql.
 --
--- Google/OTP/recovery flows are not part of the active start-stage UI.
--- When the project matures, stronger authentication can replace this login
--- without changing downstream admin session RPCs.
---
--- Apply production changes through reviewed migrations.
+-- Next security level: require MFA (TOTP) by checking (auth.jwt()->>'aal')='aal2'
+-- in is_meets_admin() after admins have enrolled a second factor.

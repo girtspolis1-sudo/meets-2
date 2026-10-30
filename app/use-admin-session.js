@@ -1,56 +1,33 @@
 'use client';
 
 import {useEffect,useState} from 'react';
+import {freshSession,useAccountSession} from '../lib/account-store.js';
 
-const SESSION_KEY='meets_admin_access_token';
+// Admin rights belong to the signed-in MEETS account; checked once per account.
+const checks=new Map();
+export function forgetAdminCheck(){checks.clear();}
+
+async function checkAccount(){
+ const session=await freshSession();
+ if(!session?.access_token)return false;
+ const response=await fetch('/api/admin/session',{method:'POST',headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
+ const data=await response.json().catch(()=>({}));
+ return data?.valid===true;
+}
 
 export function useAdminSession(){
- const [isAdmin,setIsAdmin]=useState(false);
- const [checked,setChecked]=useState(false);
+ const {session,ready}=useAccountSession();
+ const userId=session?.user?.id||'';
+ const [result,setResult]=useState({userId:'',isAdmin:false});
 
  useEffect(()=>{
+  if(!userId)return;
   let cancelled=false;
+  if(!checks.has(userId))checks.set(userId,checkAccount().catch(()=>{checks.delete(userId);return false;}));
+  checks.get(userId).then(isAdmin=>{if(!cancelled)setResult({userId,isAdmin});});
+  return()=>{cancelled=true;};
+ },[userId]);
 
-  const sync=async()=>{
-   const token=sessionStorage.getItem(SESSION_KEY)||'';
-   if(!token){
-    if(!cancelled){setIsAdmin(false);setChecked(true);}
-    return;
-   }
-
-   try{
-    const response=await fetch('/api/admin/session',{
-     method:'POST',
-     headers:{Authorization:'Bearer '+token},
-     cache:'no-store'
-    });
-    const data=await response.json();
-
-    if(cancelled)return;
-
-    if(data?.valid===true){
-     setIsAdmin(true);
-    }else{
-     sessionStorage.removeItem(SESSION_KEY);
-     setIsAdmin(false);
-    }
-   }catch{
-    if(!cancelled)setIsAdmin(false);
-   }finally{
-    if(!cancelled)setChecked(true);
-   }
-  };
-
-  sync();
-  window.addEventListener('storage',sync);
-  window.addEventListener('meets-admin-session-change',sync);
-
-  return()=>{
-   cancelled=true;
-   window.removeEventListener('storage',sync);
-   window.removeEventListener('meets-admin-session-change',sync);
-  };
- },[]);
-
- return {isAdmin,checked};
+ const checked=ready&&(!userId||result.userId===userId);
+ return {isAdmin:Boolean(userId)&&result.userId===userId&&result.isAdmin,checked};
 }
