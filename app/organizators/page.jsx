@@ -4,11 +4,11 @@ import {Suspense,useEffect,useMemo,useState} from 'react';
 import {useSearchParams} from 'next/navigation';
 import ProfileShell from '../components/profile-shell.jsx';
 import {rigaDate} from '../../lib/meets-personal.js';
-import {resolveOrganizationId,canWriteOrganization} from '../../lib/organizer-workspace.js';
+import {resolveOrganizationId,canWriteOrganization,submissionDateLabel,organizerTodo} from '../../lib/organizer-workspace.js';
 import {refreshSession as renewToken} from '../../lib/auth-client.js';
 
 const SESSION='meets_user_session_v1';
-const PANELS=new Set(['overview','events','venues','profile']);
+const PANELS=new Set(['overview','events','venues','team','profile']);
 function organizationsFrom(items,id){return id&&Array.isArray(items)&&items.some(o=>o.id===id)?id:'';}
 const STATUS_LABELS={draft:'Melnraksts',pending_review:'Pārbaudē',rejected:'Jālabo',published:'Publicēts',closed:'Slēgts',archived:'Arhivēts',cancelled:'Atcelts'};
 const ROLE_LABELS={owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'};
@@ -30,7 +30,7 @@ async function refreshSession(session){
  return value;
 }
 function statusClass(status){return 'org-status org-status-'+String(status||'draft').replaceAll('_','-');}
-function eventDate(item){return item.date_from||'Datums nav norādīts';}
+function eventDate(item){return submissionDateLabel(item);}
 function future(item){const end=item.date_to||item.date_from;return end?end>=rigaDate():true;}
 
 const EMPTY_CONTACT={type:'email',label:'',value:'',public:false};
@@ -243,6 +243,9 @@ function OrganizerPageInner(){
   });
  },[orgSubmissions,filters]);
 
+ const todo=useMemo(()=>organizerTodo(orgSubmissions),[orgSubmissions]);
+ // Until the first address and event exist, the step list replaces the empty panels.
+ const onboarding=Boolean(canEdit&&(!managedVenues.length||!orgSubmissions.length));
  const metrics=useMemo(()=>({
   drafts:orgSubmissions.filter(x=>x.status==='draft').length,
   review:orgSubmissions.filter(x=>x.status==='pending_review').length,
@@ -279,22 +282,18 @@ function OrganizerPageInner(){
     <p>Izveido organizatora profilu un pievieno tam norises vietas un pasākumus.</p></div>
     {!creating&&<button className="button primary" type="button" onClick={()=>setCreating(true)}>+ Jauns organizators</button>}</header>
    {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
-   {creating?<form className="org-form-card org-split-editor" onSubmit={createOrganization}>
-    <h2>Organizatora profils</h2><p className="meets-muted">Sāc ar nosaukumu. Adresi, logo un vairākus kontaktus vari norādīt tagad vai papildināt vēlāk.</p>
-    <div className="org-editor-columns">
-      <section className="org-editor-column org-editor-private"><h3>🔒 Pārvaldības informācija</h3><p>Informāciju vari saglabāt privāti. Publiskos laukus atzīmē atsevišķi.</p>
-    <label>Nosaukums *<input required minLength={2} maxLength={160} value={newOrg.name} onChange={e=>setNewOrg(v=>({...v,name:e.target.value}))}/></label>
-    <label>Galvenā adrese<input maxLength={300} value={newOrg.address||''} onChange={e=>setNewOrg(v=>({...v,address:e.target.value}))} placeholder="Pilsēta, iela, mājas numurs"/></label><label className="org-contact-visibility"><input type="checkbox" checked={newOrg.address_public===true} onChange={e=>setNewOrg(v=>({...v,address_public:e.target.checked}))}/> Rādīt adresi publiski</label>
-    <ContactFields value={newOrg.contacts} onChange={contacts=>setNewOrg(v=>({...v,contacts}))}/>
-
-      </section>
-      <section className="org-editor-column org-editor-public"><h3>◉ Publiskais profils</h3><p>Apstiprini, ko par organizāciju redzēs apmeklētāji.</p>
-    <label>Organizatora logo<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setNewLogo(e.target.files?.[0]||null)}/>{newLogo&&<small>{newLogo.name}</small>}</label>
+   {creating?<form className="org-form-card" onSubmit={createOrganization}>
+    <h2>Organizatora profils</h2><p className="meets-muted">Pietiek ar nosaukumu. Pārējo vari papildināt jebkurā laikā organizatora profilā.</p>
+    <label>Organizatora nosaukums *<input required minLength={2} maxLength={160} value={newOrg.name} onChange={e=>setNewOrg(v=>({...v,name:e.target.value}))} placeholder="Piem., Mārupes kultūras nams" autoFocus/></label>
     <label>Īss apraksts<textarea rows={3} maxLength={2000} value={newOrg.description} onChange={e=>setNewOrg(v=>({...v,description:e.target.value}))} placeholder="Ko organizējat un kam paredzēti jūsu pasākumi?"/></label>
-    <label className="org-public-choice"><input type="checkbox" checked={newOrg.is_public===true} onChange={e=>setNewOrg(v=>({...v,is_public:e.target.checked}))}/><span><strong>Publisks organizatora profils</strong><small>{newOrg.is_public?'Profils būs redzams publiski. Adrese un kontakti tikai ar atsevišķu atzīmi.':'Privāts — informācija pieejama tikai organizatora pārvaldībai.'}</small></span></label>
-
-      </section>
-    </div>
+    <label className="org-public-choice"><input type="checkbox" checked={newOrg.is_public===true} onChange={e=>setNewOrg(v=>({...v,is_public:e.target.checked}))}/><span><strong>Publisks organizatora profils</strong><small>{newOrg.is_public?'Nosaukums, apraksts un logo būs redzami apmeklētājiem. Adrese un kontakti tikai ar atsevišķu atzīmi.':'Profils redzams tikai tev un tavai komandai.'}</small></span></label>
+    <details className="org-more-details">
+     <summary>Papildu informācija <small>(logo, adrese, kontakti — neobligāti)</small></summary>
+     <label>Organizatora logo<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setNewLogo(e.target.files?.[0]||null)}/>{newLogo&&<small>{newLogo.name}</small>}</label>
+     <label>Galvenā adrese<input maxLength={300} value={newOrg.address||''} onChange={e=>setNewOrg(v=>({...v,address:e.target.value}))} placeholder="Pilsēta, iela, mājas numurs"/></label>
+     <label className="org-contact-visibility"><input type="checkbox" checked={newOrg.address_public===true} onChange={e=>setNewOrg(v=>({...v,address_public:e.target.checked}))}/> Rādīt adresi publiski</label>
+     <ContactFields value={newOrg.contacts} onChange={contacts=>setNewOrg(v=>({...v,contacts}))}/>
+    </details>
     <div className="org-actions"><button className="button" type="button" onClick={()=>setCreating(false)}>Atcelt</button><button className="button primary" disabled={busy}>Izveidot organizatoru →</button></div>
    </form>:organizations.length?<div className="org-card-grid">{organizations.map(orgCard)}</div>:<div className="org-empty-state">
     <h2>Sāc organizēt</h2><p>Izveido organizatora profilu tikai tad, kad vēlies publicēt savus pasākumus. Otrs lietotāja konts nav vajadzīgs.</p>
@@ -313,20 +312,36 @@ function OrganizerPageInner(){
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
 
   {panel==='overview'&&<div className="org-stack">
-   <section className="org-simple-summary" aria-label="Organizatora kopsavilkums"><span><strong>{managedVenues.length}</strong> adreses</span><span><strong>{orgSubmissions.length}</strong> pasākumi</span><span><strong>{metrics.published}</strong> publicēti</span></section>
+   {onboarding&&<section className="org-panel org-onboarding" aria-labelledby="org-onboarding-title">
+    <h2 id="org-onboarding-title">Pirmie soļi</h2>
+    <ol className="org-steps">
+     <li className="done"><span aria-hidden="true">✓</span><div><strong>Organizators izveidots</strong><small>{activeOrg?.name}</small></div></li>
+     <li className={managedVenues.length?'done':'current'}><span aria-hidden="true">{managedVenues.length?'✓':'2'}</span><div><strong>Pievieno norises adresi</strong><small>Vieta, kur notiks pasākumi. To izmantosi atkārtoti.</small></div>{!managedVenues.length&&<Link className="button primary" href={'/registre-vietu?org='+orgId}>Pievienot adresi →</Link>}</li>
+     <li className={orgSubmissions.length?'done':managedVenues.length?'current':''}><span aria-hidden="true">{orgSubmissions.length?'✓':'3'}</span><div><strong>Iesniedz pirmo pasākumu</strong><small>Pēc MEETS pārbaudes tas parādīsies kartē un sarakstā.</small></div>{managedVenues.length>0&&!orgSubmissions.length&&<Link className="button primary" href={'/registre-pasakumu/vienkarsi?org='+orgId}>Jauns pasākums →</Link>}</li>
+    </ol>
+   </section>}
+   {(todo.rejected.length>0||todo.drafts.length>0)&&<section className="org-panel org-todo" aria-labelledby="org-todo-title">
+    <div className="org-panel-head"><h2 id="org-todo-title">Jāpabeidz</h2></div>
+    <div className="org-list">
+     {todo.rejected.map(item=><div className="org-row org-row-attention" key={item.id}><div><strong>{item.title||'Bez nosaukuma'}</strong><small>{eventDate(item)} · MEETS atgrieza labošanai</small>{item.admin_note&&<em>{item.admin_note}</em>}</div>{canEdit&&<Link className="button primary" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&edit='+item.id}>Labot un iesniegt</Link>}</div>)}
+     {todo.drafts.map(item=><div className="org-row" key={item.id}><div><strong>{item.title||'Melnraksts bez nosaukuma'}</strong><small>{eventDate(item)} · Melnraksts, vēl nav iesniegts</small></div>{canEdit&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&edit='+item.id}>Turpināt</Link>}</div>)}
+    </div>
+   </section>}
+   {todo.review.length>0&&<p className="org-review-note" role="status">{todo.review.length===1?'1 pasākums':todo.review.length+' pasākumi'} gaida MEETS pārbaudi. Statusa maiņu redzēsi šeit.</p>}
+   {!onboarding&&<><section className="org-simple-summary" aria-label="Organizatora kopsavilkums"><span><strong>{managedVenues.length}</strong> adreses</span><span><strong>{orgSubmissions.length}</strong> pasākumi</span><span><strong>{metrics.published}</strong> publicēti</span></section>
    <section className="org-panel"><div className="org-panel-head"><h2>Manas adreses</h2>{canEdit&&<Link className="button primary" href={'/registre-vietu?org='+orgId}>+ Pievienot adresi</Link>}</div><div className="org-list">{managedVenues.slice(0,5).map(v=><div className="org-row" key={v.id}><div><strong>{v.name}</strong><small>{v.address} · {orgSubmissions.filter(x=>x.venue_id===v.id).length} pasākumi</small></div><div className="org-row-actions"><button type="button" className="button" onClick={()=>choosePanel('venues')}>Atvērt</button>{canEdit&&<Link className="button primary org-add-event" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&venue='+v.id}>+ Pievienot pasākumu</Link>}</div></div>)}{!managedVenues.length&&<p className="org-empty">Vēl nav objektu. Pievieno pirmo adresi, lai sāktu reģistrēt pasākumus.</p>}</div></section>
    <section className="org-panel"><div className="org-panel-head"><div><h2>Tuvākie pasākumi</h2></div><button className="button" onClick={()=>choosePanel('events')}>Visi pasākumi →</button></div>
-    <div className="org-list">{orgSubmissions.filter(future).sort((a,b)=>(a.date_from||'9999').localeCompare(b.date_from||'9999')).slice(0,6).map(item=><div className="org-row" key={item.id}>
+    <div className="org-list">{orgSubmissions.filter(x=>future(x)&&!['rejected','draft'].includes(x.status)).sort((a,b)=>(a.date_from||'9999').localeCompare(b.date_from||'9999')).slice(0,6).map(item=><div className="org-row" key={item.id}>
      <div><strong>{item.title||'Bez nosaukuma'}</strong><small>{eventDate(item)} · {item.venue_name||'Vieta nav norādīta'}</small>{item.status==='rejected'&&item.admin_note&&<em>Jālabo: {item.admin_note}</em>}</div>
      <span className={statusClass(item.status)}>{STATUS_LABELS[item.status]||item.status}</span>
      {canEdit&&['draft','rejected'].includes(item.status)&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&edit='+item.id}>Labot</Link>}
     </div>)}
-    {!orgSubmissions.filter(future).length&&<p className="org-empty">Nav gaidāmu pasākumu.</p>}</div>
-   </section>
+    {!orgSubmissions.filter(x=>future(x)&&!['rejected','draft'].includes(x.status)).length&&<p className="org-empty">Nav gaidāmu iesniegtu pasākumu.</p>}</div>
+   </section></>}
   </div>}
 
   {panel==='events'&&<section className="org-panel">
-   <div className="org-panel-head"><div><h2>Pasākumi</h2><p>Filtri saglabājas adresē, tāpēc pēc labošanas vari atgriezties tajā pašā skatā.</p></div>{canEdit&&<Link className="button primary" href={'/registre-pasakumu/vienkarsi?org='+orgId}>+ Jauns pasākums</Link>}</div>
+   <div className="org-panel-head"><div><h2>Pasākumi</h2></div>{canEdit&&<Link className="button primary" href={'/registre-pasakumu/vienkarsi?org='+orgId}>+ Jauns pasākums</Link>}</div>
    <div className="org-filters">
     <label>Statuss<select value={filters.status} onChange={e=>changeFilter('status',e.target.value)}><option value="all">Visi</option><option value="draft">Melnraksti</option><option value="pending_review">Pārbaudē</option><option value="rejected">Jālabo</option><option value="published">Publicētie</option></select></label>
     <label>Laiks<select value={filters.time} onChange={e=>changeFilter('time',e.target.value)}><option value="upcoming">Gaidāmie</option><option value="past">Pagājušie</option><option value="all">Visi</option></select></label>
@@ -342,7 +357,7 @@ function OrganizerPageInner(){
      <div data-label="Darbības" className="org-row-actions">
       {canEdit&&['draft','rejected'].includes(item.status)&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&edit='+item.id}>Labot</Link>}
       {canEdit&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&copy='+item.id}>Dublēt</Link>}
-      {item.event_id&&<Link className="button" href={'/karte?event='+item.event_id}>Priekšskatīt</Link>}
+      {item.status==='published'&&item.event_id&&<Link className="button" href={'/pasakumi/'+item.event_id}>Skatīt publiski</Link>}
      </div>
     </div>)}
    </div>
@@ -371,7 +386,7 @@ function OrganizerPageInner(){
    <div className="org-panel-head"><div><h2>Komanda</h2><p>Skatītājs var lasīt, bet nevar mainīt organizācijas datus. Redaktors un administrators var pārvaldīt saturu.</p></div></div>
    <div className="org-list">{team.map(member=><div className="org-row" key={member.user_id}><div><strong>{member.email}</strong></div><span className="org-status">{ROLE_LABELS[member.role]||member.role}</span></div>)}</div>
    {activeOrg?.role==='owner'&&<div className="org-invite"><label>Uzaicināt kā<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="editor">Redaktors</option><option value="admin">Administrators</option><option value="viewer">Skatītājs</option></select></label>
-    <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>Izveidot uzaicinājumu</button>{inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/></label>}</div>}
+    <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>Izveidot uzaicinājumu</button>{inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/><small>Nosūti šo saiti komandas dalībniekam. Atverot to un pieslēdzoties MEETS kontā, notiek pievienošanās komandai ar izvēlēto lomu.</small></label>}</div>}
   </section>}
 
   {panel==='profile'&&profile&&<section className="org-panel">
