@@ -1,8 +1,22 @@
 'use client';
 
 import {useMemo,useState} from 'react';
+import {bestSuggestion} from '../../lib/admin-location.js';
 
-export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEditMapping,onToggleMapping,busyMappingId}){
+function Suggestion({group,onAccept}){
+ const best=bestSuggestion(group.candidates);
+ if(!best)return <span className="mapping-suggestion-none">{group.suggestedAt?'Nav atrasts':'—'}</span>;
+ const {candidate,precise}=best;
+ return <div className="mapping-suggestion">
+  <strong>{candidate.label||candidate.displayName}</strong>
+  <small className="table-subline">{candidate.displayName}</small>
+  {precise?<button type="button" className="button compact primary" onClick={()=>onAccept(group,candidate)}>Apstiprināt</button>
+   :<small className="mapping-suggestion-area">Tikai apdzīvota vieta — norādi precīzu vietu</small>}
+  {candidate.sourceUrl&&<a className="text-button" href={candidate.sourceUrl} target="_blank" rel="noopener noreferrer">Kartē ↗</a>}
+ </div>;
+}
+
+export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEditMapping,onToggleMapping,busyMappingId,suggestionRunning=false,suggestionProgress='',onFindSuggestions,onStopSuggestions,onAcceptSuggestion}){
  const [query,setQuery]=useState('');
  const [view,setView]=useState('issues');
  const q=query.trim().toLocaleLowerCase('lv');
@@ -22,6 +36,7 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
  }),[mappings,q]);
 
  const activeMappings=mappings.filter(mapping=>mapping.active);
+ const withoutSuggestion=groups.filter(group=>group.alias&&!group.suggestedAt).length;
 
  return <div className="admin-mapping-workspace">
   <div className="admin-sheet-intro compact">
@@ -46,13 +61,18 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
    </div>
   </div>
 
+  {view==='issues'&&onFindSuggestions&&<div className="mapping-suggestion-bar" role="status">
+   <div><strong>Automātiski adrešu ieteikumi</strong><span>{suggestionProgress||(withoutSuggestion?(withoutSuggestion===1?'1 vietai':withoutSuggestion+' vietām')+' vēl nav meklēts ieteikums. Meklēšana notiek pa vienai vietai sekundē, tāpēc var aizņemt dažas minūtes.':'Visām vietām ieteikumi ir meklēti.')}</span></div>
+   {suggestionRunning?<button type="button" className="button" onClick={onStopSuggestions}>Apturēt</button>
+    :withoutSuggestion>0&&<button type="button" className="button primary" onClick={onFindSuggestions}>Atrast ieteikumus</button>}
+  </div>}
   {view==='issues'&&<div className="admin-mapping-mobile-cards">{filteredGroups.map(group=><article key={group.key} className="admin-mapping-mobile-card">
-    <div><span className="quality-badge bad">Jālabo</span><strong>{group.alias||'Nav adreses'}</strong><small>{group.municipality||group.countryCode||'Konteksts nav noteikts'} · {group.events.length} pasākumi</small></div>
+    <div><span className="quality-badge bad">Jālabo</span><strong>{group.alias||'Nav adreses'}</strong><small>{group.municipality||group.countryCode||'Konteksts nav noteikts'} · {group.events.length} pasākumi</small>{group.alias&&onAcceptSuggestion&&<Suggestion group={group} onAccept={onAcceptSuggestion}/>}</div>
     <button type="button" className="button primary compact" onClick={()=>group.alias?onMap(group):onEditEvent(group.events[0])}>Labot vietu ↗</button>
    </article>)}</div>}
   {view==='issues'&&<div className="table-scroll admin-mapping-table-wrap" role="region" aria-label="Neatpazīto adrešu mapping" tabIndex={0}>
    <table className="events-table admin-mapping-table">
-    <thead><tr><th>Statuss</th><th>Ielasītais nosaukums</th><th>Konteksts</th><th>Avoti</th><th>Aktuālie pasākumi</th><th>Kvalitāte</th><th>Darbība</th></tr></thead>
+    <thead><tr><th>Statuss</th><th>Ielasītais nosaukums</th><th>Konteksts</th><th>Avoti</th><th>Aktuālie pasākumi</th><th>Ieteikums</th><th>Darbība</th></tr></thead>
     <tbody>
      {filteredGroups.length?filteredGroups.map(group=><tr key={group.key} className="mapping-needs-review">
       <td><span className="quality-badge bad">Jālabo</span></td>
@@ -60,7 +80,7 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
       <td>{group.municipality||'—'}<small className="table-subline">{group.countryCode||'—'}</small></td>
       <td>{group.sources.join(', ')||'—'}</td>
       <td><strong>{group.events.length}</strong><small className="table-subline">{group.firstDate||'—'} → {group.lastDate||'—'}</small></td>
-      <td>{group.qualities.map(value=><span key={value} className="quality-badge bad">{value}</span>)}</td>
+      <td>{group.alias&&onAcceptSuggestion?<Suggestion group={group} onAccept={onAcceptSuggestion}/>:group.qualities.map(value=><span key={value} className="quality-badge bad">{value}</span>)}</td>
       <td>
        {group.alias
         ?<button type="button" className="button primary compact" onClick={()=>onMap(group)}>Norādīt korekciju</button>
