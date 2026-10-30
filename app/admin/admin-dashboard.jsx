@@ -10,6 +10,7 @@ import AdminUserSubmissions from './admin-user-submissions.jsx';
 import AdminEventRegister from './admin-event-register.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
 import {pendingSubmissions} from '../../lib/admin-submissions.js';
+import {groupCandidates,groupSuggestedAt,suggestionQuery} from '../../lib/admin-location.js';
 
 const SESSION_KEY='meets_admin_access_token';
 function notifyAdminSession(){window.dispatchEvent(new Event('meets-admin-session-change'));}
@@ -100,7 +101,8 @@ function groupLocationIssues(events){
   groups.set(key,current);
  }
  return [...groups.values()]
-  .map(group=>({...group,sources:[...group.sources].sort(),qualities:[...group.qualities]}))
+  .map(group=>({...group,sources:[...group.sources].sort(),qualities:[...group.qualities],
+   candidates:groupCandidates(group.events),suggestedAt:groupSuggestedAt(group.events)}))
   .sort((a,b)=>b.events.length-a.events.length||String(a.alias).localeCompare(String(b.alias),'lv'));
 }
 async function loadLeaflet(){
@@ -188,6 +190,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [geocodeProgress,setGeocodeProgress]=useState('');
  const [autoGeocodeStarted,setAutoGeocodeStarted]=useState(false);
  const [applyingVenue,setApplyingVenue]=useState('');
+ const [suggestionRunning,setSuggestionRunning]=useState(false),[suggestionProgress,setSuggestionProgress]=useState('');
+ const suggestionStop=useRef(false);
 
  async function checkAdmin(activeToken){
   if(!activeToken){setAuthChecked(true);return;}
@@ -428,6 +432,39 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }catch{
    setMessage('Mappingu neizdevās saglabāt. Pārbaudi vietu, adresi un koordinātas.');
   }finally{setLoading(false);}
+ }
+
+ // Looks up addresses for places without a location; results are stored as suggestions only.
+ async function findPlaceSuggestions(groups){
+  const pending=groups.filter(g=>g.alias&&!g.suggestedAt&&suggestionQuery(g).length>=3);
+  if(!pending.length){setSuggestionProgress('Visām vietām ieteikumi jau ir meklēti.');return;}
+  suggestionStop.current=false;setSuggestionRunning(true);
+  let done=0,found=0;
+  for(const group of pending){
+   if(suggestionStop.current)break;
+   const query=suggestionQuery(group);
+   setSuggestionProgress(`Meklē ${done+1}/${pending.length}: ${group.alias}`);
+   try{
+    const response=await fetch('/api/admin/geocode',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+     body:JSON.stringify({query,venueName:group.alias,municipality:group.municipality})});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data?.error||'Meklēšana neizdevās.');
+    const candidates=(Array.isArray(data.results)?data.results:[]).slice(0,5);
+    if(candidates.length)found++;
+    await apiFetch(supabaseUrl,publishableKey,'meets_admin_store_place_candidates',{p_session_token:token,p_venue_name:group.alias,p_query:query,p_candidates:candidates});
+   }catch(error){console.error('place_suggestion_failed',{venue:group.alias,message:error?.message||'Error'});}
+   done++;
+   // Show results as they come, without reloading the catalogue after every place.
+   if(done%20===0)await loadEvents();
+   if(done<pending.length)await new Promise(resolve=>setTimeout(resolve,1200));
+  }
+  await loadEvents();
+  setSuggestionProgress(`${suggestionStop.current?'Apturēts':'Pabeigts'}: apstrādātas ${done} vietas, ieteikumi atrasti ${found}.`);
+  setSuggestionRunning(false);
+ }
+ async function acceptSuggestion(group,candidate){
+  await saveMapping(group,{venueName:group.alias,addressText:candidate.displayName||candidate.label||group.alias,
+   latitude:candidate.latitude,longitude:candidate.longitude});
  }
 
  async function updateMapping(mapping,values){
@@ -843,6 +880,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
   {workspaceView==='mapping'&&<AdminMappingList
    groups={mappingGroups}
+   suggestionRunning={suggestionRunning}
+   suggestionProgress={suggestionProgress}
+   onFindSuggestions={()=>findPlaceSuggestions(mappingGroups)}
+   onStopSuggestions={()=>{suggestionStop.current=true;}}
+   onAcceptSuggestion={acceptSuggestion}
    mappings={mappings}
    onMap={setMappingEditing}
    onEditEvent={setEditing}
