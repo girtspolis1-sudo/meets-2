@@ -11,10 +11,21 @@ function statusTone(item){
  return 'warn';
 }
 
+function municipalityTone(item){
+ if(!item.automated||item.stale||item.last_status==='partial')return 'bad';
+ return item.last_status==='success'?'ok':'warn';
+}
+function municipalityLabel(item){
+ if(!item.automated)return 'Nav automatizēts';
+ if(item.stale)return 'Novecojis';
+ if(item.last_status==='partial')return 'Neizdevās, rāda iepriekšējo';
+ return item.last_status==='success'?'Ielādēts':'Nav statusa';
+}
+
 export default function AdminImportHealth({health}){
  const sports=Array.isArray(health?.sports)?health.sports:[];
  const municipalities=Array.isArray(health?.municipalities)?health.municipalities:[];
- const staleMunicipalities=municipalities.filter(item=>item.stale||!item.automated);
+ const staleMunicipalities=municipalities.filter(item=>item.stale||!item.automated||item.last_status==='partial');
  const problemSports=sports.filter(item=>item.stale||!item.cron_active||!['complete','completed'].includes(String(item.last_status||'').toLowerCase()));
 
  return <section className="admin-import-health">
@@ -40,24 +51,16 @@ export default function AdminImportHealth({health}){
    </div>
 
    <div>
-    <h4>Pašvaldību TVP avoti</h4>
-    <p className="sync-text">Pašreiz nav regulāra TVP Cron/importētāja pirmkoda. Šie avoti tiek rādīti kā neautomatizēti, lai vēsturisko importu nevarētu sajaukt ar dzīvu sinhronizāciju.</p>
+    <h4>Pašvaldību kalendāri</h4>
+    <p className="sync-text">Ielādē katru trešdienu; lapas, kas neatbild, tiek pieprasītas atkārtoti. Ja avots neizdodas, paliek iepriekšējā kopija.</p>
     <div className="import-health-list municipality-health">
-     {municipalities.slice(0,8).map(item=><article key={item.source_id}>
+     {[...municipalities].sort((a,b)=>Number(municipalityTone(a)==='ok')-Number(municipalityTone(b)==='ok')).map(item=><article key={item.source_id}>
       <div><strong>{item.label}</strong><span>{item.domain}</span></div>
-      <span className="quality-badge bad">Nav automatizēts</span>
-      <small>Pēdējā zināmā veiksmīgā nolasīšana: {when(item.last_success_at)}</small>
+      <span className={'quality-badge '+municipalityTone(item)}>{municipalityLabel(item)}</span>
+      <small>Pēdējā veiksmīgā ielāde: {when(item.last_success_at)}</small>
+      {item.last_status==='partial'&&item.last_error&&<small className="import-error">{item.last_error}</small>}
      </article>)}
     </div>
-    {municipalities.length>8&&<details><summary>Rādīt visus {municipalities.length} TVP avotus</summary>
-     <div className="import-health-list municipality-health expanded">
-      {municipalities.slice(8).map(item=><article key={item.source_id}>
-       <div><strong>{item.label}</strong><span>{item.domain}</span></div>
-       <span className="quality-badge bad">Nav automatizēts</span>
-       <small>Pēdējā zināmā veiksmīgā nolasīšana: {when(item.last_success_at)}</small>
-      </article>)}
-     </div>
-    </details>}
    </div>
   </div>
  </section>;

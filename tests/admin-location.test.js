@@ -38,3 +38,12 @@ test('only strong, unambiguous suggestions can be approved in bulk',async()=>{
  assert.equal(confidentSuggestion({alias:'Jelgavas sporta halle',candidates:[hall,{...hall,latitude:56.7}]}),null,'two exact results');
  assert.equal(confidentSuggestion({alias:'Jelgavas sporta halle',candidates:[{...hall,type:'town'}]}),null,'area only');
 });
+
+test('abbreviated league names still match the full place name',async()=>{
+ const {confidentSuggestion,nameStems}=await import('../lib/admin-location.js');
+ assert.deepEqual(nameStems('Rīgas Teikas vsk. 1.zale'),['riga','teik']);
+ assert.deepEqual(nameStems('Cēsu SK'),['cesu']);
+ const school={type:'school',category:'amenity',label:'Rīgas Teikas vidusskola',displayName:'Rīgas Teikas vidusskola, Rīga, Latvija',latitude:56.97,longitude:24.17};
+ assert.equal(confidentSuggestion({alias:'Rīgas Teikas vsk. 1.zale',municipality:'Rīgas valstspilsēta',candidates:[school]}),school);
+ assert.equal(confidentSuggestion({alias:'Imantas vsk.',municipality:'Rīgas valstspilsēta',candidates:[school]}),null,'other school');
+});

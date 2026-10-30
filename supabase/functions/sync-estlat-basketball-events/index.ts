@@ -3,7 +3,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const U=Deno.env.get("SUPABASE_URL")!;
 const K=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const H={"apikey":K,"Authorization":"Bearer "+K,"Content-Type":"application/json"};
-const SCHEDULE_URL="https://www.estlatbl.com/en/game-center?setSid=2027";
+// The league season runs from autumn to spring; estlatbl numbers it by its closing year.
+function rigaToday(){
+ return new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Riga",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+}
+function seasonOf(today:string){
+ const start=Number(today.slice(5,7))>=7?Number(today.slice(0,4)):Number(today.slice(0,4))-1;
+ return {start,end:start+1,key:"lbs-estlat-"+start+"-"+String(start+1).slice(2)};
+}
 const BASKET_INFO_URL="https://lbl.basket.lv/lbl-un-latvijas-igaunijas-basketbola-liga-starts-22-septembri-riga-ligas-debitanti-pret-aizvaditas-sezonas-cempioniem/";
 
 async function q(path:string,o:RequestInit={}){
@@ -19,7 +26,7 @@ function decode(s:string){
   .replace(/&quot;/g,'"')
   .replace(/&#39;|&#x27;/g,"'")
   .replace(/&ndash;|&mdash;/g,"–")
-  .replace(/&#(d+);/g,(_,n)=>String.fromCharCode(Number(n)))
+  .replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(Number(n)))
   .replace(/\s+/g," ")
   .trim();
 }
@@ -103,10 +110,22 @@ function parse(html:string,today:string,windowTo:string){
 }
 
 Deno.serve(async()=>{
+ let rid:string|null=null;
  try{
-  const today=new Date().toISOString().slice(0,10);
+  const today=rigaToday();
   const windowTo=addMonthsIso(today,3);
-  const htmlRes=await fetch(SCHEDULE_URL,{headers:{"User-Agent":"MEETS-2/1.0 (+https://meets-2.vercel.app/)"}});
+  const season=seasonOf(today);
+  // The run is recorded first so that a failed download shows up in admin and the digest.
+  const run=await q("import_runs",{
+   method:"POST",headers:{"Prefer":"return=representation"},
+   body:JSON.stringify({
+    source_key:"estlatbl-"+new Date().toISOString().replace(/[:.]/g,"-"),
+    source_commit:"estlatbl-"+season.start+"-"+String(season.end).slice(2)+"-v2-3month",
+    snapshot_date:today,status:"loading",expected_count:0,imported_count:0
+   })
+  });
+  rid=run[0].id;
+  const htmlRes=await fetch("https://www.estlatbl.com/en/game-center?setSid="+season.end,{headers:{"User-Agent":"MEETS-2/1.0 (+https://meets.lv/)"}});
   if(!htmlRes.ok)throw new Error("Schedule HTTP "+htmlRes.status);
   const html=await htmlRes.text();
   const games=parse(html,today,windowTo);
@@ -114,18 +133,10 @@ Deno.serve(async()=>{
   const sourceRows=await q("sources?domain=in.(basket.lv,estlatbl.com)&select=id,domain");
   const sourceMap=new Map(sourceRows.map((x:any)=>[x.domain,x.id]));
   const category=(await q("categories?name=eq.Basketbols&select=id"))[0];
-  const competition=(await q("sports_competitions?competition_key=eq.lbs-estlat-2026-27&select=id"))[0];
-  if(!sourceMap.get("estlatbl.com")||!sourceMap.get("basket.lv")||!category||!competition)throw new Error("Basketball metadata missing");
-
-  const run=await q("import_runs",{
-   method:"POST",headers:{"Prefer":"return=representation"},
-   body:JSON.stringify({
-    source_key:"estlatbl-"+new Date().toISOString().replace(/[:.]/g,"-"),
-    source_commit:"estlatbl-2026-27-v1-3month",
-    snapshot_date:today,status:"loading",expected_count:games.length,imported_count:0
-   })
-  });
-  const rid=run[0].id;
+  const competition=(await q("sports_competitions?competition_key=eq."+season.key+"&select=id"))[0];
+  if(!sourceMap.get("estlatbl.com")||!sourceMap.get("basket.lv")||!category)throw new Error("Basketball metadata missing");
+  if(!competition)throw new Error("Competition "+season.key+" missing in sports_competitions");
+  await q("import_runs?id=eq."+rid,{method:"PATCH",body:JSON.stringify({expected_count:games.length})});
   let created=0,updated=0,latvia=0,estonia=0;
 
   for(const g of games){
@@ -135,7 +146,7 @@ Deno.serve(async()=>{
    const old=await q("events?import_key=eq."+encodeURIComponent(key)+"&select=id,status");
    const base={
     title:g.home+" – "+g.away,
-    description:"Optibet Latvijas–Igaunijas Basketbola līga · 2026/2027",
+    description:"Optibet Latvijas–Igaunijas Basketbola līga · "+season.start+"/"+season.end,
     date_from:g.date,date_to:g.date,time_from:g.time+":00",
     timezone:loc.country==="EE"?"Europe/Tallinn":"Europe/Riga",
     schedule_type:"single_day",time_type:"start_only",attendance_mode:"in_person",
@@ -234,6 +245,11 @@ Deno.serve(async()=>{
    games:games.map(g=>({gid:g.gid,date:g.date,time:g.time,title:g.home+" – "+g.away,arena:g.arena,url:g.gameUrl}))
   });
  }catch(e){
+  if(rid){
+   try{
+    await q("import_runs?id=eq."+rid,{method:"PATCH",body:JSON.stringify({status:"failed",completed_at:new Date().toISOString(),error_text:String(e).slice(0,500)})});
+   }catch{}
+  }
   console.error("sync_estlat_failed",e);
   return Response.json({ok:false,error:String(e)},{status:500});
  }
