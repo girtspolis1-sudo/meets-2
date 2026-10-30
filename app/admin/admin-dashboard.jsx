@@ -10,7 +10,7 @@ import AdminUserSubmissions from './admin-user-submissions.jsx';
 import AdminEventRegister from './admin-event-register.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
 import {pendingSubmissions} from '../../lib/admin-submissions.js';
-import {groupCandidates,groupSuggestedAt,suggestionQuery} from '../../lib/admin-location.js';
+import {groupCandidates,groupSuggestedAt} from '../../lib/admin-location.js';
 import {adminAuthorization,adminRpc,signOutAccount} from '../../lib/admin-auth.js';
 import {useAccountSession} from '../../lib/account-store.js';
 import {useAdminSession} from '../use-admin-session.js';
@@ -177,8 +177,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [geocodeProgress,setGeocodeProgress]=useState('');
  const [autoGeocodeStarted,setAutoGeocodeStarted]=useState(false);
  const [applyingVenue,setApplyingVenue]=useState('');
- const [suggestionRunning,setSuggestionRunning]=useState(false),[suggestionProgress,setSuggestionProgress]=useState('');
- const suggestionStop=useRef(false);
+ const [placeSearch,setPlaceSearch]=useState(null);
  const [submissionMatches,setSubmissionMatches]=useState({}),[emailStatus,setEmailStatus]=useState(null);
  const [organizations,setOrganizations]=useState([]),[bulkProgress,setBulkProgress]=useState('');
 
@@ -202,6 +201,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    setCatalogLoaded(true);
    setMessage('');
    adminRpc(supabaseUrl,publishableKey,'meets_admin_email_status',{}).then(setEmailStatus).catch(()=>setEmailStatus(null));
+   loadPlaceSearch();
    adminRpc(supabaseUrl,publishableKey,'meets_admin_organizations',{}).then(list=>setOrganizations(Array.isArray(list)?list:[])).catch(()=>{});
   }catch{
    setCatalogLoaded(false);
@@ -299,49 +299,16 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }finally{setLoading(false);}
  }
 
- // Looks up addresses for places without a location; results are stored as suggestions only.
- async function findPlaceSuggestions(groups){
-  const pending=groups.filter(g=>g.alias&&!g.suggestedAt&&suggestionQuery(g).length>=3);
-  if(!pending.length){setSuggestionProgress('Visām vietām ieteikumi jau ir meklēti.');return;}
-  suggestionStop.current=false;setSuggestionRunning(true);
-  let done=0,found=0;
-  // Places MEETS already knows answer instantly; only the rest go to the address search.
-  const lookup=[];
-  for(let i=0;i<pending.length&&!suggestionStop.current;i+=50){
-   setSuggestionProgress(`Salīdzina ar zināmajām vietām ${Math.min(i+50,pending.length)}/${pending.length}…`);
-   const batch=pending.slice(i,i+50);
-   const result=await adminRpc(supabaseUrl,publishableKey,'meets_admin_match_places',
-    {p_places:batch.map((g,k)=>({key:k,name:g.alias,municipality:g.municipality}))}).catch(()=>[]);
-   const byKey=new Map((result||[]).map(r=>[r.key,r.matches]));
-   for(const [k,group] of batch.entries()){
-    const known=(byKey.get(k)||[]).filter(m=>m.score>=0.75&&m.sameArea!==false);
-    if(known.length){
-     await adminRpc(supabaseUrl,publishableKey,'meets_admin_store_place_candidates',{p_venue_name:group.alias,p_query:'MEETS zināmās vietas',p_candidates:known}).catch(()=>{});
-     found++;done++;
-    }else lookup.push(group);
-   }
-  }
-  for(const group of lookup){
-   if(suggestionStop.current)break;
-   const query=suggestionQuery(group);
-   setSuggestionProgress(`Meklē adresi ${done+1}/${pending.length}: ${group.alias}`);
-   try{
-    const response=await fetch('/api/admin/geocode',{method:'POST',headers:{Authorization:await adminAuthorization(),'Content-Type':'application/json'},
-     body:JSON.stringify({query,venueName:group.alias,municipality:group.municipality})});
-    const data=await response.json();
-    if(!response.ok)throw new Error(data?.error||'Meklēšana neizdevās.');
-    const candidates=(Array.isArray(data.results)?data.results:[]).slice(0,5);
-    if(candidates.length)found++;
-    await adminRpc(supabaseUrl,publishableKey,'meets_admin_store_place_candidates',{p_venue_name:group.alias,p_query:query,p_candidates:candidates});
-   }catch(error){console.error('place_suggestion_failed',{venue:group.alias,message:error?.message||'Error'});}
-   done++;
-   // Show results as they come, without reloading the catalogue after every place.
-   if(done%20===0)await loadEvents();
-   if(done<pending.length)await new Promise(resolve=>setTimeout(resolve,1200));
-  }
-  await loadEvents();
-  setSuggestionProgress(`${suggestionStop.current?'Apturēts':'Pabeigts'}: apstrādātas ${done} vietas, ieteikumi atrasti ${found}.`);
-  setSuggestionRunning(false);
+ // Address suggestions are searched in the background by the database; this shows how far it is.
+ async function loadPlaceSearch(){
+  try{setPlaceSearch(await adminRpc(supabaseUrl,publishableKey,'meets_admin_place_search_status',{}));}catch{setPlaceSearch(null);}
+ }
+ async function retryPlaceSearch(){
+  try{
+   const result=await adminRpc(supabaseUrl,publishableKey,'meets_admin_place_search_retry',{});
+   setMessage(`Adreses tiks meklētas vēlreiz ${result?.retried||0} vietām; jaunas vietas pievienotas meklēšanai.`);
+   await loadPlaceSearch();
+  }catch{setMessage('Atkārtotu meklēšanu neizdevās sākt.');}
  }
  // Saves every confident suggestion as a mapping, then reloads once.
  async function acceptManySuggestions(items){
@@ -727,10 +694,9 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
   {workspaceView==='mapping'&&<AdminMappingList
    groups={mappingGroups}
-   suggestionRunning={suggestionRunning}
-   suggestionProgress={suggestionProgress}
-   onFindSuggestions={()=>findPlaceSuggestions(mappingGroups)}
-   onStopSuggestions={()=>{suggestionStop.current=true;}}
+   placeSearch={placeSearch}
+   onRefreshPlaceSearch={loadEvents}
+   onRetryPlaceSearch={retryPlaceSearch}
    onAcceptSuggestion={acceptSuggestion}
    onAcceptMany={acceptManySuggestions}
    bulkProgress={bulkProgress}

@@ -22,6 +22,11 @@ const txt=(s:string)=>s
   .replace(/\s+/g," ")
   .trim();
 
+// "Today" and the season year are Riga dates; the season follows the calendar year.
+function rigaToday(){
+  return new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Riga",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+}
+
 const months:any={jan:"01",feb:"02",mar:"03",apr:"04",mai:"05",jūn:"06",jun:"06",jūl:"07",jul:"07",aug:"08",sep:"09",okt:"10",nov:"11",dec:"12"};
 
 function addMonthsIso(iso:string,n:number){
@@ -37,8 +42,8 @@ function slug(v:string){
 function titleOf(h:string){
   return txt(h.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]||"");
 }
-function pageGroup(baseName:string,pageTitle:string){
-  const cleaned=pageTitle.replace(baseName,"").replace(/\b2026\b/g,"").replace(/^\s*[-–:]\s*/,"").trim();
+function pageGroup(baseName:string,pageTitle:string,season:string){
+  const cleaned=pageTitle.replace(baseName,"").replace(new RegExp("\\b"+season+"\\b","g"),"").replace(/^\s*[-–:]\s*/,"").trim();
   return cleaned||null;
 }
 function stageBefore(h:string,pos:number){
@@ -49,8 +54,8 @@ function stageBefore(h:string,pos:number){
 }
 
 type Comp={key:string,name:string,url:string,format:string,expand?:boolean};
-const comps:Comp[]=[
- {key:"lff-virsliga",name:"Tonybet Virslīga",url:"https://lff.lv/sacensibas/viriesi/virsliga/?p=2026",format:"football"},
+const competitions=(season:string):Comp[]=>[
+ {key:"lff-virsliga",name:"Tonybet Virslīga",url:"https://lff.lv/sacensibas/viriesi/virsliga/?p="+season,format:"football"},
  {key:"lff-lvbet-liga",name:"LVBET līga",url:"https://lff.lv/sacensibas/viriesi/lvbet-liga/",format:"football"},
  {key:"lff-altero-liiga",name:"Altero.lv LIIGA",url:"https://lff.lv/sacensibas/viriesi/otra-liga/",format:"football",expand:true},
  {key:"lff-dali-dali-3",name:"Dali Dali 3. līga",url:"https://lff.lv/sacensibas/viriesi/tresa-liga/",format:"football",expand:true},
@@ -91,12 +96,12 @@ async function fetchHtml(url:string){
   if(!r.ok)throw new Error("LFF HTTP "+r.status+" "+url);
   return r.text();
 }
-function extraPages(base:string,h:string){
+function extraPages(base:string,h:string,season:string){
   const root=new URL(base);
   const ids=[...h.matchAll(/\?p=(\d+)/g)].map(m=>m[1]);
   const out:string[]=[];
   for(const id of [...new Set(ids)]){
-    if(/^\d{4}$/.test(id)&&id!=="2026")continue;
+    if(/^\d{4}$/.test(id)&&id!==season)continue;
     const u=root.origin+root.pathname+"?p="+id;
     if(u!==base&&!out.includes(u))out.push(u);
     if(out.length>=12)break;
@@ -104,10 +109,10 @@ function extraPages(base:string,h:string){
   return out;
 }
 
-function parseStructured(h:string,comp:Comp,url:string,today:string,windowTo:string){
+function parseStructured(h:string,comp:Comp,url:string,today:string,windowTo:string,season:string){
   const pageTitle=titleOf(h);
-  const group=pageGroup(comp.name,pageTitle);
-  const dateHeaders=[...h.matchAll(/(?:Pirmdiena|Otrdiena|Trešdiena|Ceturtdiena|Piektdiena|Sestdiena|Svētdiena),?\s*(\d{1,2})\.(\d{2})\.(2026)\./gi)]
+  const group=pageGroup(comp.name,pageTitle,season);
+  const dateHeaders=[...h.matchAll(/(?:Pirmdiena|Otrdiena|Trešdiena|Ceturtdiena|Piektdiena|Sestdiena|Svētdiena),?\s*(\d{1,2})\.(\d{2})\.(\d{4})\./gi)]
     .map(m=>({pos:m.index||0,date:m[3]+"-"+m[2]+"-"+m[1].padStart(2,"0")}));
   const rows=[...h.matchAll(/<div class="tr match[^"]*"[^>]*data-id="([^"]+)"[^>]*>([\s\S]*?)(?=<div class="tr match|<div class="tr th1|<\/section>|$)/g)];
   const out:any[]=[];
@@ -119,7 +124,7 @@ function parseStructured(h:string,comp:Comp,url:string,today:string,windowTo:str
       time=upcoming[1];stage=upcoming[2]+". kārta";home=upcoming[3].trim();away=upcoming[4].trim();venue=upcoming[5].trim();
       const pos=r.index||0;for(let i=dateHeaders.length-1;i>=0;i--){if(dateHeaders[i].pos<pos){date=dateHeaders[i].date;break}}
     }else{
-      const full=t.match(/^(?:pirmdiena|otrdiena|trešdiena|ceturtdiena|piektdiena|sestdiena|svētdiena)\s+(\d{1,2})\s+([a-zāčēģīķļņšūž]+)\s+(\d{2}:\d{2})\s+(2026)\s+(.+?)\s+-\s+(.+?)\s+-\s+(.+)$/i);
+      const full=t.match(/^(?:pirmdiena|otrdiena|trešdiena|ceturtdiena|piektdiena|sestdiena|svētdiena)\s+(\d{1,2})\s+([a-zāčēģīķļņšūž]+)\s+(\d{2}:\d{2})\s+(\d{4})\s+(.+?)\s+-\s+(.+?)\s+-\s+(.+)$/i);
       if(full&&months[full[2].toLowerCase()]){
         date=full[4]+"-"+months[full[2].toLowerCase()]+"-"+full[1].padStart(2,"0");
         time=full[3];home=full[5].trim();away=full[6].trim();venue=full[7].trim();stage=stageBefore(h,r.index||0);
@@ -131,7 +136,7 @@ function parseStructured(h:string,comp:Comp,url:string,today:string,windowTo:str
   return out;
 }
 
-function parseVeterans(h:string,today:string,windowTo:string){
+function parseVeterans(h:string,today:string,windowTo:string,season:string){
   const out:any[]=[];
   const currentStart=h.search(/40\+\s*ČEMPIONĀTS/i);
   if(currentStart<0)return out;
@@ -149,7 +154,7 @@ function parseVeterans(h:string,today:string,windowTo:string){
       const raw=txt(li[1]);
       const m=raw.match(/^(\d{2})\.(\d{2})\.\s*(?:[–-]\s*(\d{2}:\d{2}))?\s*\|\s*(.+?)\s*\|\s*(.+)$/);
       if(!m)continue;
-      const date="2026-"+m[2]+"-"+m[1],time=m[3]||"10:00",name=m[4].trim(),venue=m[5].trim();
+      const date=season+"-"+m[2]+"-"+m[1],time=m[3]||"10:00",name=m[4].trim(),venue=m[5].trim();
       if(date<today||date>windowTo)continue;
       const href=li[1].match(/href="([^"]+)"/i)?.[1]||null;
       out.push({
@@ -167,7 +172,7 @@ function parseVeterans(h:string,today:string,windowTo:string){
 Deno.serve(async()=>{
  let rid:string|null=null;
  try{
-  const today=new Date().toISOString().slice(0,10),windowTo=addMonthsIso(today,3);
+  const today=rigaToday(),windowTo=addMonthsIso(today,3),season=today.slice(0,4);
   const run=await q("import_runs",{
     method:"POST",headers:{"Prefer":"return=representation"},
     body:JSON.stringify({
@@ -183,13 +188,13 @@ Deno.serve(async()=>{
   const all:any[]=[];
   const stats:any[]=[];
 
-  for(const comp of comps){
+  for(const comp of competitions(season)){
     const root=await fetchHtml(comp.url);
-    const urls=[comp.url,...(comp.expand?extraPages(comp.url,root):[])];
+    const urls=[comp.url,...(comp.expand?extraPages(comp.url,root,season):[])];
     const pageItems:any[]=[];
     for(let i=0;i<urls.length;i++){
       const h=i===0?root:await fetchHtml(urls[i]);
-      pageItems.push(...parseStructured(h,comp,urls[i],today,windowTo));
+      pageItems.push(...parseStructured(h,comp,urls[i],today,windowTo,season));
     }
     const dedup=[...new Map(pageItems.map(x=>[x.id,x])).values()];
     all.push(...dedup);
@@ -198,7 +203,7 @@ Deno.serve(async()=>{
 
   const veteransUrl="https://lff.lv/sacensibas/viriesi/veteranu-cempionats/";
   const veteransHtml=await fetchHtml(veteransUrl);
-  const veterans=parseVeterans(veteransHtml,today,windowTo);
+  const veterans=parseVeterans(veteransHtml,today,windowTo,season);
   all.push(...veterans);
   stats.push({competition:"Veterānu čempionāts",pages:1,found:veterans.length});
 
@@ -219,7 +224,7 @@ Deno.serve(async()=>{
     const comp=compMap.get(x.competition_key);
     if(!comp)throw new Error("Missing competition "+x.competition_key);
 
-    const metaBits=[x.competition_name,"2026",x.group,x.stage,x.age_group].filter(Boolean);
+    const metaBits=[x.competition_name,season,x.group,x.stage,x.age_group].filter(Boolean);
     const base={
       title:x.veteran_event?x.home:(x.home+" – "+x.away),
       description:metaBits.join(" · "),

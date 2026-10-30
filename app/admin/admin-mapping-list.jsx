@@ -5,7 +5,7 @@ import {bestSuggestion,confidentSuggestion} from '../../lib/admin-location.js';
 
 function Suggestion({group,onAccept}){
  const best=bestSuggestion(group.candidates);
- if(!best)return <span className="mapping-suggestion-none">{group.suggestedAt?'Nav atrasts':'—'}</span>;
+ if(!best)return <span className="mapping-suggestion-none">{group.suggestedAt?'Nav atrasts':'Gaida meklēšanu'}</span>;
  const {candidate,precise}=best;
  return <div className="mapping-suggestion">
   <strong>{candidate.label||candidate.displayName}</strong>
@@ -16,7 +16,10 @@ function Suggestion({group,onAccept}){
  </div>;
 }
 
-export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEditMapping,onToggleMapping,busyMappingId,suggestionRunning=false,suggestionProgress='',onFindSuggestions,onStopSuggestions,onAcceptSuggestion,onAcceptMany,bulkProgress=''}){
+function placeCount(n){return n%10===1&&n%100!==11?n+' vietai':n+' vietām';}
+function eventCount(n){return n+(n%10===1&&n%100!==11?' pasākums':' pasākumi');}
+
+export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEditMapping,onToggleMapping,busyMappingId,placeSearch=null,onRefreshPlaceSearch,onRetryPlaceSearch,onAcceptSuggestion,onAcceptMany,bulkProgress=''}){
  const [reviewing,setReviewing]=useState(false);
  const [query,setQuery]=useState('');
  const [view,setView]=useState('issues');
@@ -37,7 +40,6 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
  }),[mappings,q]);
 
  const activeMappings=mappings.filter(mapping=>mapping.active);
- const withoutSuggestion=groups.filter(group=>group.alias&&!group.suggestedAt).length;
  // Strong, unambiguous suggestions that can be approved together after a quick look.
  const confident=useMemo(()=>groups.filter(g=>g.alias).map(group=>({group,candidate:confidentSuggestion(group)})).filter(x=>x.candidate),[groups]);
  const confidentEvents=confident.reduce((sum,x)=>sum+x.group.events.length,0);
@@ -65,10 +67,14 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
    </div>
   </div>
 
-  {view==='issues'&&onFindSuggestions&&<div className="mapping-suggestion-bar" role="status">
-   <div><strong>Automātiski adrešu ieteikumi</strong><span>{suggestionProgress||(withoutSuggestion?(withoutSuggestion===1?'1 vietai':withoutSuggestion+' vietām')+' vēl nav meklēts ieteikums. Meklēšana notiek pa vienai vietai sekundē, tāpēc var aizņemt dažas minūtes.':'Visām vietām ieteikumi ir meklēti.')}</span></div>
-   {suggestionRunning?<button type="button" className="button" onClick={onStopSuggestions}>Apturēt</button>
-    :withoutSuggestion>0&&<button type="button" className="button primary" onClick={onFindSuggestions}>Atrast ieteikumus</button>}
+  {view==='issues'&&placeSearch&&<div className="mapping-suggestion-bar" role="status">
+   <div><strong>Adrešu ieteikumi tiek meklēti automātiski</strong>
+    <span>{placeSearch.waiting>0
+     ?`Vēl jāpārbauda ${placeCount(placeSearch.waiting)} (${eventCount(placeSearch.waitingEvents)}); vietas ar visvairāk pasākumiem pirmās, ~6 vietas minūtē.`
+     :'Visas vietas ir pārbaudītas.'}
+     {' '}Ieteikums atrasts {placeCount(placeSearch.found||0)}{placeSearch.notFound?`, nav atrasts ${placeCount(placeSearch.notFound)}`:''}{placeSearch.failed?`, kļūda ${placeCount(placeSearch.failed)}`:''}.</span></div>
+   {onRefreshPlaceSearch&&<button type="button" className="button" onClick={onRefreshPlaceSearch}>Atjaunot</button>}
+   {onRetryPlaceSearch&&(placeSearch.notFound>0||placeSearch.failed>0)&&<button type="button" className="button" onClick={onRetryPlaceSearch}>Meklēt vēlreiz neatrastās</button>}
   </div>}
   {view==='issues'&&onAcceptMany&&(confident.length>0||bulkProgress)&&<div className="mapping-bulk-bar" role="status">
    <div><strong>{bulkProgress||(confident.length===1?'1 vietai':confident.length+' vietām')+' ir droša atbilstība'}</strong>

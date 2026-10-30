@@ -38,3 +38,23 @@ test('only strong, unambiguous suggestions can be approved in bulk',async()=>{
  assert.equal(confidentSuggestion({alias:'Jelgavas sporta halle',candidates:[hall,{...hall,latitude:56.7}]}),null,'two exact results');
  assert.equal(confidentSuggestion({alias:'Jelgavas sporta halle',candidates:[{...hall,type:'town'}]}),null,'area only');
 });
+
+test('abbreviated league names still match the full place name',async()=>{
+ const {confidentSuggestion,nameStems}=await import('../lib/admin-location.js');
+ assert.deepEqual(nameStems('Rīgas Teikas vsk. 1.zale'),['riga','teik','vidussko']);
+ assert.deepEqual(nameStems('Cēsu SK'),['cesu','spor','komplek']);
+ const school={type:'school',category:'amenity',label:'Rīgas Teikas vidusskola',displayName:'Rīgas Teikas vidusskola, Rīga, Latvija',latitude:56.97,longitude:24.17};
+ assert.equal(confidentSuggestion({alias:'Rīgas Teikas vsk. 1.zale',municipality:'Rīgas valstspilsēta',candidates:[school]}),school);
+ assert.equal(confidentSuggestion({alias:'Imantas vsk.',municipality:'Rīgas valstspilsēta',candidates:[school]}),null,'other school');
+});
+
+test('known places must agree on numbers and kind of building',async()=>{
+ const {confidentSuggestion,namesMatch}=await import('../lib/admin-location.js');
+ assert.equal(namesMatch('Rīgas 47.vsk.','Rīgas 49.vsk. 65, Krišjāņa Valdemāra iela, Rīga'),false);
+ assert.equal(namesMatch('Ķekavas vsk.','Ķekavas SK Sporta komplekss, Rīgas iela, Baldone'),false);
+ assert.equal(namesMatch('Talsu SN','Talsu SN Talsu sporta halle, Talsi'),true);
+ const saldus={type:'meets_known',score:1.03,sameArea:true,label:'Saldus SN',displayName:'Saldus sporta nams, Saldus',latitude:56.66,longitude:22.49};
+ assert.equal(confidentSuggestion({alias:'Saldus',municipality:'Saldus novads',candidates:[saldus]}),null,'town name only');
+ const talsi={type:'meets_known',score:1.25,sameArea:true,label:'Talsu SN',displayName:'Talsu sporta halle, Talsi',latitude:57.24,longitude:22.58};
+ assert.equal(confidentSuggestion({alias:'Talsu SN',municipality:'Talsu novads',candidates:[talsi]}),talsi);
+});
