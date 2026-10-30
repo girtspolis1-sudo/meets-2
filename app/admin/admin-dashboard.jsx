@@ -14,6 +14,7 @@ import {groupCandidates,groupSuggestedAt,suggestionQuery} from '../../lib/admin-
 import {adminAuthorization,adminRpc,signOutAccount} from '../../lib/admin-auth.js';
 import {useAccountSession} from '../../lib/account-store.js';
 import {useAdminSession} from '../use-admin-session.js';
+import {adminPriorities,upcomingWithoutPlace} from '../../lib/admin-priorities.js';
 import Authentication from '../components/account-auth-flow.jsx';
 
 const QUALITY={
@@ -178,6 +179,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [applyingVenue,setApplyingVenue]=useState('');
  const [suggestionRunning,setSuggestionRunning]=useState(false),[suggestionProgress,setSuggestionProgress]=useState('');
  const suggestionStop=useRef(false);
+ const [submissionMatches,setSubmissionMatches]=useState({}),[emailStatus,setEmailStatus]=useState(null);
 
  async function loadEvents(){
   setLoading(true);
@@ -198,6 +200,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    setBulkResult(null);
    setCatalogLoaded(true);
    setMessage('');
+   adminRpc(supabaseUrl,publishableKey,'meets_admin_email_status',{}).then(setEmailStatus).catch(()=>setEmailStatus(null));
   }catch{
    setCatalogLoaded(false);
    setMessage('Admin datus neizdevās ielādēt.');
@@ -226,16 +229,28 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }
  }
 
- async function reviewUserSubmission(item,approve,note,latitude=null,longitude=null){
+ // action: publish | request_changes | decline. The organizer is e-mailed by the database.
+ async function reviewUserSubmission(item,action,reason,note,latitude=null,longitude=null){
   setReviewingSubmission(true);setMessage('');
   try{
-   await adminRpc(supabaseUrl,publishableKey,'meets_admin_review_submission_v2',{p_id:item.id,p_approve:approve,p_note:note,
-    p_latitude:latitude,p_longitude:longitude
-   });
+   await adminRpc(supabaseUrl,publishableKey,'meets_admin_review_submission_v3',{p_id:item.id,p_action:action,p_reason:reason,p_note:note,
+    p_latitude:latitude,p_longitude:longitude});
    await loadEvents();
-   setMessage(approve?'Pasākums publicēts kartē.':'Pasākums atgriezts labošanai.');
-  }catch(error){setMessage('Iesnieguma apstrāde neizdevās. Pārbaudi koordinātas un obligātos laukus.');}
+   setMessage({publish:'Pasākums publicēts kartē.',request_changes:'Organizatoram nosūtīts lūgums precizēt.',decline:'Pasākums noraidīts.'}[action]+' Organizators saņems e-pastu.');
+  }catch(error){
+   let detail='';try{detail=JSON.parse(error.message).message||'';}catch{}
+   throw new Error(detail&&!/unauthorized/i.test(detail)?detail:'Iesnieguma apstrāde neizdevās. Pārbaudi vietu un obligātos laukus.');
+  }
   finally{setReviewingSubmission(false);}
+ }
+ async function searchSubmissionPlace(item){
+  const query=[item.venue_name,item.address].map(x=>String(x||'').trim()).filter(Boolean).join(', ');
+  if(query.length<3)throw new Error('Nav nosaukuma vai adreses, ko meklēt.');
+  const response=await fetch('/api/admin/geocode',{method:'POST',headers:{Authorization:await adminAuthorization(),'Content-Type':'application/json'},
+   body:JSON.stringify({query,venueName:item.venue_name||query})});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data?.error||'Meklēšana neizdevās.');
+  return (Array.isArray(data.results)?data.results:[]).slice(0,5);
  }
 
  async function changeStatus(event,newStatus){
@@ -288,10 +303,26 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(!pending.length){setSuggestionProgress('Visām vietām ieteikumi jau ir meklēti.');return;}
   suggestionStop.current=false;setSuggestionRunning(true);
   let done=0,found=0;
-  for(const group of pending){
+  // Places MEETS already knows answer instantly; only the rest go to the address search.
+  const lookup=[];
+  for(let i=0;i<pending.length&&!suggestionStop.current;i+=50){
+   setSuggestionProgress(`Salīdzina ar zināmajām vietām ${Math.min(i+50,pending.length)}/${pending.length}…`);
+   const batch=pending.slice(i,i+50);
+   const result=await adminRpc(supabaseUrl,publishableKey,'meets_admin_match_places',
+    {p_places:batch.map((g,k)=>({key:k,name:g.alias,municipality:g.municipality}))}).catch(()=>[]);
+   const byKey=new Map((result||[]).map(r=>[r.key,r.matches]));
+   for(const [k,group] of batch.entries()){
+    const known=(byKey.get(k)||[]).filter(m=>m.score>=0.75&&m.sameArea!==false);
+    if(known.length){
+     await adminRpc(supabaseUrl,publishableKey,'meets_admin_store_place_candidates',{p_venue_name:group.alias,p_query:'MEETS zināmās vietas',p_candidates:known}).catch(()=>{});
+     found++;done++;
+    }else lookup.push(group);
+   }
+  }
+  for(const group of lookup){
    if(suggestionStop.current)break;
    const query=suggestionQuery(group);
-   setSuggestionProgress(`Meklē ${done+1}/${pending.length}: ${group.alias}`);
+   setSuggestionProgress(`Meklē adresi ${done+1}/${pending.length}: ${group.alias}`);
    try{
     const response=await fetch('/api/admin/geocode',{method:'POST',headers:{Authorization:await adminAuthorization(),'Content-Type':'application/json'},
      body:JSON.stringify({query,venueName:group.alias,municipality:group.municipality})});
@@ -469,6 +500,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const publishedOk=useMemo(()=>activeEvents.filter(event=>event.status==='published'&&canPublishEvent(event)),[activeEvents]);
  const locationIssues=useMemo(()=>activeEvents.filter(isLocationIssue),[activeEvents]);
  const mappingGroups=useMemo(()=>groupLocationIssues(activeEvents),[activeEvents]);
+ const priorities=useMemo(()=>adminPriorities({submissionQueue,publishedNeedsReview,readyToPublish,mappingGroups,
+  upcoming:upcomingWithoutPlace(activeEvents,isLocationIssue,today)}),[submissionQueue,publishedNeedsReview,readyToPublish,mappingGroups,activeEvents,today]);
 
  const filtered=useMemo(()=>{
   const q=search.trim().toLocaleLowerCase('lv');
@@ -513,6 +546,26 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  function selectAllFiltered(){
   setSelectedIds(allFilteredSelected?new Set():new Set(filtered.map(event=>event.id)));
  }
+
+ // Known places for the submissions waiting for review.
+ useEffect(()=>{
+  const pending=submissionQueue.items.filter(x=>String(x.venue_name||x.address||'').trim().length>=3);
+  if(!isAdmin||!pending.length)return;
+  let cancelled=false;
+  adminRpc(supabaseUrl,publishableKey,'meets_admin_match_places',{p_places:pending.slice(0,60).map(x=>({key:x.id,name:x.venue_name||x.address}))})
+   .then(result=>{if(!cancelled)setSubmissionMatches(Object.fromEntries((result||[]).map(r=>[r.key,r.matches])));})
+   .catch(()=>{});
+  return()=>{cancelled=true;};
+ },[isAdmin,submissionQueue]);
+ // E-mail links open /admin?submission=<id>.
+ useEffect(()=>{
+  if(!isAdmin||!userSubmissions.length)return;
+  const id=new URLSearchParams(window.location.search).get('submission');
+  if(!id)return;
+  setFocusedSubmissionId(id);setWorkspaceView('userSubmissions');
+  window.history.replaceState(null,'','/admin');
+  window.setTimeout(()=>document.getElementById('submission-'+id)?.scrollIntoView({behavior:'smooth',block:'start'}),100);
+ },[isAdmin,userSubmissions]);
 
  useEffect(()=>{
   if(!isAdmin||!events.length||editing)return;
@@ -614,6 +667,9 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
   {workspaceView==='overview'&&<>
    <AdminReviewOverview
+    priorities={priorities}
+    emailStatus={emailStatus}
+    onOpenView={view=>{if(view==='overview-ready')document.getElementById('admin-ready-list')?.scrollIntoView({behavior:'smooth'});else setWorkspaceView(view);}}
     events={activeEvents}
     readyToPublish={readyToPublish}
     publishedNeedsReview={publishedNeedsReview}
@@ -631,7 +687,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <AdminImportHealth health={importHealth}/>
   </>}
 
-  {workspaceView==='userSubmissions'&&<AdminUserSubmissions items={userSubmissions} focusedId={focusedSubmissionId} onReview={reviewUserSubmission} busy={reviewingSubmission} supabaseUrl={supabaseUrl}/>}
+  {workspaceView==='userSubmissions'&&<AdminUserSubmissions items={userSubmissions} focusedId={focusedSubmissionId} onReview={reviewUserSubmission}
+   busy={reviewingSubmission} supabaseUrl={supabaseUrl} matches={submissionMatches} onSearchPlace={searchSubmissionPlace}/>}
 
   {workspaceView==='sources'&&<AdminSourceChannels
    sources={sources}

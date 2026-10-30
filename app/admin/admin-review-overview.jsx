@@ -24,7 +24,27 @@ function EventRow({event,actionLabel,onAction,tone='default'}){
  </div>;
 }
 
+function Priorities({items,onOpenView,emailStatus}){
+ return <section className="admin-priorities" aria-labelledby="admin-priorities-title">
+  <div className="admin-overview-panel-head">
+   <div><span>Darba kārtība</span><h3 id="admin-priorities-title">Ko darīt vispirms</h3></div>
+   {emailStatus&&<span className={'admin-email-status'+(emailStatus.failed?' bad':'')} title={emailStatus.last_error||''}>
+    E-pasti: {emailStatus.sent_7d} nosūtīti 7 dienās{emailStatus.waiting?' · '+emailStatus.waiting+' rindā':''}{emailStatus.failed?' · '+emailStatus.failed+' neizdevās':''}</span>}
+  </div>
+  {items.length?<ol>
+   {items.map((item,index)=><li key={item.key} className={'priority-'+item.tone}>
+    <span className="admin-priority-rank" aria-hidden="true">{index+1}</span>
+    <div><strong>{item.title} <em>{item.count}</em></strong><span>{item.detail}</span></div>
+    <button type="button" className={item.tone==='info'?'button compact':'button primary compact'} onClick={()=>onOpenView(item.view)}>{item.action}</button>
+   </li>)}
+  </ol>:<p className="admin-empty-inline">Viss sakārtots — nav steidzamu darbu.</p>}
+ </section>;
+}
+
 export default function AdminReviewOverview({
+ priorities=[],
+ emailStatus=null,
+ onOpenView=()=>{},
  events,
  readyToPublish,
  publishedNeedsReview,
@@ -41,6 +61,7 @@ export default function AdminReviewOverview({
  const mappingTop=mappingGroups.slice(0,6);
 
  return <div className="admin-overview">
+  <Priorities items={priorities} onOpenView={onOpenView} emailStatus={emailStatus}/>
   <div className="admin-overview-kpis admin-overview-kpis-five">
    <article><span>Aktuālie pasākumi</span><strong>{events.length}</strong><button type="button" onClick={onOpenAll}>Atvērt</button></article>
    <article className={readyToPublish.length?'attention':''}><span>Gatavi publicēšanai</span><strong>{readyToPublish.length}</strong><button type="button" onClick={onOpenAll}>Pārbaudīt</button></article>
@@ -50,7 +71,7 @@ export default function AdminReviewOverview({
   </div>
 
   <div className="admin-overview-grid">
-   <section className="admin-overview-panel">
+   <section className="admin-overview-panel" id="admin-ready-list">
     <div className="admin-overview-panel-head">
      <div><span>Publicēšanas rinda</span><h3>Gatavi publicēšanai</h3></div>
      <button type="button" className="text-button" onClick={onOpenAll}>Visi aktuālie</button>

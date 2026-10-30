@@ -2183,3 +2183,71 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .mapping-suggestion-area{color:#8a5a00;font-size:12px}
 .mapping-suggestion-none{color:#8a8a99}
 @media(max-width:700px){.mapping-suggestion-bar{flex-direction:column;align-items:stretch}}
+/* Admin: priorities and organizer submission review */
+.admin-priorities{border:1px solid #cbd0d5;border-radius:16px;background:#fff;margin-bottom:12px;overflow:hidden}
+.admin-priorities ol{list-style:none;margin:0;padding:0;display:grid}
+.admin-priorities li{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid #eceef1;border-left:4px solid transparent}
+.admin-priorities li:first-child{border-top:0}
+.admin-priorities li.priority-bad{border-left-color:#d92d20;background:#fff6f5}
+.admin-priorities li.priority-warn{border-left-color:#f79009;background:#fffaf2}
+.admin-priorities li.priority-info{border-left-color:#98a2b3}
+.admin-priorities li strong{display:block;font-size:14px}
+.admin-priorities li strong em{font-style:normal;margin-left:6px;padding:1px 8px;border-radius:999px;background:#eef0f3;font-size:12px}
+.admin-priorities li span{font-size:13px;color:#5b6475}
+.admin-priority-rank{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#eef0f3;font-weight:800;font-size:12px;color:#344054}
+.admin-email-status{font-size:12px!important;letter-spacing:0!important;text-transform:none!important;font-weight:600!important;color:#067647!important}
+.admin-email-status.bad{color:#b42318!important}
+.admin-submission-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.admin-submission-head h3{margin:0 0 4px}
+.admin-submission-contact a{color:var(--accent-dark,#5b00bd);text-decoration:underline}
+.admin-submission-age{flex:0 0 auto;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:#eef0f3;color:#344054}
+.admin-submission-age.late{background:#fee4e2;color:#b42318}
+.admin-submission-checks{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.admin-submission-checks li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px;align-items:center;padding:6px 10px;border-radius:10px;font-size:13px;line-height:1.4}
+.admin-submission-checks .check-block{background:#fee4e2;color:#912018}
+.admin-submission-checks .check-warn{background:#fef0c7;color:#7a2e0e}
+.admin-submission-checks .check-info{background:#eef0f3;color:#344054}
+.admin-submission-checks .text-button{font-size:12px;font-weight:700;text-decoration:underline;background:none;border:0;cursor:pointer;color:inherit;white-space:nowrap;min-height:0;padding:0}
+.admin-submission-duplicates{font-size:13px}
+.admin-submission-duplicates a{margin-left:6px;text-decoration:underline}
+.admin-submission-body{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px}
+.admin-submission-details img{max-width:100%;max-height:220px;object-fit:cover;border-radius:12px}
+.admin-submission-details dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;margin:10px 0}
+.admin-submission-details dt{color:#64748b}.admin-submission-details dd{margin:0}
+.admin-submission-history summary{cursor:pointer;font-size:13px;font-weight:700}
+.admin-submission-history ol{margin:6px 0 0;padding-left:18px;font-size:13px;color:#475467}
+.admin-submission-location{border:1px solid #e2e8f0;border-radius:12px;padding:12px;display:grid;gap:8px;align-content:start;background:#fafbfc}
+.admin-submission-location h4,.admin-submission-location h5{margin:0;font-size:13px}
+.admin-submission-location h5{color:#64748b;text-transform:uppercase;letter-spacing:.06em;font-size:11px}
+.admin-submission-point{font-size:13px;color:#067647!important}
+.admin-submission-point.missing{color:#b54708!important}
+.admin-submission-point a{text-decoration:underline}
+.admin-submission-places{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.admin-submission-places li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+.admin-submission-places li.active{border-color:#12b76a;background:#ecfdf3}
+.admin-submission-places strong{display:block;font-size:13px}
+.admin-submission-places small{font-size:12px;color:#64748b}
+.admin-submission-place-actions{display:flex;gap:8px;align-items:center;flex:0 0 auto;font-size:12px}
+.admin-submission-place-actions a{text-decoration:underline}
+.admin-submission-decision{display:grid;gap:10px;border-top:1px solid #e2e8f0;padding-top:12px}
+.admin-segmented{display:inline-flex;flex-wrap:wrap;gap:6px}
+.admin-segmented button,.admin-reason-chips button{border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:7px 14px;font-weight:700;font-size:13px;cursor:pointer}
+.admin-segmented button.active.publish{background:#12b76a;border-color:#12b76a;color:#fff}
+.admin-segmented button.active.request_changes{background:#f79009;border-color:#f79009;color:#fff}
+.admin-segmented button.active.decline{background:#d92d20;border-color:#d92d20;color:#fff}
+.admin-reason-chips{display:flex;flex-wrap:wrap;gap:6px}
+.admin-reason-chips button.active{background:var(--accent-soft,#f3e8ff);border-color:var(--accent,#7f00ff);color:var(--accent-dark,#5b00bd)}
+.admin-submission-decision textarea{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:10px;font:inherit;font-size:14px}
+.admin-submission-email{font-size:12px!important}
+.admin-submission-decision>.button{justify-self:start;min-width:220px}
+.button.danger{background:#d92d20;border-color:#d92d20;color:#fff}
+.admin-submission-secondary{margin-top:16px;font-size:13px}
+.admin-submission-secondary h3{font-size:14px;margin:0 0 6px}
+.admin-submission-secondary ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
+@media(max-width:760px){
+ .admin-submission-body{grid-template-columns:1fr}
+ .admin-priorities li{grid-template-columns:26px minmax(0,1fr)}
+ .admin-priorities li .button{grid-column:2;justify-self:start}
+ .admin-submission-places li{flex-direction:column;align-items:stretch}
+ .admin-submission-place-actions{justify-content:space-between}
+}

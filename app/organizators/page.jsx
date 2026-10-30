@@ -6,11 +6,12 @@ import ProfileShell from '../components/profile-shell.jsx';
 import {rigaDate} from '../../lib/meets-personal.js';
 import {resolveOrganizationId,canWriteOrganization,submissionDateLabel,organizerTodo} from '../../lib/organizer-workspace.js';
 import {refreshSession as renewToken} from '../../lib/auth-client.js';
+import {reasonLabel} from '../../lib/submission-review.js';
 
 const SESSION='meets_user_session_v1';
 const PANELS=new Set(['overview','events','venues','team','profile']);
 function organizationsFrom(items,id){return id&&Array.isArray(items)&&items.some(o=>o.id===id)?id:'';}
-const STATUS_LABELS={draft:'Melnraksts',pending_review:'Pārbaudē',rejected:'Jālabo',published:'Publicēts',closed:'Slēgts',archived:'Arhivēts',cancelled:'Atcelts'};
+const STATUS_LABELS={draft:'Melnraksts',pending_review:'Pārbaudē',rejected:'Jālabo',declined:'Netika publicēts',published:'Publicēts',closed:'Slēgts',archived:'Arhivēts',cancelled:'Atcelts'};
 const ROLE_LABELS={owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'};
 
 function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION)||'null');}catch{return null;}}
@@ -29,6 +30,8 @@ async function refreshSession(session){
  window.dispatchEvent(new Event('meets-user-changed'));
  return value;
 }
+// MEETS feedback: the reason picked by the reviewer and the comment.
+function reviewFeedback(item){return [reasonLabel(item.review_reason),item.admin_note].filter(Boolean).join(' — ');}
 function statusClass(status){return 'org-status org-status-'+String(status||'draft').replaceAll('_','-');}
 function eventDate(item){return submissionDateLabel(item);}
 function future(item){const end=item.date_to||item.date_from;return end?end>=rigaDate():true;}
@@ -323,7 +326,7 @@ function OrganizerPageInner(){
    {(todo.rejected.length>0||todo.drafts.length>0)&&<section className="org-panel org-todo" aria-labelledby="org-todo-title">
     <div className="org-panel-head"><h2 id="org-todo-title">Jāpabeidz</h2></div>
     <div className="org-list">
-     {todo.rejected.map(item=><div className="org-row org-row-attention" key={item.id}><div><strong>{item.title||'Bez nosaukuma'}</strong><small>{eventDate(item)} · MEETS atgrieza labošanai</small>{item.admin_note&&<em>{item.admin_note}</em>}</div>{canEdit&&<Link className="button primary" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&edit='+item.id}>Labot un iesniegt</Link>}</div>)}
+     {todo.rejected.map(item=><div className="org-row org-row-attention" key={item.id}><div><strong>{item.title||'Bez nosaukuma'}</strong><small>{eventDate(item)} · MEETS lūdz precizēt</small>{reviewFeedback(item)&&<em>{reviewFeedback(item)}</em>}</div>{canEdit&&<Link className="button primary" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&edit='+item.id}>Labot un iesniegt</Link>}</div>)}
      {todo.drafts.map(item=><div className="org-row" key={item.id}><div><strong>{item.title||'Melnraksts bez nosaukuma'}</strong><small>{eventDate(item)} · Melnraksts, vēl nav iesniegts</small></div>{canEdit&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&edit='+item.id}>Turpināt</Link>}</div>)}
     </div>
    </section>}
@@ -331,19 +334,19 @@ function OrganizerPageInner(){
    {!onboarding&&<><section className="org-simple-summary" aria-label="Organizatora kopsavilkums"><span><strong>{managedVenues.length}</strong> adreses</span><span><strong>{orgSubmissions.length}</strong> pasākumi</span><span><strong>{metrics.published}</strong> publicēti</span></section>
    <section className="org-panel"><div className="org-panel-head"><h2>Manas adreses</h2>{canEdit&&<Link className="button primary" href={'/registre-vietu?org='+orgId}>+ Pievienot adresi</Link>}</div><div className="org-list">{managedVenues.slice(0,5).map(v=><div className="org-row" key={v.id}><div><strong>{v.name}</strong><small>{v.address} · {orgSubmissions.filter(x=>x.venue_id===v.id).length} pasākumi</small></div><div className="org-row-actions"><button type="button" className="button" onClick={()=>choosePanel('venues')}>Atvērt</button>{canEdit&&<Link className="button primary org-add-event" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&venue='+v.id}>+ Pievienot pasākumu</Link>}</div></div>)}{!managedVenues.length&&<p className="org-empty">Vēl nav objektu. Pievieno pirmo adresi, lai sāktu reģistrēt pasākumus.</p>}</div></section>
    <section className="org-panel"><div className="org-panel-head"><div><h2>Tuvākie pasākumi</h2></div><button className="button" onClick={()=>choosePanel('events')}>Visi pasākumi →</button></div>
-    <div className="org-list">{orgSubmissions.filter(x=>future(x)&&!['rejected','draft'].includes(x.status)).sort((a,b)=>(a.date_from||'9999').localeCompare(b.date_from||'9999')).slice(0,6).map(item=><div className="org-row" key={item.id}>
-     <div><strong>{item.title||'Bez nosaukuma'}</strong><small>{eventDate(item)} · {item.venue_name||'Vieta nav norādīta'}</small>{item.status==='rejected'&&item.admin_note&&<em>Jālabo: {item.admin_note}</em>}</div>
+    <div className="org-list">{orgSubmissions.filter(x=>future(x)&&!['rejected','draft','declined'].includes(x.status)).sort((a,b)=>(a.date_from||'9999').localeCompare(b.date_from||'9999')).slice(0,6).map(item=><div className="org-row" key={item.id}>
+     <div><strong>{item.title||'Bez nosaukuma'}</strong><small>{eventDate(item)} · {item.venue_name||'Vieta nav norādīta'}</small>{['rejected','declined'].includes(item.status)&&reviewFeedback(item)&&<em>{item.status==='declined'?'Iemesls':'Jālabo'}: {reviewFeedback(item)}</em>}</div>
      <span className={statusClass(item.status)}>{STATUS_LABELS[item.status]||item.status}</span>
      {canEdit&&['draft','rejected'].includes(item.status)&&<Link className="button" href={'/registre-pasakumu/vienkarsi?org='+orgId+'&edit='+item.id}>Labot</Link>}
     </div>)}
-    {!orgSubmissions.filter(x=>future(x)&&!['rejected','draft'].includes(x.status)).length&&<p className="org-empty">Nav gaidāmu iesniegtu pasākumu.</p>}</div>
+    {!orgSubmissions.filter(x=>future(x)&&!['rejected','draft','declined'].includes(x.status)).length&&<p className="org-empty">Nav gaidāmu iesniegtu pasākumu.</p>}</div>
    </section></>}
   </div>}
 
   {panel==='events'&&<section className="org-panel">
    <div className="org-panel-head"><div><h2>Pasākumi</h2></div>{canEdit&&<Link className="button primary" href={'/registre-pasakumu/vienkarsi?org='+orgId}>+ Jauns pasākums</Link>}</div>
    <div className="org-filters">
-    <label>Statuss<select value={filters.status} onChange={e=>changeFilter('status',e.target.value)}><option value="all">Visi</option><option value="draft">Melnraksti</option><option value="pending_review">Pārbaudē</option><option value="rejected">Jālabo</option><option value="published">Publicētie</option></select></label>
+    <label>Statuss<select value={filters.status} onChange={e=>changeFilter('status',e.target.value)}><option value="all">Visi</option><option value="draft">Melnraksti</option><option value="pending_review">Pārbaudē</option><option value="rejected">Jālabo</option><option value="declined">Netika publicēti</option><option value="published">Publicētie</option></select></label>
     <label>Laiks<select value={filters.time} onChange={e=>changeFilter('time',e.target.value)}><option value="upcoming">Gaidāmie</option><option value="past">Pagājušie</option><option value="all">Visi</option></select></label>
     <label>Vieta<select value={filters.venue} onChange={e=>changeFilter('venue',e.target.value)}><option value="">Visas vietas</option>{managedVenues.map(v=><option value={v.id} key={v.id}>{v.name}</option>)}{usedVenues.map(v=><option value={v.id} key={v.id}>{v.name} · izmantota</option>)}</select></label>
     <label className="org-filter-search">Meklēt<input type="search" value={filters.query} onChange={e=>changeFilter('query',e.target.value)} placeholder="Nosaukums vai vieta"/></label>
@@ -351,7 +354,7 @@ function OrganizerPageInner(){
    <div className="org-table" role="table" aria-label="Organizatora pasākumi">
     <div className="org-table-head" role="row"><span>Nosaukums</span><span>Datums</span><span>Vieta</span><span>Statuss</span><span>Darbības</span></div>
     {filteredEvents.map(item=><div className="org-table-row" role="row" key={item.id}>
-     <div data-label="Nosaukums"><strong>{item.title||'Bez nosaukuma'}</strong>{item.status==='rejected'&&item.admin_note&&<small className="org-rejection">Jālabo: {item.admin_note}</small>}</div>
+     <div data-label="Nosaukums"><strong>{item.title||'Bez nosaukuma'}</strong>{['rejected','declined'].includes(item.status)&&reviewFeedback(item)&&<small className="org-rejection">{item.status==='declined'?'Iemesls':'Jālabo'}: {reviewFeedback(item)}</small>}</div>
      <span data-label="Datums">{eventDate(item)}</span><span data-label="Vieta">{item.venue_name||'Nav norādīta'}</span>
      <span data-label="Statuss"><em className={statusClass(item.status)}>{STATUS_LABELS[item.status]||item.status}</em></span>
      <div data-label="Darbības" className="org-row-actions">

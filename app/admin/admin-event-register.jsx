@@ -1,12 +1,13 @@
 'use client';
+import {reasonLabel} from '../../lib/submission-review.js';
 
 import {useEffect,useMemo,useState} from 'react';
 
 const STATUS_LABELS={
  published:'Publicēts',pending_review:'Jāpublicē',draft:'Melnraksts',
- rejected:'Jālabo',cancelled:'Atcelts',archived:'Arhivēts',closed:'Slēgts'
+ rejected:'Jālabo',declined:'Noraidīts',cancelled:'Atcelts',archived:'Arhivēts',closed:'Slēgts'
 };
-const STATUS_TONES={published:'published',pending_review:'pending',draft:'draft',rejected:'problem',cancelled:'muted',archived:'muted',closed:'muted'};
+const STATUS_TONES={published:'published',pending_review:'pending',draft:'draft',rejected:'problem',declined:'muted',cancelled:'muted',archived:'muted',closed:'muted'};
 const PAGE_SIZES=[25,50,100];
 
 const lower=value=>String(value??'').toLocaleLowerCase('lv');
@@ -67,7 +68,8 @@ function submissionRow(item,today){
  const wrongLocation=!String(item.address||item.venue_name||'').trim()?'Nav norises vietas / adreses':
   !hasCoordinates(item)?'Nepieciešama precīzas vietas pārbaude':'';
  let reason='',reasonCode='waiting',reasonTone='warn';
- if(item.status==='rejected'){reason=item.admin_note?'Atgriezts: '+String(item.admin_note):'Atgriezts labošanai';reasonCode='rejected';reasonTone='bad';}
+ if(item.status==='rejected'){reason='Lūgts precizēt: '+([reasonLabel(item.review_reason),item.admin_note].filter(Boolean).join(' — ')||'gaida organizatoru');reasonCode='rejected';reasonTone='bad';}
+ else if(item.status==='declined'){reason='Noraidīts: '+([reasonLabel(item.review_reason),item.admin_note].filter(Boolean).join(' — ')||'bez iemesla');reasonCode='declined';reasonTone='muted';}
  else if(expired){reason='Norises datums jau beidzies';reasonCode='ended';reasonTone='muted';}
  else if(wrongLocation){reason=wrongLocation;reasonCode='location';reasonTone='bad';}
  else{reason='Gaida administratora apstiprinājumu';}

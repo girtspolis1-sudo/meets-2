@@ -344,41 +344,49 @@ create index if not exists location_alias_trgm on meets_private.location_alias_m
   using gin (lower(alias_text) extensions.gin_trgm_ops) where active;
 
 -- For each {key,name,municipality} returns up to 3 places MEETS already knows
--- (saved mappings, organizer venues, verified event locations), best first.
+-- (saved mappings, organizer venues, verified event locations), best first;
+-- a place in the same municipality ranks higher.
 create or replace function public.meets_admin_match_places(p_session_token text, p_places jsonb)
 returns jsonb language plpgsql stable security definer set search_path to '' as $$
-declare v_place jsonb; v_out jsonb:='[]'::jsonb; v_name text; v_matches jsonb;
+declare v_place jsonb; v_out jsonb:='[]'::jsonb; v_name text; v_area text; v_matches jsonb;
 begin
   if not meets_private.admin_session_valid(p_session_token) then raise exception 'Unauthorized' using errcode='42501'; end if;
   if jsonb_typeof(p_places)<>'array' or jsonb_array_length(p_places)>60 then raise exception 'Ne vairāk kā 60 vietas vienā pieprasījumā'; end if;
   perform set_config('pg_trgm.similarity_threshold','0.4',true);
   for v_place in select value from jsonb_array_elements(p_places) loop
     v_name := lower(btrim(coalesce(v_place->>'name','')));
+    -- "Rīgas valstspilsēta" -> "rīga", "Ādažu novads" -> "ādaž": a match in that area ranks first.
+    v_area := nullif(left(lower(btrim(regexp_replace(coalesce(v_place->>'municipality',''),'\s*(valstspilsēta|novads|pilsēta)\s*$','','i'))),5),'');
     if length(v_name)<3 then continue; end if;
     select coalesce(jsonb_agg(m order by (m->>'score')::numeric desc),'[]'::jsonb) into v_matches from (
       select jsonb_build_object('label',c.label,'displayName',c.address,'latitude',c.lat,'longitude',c.lon,
-        'source',c.source,'type','meets_known','category','meets','score',round(c.score::numeric,2)) m
+        'source',c.source,'type','meets_known','category','meets','score',round(c.score::numeric,2),'sameArea',c.same_area) m
       from (
-        select distinct on (round(lat::numeric,4),round(lon::numeric,4)) * from (
-          select a.canonical_venue_name label,coalesce(a.canonical_address_text,a.canonical_venue_name) address,
-                 a.latitude lat,a.longitude lon,'Saglabāts mapping' source,
-                 extensions.similarity(lower(a.alias_text),v_name)+0.05 score
-            from meets_private.location_alias_mappings a
-           where a.active and a.latitude is not null and lower(a.alias_text) operator(extensions.%) v_name
-          union all
-          select v.name,coalesce(v.address,v.name),v.latitude,v.longitude,'Organizatora vieta',
-                 extensions.similarity(lower(v.name),v_name)
-            from public.meets_venues v
-           where v.latitude is not null and lower(v.name) operator(extensions.%) v_name
-          union all
-          select l.venue_name,coalesce(l.address_raw,l.venue_name),
-                 extensions.st_y(l.map_point::extensions.geometry),extensions.st_x(l.map_point::extensions.geometry),
-                 'Pārbaudīta pasākuma vieta',extensions.similarity(lower(l.venue_name),v_name)
-            from public.event_locations l
-           where l.location_quality='verified_exact' and l.map_point is not null
-             and lower(l.venue_name) operator(extensions.%) v_name
-        ) all_matches
-        order by round(lat::numeric,4),round(lon::numeric,4),score desc
+        select *,v_area is not null and lower(label||' '||address) like '%'||v_area||'%' as same_area,
+               base_score+case when v_area is not null and lower(label||' '||address) like '%'||v_area||'%' then 0.2
+                               when v_area is not null then -0.1 else 0 end as score
+        from (
+          select distinct on (round(lat::numeric,4),round(lon::numeric,4)) * from (
+            select a.canonical_venue_name label,coalesce(a.canonical_address_text,a.canonical_venue_name) address,
+                   a.latitude lat,a.longitude lon,'Saglabāts mapping' source,
+                   extensions.similarity(lower(a.alias_text),v_name)+0.05 base_score
+              from meets_private.location_alias_mappings a
+             where a.active and a.latitude is not null and lower(a.alias_text) operator(extensions.%) v_name
+            union all
+            select v.name,coalesce(v.address,v.name),v.latitude,v.longitude,'Organizatora vieta',
+                   extensions.similarity(lower(v.name),v_name)
+              from public.meets_venues v
+             where v.latitude is not null and lower(v.name) operator(extensions.%) v_name
+            union all
+            select l.venue_name,coalesce(l.address_raw,l.venue_name),
+                   extensions.st_y(l.map_point::extensions.geometry),extensions.st_x(l.map_point::extensions.geometry),
+                   'Pārbaudīta pasākuma vieta',extensions.similarity(lower(l.venue_name),v_name)
+              from public.event_locations l
+             where l.location_quality='verified_exact' and l.map_point is not null
+               and lower(l.venue_name) operator(extensions.%) v_name
+          ) all_matches
+          order by round(lat::numeric,4),round(lon::numeric,4),base_score desc
+        ) d
       ) c
       order by c.score desc limit 3
     ) best;
