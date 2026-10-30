@@ -19,6 +19,10 @@ drop function if exists public.meets_admin_password_ready();
 drop function if exists public.meets_admin_setup_password(text,text,text);
 drop function if exists meets_private.admin_password_login(text,text);
 drop function if exists meets_private.admin_password_ready();
+drop function if exists meets_private.setup_admin_password(text,text,text);
+-- Signing out is the account's own sign-out now.
+drop function if exists public.meets_admin_logout(text);
+drop function if exists meets_private.admin_logout(text);
 
 -- Admin RPCs no longer accept anonymous callers.
 do $$
