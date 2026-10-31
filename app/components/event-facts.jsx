@@ -15,7 +15,8 @@ export default function EventFacts({event,today,clock=null,km=null,title=null,co
   {title}
   <span className="event-facts-place">{[distanceLabel(km),place].filter(Boolean).join(' · ')||'Vieta nav norādīta'}</span>
   {!compact&&event.address_raw&&event.address_raw!==event.venue_name&&<span className="event-facts-address">{event.address_raw}</span>}
-  {isApproximatePlace(event)&&<span className="nearby-approx">Precīza vieta nav zināma — kartē rādīts apdzīvotās vietas centrs</span>}
-  {(category||price)&&<span className="nearby-tags">{category&&<span>{category}</span>}{price&&<span className={event.price_status==='free'?'free':''}>{price}</span>}</span>}
+  {!compact&&isApproximatePlace(event)&&<span className="nearby-approx">Precīza vieta nav zināma — kartē rādīts apdzīvotās vietas centrs</span>}
+  {(category||price||(compact&&isApproximatePlace(event)))&&<span className="nearby-tags">{category&&<span>{category}</span>}{price&&<span className={event.price_status==='free'?'free':''}>{price}</span>}
+   {compact&&isApproximatePlace(event)&&<span className="approx" title="Precīza vieta nav zināma — kartē rādīts apdzīvotās vietas centrs">Aptuvena vieta</span>}</span>}
  </>;
 }
