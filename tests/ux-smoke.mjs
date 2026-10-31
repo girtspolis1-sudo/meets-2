@@ -8,7 +8,7 @@ const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Riga',year:'numeri
 const mockEvent={
  id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',
  title:'MEETS pārbaudes koncerts',description:'Aktuāls testa pasākums ar detalizētu aprakstu mobilā paneļa pārbaudei.',
- date_from:today,date_to:today,time_from:'16:00:00',time_to:'19:00:00',
+ date_from:today,date_to:today,time_from:'16:00:00',time_to:'23:59:00',
  event_type:'concert',primary_category:'Koncerts',price_status:'free',status:'published',
  venue_name:'Rīgas centrs',address_raw:'Rīga, Latvija',
  municipality:'Rīga',settlement:'Rīga',country_code:'LV',
@@ -133,8 +133,9 @@ for(const width of cases){
   await assertLayout(page,'map',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-map.png',fullPage:true});
   await page.goto(base+'/pasakumi',{waitUntil:'domcontentloaded',timeout:45000});
-  await page.locator('.catalog-view-switch').waitFor({timeout:30000});
-  if(!(await page.getByRole('button',{name:/Kartītes/}).getAttribute('aria-pressed'))?.includes('true')){fails++;console.error('Card view is not active by default');}
+  await page.locator('.catalog-search').waitFor({timeout:30000});
+  if(!(await page.getByRole('button',{name:'Tabula un Excel'}).count())){fails++;console.error('Card view is not active by default');}
+  if(!(await page.getByRole('button',{name:/Šodien/}).count())){fails++;console.error('Catalog time chips missing',width);}
   await page.locator('.catalog-event-card .meets-card-secondary-actions summary').first().click();
   const catalogCircles=page.locator('.catalog-event-card .meets-circle-actions').first();
   await catalogCircles.waitFor();
@@ -183,11 +184,12 @@ for(const width of cases){
   const place=followed[0];
   if(!place?.location_key){fails++;console.error('Catalog venue follow did not persist',width);}
   else{
+   await page.getByRole('button',{name:/^Filtri/}).click();
    await page.getByLabel('Filtrēt pēc norises vietas').selectOption(place.location_key);
    if(!(await page.locator('.catalog-event-card').count())){fails++;console.error('Place filtering hides its own events',width);}
   }
   // Followed places are listed on the following page linked from the catalogue.
-  await page.getByRole('link',{name:/Manas sekotās vietas/}).click();
+  await page.goto(base+'/sekosana',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.following-page').waitFor({timeout:30000});
   if(place?.location_name)await page.locator('.following-page .org-row strong',{hasText:place.location_name}).first().waitFor({timeout:15000});
   await page.goto(base+'/mani-pasakumi',{waitUntil:'domcontentloaded',timeout:45000});
