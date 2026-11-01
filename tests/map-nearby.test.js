@@ -26,7 +26,10 @@ test('events are grouped by day, ongoing ones count as today',()=>{
  assert.equal(dayGroup({date_from:'2026-10-31'},today),'weekend');
  assert.equal(dayGroup({date_from:'2026-11-03'},today),'later');
  assert.equal(whenLabel({date_from:'2026-10-28',time_from:'18:00:00'},today),'Šodien 18:00');
- assert.equal(whenLabel({date_from:'2026-10-31',time_from:'14:00:00'},today),'S 31.10. 14:00');
+ assert.equal(whenLabel({date_from:'2026-10-31',time_from:'14:00:00'},today),'Pēc 3 dienām 14:00');
+ assert.equal(whenLabel({date_from:'2026-10-31',time_from:'14:00:00'},today,{withDate:true}),'Pēc 3 dienām 14:00 · S 31.10.');
+ assert.equal(whenLabel({date_from:'2026-11-18'},today),'Pēc 21 dienas');
+ assert.equal(whenLabel({date_from:'2026-10-29'},today,{withDate:true}),'Rīt');
  assert.equal(whenLabel({date_from:'2026-10-20',date_to:'2026-11-02',time_from:'10:00:00'},today),'Notiek šodien');
 });
 
