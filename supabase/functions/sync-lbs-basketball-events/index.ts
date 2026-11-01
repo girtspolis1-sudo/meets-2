@@ -215,6 +215,17 @@ Deno.serve(async()=>{
 
   // The import RPC needs a competition row per key; regional ones are named from the feed.
   await registerCompetitions(regionalCompetitions);
+  // Regional feeds carry a venue id without a name; the national feeds name the same halls.
+  const unnamed=[...new Set(items.filter(i=>!i.venue_name&&i.source_venue_id).map(i=>i.source_venue_id))];
+  if(unnamed.length){
+   const known=await rest("rpc/meets_sportradar_venue_names",{method:"POST",body:JSON.stringify({p_venue_ids:unnamed})});
+   const names=new Map((known||[]).map((k:any)=>[k.source_venue_id,k.venue_name]));
+   for(const i of items)if(!i.venue_name&&names.has(i.source_venue_id)){
+    i.venue_name=names.get(i.source_venue_id);
+    const place=inferPlace(i.venue_name,i.home_team,i.timezone);
+    if(place&&!i.locality_text)Object.assign(i,{country_code:place.country_code,locality_text:place.locality_text,fallback_lat:place.fallback_lat,fallback_lon:place.fallback_lon});
+   }
+  }
   const dedup=[...new Map(items.map(i=>[i.import_key,i])).values()];
   const result=await rpc(dedup);
   return Response.json({ok:true,window_from:today,window_to:windowTo,found:dedup.length,

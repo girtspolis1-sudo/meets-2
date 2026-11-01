@@ -198,3 +198,23 @@ on conflict (competition_key) do nothing;
 insert into public.sources (domain, calendar_url, map_visible)
 select 'regionalie.basket.lv','https://regionalie.basket.lv/',true
  where not exists (select 1 from public.sources where domain='regionalie.basket.lv');
+
+-- 6) Regional Sportradar feeds give a venue id but no venue name; the national feeds name
+--    the same halls. Look the name up from games already imported with that venue id,
+--    preferring a location an admin has verified.
+create or replace function public.meets_sportradar_venue_names(p_venue_ids text[])
+returns table(source_venue_id text, venue_name text)
+language sql
+stable
+security definer
+set search_path to ''
+as $$
+  select distinct on (m.source_venue_id) m.source_venue_id, l.venue_name
+    from public.event_sports_metadata m
+    join public.event_locations l on l.event_id=m.event_id
+   where m.source_venue_id = any(p_venue_ids)
+     and nullif(trim(l.venue_name),'') is not null
+   order by m.source_venue_id, (l.location_quality='verified_exact') desc, l.verified_at desc nulls last
+$$;
+revoke all on function public.meets_sportradar_venue_names(text[]) from public, anon, authenticated;
+grant execute on function public.meets_sportradar_venue_names(text[]) to service_role;
