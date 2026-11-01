@@ -187,15 +187,24 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [submissionMatches,setSubmissionMatches]=useState({}),[emailStatus,setEmailStatus]=useState(null);
  const [organizations,setOrganizations]=useState([]),[bulkProgress,setBulkProgress]=useState('');
 
+ // A busy database can time out once (e.g. right after approving many places): try again shortly.
+ async function rpcWithRetry(path){
+  try{return await adminRpc(supabaseUrl,publishableKey,path,{});}
+  catch(error){
+   if(error?.status===401||error?.status===403)throw error;
+   await new Promise(resolve=>setTimeout(resolve,1500));
+   return adminRpc(supabaseUrl,publishableKey,path,{});
+  }
+ }
  async function loadEvents({quiet=false}={}){
   if(!quiet)setLoading(true);
   try{
    const [data,mappingData,healthData,sourceData,submissionData]=await Promise.all([
-    adminRpc(supabaseUrl,publishableKey,'meets_admin_catalog',{}),
-    adminRpc(supabaseUrl,publishableKey,'meets_admin_location_mapping_catalog',{}),
-    adminRpc(supabaseUrl,publishableKey,'meets_admin_import_health',{}),
-    adminRpc(supabaseUrl,publishableKey,'meets_admin_source_visibility_catalog',{}),
-    adminRpc(supabaseUrl,publishableKey,'meets_admin_user_submissions',{})
+    rpcWithRetry('meets_admin_catalog'),
+    rpcWithRetry('meets_admin_location_mapping_catalog'),
+    rpcWithRetry('meets_admin_import_health'),
+    rpcWithRetry('meets_admin_source_visibility_catalog'),
+    rpcWithRetry('meets_admin_user_submissions')
    ]);
    setEvents(Array.isArray(data?.events)?data.events:[]);
    setMappings(Array.isArray(mappingData?.mappings)?mappingData.mappings:[]);
@@ -210,10 +219,13 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    loadPlaceSearch();
    adminRpc(supabaseUrl,publishableKey,'meets_admin_organizations',{}).then(list=>setOrganizations(Array.isArray(list)?list:[])).catch(()=>{});
   }catch{
-   setCatalogLoaded(false);
-   setMessage('Admin datus neizdevās ielādēt.');
+   // Data already on screen stays usable; only a first load without data shows the error panel.
+   if(catalogLoadedRef.current)setMessage('Datus neizdevās atjaunot — rāda pēdējos ielādētos. Nospied “Pārlasīt”, lai mēģinātu vēlreiz.');
+   else{setCatalogLoaded(false);setMessage('Admin datus neizdevās ielādēt.');}
   }finally{setLoading(false);}
  }
+ const catalogLoadedRef=useRef(false);
+ useEffect(()=>{catalogLoadedRef.current=catalogLoaded;},[catalogLoaded]);
  // Loads the workspace once the signed-in account is confirmed as admin.
  const adminUserId=isAdmin?session?.user?.id:'';
  useEffect(()=>{if(adminUserId)loadEvents();},[adminUserId]);
