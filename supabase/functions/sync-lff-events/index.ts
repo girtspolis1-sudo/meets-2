@@ -36,6 +36,19 @@ function addMonthsIso(iso:string,n:number){
   d.setUTCDate(Math.min(day,max));
   return d.toISOString().slice(0,10);
 }
+// The last match row on a page has no following row to stop at, so its text can
+// run into the top-scorers table ("Stadions 1 Vārds Uzvārds Klubs 5 2 ...").
+// Cut the venue where a ranked list starts and cap the length.
+export function cleanVenue(v:string){
+  let s=v.replace(/\s+/g," ").trim();
+  const rank=s.search(/\s1\s+\p{Lu}[\p{L}'’-]+\s+\p{Lu}[\p{L}'’-]+.*?\s\d+\s+2\s+\p{Lu}/u);
+  if(rank>0)s=s.slice(0,rank).trim();
+  if(s.length>160){
+    const cut=s.lastIndexOf(",",160);
+    s=(cut>40?s.slice(0,cut):s.slice(0,160)).trim();
+  }
+  return s;
+}
 function slug(v:string){
   return v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60);
 }
@@ -63,7 +76,12 @@ const competitions=(season:string):Comp[]=>[
  {key:"lff-superkauss",name:"Superkauss",url:"https://lff.lv/sacensibas/viriesi/superkauss/",format:"football"},
  {key:"lff-parspeles",name:"Pārspēles",url:"https://lff.lv/sacensibas/viriesi/parspeles/",format:"football"},
  {key:"lff-livonia-cup",name:"Livonia Cup",url:"https://lff.lv/sacensibas/viriesi/livonia-cup/",format:"football"},
- {key:"lff-baltic-futsal",name:"Baltic Futsal Club League",url:"https://lff.lv/sacensibas/viriesi/baltic-futsal-club-league/",format:"futsal"}
+ {key:"lff-baltic-futsal",name:"Baltic Futsal Club League",url:"https://lff.lv/sacensibas/viriesi/baltic-futsal-club-league/",format:"futsal"},
+ // Futsal (telpu futbols) runs through the winter, when the outdoor leagues rest.
+ {key:"lff-futsal-virsliga",name:"Telpu futbola virslīga",url:"https://lff.lv/sacensibas/telpu-futbols/virsliga/",format:"futsal"},
+ {key:"lff-futsal-1-liga",name:"Telpu futbola 1. līga",url:"https://lff.lv/sacensibas/telpu-futbols/1-liga/",format:"futsal"},
+ {key:"lff-futsal-kauss",name:"Latvijas kauss telpu futbolā",url:"https://lff.lv/sacensibas/telpu-futbols/kausa-izcinas/",format:"futsal"},
+ {key:"lff-futsal-sievietes",name:"Sieviešu telpu futbola līga",url:"https://lff.lv/sacensibas/sievietes/sieviesu-telpu-futbola-liga/",format:"futsal"}
 ];
 
 const settlementHints:any[]=[
@@ -114,7 +132,7 @@ function parseStructured(h:string,comp:Comp,url:string,today:string,windowTo:str
   const group=pageGroup(comp.name,pageTitle,season);
   const dateHeaders=[...h.matchAll(/(?:Pirmdiena|Otrdiena|Trešdiena|Ceturtdiena|Piektdiena|Sestdiena|Svētdiena),?\s*(\d{1,2})\.(\d{2})\.(\d{4})\./gi)]
     .map(m=>({pos:m.index||0,date:m[3]+"-"+m[2]+"-"+m[1].padStart(2,"0")}));
-  const rows=[...h.matchAll(/<div class="tr match[^"]*"[^>]*data-id="([^"]+)"[^>]*>([\s\S]*?)(?=<div class="tr match|<div class="tr th1|<\/section>|$)/g)];
+  const rows=[...h.matchAll(/<div class="tr match[^"]*"[^>]*data-id="([^"]+)"[^>]*>([\s\S]*?)(?=<div class="tr match|<div class="tr th1|<\/section>|<table|$)/g)];
   const out:any[]=[];
   for(const r of rows){
     const id=r[1],block=r[2],t=txt(block),link=block.match(/href="(\/speles\/[^"]+)"/)?.[1]||null;
@@ -130,6 +148,11 @@ function parseStructured(h:string,comp:Comp,url:string,today:string,windowTo:str
         time=full[3];home=full[5].trim();away=full[6].trim();venue=full[7].trim();stage=stageBefore(h,r.index||0);
       }
     }
+    // Rows name the ground in their own element; prefer it to the row's text tail,
+    // which on the last row of a page can run into the next block.
+    const stadium=txt(block.match(/<div class="stadium">([\s\S]*?)<\/div>/)?.[1]||"");
+    if(stadium)venue=stadium;
+    if(venue)venue=cleanVenue(venue);
     if(!date||!time||!home||!away||!venue||date<today||date>windowTo)continue;
     out.push({id,date,time,home,away,venue,stage,group,competition_key:comp.key,competition_name:comp.name,sport_format:comp.format,url:link?"https://lff.lv"+link:url});
   }
@@ -154,7 +177,7 @@ function parseVeterans(h:string,today:string,windowTo:string,season:string){
       const raw=txt(li[1]);
       const m=raw.match(/^(\d{2})\.(\d{2})\.\s*(?:[–-]\s*(\d{2}:\d{2}))?\s*\|\s*(.+?)\s*\|\s*(.+)$/);
       if(!m)continue;
-      const date=season+"-"+m[2]+"-"+m[1],time=m[3]||"10:00",name=m[4].trim(),venue=m[5].trim();
+      const date=season+"-"+m[2]+"-"+m[1],time=m[3]||"10:00",name=m[4].trim(),venue=cleanVenue(m[5]);
       if(date<today||date>windowTo)continue;
       const href=li[1].match(/href="([^"]+)"/i)?.[1]||null;
       out.push({

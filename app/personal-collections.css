@@ -430,6 +430,11 @@
   overflow-wrap:anywhere;
   font-size:1rem;
   font-weight:700;
+  /* A bad venue name must never push the event list off screen. */
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
  }
  .meets-sheet-venue-follow{display:flex;margin:0}
  .meets-quiet-event-sheet .meets-mobile-sheet-title small{

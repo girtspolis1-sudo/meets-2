@@ -94,6 +94,28 @@ async function fetchFeed(feed:any){
  const body=await r.json();
  return {feed,data:body?.data||{}};
 }
+async function rest(path:string,init:RequestInit={}){
+ const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{...init,headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY,"Content-Type":"application/json",...(init.headers||{})}});
+ const t=await r.text();
+ if(!r.ok)throw new Error("REST "+r.status+" "+t.slice(0,200));
+ return t?JSON.parse(t):null;
+}
+// Regional tournaments (regionalie.basket.lv) were found by the discovery run and
+// live in basketball_sources; each is its own Sportradar website id.
+async function regionalFeeds(){
+ const rows=await rest("basketball_sources?section=eq."+encodeURIComponent("Reģionālie turnīri")+"&parser_type=eq.sportradar&active=is.true&website_id=not.is.null&select=website_id,calendar_url");
+ return rows.map((r:any)=>({websiteId:String(r.website_id),key:"lbs-regional-"+r.website_id,name:"",season:"",
+  domain:"regionalie.basket.lv",url:r.calendar_url,regional:true}));
+}
+// "Tukuma čempionāts 2026/2027" → "Tukuma čempionāts".
+const seasonless=(s:string)=>String(s||"").replace(/[,\s-]*\d{4}\.?\/\s?\d{2,4}\.?\s*$/,"").replace(/[,\s-]*\d{4}\s*$/,"").trim();
+async function registerCompetitions(list:{key:string,name:string,season:string,url:string}[]){
+ if(!list.length)return;
+ await rest("sports_competitions?on_conflict=competition_key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+  body:JSON.stringify(list.map(c=>({governing_body:"LBS",competition_key:c.key,name:c.name,season:c.season||null,
+   competition_type:"regional",sport_format:"basketball",source_url:c.url,active:true})))});
+}
+
 async function rpc(items:any[]){
  const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/meets_import_sportradar_basketball",{
   method:"POST",
@@ -114,13 +136,26 @@ Deno.serve(async()=>{
  try{
   const today=rigaToday();
   const windowTo=addMonthsIso(today,3);
-  const fetched=await Promise.all(feeds.map(fetchFeed));
+  const fetched:any[]=await Promise.all(feeds.map(fetchFeed));
+  // Regional feeds are many and small: read them a few at a time; one that fails
+  // is reported and skipped rather than failing the national leagues.
+  const regional=await regionalFeeds();
+  const regionalFailed:string[]=[];
+  for(let i=0;i<regional.length;i+=8){
+   const batch=await Promise.all(regional.slice(i,i+8).map((f:any)=>fetchFeed(f).catch(()=>{regionalFailed.push(f.websiteId);return null;})));
+   for(const r of batch)if(r)fetched.push(r);
+  }
+  const regionalCompetitions:any[]=[];
   const items:any[]=[];
   const stats:any[]=[];
 
   for(const {feed,data} of fetched){
    const fixtures=Array.isArray(data.fixtures)?data.fixtures:[];
    const selectedSeason=data?.seasons?.seasons?.find((s:any)=>s.seasonId===data.seasonId)?.nameLocal||null;
+   if(feed.regional){
+    feed.name=seasonless(selectedSeason||"")||"Reģionālais basketbola turnīrs";
+    feed.season=String(selectedSeason||"").match(/\d{4}\.?\/\s?\d{2,4}/)?.[0]||"";
+   }
    let accepted=0;
 
    for(const f of fixtures){
@@ -146,7 +181,7 @@ Deno.serve(async()=>{
     items.push({
      import_key:`sportradar:${feed.websiteId}:${f.fixtureId}`,
      title:`${home} – ${away}`,
-     description:`${feed.name} · ${feed.season}`,
+     description:[feed.name,feed.season].filter(Boolean).join(" · "),
      date_from:date,
      time_from:time,
      timezone,
@@ -175,11 +210,26 @@ Deno.serve(async()=>{
     feed_fixtures:fixtures.length,
     imported_window:accepted
    });
+   if(feed.regional&&accepted)regionalCompetitions.push({key:feed.key,name:feed.name,season:feed.season,url:feed.url});
   }
 
+  // The import RPC needs a competition row per key; regional ones are named from the feed.
+  await registerCompetitions(regionalCompetitions);
+  // Regional feeds carry a venue id without a name; the national feeds name the same halls.
+  const unnamed=[...new Set(items.filter(i=>!i.venue_name&&i.source_venue_id).map(i=>i.source_venue_id))];
+  if(unnamed.length){
+   const known=await rest("rpc/meets_sportradar_venue_names",{method:"POST",body:JSON.stringify({p_venue_ids:unnamed})});
+   const names=new Map((known||[]).map((k:any)=>[k.source_venue_id,k.venue_name]));
+   for(const i of items)if(!i.venue_name&&names.has(i.source_venue_id)){
+    i.venue_name=names.get(i.source_venue_id);
+    const place=inferPlace(i.venue_name,i.home_team,i.timezone);
+    if(place&&!i.locality_text)Object.assign(i,{country_code:place.country_code,locality_text:place.locality_text,fallback_lat:place.fallback_lat,fallback_lon:place.fallback_lon});
+   }
+  }
   const dedup=[...new Map(items.map(i=>[i.import_key,i])).values()];
   const result=await rpc(dedup);
-  return Response.json({ok:true,window_from:today,window_to:windowTo,found:dedup.length,stats,...result});
+  return Response.json({ok:true,window_from:today,window_to:windowTo,found:dedup.length,
+   regional:{feeds:regional.length,with_games:regionalCompetitions.length,failed:regionalFailed},stats,...result});
  }catch(error){
   console.error("sync_lbs_basketball_failed",{message:error?.message||String(error)});
   return Response.json({ok:false,error:error?.message||String(error)},{status:500});

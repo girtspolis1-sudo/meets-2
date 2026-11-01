@@ -158,7 +158,9 @@
  .meets-mobile-sheet-title strong{font-size:17px;line-height:1.35}
  .meets-mobile-sheet-title small{display:block;color:var(--muted);margin-top:4px}
  .meets-mobile-sheet-title button{min-height:44px;min-width:44px;border:0;background:#f3e8ff;border-radius:12px;color:#5b00bd;font-weight:900}
- .meets-mobile-sheet-events{overflow-y:auto;overscroll-behavior:contain;padding:4px 16px 14px;min-height:0}
+ /* Header keeps its own height (capped); only the event list scrolls. */
+ .meets-mobile-sheet-title{flex:none;max-height:40dvh;overflow:hidden}
+ .meets-mobile-sheet-events{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:4px 16px 14px;min-height:0}
  .meets-mobile-sheet-event{padding:15px 0;border-bottom:1px solid var(--border)}
  .meets-mobile-sheet-event:last-child{border-bottom:0}
  .meets-mobile-sheet-event.outside{opacity:.68}

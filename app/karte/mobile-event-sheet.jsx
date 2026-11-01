@@ -34,7 +34,7 @@ export default function MobileEventSheet({group,activeIds,favorites,onFavorite,o
    <header className="meets-mobile-sheet-title">
     <div className="meets-sheet-venue">
      <div className="meets-sheet-venue-heading">
-      <strong>{group.label}</strong>
+      <strong title={group.label}>{group.label}</strong>
       {events[0]&&<div className="meets-sheet-venue-follow"><EventVenueFavorite event={events[0]} compact/></div>}
      </div>
      <small>{selectedCount} atlasīti · {events.length} kopā</small>

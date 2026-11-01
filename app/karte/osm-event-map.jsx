@@ -7,7 +7,7 @@ import {CLUSTER_MAX_ZOOM,clusterPoints,clusterTone,radiusForView} from '../../li
 import {useAdminSession} from '../use-admin-session.js';
 import {placeFromEvent} from '../../lib/location-follow.js';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
-import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType} from '../../lib/home-category-filters.js';
+import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType,SOURCE_TYPES,SOURCE_TYPE_BODY} from '../../lib/home-category-filters.js';
 import {groupedMapIcon} from '../../lib/event-map-icons.js';
 import {useEvents} from '../../lib/use-events.js';
 import {eventDateState,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
@@ -131,7 +131,7 @@ export default function OsmEventMap(){
   router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
  }
 
- const [eventTypes,setEventTypes]=useState(()=>searchParams.get('types')?.split(',').filter(x=>['municipality','lff','basketball','athletics'].includes(x))||[]);
+ const [eventTypes,setEventTypes]=useState(()=>searchParams.get('types')?.split(',').filter(x=>SOURCE_TYPES.includes(x))||[]);
  const [competition,setCompetition]=useState(searchParams.get('competition')||'');
  const [category,setCategory]=useState(searchParams.get('subcategory')||'');
  const [eventSearch,setEventSearch]=useState(searchParams.get('q')||'');
@@ -276,7 +276,7 @@ export default function OsmEventMap(){
   for(const e of typedEvents)if(e.competition_key&&e.competition_name)counts.set(e.competition_key,(counts.get(e.competition_key)||0)+1);
   const registry=Array.isArray(data?.competitions)?data.competitions:[];
   const singleType=eventTypes.length===1?eventTypes[0]:'';
-  const relevantRegistry=registry.filter(c=>singleType==='basketball'?String(c.sport_format||'').toLowerCase()==='basketball':singleType==='lff'?String(c.governing_body||'').toUpperCase()==='LFF':false);
+  const relevantRegistry=registry.filter(c=>singleType==='basketball'?String(c.sport_format||'').toLowerCase()==='basketball':SOURCE_TYPE_BODY[singleType]?String(c.governing_body||'').toUpperCase()===SOURCE_TYPE_BODY[singleType]:false);
   const options=new Map();
   for(const c of relevantRegistry)if(c.competition_key&&c.name)options.set(c.competition_key,{key:c.competition_key,name:c.name,count:counts.get(c.competition_key)||0});
   for(const e of typedEvents)if(e.competition_key&&e.competition_name&&!options.has(e.competition_key))options.set(e.competition_key,{key:e.competition_key,name:e.competition_name,count:counts.get(e.competition_key)||0});
@@ -287,7 +287,7 @@ export default function OsmEventMap(){
  const categories=useMemo(()=>[...new Set(scopedEvents.map(e=>e.primary_category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
  const municipalities=useMemo(()=>[...new Set(scopedEvents.filter(e=>!country||e.country_code===country).map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents,country]);
  const countries=useMemo(()=>[...new Set(scopedEvents.map(e=>e.country_code).filter(Boolean))],[scopedEvents]);
- const sourceCounts=useMemo(()=>events.reduce((acc,e)=>{const type=sourceType(e);acc[type]=(acc[type]||0)+1;return acc;},{municipality:0,lff:0,athletics:0,basketball:0}),[events]);
+ const sourceCounts=useMemo(()=>events.reduce((acc,e)=>{const type=sourceType(e);acc[type]=(acc[type]||0)+1;return acc;},Object.fromEntries(SOURCE_TYPES.map(t=>[t,0]))),[events]);
 
  const locationChoices=useMemo(()=>{
   const map=new Map();
@@ -605,6 +605,10 @@ export default function OsmEventMap(){
   {value:'municipality',label:'Pašvaldības',glyph:'📅'},
   {value:'lff',label:'Futbols',glyph:'⚽'},
   {value:'basketball',label:'Basketbols',glyph:'🏀'},
+  {value:'hockey',label:'Hokejs',glyph:'🏒'},
+  {value:'volleyball',label:'Volejbols',glyph:'🏐'},
+  {value:'floorball',label:'Florbols',glyph:'🏑'},
+  {value:'handball',label:'Handbols',glyph:'🤾'},
   {value:'athletics',label:'Vieglatlētika',glyph:'🏃'}
  ];
 
@@ -816,9 +820,9 @@ export default function OsmEventMap(){
       </label>)}
      </fieldset>
 
-     {(singleEventType==='lff'||singleEventType==='basketball')&&<label className="map-filter-field"><span>Turnīrs</span>
+     {(singleEventType==='basketball'||SOURCE_TYPE_BODY[singleEventType])&&<label className="map-filter-field"><span>Turnīrs</span>
       <select value={competition} onChange={e=>{setCompetition(e.target.value);setCategory('');setMunicipality('');}} aria-label="Turnīrs">
-       <option value="">{singleEventType==='lff'?'Visi LFF turnīri':'Visi basketbola turnīri'}</option>
+       <option value="">{({lff:'Visi LFF turnīri',basketball:'Visi basketbola turnīri',hockey:'Visi hokeja turnīri',volleyball:'Visi volejbola turnīri',floorball:'Visi florbola turnīri'})[singleEventType]}</option>
        {competitionOptions.map(v=><option key={v.key} value={v.key}>{v.name} ({v.count})</option>)}
       </select>
      </label>}
