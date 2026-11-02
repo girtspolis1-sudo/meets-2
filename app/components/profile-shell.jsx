@@ -117,6 +117,14 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
   </aside>
 
   <div className="meets-profile-content">
+   {/* On a phone the sidebar is hidden: its main actions live here, as on the desktop. */}
+   <div className="meets-profile-mobile-actions">
+    <div className="meets-profile-mobile-mode" role="group" aria-label="Profila režīms">
+     <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}>Mans MEETS</Link>
+     <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}>Organizēšana</Link>
+    </div>
+    {organizerMode&&!pathname.startsWith('/registre-pasakumu')&&<Link className="meets-profile-mobile-new" href={eventHref}>+ Jauns pasākums</Link>}
+   </div>
    <nav ref={tabsRef} className="meets-profile-mobile-tabs" aria-label={organizerMode?'Organizēšanas sadaļas':'Mans MEETS sadaļas'}>
     {!organizerMode?personalLinks.map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.short}</Link>):
      <><Link href="/organizators" className={!orgId?'active':''}>Organizatori</Link>{orgId&&organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined} className={activeOrganizer(item)?'active':''}>{item.label}</Link>)}</>}
