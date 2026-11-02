@@ -5,6 +5,7 @@ import NearbyList from './nearby-list.jsx';
 import CategoryIcon from '../components/category-icon.jsx';
 import {eventTerm} from '../../lib/event-term.js';
 import {categoryIconSvg} from '../../lib/category-icons.js';
+import {groupedSportIcon} from '../../lib/event-map-icons.js';
 import {calendarDescription} from '../../lib/catalog-wire.js';
 import {PERIODS,RADII,DEFAULT_PERIOD,DEFAULT_RADIUS,periodKey,periodRange,periodPhrase,radiusLabel,nearbyGroups,widerOptions,countLabel,markerLabel} from '../../lib/map-nearby.js';
 import {CLUSTER_MAX_ZOOM,radiusForView} from '../../lib/map-cluster.js';
@@ -523,11 +524,14 @@ export default function OsmEventMap(){
    const dimmed=!isActive;
    const saved=group.events.some(e=>favorites.has(String(e.id)));
    const group0=eventGroup(nearest);
+   // A pin whose events are all one sport shows that sport (⚽ 🏀 🏒 …).
+   const sport=groupedSportIcon(chosenEvents);
+   const pinIcon=sport?'<span class="c3-pin-sport" title="'+esc(sport.label)+'">'+esc(sport.glyph)+'</span>':categoryIconSvg(group0,22);
    // C3 "minimal duo icon": the category icon leads, the days badge is a small
    // accent. Only events at the very same place share a pin (with a count).
    const html='<span class="c3-pin tone-'+esc(term.tone)+(dimmed?' dimmed':'')+'">'+
      '<svg class="c3-pin-shape" width="44" height="56" viewBox="0 0 44 56" aria-hidden="true"><path d="M22 54C22 54 4 35 4 21.5A18 18 0 1 1 40 21.5C40 35 22 54 22 54Z"/></svg>'+
-     '<span class="c3-pin-icon">'+categoryIconSvg(group0,22)+'</span>'+
+     '<span class="c3-pin-icon">'+pinIcon+'</span>'+
      '<span class="c3-pin-days">'+esc(term.badge)+'</span>'+
      (saved?'<span class="c3-pin-saved" title="Saglabāts"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.8a5.3 5.3 0 0 0-7.5 0L12 6.1l-1.3-1.3a5.3 5.3 0 0 0-7.5 7.5L12 21l8.8-8.7a5.3 5.3 0 0 0 0-7.5Z"/></svg></span>':'')+
      (shownCount>1?'<span class="c3-pin-count">'+shownCount+'</span>':'')+
@@ -539,7 +543,7 @@ export default function OsmEventMap(){
    if(canHover){
     const place=[nearest.venue_name,nearest.settlement||nearest.municipality].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ');
     const image=String(nearest.cover_image_url||'').startsWith('https://')?nearest.cover_image_url:'';
-    const category=HOME_CATEGORY_FILTERS[group0]?.title||nearest.primary_category||'';
+    const category=sport?.label||HOME_CATEGORY_FILTERS[group0]?.title||nearest.primary_category||'';
     const time=String(nearest.time_from||'').slice(0,5);
     marker.bindTooltip('<div class="c3-preview">'+
      (image?'<img src="'+esc(image)+'" alt="" loading="lazy">':'')+
