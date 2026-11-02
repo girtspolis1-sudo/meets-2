@@ -345,7 +345,7 @@ export default function EventCatalog(){
     {viewMode==='cards'&&<div className="catalog-card-grid meets-catalog-image-grid">{cards.map((event,index)=>{
      const day=sort==='date_from'?listDay(event,today):'';
      const showHeading=day&&(index===0||listDay(cards[index-1],today)!==day);
-     return [showHeading&&<h2 key={'day-'+day} className={'catalog-day-heading'+(day===today?' is-today':'')}>
+     return [showHeading&&<h2 key={'day-'+day} className={'catalog-day-heading'+(day===today?' is-today':day===addIsoDays(today,1)?' is-tomorrow':'')}>
       {(parts=>parts?<>
        <span className="day-number" aria-hidden="true">{parts.number}</span>
        <span className="day-text"><span className="day-label">{parts.label}<span className="sr-only"> {parts.number}. {parts.month}</span></span>
