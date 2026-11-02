@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} from '../../lib/catalog.js';
 import {useEvents} from '../../lib/use-events.js';
+import {useFullEvent} from '../../lib/use-full-event.js';
 import EventQuickActions from '../components/event-quick-actions.jsx';
 import DiscoveryEventCard from '../components/discovery-event-card.jsx';
 import EventVenueFavorite from '../components/event-venue-favorite.jsx';
@@ -203,14 +204,20 @@ export default function EventCatalog(){
   setExportStatus('');
   try{
    const {createWorkbook}=await import('../../lib/excel.js');
-   const buffer=await createWorkbook(tableRows,data.fetchedAt);
+   // The export has every public field, so it reads the full catalogue and keeps
+   // the rows (and order) the table currently shows.
+   const response=await fetch('/api/events?full=1',{signal:AbortSignal.timeout(30000)});
+   if(!response.ok)throw new Error('full catalogue unavailable');
+   const fullById=new Map(((await response.json()).events||[]).map(event=>[event.id,event]));
+   const exportRows=tableRows.map(event=>({...event,...(fullById.get(event.id)||{})}));
+   const buffer=await createWorkbook(exportRows,data.fetchedAt);
    const url=URL.createObjectURL(new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
    const a=document.createElement('a');
    a.href=url;
    a.download=`Meets-2-pasakumi-${new Date().toISOString().slice(0,10)}.xlsx`;
    a.click();
    setTimeout(()=>URL.revokeObjectURL(url),1000);
-   setExportStatus(`Eksportēti ${tableRows.length} ieraksti.`);
+   setExportStatus(`Eksportēti ${exportRows.length} ieraksti.`);
   }catch{
    setExportStatus('Eksports neizdevās. Mēģini vēlreiz.');
   }finally{
@@ -407,7 +414,9 @@ export default function EventCatalog(){
  </>;
 }
 
-function EventDetails({event,close}){
+function EventDetails({event:listed,close}){
+ // "Visa pasākuma informācija" lists detail-only fields, so the full record is loaded.
+ const {event}=useFullEvent(listed);
  const dialog=useRef(null);
  useEffect(()=>{const node=dialog.current;node?.showModal();return()=>{if(node?.open)node.close();};},[]);
  const image=cardImage(event),description=cardDescription(event),price=cardPrice(event);
