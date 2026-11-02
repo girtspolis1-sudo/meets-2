@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {usePathname,useSearchParams} from 'next/navigation';
-import {Suspense,useEffect,useMemo,useState} from 'react';
+import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
 
 const symbols={
  home:<><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>,
@@ -31,9 +31,9 @@ const personalLinks=[
 const organizerPanels=[
  {panel:'overview',label:'Pārskats',icon:'home'},
  {panel:'events',label:'Pasākumi',icon:'calendar'},
- {panel:'venues',label:'Adreses',icon:'pin'},
+ {panel:'venues',label:'Vietas',icon:'pin'},
  {panel:'team',label:'Komanda',icon:'users'},
- {panel:'profile',label:'Organizatora profils',icon:'building'}
+ {panel:'profile',label:'Profils',icon:'building'}
 ];
 
 const INITIALS=(name='')=>String(name).trim().slice(0,1).toLocaleUpperCase('lv')||'M';
@@ -73,6 +73,9 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
   return pathname===href;
  };
  const activeOrganizer=(item)=>pathname==='/organizators'&&panel===item.panel;
+ // On a phone the tabs scroll sideways: keep the active one in view.
+ const tabsRef=useRef(null);
+ useEffect(()=>{tabsRef.current?.querySelector('.active')?.scrollIntoView({block:'nearest',inline:'center'});},[pathname,panel,orgId]);
 
  return <div className="meets-profile-shell">
   <aside className="meets-profile-aside" aria-label="Profila navigācija">
@@ -94,7 +97,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
      </Link>)}
     </div>
    </nav>:<nav className="meets-profile-nav" aria-label="Organizēšana">
-    {activeOrganization&&<div className="meets-profile-active-org"><small>Aktīvais organizators</small><strong>{activeOrganization.name}</strong></div>}
+    {activeOrganization&&pathname!=='/organizators'&&<div className="meets-profile-active-org"><small>Aktīvais organizators</small><strong>{activeOrganization.name}</strong></div>}
     <div className="meets-profile-nav-group"><span className="meets-profile-nav-label">ORGANIZĒŠANA</span>
      <Link href="/organizators" className={'meets-profile-nav-link'+(!orgId&&pathname==='/organizators'?' active':'')}>
       <ProfileIcon name="building"/><span>Organizatori</span>
@@ -114,7 +117,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
   </aside>
 
   <div className="meets-profile-content">
-   <nav className="meets-profile-mobile-tabs" aria-label={organizerMode?'Organizēšanas sadaļas':'Mans MEETS sadaļas'}>
+   <nav ref={tabsRef} className="meets-profile-mobile-tabs" aria-label={organizerMode?'Organizēšanas sadaļas':'Mans MEETS sadaļas'}>
     {!organizerMode?personalLinks.map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.short}</Link>):
      <><Link href="/organizators" className={!orgId?'active':''}>Organizatori</Link>{orgId&&organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined} className={activeOrganizer(item)?'active':''}>{item.label}</Link>)}</>}
    </nav>

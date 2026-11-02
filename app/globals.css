@@ -2496,3 +2496,4 @@ kbd{display:inline-block;min-width:18px;padding:0 5px;border:1px solid #cdd3da;b
 @media(max-width:600px){.admin-bucket-grid{grid-template-columns:1fr}.admin-status-head{flex-direction:column}}
 .mapping-map-preview summary{cursor:pointer;font-size:12.5px;font-weight:700;color:#1b2430}
 .mapping-map-preview iframe{display:block;width:min(320px,100%);height:180px;margin-top:6px;border:1px solid #d9dde2;border-radius:10px}
+.admin-submission-change{margin:4px 0;padding:6px 10px;border-radius:8px;background:#fcf2d6;color:#6e4c00;font-size:13px}

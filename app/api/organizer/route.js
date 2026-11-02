@@ -58,6 +58,19 @@ function publicVenue(item,orgIds){
  return item?.is_public===true&&!orgIds.has(item.organization_id);
 }
 
+// Database functions run as the signed-in user (security definer checks the rights).
+async function rpcCall(name,token,body){
+ const res=await fetch(BASE()+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:KEY(),Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
+ const raw=await res.text();
+ if(!res.ok){
+  let message='';try{message=JSON.parse(raw).message||'';}catch{}
+  console.error('organizer_rpc_failed',{name,status:res.status,details:raw.slice(0,240)});
+  const error=new Error(/^[A-ZĀČĒĢĪĶĻŅŠŪŽ][^\n]{3,120}$/.test(message)?message:'Darbība neizdevās. Pārbaudi ievadītos datus un piekļuves tiesības.');
+  error.safe=true;throw error;
+ }
+ return raw?JSON.parse(raw):null;
+}
+
 function cleanOrgContacts(input){
  if(!Array.isArray(input))return [];
  return input.slice(0,25).map(x=>({type:['email','phone','person','other'].includes(x?.type)?x.type:'other',label:String(x?.label||'').trim().slice(0,80),value:String(x?.value||'').trim().slice(0,254),public:x?.public===true})).filter(x=>x.value);
@@ -181,6 +194,13 @@ export async function POST(request){
    return NextResponse.json({item:result[0]});
   }
 
+  // Cancels a submission and every public event made from it.
+  if(action==='cancelEvent'){
+   if(!UUID.test(data.id||''))return NextResponse.json({error:'Nederīgs ieraksts.'},{status:400});
+   const result=await rpcCall('meets_org_cancel_submission',token,{p_id:data.id,p_reason:String(data.reason||'').slice(0,300)});
+   return NextResponse.json({result});
+  }
+
   if(action==='saveEvent'){
    const isDraft=data.status==='draft';
    if(!['draft','pending_review'].includes(data.status))return NextResponse.json({error:'Nepareizs pasākuma statuss.'},{status:400});
@@ -274,6 +294,14 @@ export async function POST(request){
    let result;
    if(data.id){
     if(!UUID.test(data.id))return NextResponse.json({error:'Nederīgs ieraksts.'},{status:400});
+    const current=(await api(TABLES.submissions,token,'GET',null,'?select=id,status,event_id&id=eq.'+data.id+'&organization_id=eq.'+data.organization_id))[0];
+    // A published event is changed through review: the public version stays until MEETS approves.
+    if(current?.event_id){
+     if(isDraft)return NextResponse.json({error:'Publicētam pasākumam izmaiņas iesniedz pārbaudei — melnraksts nav pieejams.'},{status:400});
+     const {organization_id,author_id,status,...values}=payload;
+     const item=await rpcCall('meets_org_update_published_submission',token,{p_id:data.id,p_values:values});
+     return NextResponse.json({item,changed_published:true});
+    }
     result=await api(TABLES.submissions,token,'PATCH',{...payload,updated_at:new Date().toISOString()},'?id=eq.'+data.id+'&organization_id=eq.'+data.organization_id);
    }else result=await api(TABLES.submissions,token,'POST',payload);
 
@@ -288,6 +316,6 @@ export async function POST(request){
   return NextResponse.json({error:'Neatbalstīta darbība.'},{status:400});
  }catch(error){
   const safe=['Norādi abas koordinātas.','Nepareizas kartes koordinātas.','Darbība neizdevās. Pārbaudi ievadītos datus un piekļuves tiesības.'];
-  return NextResponse.json({error:safe.includes(error?.message)?error.message:'Neizdevās izpildīt pieprasījumu.'},{status:400});
+  return NextResponse.json({error:safe.includes(error?.message)||error?.safe?error.message:'Neizdevās izpildīt pieprasījumu.'},{status:400});
  }
 }

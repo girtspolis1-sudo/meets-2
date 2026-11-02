@@ -270,7 +270,7 @@ for(const width of [360,390]){
  try{
   await page.goto(base+'/organizators?org='+orgId+'&panel=venues',{waitUntil:'domcontentloaded',timeout:45000});
   await page.getByRole('heading',{name:'MEETS Testa organizācija'}).waitFor({timeout:15000});
-  await page.getByRole('link',{name:/Pievienot adresi/}).first().waitFor();
+  await page.getByRole('link',{name:/Pievienot vietu/}).first().waitFor();
   await assertLayout(page,'organizer-venues',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-organizer-venues.png',fullPage:true});
 
@@ -353,7 +353,7 @@ for(const width of [360,390]){
    await next.locator('input[type=number]').nth(1).fill('15.00');
    await next.getByLabel('Pasākuma norises adrese').selectOption(venueId);
    await next.getByRole('button',{name:/Priekšskatīt/}).click();
-   await p.getByText('Norises reizes:',{exact:false}).waitFor({timeout:10000});
+   await p.getByText('Norises reizes',{exact:true}).waitFor({timeout:10000});
    await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
    await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei'}).waitFor({timeout:10000});
    if(submitted?.schedule_kind!=='recurring'||submitted?.price_min!=='9.50'||
