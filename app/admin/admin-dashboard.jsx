@@ -12,11 +12,10 @@ import AdminEventRegister from './admin-event-register.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
 import {pendingSubmissions} from '../../lib/admin-submissions.js';
 import {groupCandidates,groupSuggestedAt} from '../../lib/admin-location.js';
-import {adminAuthorization,adminRpc,signOutAccount} from '../../lib/admin-auth.js';
+import {adminAuthorization,adminRpc} from '../../lib/admin-auth.js';
 import {useAccountSession} from '../../lib/account-store.js';
 import {useAdminSession} from '../use-admin-session.js';
 import {adminPriorities,upcomingWithoutPlace} from '../../lib/admin-priorities.js';
-import Authentication from '../components/account-auth-flow.jsx';
 
 const QUALITY={
  verified_exact:{label:'Precīzi verificēta',tone:'ok',priority:6},
@@ -613,20 +612,14 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
  if(session===undefined||(session&&!authChecked))return <div className="admin-login"><p role="status">Pārbaudām admin piekļuvi…</p></div>;
 
- if(!session)return <section className="admin-login admin-simple-login" aria-labelledby="admin-login-title">
-  <p className="eyebrow">MEETS · admin</p>
-  <h2 id="admin-login-title">Admin pieslēgšanās</h2>
-  <p>Pieslēdzies ar savu MEETS kontu. Admin vide atveras kontiem, kuriem piešķirtas admin tiesības.</p>
-  <Authentication variant="profile"/>
- </section>;
-
- if(!isAdmin)return <section className="admin-login admin-simple-login" aria-labelledby="admin-denied-title">
-  <p className="eyebrow">MEETS · admin</p>
-  <h2 id="admin-denied-title">Šim kontam nav admin tiesību</h2>
-  <p>Pieslēgts konts: <strong>{session.user?.email}</strong>. Lai atvērtu admin vidi, pieslēdzies ar admin kontu.</p>
+ // No public admin sign-in: visitors and accounts without admin rights see the
+ // same neutral page. Admins sign in through Mans profils and switch from there.
+ if(!session||!isAdmin)return <section className="admin-login admin-simple-login" aria-labelledby="admin-closed-title">
+  <h2 id="admin-closed-title">Šī lapa nav pieejama</h2>
+  <p>Atgriezies uz sākumlapu vai atver pasākumu karti.</p>
   <div className="actions">
-   <button className="button primary" type="button" onClick={signOutAccount}>Pieslēgties ar citu kontu</button>
-   <a className="button" href="/profils">Atvērt Mans MEETS</a>
+   <a className="button primary" href="/">Uz sākumlapu</a>
+   <a className="button" href="/karte">Atvērt karti</a>
   </div>
  </section>;
 
