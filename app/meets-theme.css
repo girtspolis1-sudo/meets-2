@@ -18,6 +18,12 @@
  --migla:#d8dee6;
  --teksts-2:#4a5565;
 
+ /* C3 term colours: how soon an event starts (site-wide). */
+ --sodien:#1e9a62;--sodien-badge:#17804f;--sodien-soft:#e3f4ea;--sodien-text:#14653e;
+ --rit:#e3ae1c;--rit-badge:#f2c335;--rit-soft:#fcf2d6;--rit-text:#6e4c00;
+ --velak:#e08a86;--velak-badge:#f8dcda;--velak-soft:#fbe9e8;--velak-text:#8e2a33;
+ --beidzies:#8a94a3;
+
  --bg:var(--sniegs);
  --text:var(--tinte);
  --muted:var(--teksts-2);
@@ -95,11 +101,12 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 
 /* Map list: same day-group voice as the catalogue -------------------------- */
 .nearby-group h3{align-items:baseline;gap:8px;padding:14px 6px 8px;font-family:var(--font-display);font-size:20px;font-weight:700;letter-spacing:-.02em;text-transform:none;color:var(--tinte)}
-.nearby-group.group-today h3{color:var(--karmins)}
+.nearby-group.group-today h3{color:var(--sodien-text)}
+.nearby-group.group-tomorrow h3{color:var(--rit-text)}
 .nearby-group h3 span{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:0;color:var(--teksts-2)}
 .nearby-item{border-color:var(--migla)}
 .nearby-item:hover,.nearby-item.is-highlighted{border-color:var(--tinte);box-shadow:0 0 0 1px var(--tinte)}
-.nearby-item:has(.nearby-live.now){border-color:var(--dzintars);background:var(--dzintars-soft);box-shadow:inset 4px 0 0 var(--dzintars)}
+.nearby-item:has(.nearby-live.now){border-color:var(--sodien);background:var(--sodien-soft);box-shadow:inset 4px 0 0 var(--sodien)}
 
 /* Category icons and chips ------------------------------------------------ */
 .meets-category-icon{flex:none;vertical-align:-.2em}
@@ -116,31 +123,81 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .meets-all-categories strong{font-size:14px;color:var(--tinte)}
 .meets-all-categories small{font-size:12px;color:var(--teksts-2)}
 
-/* "Notiek tagad" is the only use of amber ---------------------------------- */
-.nearby-live.now{background:var(--dzintars);color:var(--tinte)}
-.nearby-live.soon{background:var(--dzintars-soft);color:#7a4f00;box-shadow:inset 0 0 0 1px #ecd29a}
-.meets-discovery-card:has(.nearby-live.now){border-color:var(--dzintars);box-shadow:inset 4px 0 0 var(--dzintars)}
+/* C3 term colours everywhere ------------------------------------------------ */
+.nearby-live.now{background:var(--sodien-badge);color:#fff}
+.nearby-live.soon{background:var(--sodien-soft);color:var(--sodien-text);box-shadow:inset 0 0 0 1px #b9e3cb}
+.meets-discovery-card:has(.nearby-live.now){border-color:var(--sodien);box-shadow:inset 4px 0 0 var(--sodien)}
+.catalog-day-heading.is-today .day-number{color:var(--sodien-text)}
+.catalog-day-heading.is-tomorrow .day-number{color:#a87a00}
+.catalog-day-heading .day-label::before{content:'';display:inline-block;width:9px;height:9px;margin:0 8px 1px 0;border-radius:50%;background:var(--velak);vertical-align:middle}
+.catalog-day-heading.is-today .day-label::before{background:var(--sodien)}
+.catalog-day-heading.is-tomorrow .day-label::before{background:var(--rit)}
+.event-date-indicator.today{border-color:var(--sodien);color:var(--sodien-text);background:var(--sodien-soft)}
+.event-date-indicator.tomorrow{border-color:var(--rit);color:var(--rit-text);background:var(--rit-soft)}
+.event-date-badge.today,.event-date-badge-prominent.today{background:var(--sodien-soft);color:var(--sodien-text);border-color:#b9e3cb}
+.event-date-badge.tomorrow,.event-date-badge-prominent.tomorrow{background:var(--rit-soft);color:var(--rit-text);border-color:#efd892}
+.event-date-badge.future,.event-date-badge-prominent.future{background:var(--velak-soft);color:var(--velak-text);border-color:#efc4c1}
+.event-date-indicator.ended-today,.event-date-badge.ended-today,.event-date-badge-prominent.ended-today{background:#f3f5f7;color:#4a5565;border-color:#d8dee6}
 
-/* Map: today = carmine, tomorrow = ink, later = grey ---------------------- */
-.legend-dot.today{background:var(--karmins)}
-.legend-dot.tomorrow{background:var(--tinte)}
-.legend-dot.future{background:#8a94a3}
-.map-cluster.today{background:var(--karmins);box-shadow:0 0 0 4px rgba(158,48,57,.22),0 6px 14px rgba(27,36,48,.22)}
-.event-count-marker.date-today:not(.dimmed){outline-color:var(--karmins);box-shadow:0 0 0 2px rgba(158,48,57,.2),0 3px 12px rgba(27,36,48,.28)}
-.event-count-marker.date-tomorrow:not(.dimmed){outline-color:var(--tinte);box-shadow:0 0 0 2px rgba(27,36,48,.16),0 3px 12px rgba(27,36,48,.28)}
-.event-date-indicator.today{border-color:var(--karmins);color:var(--karmins);background:var(--karmins-soft)}
-.event-date-badge.today,.event-date-badge-prominent.today,.event-date-badge-prominent.ended-today{background:var(--karmins-soft);color:var(--karmins-dark);border-color:#e3bcc1}
+.c3-card-symbol{position:relative;overflow:visible}
+.c3-days-chip{display:inline-block;min-width:24px;height:19px;box-sizing:border-box;padding:0 6px;border:2px solid #fff;border-radius:10px;background:var(--velak-badge);color:var(--velak-text);font:800 11px/15px var(--font-body);text-align:center;font-variant-numeric:tabular-nums}
+.c3-card-symbol .c3-days-chip{position:absolute;right:-8px;top:-7px}
+.meets-discovery-card-media{position:relative}
+.meets-discovery-card-media>.c3-days-chip{position:absolute;left:10px;top:10px;height:22px;line-height:18px;font-size:12px}
+.c3-card-symbol{box-shadow:inset 0 0 0 2px var(--velak)}
+.c3-card-symbol.tone-today{box-shadow:inset 0 0 0 2px var(--sodien)}
+.c3-card-symbol.tone-tomorrow{box-shadow:inset 0 0 0 2px var(--rit)}
+.c3-card-symbol.tone-ended{box-shadow:inset 0 0 0 2px var(--beidzies)}
+.tone-today>.c3-days-chip,.c3-days-chip.tone-today{background:var(--sodien-badge);color:#fff}
+.tone-tomorrow>.c3-days-chip,.c3-days-chip.tone-tomorrow{background:var(--rit-badge);color:var(--tinte)}
+.tone-ended>.c3-days-chip,.c3-days-chip.tone-ended{background:#eef1f4;color:#4a5565}
 
-.event-drop-marker.today:not(.dimmed){background:var(--karmins);box-shadow:0 0 0 2px rgba(158,48,57,.2),0 5px 14px rgba(27,36,48,.2)}
-.event-drop-marker.today .event-drop-icon,.event-drop-marker.today .event-drop-count{color:var(--karmins)}
-.event-symbol-marker.date-today:not(.dimmed){border-color:var(--karmins)}
-/* Already finished today: quiet grey, so it never reads as "today" or "live". */
-.map-cluster.ended-today{background:#8a94a3;box-shadow:0 0 0 4px rgba(138,148,163,.22),0 6px 14px rgba(27,36,48,.18)}
-.event-drop-marker.ended-today:not(.dimmed){background:#8a94a3;box-shadow:0 0 0 2px rgba(138,148,163,.2),0 5px 14px rgba(27,36,48,.16)}
-.event-drop-marker.ended-today .event-drop-icon,.event-drop-marker.ended-today .event-drop-count{color:#5b6675}
-.event-symbol-marker.date-ended-today:not(.dimmed){border-color:#8a94a3;background:#f3f5f7;box-shadow:0 3px 12px rgba(27,36,48,.2)}
-.event-count-marker.date-ended-today:not(.dimmed){outline-color:#8a94a3;background:#8a94a3;box-shadow:0 3px 12px rgba(27,36,48,.2)}
-.event-date-indicator.ended-today{border-color:#8a94a3;color:#4a5565;background:#f3f5f7}
-.event-date-badge.ended-today{background:#eef1f4;color:#4a5565}
+/* Map legend ------------------------------------------------------------------ */
+.legend-dot.today{background:var(--sodien)}
+.legend-dot.tomorrow{background:var(--rit)}
+.legend-dot.future{background:var(--velak)}
+.legend-dot.outside{background:#c4cad3}
 
-@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+/* C3 map pin: white pin, category icon, days badge, optional heart and count */
+.c3-pin-wrap{background:none;border:0}
+.c3-pin{position:relative;display:block;width:44px;height:56px;color:var(--tinte);filter:drop-shadow(0 3px 6px rgba(27,36,48,.2));transition:transform .15s ease-out;transform-origin:50% 96%}
+.c3-pin-shape{position:absolute;inset:0}
+.c3-pin-shape path{fill:#fff;stroke:var(--velak);stroke-width:2.4}
+.c3-pin-icon{position:absolute;left:11px;top:10px;width:22px;height:22px;display:block}
+.c3-pin-icon svg{display:block}
+.c3-pin-days{position:absolute;left:27px;top:-5px;min-width:25px;height:19px;box-sizing:border-box;padding:0 5px;border:2px solid #fff;border-radius:10px;background:var(--velak-badge);color:var(--velak-text);font:800 11px/15px var(--font-body);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.c3-pin-saved{position:absolute;left:-4px;top:-4px;width:20px;height:20px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 3px rgba(27,36,48,.25)}
+.c3-pin-saved svg{fill:var(--karmins)}
+.c3-pin-count{position:absolute;right:-6px;bottom:14px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border:2px solid #fff;border-radius:9px;background:var(--tinte);color:#fff;font:800 10px/14px var(--font-body);text-align:center}
+.c3-pin.tone-today .c3-pin-shape path{stroke:var(--sodien)}
+.c3-pin.tone-today .c3-pin-days{background:var(--sodien-badge);color:#fff}
+.c3-pin.tone-tomorrow .c3-pin-shape path{stroke:var(--rit)}
+.c3-pin.tone-tomorrow .c3-pin-days{background:var(--rit-badge);color:var(--tinte)}
+.c3-pin.tone-ended .c3-pin-shape path{stroke:var(--beidzies)}
+.c3-pin.tone-ended .c3-pin-days{background:#eef1f4;color:#4a5565}
+.c3-pin.tone-ended .c3-pin-icon{color:#5b6675}
+.leaflet-marker-icon:hover .c3-pin,.leaflet-marker-icon:focus-visible .c3-pin{transform:scale(1.12)}
+.leaflet-marker-icon:hover .c3-pin-shape path,.leaflet-marker-icon:focus-visible .c3-pin-shape path{stroke-width:3.2}
+.leaflet-marker-icon.c3-pin-wrap:focus-visible{outline:none}
+.leaflet-marker-icon.c3-pin-wrap:focus-visible .c3-pin{outline:2px solid var(--tinte);outline-offset:3px;border-radius:12px}
+/* Outside the filters: smaller and quiet, still one pin per place. */
+.c3-pin.dimmed{width:34px;height:44px;opacity:.7;filter:grayscale(.9) drop-shadow(0 2px 3px rgba(27,36,48,.16))}
+.c3-pin.dimmed .c3-pin-shape{width:34px;height:44px}
+.c3-pin.dimmed .c3-pin-icon{left:9px;top:8px;transform:scale(.75);transform-origin:0 0}
+.c3-pin.dimmed .c3-pin-days{left:20px;transform:scale(.85);transform-origin:0 100%}
+
+/* Hover preview (desktop only) ---------------------------------------------- */
+.leaflet-tooltip.c3-preview-tooltip{padding:0;border:0;border-radius:14px;background:#fff;box-shadow:0 2px 4px rgba(27,36,48,.06),0 14px 36px rgba(27,36,48,.18);white-space:normal}
+.leaflet-tooltip.c3-preview-tooltip::before{display:none}
+.c3-preview{width:260px;overflow:hidden;border-radius:14px;font-family:var(--font-body);color:var(--tinte)}
+.c3-preview img{display:block;width:100%;height:116px;object-fit:cover}
+.c3-preview-body{display:flex;flex-direction:column;gap:4px;padding:12px 14px 10px;font-size:13px;color:var(--teksts-2)}
+.c3-preview-body strong{font-size:15px;line-height:1.3;color:var(--tinte)}
+.c3-preview-term{align-self:flex-start;padding:2px 8px;border-radius:7px;font-size:12px;font-weight:800;background:var(--velak-soft);color:var(--velak-text)}
+.c3-preview-term.tone-today{background:var(--sodien-soft);color:var(--sodien-text)}
+.c3-preview-term.tone-tomorrow{background:var(--rit-soft);color:var(--rit-text)}
+.c3-preview-term.tone-ended{background:#eef1f4;color:#4a5565}
+.c3-preview-more{font-weight:700;color:var(--tinte)}
+.c3-preview-category{display:flex;align-items:center;gap:6px;padding:9px 14px;border-top:1px solid #eef1f4;font-size:12px;font-weight:700}
+
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.c3-pin{transition:none}}

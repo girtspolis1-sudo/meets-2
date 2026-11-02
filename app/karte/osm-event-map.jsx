@@ -3,14 +3,15 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
 import NearbyList from './nearby-list.jsx';
 import CategoryIcon from '../components/category-icon.jsx';
+import {eventTerm} from '../../lib/event-term.js';
+import {categoryIconSvg} from '../../lib/category-icons.js';
 import {calendarDescription} from '../../lib/catalog-wire.js';
 import {PERIODS,RADII,DEFAULT_PERIOD,DEFAULT_RADIUS,periodKey,periodRange,periodPhrase,radiusLabel,nearbyGroups,widerOptions,countLabel,markerLabel} from '../../lib/map-nearby.js';
-import {CLUSTER_MAX_ZOOM,clusterPoints,clusterTone,radiusForView} from '../../lib/map-cluster.js';
+import {CLUSTER_MAX_ZOOM,radiusForView} from '../../lib/map-cluster.js';
 import {useAdminSession} from '../use-admin-session.js';
 import {placeFromEvent} from '../../lib/location-follow.js';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
-import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType,SOURCE_TYPES,SOURCE_TYPE_BODY} from '../../lib/home-category-filters.js';
-import {groupedMapIcon} from '../../lib/event-map-icons.js';
+import {eventGroup,HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType,SOURCE_TYPES,SOURCE_TYPE_BODY} from '../../lib/home-category-filters.js';
 import {useEvents} from '../../lib/use-events.js';
 import {eventDateState,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
@@ -37,11 +38,6 @@ const CITIES=[
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function norm(v=''){return String(v).toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
-function markerTimeText(e,now){
- const state=eventDateState(e,rigaTodayIso(now),now);
- if(state.tone==='ended-today')return 'BEIDZIES?';
- return markerLabel(e,rigaTodayIso(now));
-}
 function countryLabel(code){return ({LV:'Latvija',EE:'Igaunija',LT:'Lietuva'})[code]||'';}
 function insideBalticView(lat,lon){return lat>=BALTIC_VIEW.south&&lat<=BALTIC_VIEW.north&&lon>=BALTIC_VIEW.west&&lon<=BALTIC_VIEW.east;}
 function isSupportedMapEvent(e){
@@ -155,6 +151,14 @@ export default function OsmEventMap(){
  const [userLocation,setUserLocation]=useState(DEFAULT_LOCATION);
 
  const [favorites,setFavorites]=useState(()=>new Set());
+ // Hover previews only where a pointer can hover (not on touch screens).
+ const [canHover,setCanHover]=useState(false);
+ useEffect(()=>{
+  const query=window.matchMedia('(hover: hover) and (pointer: fine)');
+  const update=()=>setCanHover(query.matches);
+  update();query.addEventListener?.('change',update);
+  return()=>query.removeEventListener?.('change',update);
+ },[]);
  const [locationQuery,setLocationQuery]=useState('');
  const [locationResults,setLocationResults]=useState([]);
  const [locationMessage,setLocationMessage]=useState('');
@@ -514,22 +518,40 @@ export default function OsmEventMap(){
    const isActive=activeInGroup.length>0;
    const chosenEvents=isActive?activeInGroup:group.events;
    const nearest=closestFirst(chosenEvents)[0]||chosenEvents[0];
-   const {glyph,label:typeLabel}=groupedMapIcon(chosenEvents);
-   const dateState=eventDateState(nearest,rigaTodayIso(clockNow),clockNow);
-   const dateTone=dateState.tone;
+   const term=eventTerm(nearest,rigaTodayIso(clockNow),clockNow);
    const shownCount=isActive?activeInGroup.length:group.events.length;
-   const grouped=shownCount>1;
    const dimmed=!isActive;
-   const size=dimmed?44:58;
-   const timeText=markerTimeText(nearest,clockNow);
-   const html='<span class="event-drop-marker '+esc(dateTone)+(dimmed?' dimmed':'')+'" title="'+esc(typeLabel)+' · '+esc(timeText)+'">'+
-     '<span class="event-drop-time">'+esc(timeText)+'</span>'+
-     '<span class="event-drop-icon" aria-hidden="true">'+esc(glyph)+'</span>'+
-     (grouped?'<span class="event-drop-count">'+shownCount+'</span>':'')+
+   const saved=group.events.some(e=>favorites.has(String(e.id)));
+   const group0=eventGroup(nearest);
+   // C3 "minimal duo icon": the category icon leads, the days badge is a small
+   // accent. Only events at the very same place share a pin (with a count).
+   const html='<span class="c3-pin tone-'+esc(term.tone)+(dimmed?' dimmed':'')+'">'+
+     '<svg class="c3-pin-shape" width="44" height="56" viewBox="0 0 44 56" aria-hidden="true"><path d="M22 54C22 54 4 35 4 21.5A18 18 0 1 1 40 21.5C40 35 22 54 22 54Z"/></svg>'+
+     '<span class="c3-pin-icon">'+categoryIconSvg(group0,22)+'</span>'+
+     '<span class="c3-pin-days">'+esc(term.badge)+'</span>'+
+     (saved?'<span class="c3-pin-saved" title="Saglabāts"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.8a5.3 5.3 0 0 0-7.5 0L12 6.1l-1.3-1.3a5.3 5.3 0 0 0-7.5 7.5L12 21l8.8-8.7a5.3 5.3 0 0 0 0-7.5Z"/></svg></span>':'')+
+     (shownCount>1?'<span class="c3-pin-count">'+shownCount+'</span>':'')+
    '</span>';
-   const icon=L.divIcon({className:'event-drop-marker-wrap',html,iconSize:[size,size+12],iconAnchor:[size/2,size+10]});
-   const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:typeLabel});
+   const size=dimmed?[34,44]:[44,56];
+   const icon=L.divIcon({className:'c3-pin-wrap',html,iconSize:size,iconAnchor:[size[0]/2,size[1]-2],tooltipAnchor:[size[0]/2,-size[1]/2]});
+   const label=nearest.title+', '+term.label+(shownCount>1?', vēl '+(shownCount-1)+' šajā vietā':'');
+   const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:label,alt:label,riseOnHover:true});
+   if(canHover){
+    const place=[nearest.venue_name,nearest.settlement||nearest.municipality].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ');
+    const image=String(nearest.cover_image_url||'').startsWith('https://')?nearest.cover_image_url:'';
+    const category=HOME_CATEGORY_FILTERS[group0]?.title||nearest.primary_category||'';
+    const time=String(nearest.time_from||'').slice(0,5);
+    marker.bindTooltip('<div class="c3-preview">'+
+     (image?'<img src="'+esc(image)+'" alt="" loading="lazy">':'')+
+     '<div class="c3-preview-body"><span class="c3-preview-term tone-'+esc(term.tone)+'">'+esc(term.label)+'</span>'+
+     '<strong>'+esc(nearest.title)+'</strong>'+
+     (time?'<span>'+esc(time)+'</span>':'')+(place?'<span>'+esc(place)+'</span>':'')+
+     (shownCount>1?'<span class="c3-preview-more">Vēl '+(shownCount-1)+' šajā vietā</span>':'')+
+     '</div>'+(category?'<div class="c3-preview-category">'+categoryIconSvg(group0,15)+esc(category)+'</div>':'')+
+    '</div>',{direction:'right',offset:[10,0],opacity:1,className:'c3-preview-tooltip'});
+   }
    marker.on('click',()=>{
+    marker.closeTooltip?.();
     setHighlightedId(String(nearest?.id||''));
     setPlaceKey(group.key);
     setLocationPrompt(false);
@@ -538,34 +560,18 @@ export default function OsmEventMap(){
     setLocationMessage('');
    });
    for(const e of group.events)markerByEventRef.current.set(String(e.id),marker);
-   built.push({marker,isActive,events:group.events,latlng:[displayLat,displayLon],tone:dateTone,count:shownCount});
+   built.push({marker,isActive,events:group.events});
   }
 
-  // Below CLUSTER_MAX_ZOOM nearby places join into one bubble with a count.
-  const layout=()=>{
-   active.clearLayers();bg.clearLayers();
-   const shown=new Map();
-   const place=(item,marker)=>{marker.addTo(item.isActive?active:bg);for(const e of item.events)shown.set(String(e.id),marker);};
-   if(map.getZoom()>=CLUSTER_MAX_ZOOM){for(const item of built)place(item,item.marker);shownMarkerRef.current=shown;return;}
-   const points=built.map((item,i)=>{const p=map.latLngToLayerPoint(item.latlng);return {i,x:p.x,y:p.y,weight:item.count,layer:item.isActive?'active':'other'};});
-   for(const cluster of clusterPoints(points,52)){
-    const items=cluster.members.map(m=>built[m.i]);
-    if(items.length===1){place(items[0],items[0].marker);continue;}
-    const isActive=items[0].isActive,count=items.reduce((sum,item)=>sum+item.count,0);
-    const bounds=L.latLngBounds(items.map(item=>item.latlng));
-    const size=count>=100?54:count>=10?46:40;
-    const icon=L.divIcon({className:'map-cluster-wrap',iconSize:[size,size],iconAnchor:[size/2,size/2],
-     html:'<span class="map-cluster '+clusterTone(items.map(item=>item.tone))+(isActive?'':' dimmed')+'" style="width:'+size+'px;height:'+size+'px"><b>'+count+'</b></span>'});
-    const bubble=L.marker(bounds.getCenter(),{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:countLabel(count)+' · pietuvināt'});
-    bubble.on('click',()=>map.fitBounds(bounds.pad(.35),{maxZoom:CLUSTER_MAX_ZOOM,animate:true}));
-    for(const item of items)place(item,bubble);
-   }
-   shownMarkerRef.current=shown;
-  };
-  layout();
-  map.on('zoomend',layout);
-  return()=>{map.off('zoomend',layout);};
- },[mapReady,locationGroups,activeIds,clockNow]);
+  // Every place keeps its own pin at every zoom level: no count bubbles that
+  // merge different places.
+  const shown=new Map();
+  for(const item of built){
+   item.marker.addTo(item.isActive?active:bg);
+   for(const e of item.events)shown.set(String(e.id),item.marker);
+  }
+  shownMarkerRef.current=shown;
+ },[mapReady,locationGroups,activeIds,clockNow,favorites,canHover]);
 
  useEffect(()=>{
   if(!mapReady||!mapRef.current)return;

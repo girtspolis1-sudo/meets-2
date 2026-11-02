@@ -6,6 +6,7 @@ import EventVenueFavorite from './event-venue-favorite.jsx';
 import {cardCategory,cardDescription,cardGroup,cardImage} from '../../lib/discovery-card.js';
 import {eventMapIcon} from '../../lib/event-map-icons.js';
 import {rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
+import {eventTerm} from '../../lib/event-term.js';
 
 // One event in the home and catalogue grids. The facts are the same as on the
 // map; the whole card opens the event, the heart saves it.
@@ -13,6 +14,8 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
  const image=cardImage(event),group=cardGroup(event),summary=cardDescription(event);
  // The same icon as on the map: the sport (🏀, 🤾, 🏒…) or the kind of event.
  const icon=eventMapIcon(event);
+ // C3: the same days badge and term colour as the map pin.
+ const term=eventTerm(event,rigaTodayIso());
  const detailHref='/pasakumi/'+encodeURIComponent(event.id);
  const title=onOpen
   ?<h3><button type="button" className="meets-card-open" onClick={()=>onOpen(event.id)}>{event.title}</button></h3>
@@ -20,7 +23,9 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
  return <article className={'meets-discovery-card catalog-event-card theme-'+group+(image?' has-image':' no-image')}>
   {image?<div className="meets-discovery-card-media">
    <img src={image} alt="" loading="lazy" decoding="async" onError={e=>{e.currentTarget.parentElement.hidden=true;}}/>
-  </div>:<span className="meets-card-symbol" title={icon.label} aria-hidden="true">{icon.glyph}</span>}
+   <span className={'c3-days-chip tone-'+term.tone} title={term.label}>{term.badge}</span>
+  </div>:<span className={'meets-card-symbol c3-card-symbol tone-'+term.tone} title={icon.label+', '+term.label}>
+   <span aria-hidden="true">{icon.glyph}</span><span className="c3-days-chip" aria-hidden="true">{term.badge}</span></span>}
   <div className="meets-discovery-card-body">
    <span className="meets-card-category">{cardCategory(event)}</span>
    <div className="meets-discovery-card-facts">

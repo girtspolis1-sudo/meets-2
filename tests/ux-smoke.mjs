@@ -31,6 +31,8 @@ async function assertLayout(page,name,width){
 for(const width of cases){
  const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ // React reports errors caught by an error boundary on the console, not as page errors.
+ page.on('console',m=>{if(m.type()==='error'&&!m.text().startsWith('Failed to load resource'))errors.push('console: '+m.text().slice(0,400));});
  await page.addInitScript(()=>{Object.defineProperty(navigator,'share',{value:undefined,configurable:true});});
  await page.route('**/api/events*',route=>{console.log('Mock event request:',route.request().url());return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)});});
  try{
@@ -70,7 +72,7 @@ for(const width of cases){
   const panelBounds=await page.locator('.map-advanced-panel').boundingBox();
   if(!panelBounds||panelBounds.x<-3||panelBounds.x+panelBounds.width>width+3){fails++;console.error('Filter panel clips viewport',width,panelBounds);}
   await page.getByRole('button',{name:'Aizvērt filtrus'}).click();
-  const marker=page.locator('.event-drop-marker-wrap').first();
+  const marker=page.locator('.c3-pin-wrap').first();
   await marker.waitFor({timeout:15000});
   await marker.click({force:true});
   await page.locator('.meets-mobile-event-sheet').waitFor({timeout:10000});
@@ -222,7 +224,7 @@ try{
  await desktop.locator('.map-location-prompt').getByRole('button',{name:'Rīga'}).click();
  const head=await desktop.locator('.nearby-head').innerText();
  if(!/1 pasākums/.test(head)||!/līdz 30 km no: Rīga/.test(head)){fails++;console.error('Nearby summary wrong after choosing a city',head);}
- const marker=desktop.locator('.event-drop-marker-wrap').first();
+ const marker=desktop.locator('.c3-pin-wrap').first();
  await marker.waitFor({timeout:20000});
  await marker.click({force:true});
  // A marker opens its place in the side panel, with the same cards as on phones.
