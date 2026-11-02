@@ -3,7 +3,9 @@
 import {useEffect,useState} from 'react';
 import {freshSession,useAccountSession} from '../lib/account-store.js';
 
-// Admin rights belong to the signed-in MEETS account; checked once per account.
+// Admin rights belong to the signed-in MEETS account. A confirmed admin is
+// remembered per account; a "no" is never cached, because it is often just an
+// expired session: after signing in again the same account is checked afresh.
 const checks=new Map();
 export function forgetAdminCheck(){checks.clear();}
 
@@ -18,16 +20,24 @@ async function checkAccount(){
 export function useAdminSession(){
  const {session,ready}=useAccountSession();
  const userId=session?.user?.id||'';
- const [result,setResult]=useState({userId:'',isAdmin:false});
+ const token=session?.access_token||'';
+ const [result,setResult]=useState({key:'',isAdmin:false});
+ const key=userId&&userId+':'+token;
 
  useEffect(()=>{
   if(!userId)return;
   let cancelled=false;
-  if(!checks.has(userId))checks.set(userId,checkAccount().catch(()=>{checks.delete(userId);return false;}));
-  checks.get(userId).then(isAdmin=>{if(!cancelled)setResult({userId,isAdmin});});
+  if(!checks.has(userId)){
+   const pending=checkAccount().catch(()=>false).then(isAdmin=>{
+    if(!isAdmin&&checks.get(userId)===pending)checks.delete(userId);
+    return isAdmin;
+   });
+   checks.set(userId,pending);
+  }
+  checks.get(userId).then(isAdmin=>{if(!cancelled)setResult({key,isAdmin});});
   return()=>{cancelled=true;};
- },[userId]);
+ },[userId,key]);
 
- const checked=ready&&(!userId||result.userId===userId);
- return {isAdmin:Boolean(userId)&&result.userId===userId&&result.isAdmin,checked};
+ const checked=ready&&(!userId||result.key===key);
+ return {isAdmin:Boolean(userId)&&result.key===key&&result.isAdmin,checked};
 }
