@@ -275,3 +275,5 @@ body:has(.meets-profile-auth) .meets-auth-inline-alert{margin:2px 0;padding:9px 
 /* Sign-in feedback and password reset entry */
 .meets-auth-notice{margin:0;padding:10px 12px;border-radius:10px;background:#eef8f1;color:#1f5f3a;font-size:13px;line-height:1.5}
 .meets-auth-forgot{justify-self:center;font-size:13px}
+.meets-settings-danger{border-color:#efc4c1;background:#fff8f8}
+.meets-settings-danger h2{color:#7a2029}

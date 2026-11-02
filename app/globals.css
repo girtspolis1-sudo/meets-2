@@ -2499,3 +2499,7 @@ kbd{display:inline-block;min-width:18px;padding:0 5px;border:1px solid #cdd3da;b
 .mapping-suggestion-saved{border-left:3px solid #1e9a62;padding-left:8px}
 .mapping-saved-note{display:block;font-weight:800;color:#14653e;font-size:11.5px}
 .admin-submission-change{margin:4px 0;padding:6px 10px;border-radius:8px;background:#fcf2d6;color:#6e4c00;font-size:13px}
+.admin-trust-toggle{display:flex;align-items:center;gap:8px;font-weight:700;white-space:nowrap}
+.admin-trust-toggle input{width:20px;height:20px;min-height:0}
+.admin-organizers-table tr.org-trusted td:first-child{box-shadow:inset 4px 0 0 #1e9a62}
+.admin-organizers-table{min-width:900px}

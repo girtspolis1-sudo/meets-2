@@ -71,6 +71,17 @@ export async function POST(request){
    // The browser will always clear its local session, including if token is already expired.
    return NextResponse.json({ok:res.ok||res.status===401});
   }
+  // Deletes the signed-in account. The database refuses while the person still owns organizers.
+  if(action==='deleteAccount'){
+   if(typeof token!=='string'||!token)return NextResponse.json({error:'Lūdzu, pieslēdzies.'},{status:401});
+   const res=await fetch(BASE()+'/rest/v1/rpc/meets_account_delete',{method:'POST',headers:{...head,Authorization:'Bearer '+token},body:'{}',cache:'no-store'});
+   const raw=await res.text();
+   if(!res.ok){
+    let message='';try{message=JSON.parse(raw).message||'';}catch{}
+    return NextResponse.json({error:/organizator/i.test(message)?'Vispirms izdzēs savus organizatorus (Organizēšana → Profils → Dzēst).':'Kontu neizdevās izdzēst.'},{status:res.status===401?401:400});
+   }
+   return NextResponse.json({ok:true});
+  }
   if(action==='refresh'){
    if(typeof token!=='string'||!token)return NextResponse.json({error:'Nav sesijas.'},{status:401});
    const res=await fetch(authUrl+'token?grant_type=refresh_token',{method:'POST',headers:head,body:JSON.stringify({refresh_token:token}),cache:'no-store'});

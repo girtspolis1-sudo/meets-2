@@ -9,6 +9,7 @@ import AdminSourceChannels from './admin-source-channels.jsx';
 import AdminCalendarFeeds from './admin-calendar-feeds.jsx';
 import AdminUserSubmissions from './admin-user-submissions.jsx';
 import AdminEventRegister from './admin-event-register.jsx';
+import AdminOrganizers from './admin-organizers.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
 import {pendingSubmissions} from '../../lib/admin-submissions.js';
 import {groupCandidates,groupSuggestedAt} from '../../lib/admin-location.js';
@@ -19,7 +20,7 @@ import {adminPriorities,upcomingWithoutPlace} from '../../lib/admin-priorities.j
 import {auditEvents,BUCKETS,BUCKET_ORDER,CHECKS,issueLabels,nextInQueue,toCsv} from '../../lib/admin-checks.js';
 
 // Views and filters live in the address, so a reload or a shared link opens the same list.
-const VIEWS=['overview','userSubmissions','mapping','all','register','sources'];
+const VIEWS=['overview','userSubmissions','organizers','mapping','all','register','sources'];
 const STATUS_OPTIONS=[['pending_review','Gaida pārbaudi'],['published','Publicēts'],['draft','Melnraksts'],['cancelled','Atcelts'],['archived','Arhivēts']];
 function readUrlState(){
  if(typeof window==='undefined')return {};
@@ -839,6 +840,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    {[
     ['overview','Pārskats',audit.counts.critical+audit.counts.review,audit.counts.critical?'attention':''],
     ['userSubmissions','Iesniegumi',submissionQueue.count,submissionQueue.count?'attention':''],
+    ['organizers','Organizatori',organizations.length,organizations.some(o=>o.suggested&&!o.trusted)?'attention':''],
     ['mapping','Vietas',mappingGroups.length,mappingGroups.length?'attention':''],
     ['all','Visi aktuālie',activeEvents.length,''],
     ['register','Reģistrs',registerEvents.length+userSubmissions.filter(item=>item.status!=='published'||!item.event_id).length,''],
@@ -895,6 +897,8 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   {workspaceView==='userSubmissions'&&<AdminUserSubmissions items={userSubmissions} focusedId={focusedSubmissionId} onReview={reviewUserSubmission}
    busy={reviewingSubmission} supabaseUrl={supabaseUrl} matches={submissionMatches} onSearchPlace={searchSubmissionPlace}
    organizations={organizations} onSetTrust={setOrganizationTrust}/>}
+
+  {workspaceView==='organizers'&&<AdminOrganizers organizations={organizations} onSetTrust={setOrganizationTrust} busy={loading}/>}
 
   {workspaceView==='sources'&&<AdminCalendarFeeds supabaseUrl={supabaseUrl} publishableKey={publishableKey}/>}
   {workspaceView==='sources'&&<AdminSourceChannels
