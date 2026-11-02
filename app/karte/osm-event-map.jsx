@@ -536,7 +536,7 @@ export default function OsmEventMap(){
    const html='<span class="c3-pin tone-'+esc(term.tone)+(dimmed?' dimmed':'')+(far?' far':'')+'">'+
      '<svg class="c3-pin-shape" width="44" height="56" viewBox="0 0 44 56" aria-hidden="true"><path d="M22 54C22 54 4 35 4 21.5A18 18 0 1 1 40 21.5C40 35 22 54 22 54Z"/></svg>'+
      '<span class="c3-pin-icon">'+pinIcon+'</span>'+
-     '<span class="c3-pin-days">'+esc(term.badge)+'</span>'+
+     (term.days===0?'<span class="c3-pin-days c3-pin-now'+(term.tone==='ended'?' ended':'')+'" aria-hidden="true"></span>':'<span class="c3-pin-days">'+esc(term.badge)+'</span>')+
      (saved?'<span class="c3-pin-saved" title="Saglabāts"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.8a5.3 5.3 0 0 0-7.5 0L12 6.1l-1.3-1.3a5.3 5.3 0 0 0-7.5 7.5L12 21l8.8-8.7a5.3 5.3 0 0 0 0-7.5Z"/></svg></span>':'')+
      (shownCount>1?'<span class="c3-pin-count">'+shownCount+'</span>':'')+
    '</span>';
