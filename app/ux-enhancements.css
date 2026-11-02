@@ -749,3 +749,8 @@
  .meets-pin-search-row{grid-template-columns:minmax(0,1fr) 75px}
  .meets-pin-search-row button{padding:7px 4px;font-size:12px}
 }
+
+/* Map place sheet: the handle and title are the drag area for swipe-down to close. */
+.meets-mobile-sheet-handle{position:relative;touch-action:none}
+.meets-mobile-sheet-handle::before{content:"";position:absolute;left:-60px;right:-60px;top:-12px;bottom:-12px}
+.meets-mobile-sheet-title{touch-action:none}

@@ -246,3 +246,11 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .c3-pin.far .c3-pin-days{background:#eef1f4;color:#5b6675}
 .leaflet-marker-icon:hover .c3-pin.far,.leaflet-marker-icon:focus-visible .c3-pin.far{opacity:1}
 .legend-dot.far{background:#eef1f4;box-shadow:0 0 0 1.5px #b4bcc6}
+
+/* Today: no "0d" text, only a green pulsing dot. */
+.c3-pin-days.c3-pin-now{left:29px;top:-3px;min-width:0;width:16px;height:16px;padding:0;border-radius:50%;background:var(--sodien-badge)}
+.c3-pin-days.c3-pin-now::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--sodien-badge);animation:c3-now-pulse 1.6s ease-out infinite}
+.c3-pin-days.c3-pin-now.ended{background:#b6bfca}
+.c3-pin-days.c3-pin-now.ended::after,.c3-pin.far .c3-pin-days.c3-pin-now::after{animation:none;display:none}
+@keyframes c3-now-pulse{0%{transform:scale(1);opacity:.85}100%{transform:scale(2.1);opacity:0}}
+@media (prefers-reduced-motion:reduce){.c3-pin-days.c3-pin-now::after{animation:none;display:none}}
