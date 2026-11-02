@@ -215,3 +215,25 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .c3-preview-category{display:flex;align-items:center;gap:6px;padding:9px 14px;border-top:1px solid #eef1f4;font-size:12px;font-weight:700}
 
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.c3-pin{transition:none}}
+
+/* Phones: iOS zooms into any field with text smaller than 16px and does not
+   zoom back. 16px fields keep the page at its size (zoom stays allowed). */
+@media (max-width:900px),(pointer:coarse){
+ input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px!important}
+}
+
+/* Profile and organizer on a phone: the sidebar is hidden, so mode switch and
+   "+ Jauns pasākums" sit above the tabs, as on the desktop. */
+.meets-profile-mobile-actions{display:none}
+@media(max-width:760px){
+ .meets-profile-mobile-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 2px}
+ .meets-profile-mobile-mode{display:inline-flex;padding:3px;border-radius:999px;background:#eef1f4}
+ .meets-profile-mobile-mode a{white-space:nowrap;padding:8px 11px;border-radius:999px;font-size:13px;font-weight:700;color:#5b6675;text-decoration:none}
+ .meets-profile-mobile-mode a.active{background:#fff;color:var(--karmins-dark);box-shadow:0 1px 3px rgba(27,36,48,.12)}
+ .meets-profile-mobile-new{flex:none;padding:9px 14px;border-radius:999px;background:var(--karmins);color:#fff;font-size:13px;font-weight:800;text-decoration:none}
+ /* Forms: the main action first, and nothing hidden behind the bottom bar. */
+ .org-form-card .org-actions{flex-direction:column-reverse;align-items:stretch}
+ .org-form-card .org-actions .button{width:100%;justify-content:center}
+ .unified-event-editor .event-editor-actions{bottom:calc(74px + env(safe-area-inset-bottom))}
+ .quick-flow-card,.org-form-card{scroll-margin-bottom:96px}
+}
