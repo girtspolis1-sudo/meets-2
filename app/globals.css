@@ -2277,8 +2277,8 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .mapping-bulk-list small{display:block;color:#667085}
 .mapping-bulk-list a{font-size:12px;text-decoration:underline}
 /* Map: nearby list beside the map, chip filters, first-visit place prompt */
-.map-layout{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:14px;align-items:start;width:min(1480px,calc(100vw - 36px));margin:0 50%;transform:translateX(-50%)}
-.map-layout .map-shell{width:auto;margin:0;transform:none;min-width:0}
+.map-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:14px;align-items:start;width:min(1480px,calc(100vw - 36px));margin:0 50%;transform:translateX(-50%)}
+.map-layout .map-shell{width:auto;margin:0;transform:none;min-width:0;order:-1}
 .nearby-panel{height:clamp(650px,76vh,820px);display:flex;flex-direction:column;min-width:0;border:1px solid var(--border);border-radius:22px;background:#fff;overflow:hidden;box-shadow:0 12px 34px rgba(32,46,37,.06)}
 .nearby-head{padding:16px 18px 12px;border-bottom:1px solid #eef0f4}
 .nearby-head h2{margin:0;font-size:20px;letter-spacing:-.3px}
