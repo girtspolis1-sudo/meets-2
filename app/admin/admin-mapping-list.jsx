@@ -1,9 +1,23 @@
 'use client';
 
 import {useMemo,useState} from 'react';
-import {bestSuggestion,confidentSuggestion} from '../../lib/admin-location.js';
+import {bestSuggestion,confidentSuggestion,savedPlaceFor} from '../../lib/admin-location.js';
 
-function Suggestion({group,onAccept}){
+// A saved place as a suggestion: same coordinates, address and a clear label.
+function savedCandidate(mapping){
+ return {id:'saved:'+mapping.id,label:mapping.canonical_venue_name,displayName:mapping.canonical_address_text||mapping.canonical_venue_name,
+  latitude:Number(mapping.latitude),longitude:Number(mapping.longitude),type:'saved_mapping',source:'Saglabātā vieta “'+mapping.alias_text+'”'};
+}
+function Suggestion({group,onAccept,saved}){
+ if(saved){
+  const candidate=savedCandidate(saved);
+  return <div className="mapping-suggestion mapping-suggestion-saved">
+   <small className="mapping-saved-note">Tā pati ēka kā saglabātā vieta</small>
+   <strong>{saved.canonical_venue_name}</strong>
+   <small className="table-subline">{saved.canonical_address_text||''} · saglabāta kā “{saved.alias_text}”</small>
+   <button type="button" className="button compact primary" onClick={()=>onAccept(group,candidate)}>Izmantot šo vietu</button>
+  </div>;
+ }
  const best=bestSuggestion(group.candidates);
  if(!best)return <span className="mapping-suggestion-none">{group.suggestedAt?'Nav atrasts':'Gaida meklēšanu'}</span>;
  const {candidate,precise}=best;
@@ -60,7 +74,9 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
 
  const activeMappings=mappings.filter(mapping=>mapping.active);
  // Strong, unambiguous suggestions that can be approved together after a quick look.
- const confident=useMemo(()=>groups.filter(g=>g.alias).map(group=>({group,candidate:confidentSuggestion(group)})).filter(x=>x.candidate),[groups]);
+ // Courts and halls of an already saved place ("OC Ventspils, 1.laukums") count as safe matches too.
+ const savedFor=useMemo(()=>new Map(groups.filter(g=>g.alias).map(g=>[g.key,savedPlaceFor(g.alias,mappings)]).filter(([,m])=>m)),[groups,mappings]);
+ const confident=useMemo(()=>groups.filter(g=>g.alias).map(group=>({group,candidate:savedFor.has(group.key)?savedCandidate(savedFor.get(group.key)):confidentSuggestion(group)})).filter(x=>x.candidate),[groups,savedFor]);
  const confidentEvents=confident.reduce((sum,x)=>sum+x.group.events.length,0);
 
  return <div className="admin-mapping-workspace">
@@ -111,7 +127,7 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
    </li>)}
   </ul>}
   {view==='issues'&&<div className="admin-mapping-mobile-cards">{filteredGroups.map(group=><article key={group.key} className="admin-mapping-mobile-card">
-    <div><span className="quality-badge bad">Jālabo</span><strong>{group.alias||'Nav adreses'}</strong><small>{group.municipality||group.countryCode||'Konteksts nav noteikts'} · {group.events.length} pasākumi</small>{group.alias&&onAcceptSuggestion&&<Suggestion group={group} onAccept={onAcceptSuggestion}/>}</div>
+    <div><span className="quality-badge bad">Jālabo</span><strong>{group.alias||'Nav adreses'}</strong><small>{group.municipality||group.countryCode||'Konteksts nav noteikts'} · {group.events.length} pasākumi</small>{group.alias&&onAcceptSuggestion&&<Suggestion group={group} onAccept={onAcceptSuggestion} saved={savedFor.get(group.key)}/>}</div>
     <button type="button" className="button primary compact" onClick={()=>group.alias?onMap(group):onEditEvent(group.events[0])}>Labot vietu ↗</button>
    </article>)}</div>}
   {view==='issues'&&<div className="table-scroll admin-mapping-table-wrap" role="region" aria-label="Neatpazītās vietas" tabIndex={0}>
@@ -124,7 +140,7 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
       <td>{group.municipality||'—'}<small className="table-subline">{group.countryCode||'—'}</small></td>
       <td>{group.sources.join(', ')||'—'}</td>
       <td><strong>{group.events.length}</strong><small className="table-subline">{group.firstDate||'—'} → {group.lastDate||'—'}</small></td>
-      <td>{group.alias&&onAcceptSuggestion?<Suggestion group={group} onAccept={onAcceptSuggestion}/>:group.qualities.map(value=><span key={value} className="quality-badge bad">{value}</span>)}</td>
+      <td>{group.alias&&onAcceptSuggestion?<Suggestion group={group} onAccept={onAcceptSuggestion} saved={savedFor.get(group.key)}/>:group.qualities.map(value=><span key={value} className="quality-badge bad">{value}</span>)}</td>
       <td>
        {group.alias
         ?<button type="button" className="button primary compact" onClick={()=>onMap(group)}>Norādīt vietu</button>

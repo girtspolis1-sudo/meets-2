@@ -94,6 +94,18 @@ async function fetchFeed(feed:any){
  const body=await r.json();
  return {feed,data:body?.data||{}};
 }
+// The calendar of a regional tournament gives only a venue id; the game page
+// (fixture_detail) names the hall, e.g. "OC Ventspils".
+async function fixtureVenue(websiteId:string,fixtureId:string){
+ try{
+  const url=`https://embed-api.eui.connect.sportradar.com/v1/embed/${websiteId}/fixture_detail?fixtureId=${encodeURIComponent(fixtureId)}`;
+  const r=await fetch(url,{headers:{"User-Agent":"MEETS-2/1.0 (+https://meets-2.vercel.app/)"},signal:AbortSignal.timeout(15000)});
+  if(!r.ok)return "";
+  const text=await r.text();
+  const m=text.match(/"venue":"((?:[^"\\]|\\.)*)"/);
+  return m?JSON.parse('"'+m[1]+'"').trim():"";
+ }catch{return "";}
+}
 async function rest(path:string,init:RequestInit={}){
  const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{...init,headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY,"Content-Type":"application/json",...(init.headers||{})}});
  const t=await r.text();
@@ -226,10 +238,34 @@ Deno.serve(async()=>{
     if(place&&!i.locality_text)Object.assign(i,{country_code:place.country_code,locality_text:place.locality_text,fallback_lat:place.fallback_lat,fallback_lon:place.fallback_lon});
    }
   }
+  // Still unnamed: read one game page per hall (or per game without a hall id).
+  const pending=new Map<string,any>();
+  for(const i of items)if(!i.venue_name){
+   const key=i.source_venue_id||"fixture:"+i.import_key;
+   if(!pending.has(key))pending.set(key,i);
+  }
+  const lookups=[...pending.entries()].slice(0,120);
+  const found=new Map<string,string>();
+  for(let k=0;k<lookups.length;k+=6){
+   await Promise.all(lookups.slice(k,k+6).map(async([key,item])=>{
+    const websiteId=String(item.import_key).split(":")[1];
+    const name=await fixtureVenue(websiteId,item.source_match_id);
+    if(name)found.set(key,name);
+   }));
+  }
+  let fromGamePages=0;
+  for(const i of items)if(!i.venue_name){
+   const name=found.get(i.source_venue_id||"fixture:"+i.import_key);
+   if(!name)continue;
+   i.venue_name=name;fromGamePages++;
+   const place=inferPlace(name,i.home_team,i.timezone);
+   if(place&&!i.locality_text)Object.assign(i,{country_code:place.country_code,locality_text:place.locality_text,fallback_lat:place.fallback_lat,fallback_lon:place.fallback_lon});
+  }
   const dedup=[...new Map(items.map(i=>[i.import_key,i])).values()];
   const result=await rpc(dedup);
   return Response.json({ok:true,window_from:today,window_to:windowTo,found:dedup.length,
-   regional:{feeds:regional.length,with_games:regionalCompetitions.length,failed:regionalFailed},stats,...result});
+   regional:{feeds:regional.length,with_games:regionalCompetitions.length,failed:regionalFailed},
+   venues:{looked_up:lookups.length,named:found.size,events_named:fromGamePages,still_unnamed:dedup.filter(i=>!i.venue_name).length},stats,...result});
  }catch(error){
   console.error("sync_lbs_basketball_failed",{message:error?.message||String(error)});
   return Response.json({ok:false,error:error?.message||String(error)},{status:500});
