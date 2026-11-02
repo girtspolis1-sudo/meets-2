@@ -85,6 +85,12 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .meets-discovery-card .meets-card-category{color:var(--teksts-2);text-transform:none;letter-spacing:0;font-size:12px;font-weight:700}
 .meets-discovery-card .meets-discovery-card-facts h3{color:var(--tinte)}
 .event-facts-when{color:var(--tinte)}
+/* The day line of an event card carries the term colour, like the map pins. */
+.event-facts-when.term-today,.event-facts-when.term-tomorrow,.event-facts-when.term-later,.event-facts-when.term-ended{align-self:flex-start;width:fit-content;max-width:100%;box-sizing:border-box;padding:2px 9px;border-radius:999px}
+.event-facts-when.term-today{background:var(--sodien-soft);color:var(--sodien-text)}
+.event-facts-when.term-tomorrow{background:var(--rit-soft);color:var(--rit-text)}
+.event-facts-when.term-later{background:var(--velak-soft);color:var(--velak-text)}
+.event-facts-when.term-ended{background:#eef0f3;color:#5b6675}
 
 /* Day headings: the big date is the one bold element on the page ---------- */
 .catalog-day-heading{display:flex;align-items:flex-end;gap:14px;padding:18px 0 10px;background:var(--sniegs);font-family:var(--font-body);letter-spacing:0}
@@ -156,7 +162,7 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .legend-dot.today{background:var(--sodien)}
 .legend-dot.tomorrow{background:var(--rit)}
 .legend-dot.future{background:var(--velak)}
-.legend-dot.outside{background:#c4cad3}
+.legend-dot.outside{width:9px;height:9px;background:#fff;box-shadow:0 0 0 1.5px #8a94a3;opacity:.85}
 
 /* C3 map pin: white pin, category icon, days badge, optional heart and count */
 .c3-pin-wrap{background:none;border:0}
@@ -169,7 +175,6 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .c3-pin-icon{position:absolute;left:11px;top:10px;width:22px;height:22px;display:block}
 .c3-pin-icon svg{display:block}
 .c3-pin-sport{display:block;width:22px;height:22px;font-size:19px;line-height:22px;text-align:center}
-.c3-pin.dimmed .c3-pin-sport{filter:grayscale(1)}
 .c3-pin-days{position:absolute;left:27px;top:-5px;min-width:25px;height:19px;box-sizing:border-box;padding:0 5px;border:2px solid #fff;border-radius:10px;background:var(--velak-badge);color:var(--velak-text);font:800 11px/15px var(--font-body);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
 .c3-pin-saved{position:absolute;left:-4px;top:-4px;width:20px;height:20px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 3px rgba(27,36,48,.25)}
 .c3-pin-saved svg{fill:var(--karmins)}
@@ -186,7 +191,8 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .leaflet-marker-icon.c3-pin-wrap:focus-visible{outline:none}
 .leaflet-marker-icon.c3-pin-wrap:focus-visible .c3-pin{outline:2px solid var(--tinte);outline-offset:3px;border-radius:12px}
 /* Outside the filters: smaller and quiet, still one pin per place. */
-.c3-pin.dimmed{width:34px;height:44px;opacity:.7;filter:grayscale(.9) drop-shadow(0 2px 3px rgba(27,36,48,.16))}
+/* Outside the filters the pin keeps its term colour (green today, …), only smaller and fainter. */
+.c3-pin.dimmed{width:34px;height:44px;opacity:.8;filter:drop-shadow(0 2px 3px rgba(27,36,48,.16))}
 .c3-pin.dimmed .c3-pin-shape{width:34px;height:44px}
 .c3-pin.dimmed .c3-pin-icon{left:9px;top:8px;transform:scale(.75);transform-origin:0 0}
 .c3-pin.dimmed .c3-pin-days{left:20px;transform:scale(.85);transform-origin:0 100%}

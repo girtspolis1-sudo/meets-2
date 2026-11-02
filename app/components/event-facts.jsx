@@ -1,5 +1,6 @@
 import {distanceLabel,isApproximatePlace,liveBadge,priceLabel,shortDate,whenLabel} from '../../lib/map-nearby.js';
 import {display} from '../../lib/catalog.js';
+import {eventTerm} from '../../lib/event-term.js';
 
 // When, where, what and how much — the same lines in the map list, the place
 // panel and the event page. No hooks, so server pages can use it too.
@@ -10,7 +11,7 @@ export default function EventFacts({event,today,clock=null,km=null,title=null,co
  const category=event.primary_category||display(event,'event_type')||'';
  const price=priceLabel(event);
  return <>
-  <span className="event-facts-when">{whenLabel(event,today,{withDate:!compact})}{multiDay?' – '+shortDate(event.date_to):''}
+  <span className={'event-facts-when term-'+eventTerm(event,today).tone}>{whenLabel(event,today,{withDate:!compact})}{multiDay?' – '+shortDate(event.date_to):''}
    {live&&<em className={'nearby-live '+live}>{live==='now'?'Notiek tagad':'Drīz sāksies'}</em>}</span>
   {title}
   <span className="event-facts-place">{[distanceLabel(km),place].filter(Boolean).join(' · ')||'Vieta nav norādīta'}</span>

@@ -919,7 +919,7 @@ export default function OsmEventMap(){
     <span><i className="legend-dot today" aria-hidden="true"></i>Šodien</span>
     <span><i className="legend-dot tomorrow" aria-hidden="true"></i>Rīt</span>
     <span><i className="legend-dot future" aria-hidden="true"></i>Vēlāk</span>
-    <span><i className="legend-dot outside" aria-hidden="true"></i>Neatbilst filtriem</span>
+    <span><i className="legend-dot outside" aria-hidden="true"></i>Neatbilst filtriem (mazāka)</span>
     {mapMode!=='raster'&&<span className="map-style-switch">
      <button type="button" aria-expanded={styleMenuOpen} onClick={()=>setStyleMenuOpen(v=>!v)}>Kartes stils</button>
      {styleMenuOpen&&<span className="map-style-menu" role="group" aria-label="Kartes stils">
