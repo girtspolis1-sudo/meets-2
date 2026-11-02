@@ -67,3 +67,18 @@ test('a single address register match is approved in bulk',async()=>{
  assert.equal(confidentSuggestion({...group,candidates:[{...address,unique:false}]}),null,'several matches');
  assert.equal(confidentSuggestion({...group,municipality:'Talsu novads'}),null,'other municipality');
 });
+
+import {baseHallName,savedPlaceFor} from '../lib/admin-location.js';
+
+test('a court or hall of a saved place is recognised',()=>{
+ assert.equal(baseHallName('OC Ventspils, 1.laukums'),'OC Ventspils');
+ assert.equal(baseHallName('Liepājas OC, 4.lauk.'),'Liepājas OC');
+ assert.equal(baseHallName('Jelgavas SH (2. zāle)'),'Jelgavas SH');
+ assert.equal(baseHallName('Rīgas 47. vsk.'),'Rīgas 47. vsk.','a school number is not a court');
+ const saved=[{id:1,alias_text:'OC Ventspils',canonical_venue_name:'Olimpiskais centrs "Ventspils"',latitude:57.39,longitude:21.56,active:true},
+  {id:2,alias_text:'Liepājas OC',canonical_venue_name:'Liepājas Olimpiskais centrs',latitude:56.5,longitude:21.0,active:true}];
+ assert.equal(savedPlaceFor('OC Ventspils, 1.laukums',saved)?.id,1);
+ assert.equal(savedPlaceFor('Liepājas OC, 4.lauk.',saved)?.id,2);
+ assert.equal(savedPlaceFor('OC Ventspils',saved),null,'already saved under this name');
+ assert.equal(savedPlaceFor('Talsu SN',saved),null);
+});
