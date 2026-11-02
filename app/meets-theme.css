@@ -162,9 +162,14 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .c3-pin-wrap{background:none;border:0}
 .c3-pin{position:relative;display:block;width:44px;height:56px;color:var(--tinte);filter:drop-shadow(0 3px 6px rgba(27,36,48,.2));transition:transform .15s ease-out;transform-origin:50% 96%}
 .c3-pin-shape{position:absolute;inset:0}
+.c3-pin .c3-pin-shape{z-index:0}
+/* Leaflet lifts every svg on the map (z-index:200); keep the icon and badges above the pin shape. */
+.c3-pin-icon,.c3-pin-days,.c3-pin-saved,.c3-pin-count{z-index:1}
 .c3-pin-shape path{fill:#fff;stroke:var(--velak);stroke-width:2.4}
 .c3-pin-icon{position:absolute;left:11px;top:10px;width:22px;height:22px;display:block}
 .c3-pin-icon svg{display:block}
+.c3-pin-sport{display:block;width:22px;height:22px;font-size:19px;line-height:22px;text-align:center}
+.c3-pin.dimmed .c3-pin-sport{filter:grayscale(1)}
 .c3-pin-days{position:absolute;left:27px;top:-5px;min-width:25px;height:19px;box-sizing:border-box;padding:0 5px;border:2px solid #fff;border-radius:10px;background:var(--velak-badge);color:var(--velak-text);font:800 11px/15px var(--font-body);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
 .c3-pin-saved{position:absolute;left:-4px;top:-4px;width:20px;height:20px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 3px rgba(27,36,48,.25)}
 .c3-pin-saved svg{fill:var(--karmins)}
