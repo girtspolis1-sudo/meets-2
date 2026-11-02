@@ -218,25 +218,45 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const [organizations,setOrganizations]=useState([]),[bulkProgress,setBulkProgress]=useState('');
 
  // A busy database can time out once (e.g. right after approving many places): try again shortly.
- async function rpcWithRetry(path){
-  try{return await adminRpc(supabaseUrl,publishableKey,path,{});}
+ async function rpcWithRetry(path,body={}){
+  try{return await adminRpc(supabaseUrl,publishableKey,path,body);}
   catch(error){
    if(error?.status===401||error?.status===403)throw error;
    await new Promise(resolve=>setTimeout(resolve,1500));
-   return adminRpc(supabaseUrl,publishableKey,path,{});
+   return adminRpc(supabaseUrl,publishableKey,path,body);
   }
+ }
+ // The catalogue arrives as one header and rows of values (3x smaller than objects).
+ function decodeRows(data){
+  if(Array.isArray(data?.events))return data.events;
+  const fields=Array.isArray(data?.fields)?data.fields:[];
+  return (Array.isArray(data?.rows)?data.rows:[]).map(row=>{
+   const event={};
+   fields.forEach((field,i)=>{if(row[i]!==null&&row[i]!==undefined)event[field]=row[i];});
+   return event;
+  });
+ }
+ // Events that ended in the last 14 days are only for the register: loaded after the rest.
+ const pastLoadedRef=useRef(false);
+ const [pastEvents,setPastEvents]=useState([]);
+ async function loadPastEvents(){
+  if(pastLoadedRef.current)return;
+  pastLoadedRef.current=true;
+  try{setPastEvents(decodeRows(await rpcWithRetry('meets_admin_catalog_rows',{p_past:true})));}
+  catch{pastLoadedRef.current=false;}
  }
  async function loadEvents({quiet=false}={}){
   if(!quiet)setLoading(true);
   try{
    const [data,mappingData,healthData,sourceData,submissionData]=await Promise.all([
-    rpcWithRetry('meets_admin_catalog'),
+    rpcWithRetry('meets_admin_catalog_rows',{p_past:false}),
     rpcWithRetry('meets_admin_location_mapping_catalog'),
     rpcWithRetry('meets_admin_import_health'),
     rpcWithRetry('meets_admin_source_visibility_catalog'),
     rpcWithRetry('meets_admin_user_submissions')
    ]);
-   setEvents(Array.isArray(data?.events)?data.events:[]);
+   setEvents(decodeRows(data));
+   setTimeout(loadPastEvents,0);
    setMappings(Array.isArray(mappingData?.mappings)?mappingData.mappings:[]);
    setImportHealth(healthData&&typeof healthData==='object'?healthData:{sports:[],municipalities:[]});
    setSources(Array.isArray(sourceData?.sources)?sourceData.sources:[]);
@@ -579,6 +599,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
  const today=rigaTodayIso();
  const submissionQueue=useMemo(()=>pendingSubmissions(userSubmissions,today),[userSubmissions,today]);
  const activeEvents=useMemo(()=>events.filter(event=>eventIsCurrent(event,today)),[events,today]);
+ const registerEvents=useMemo(()=>{const ids=new Set(events.map(e=>e.id));return [...events,...pastEvents.filter(e=>!ids.has(e.id))];},[events,pastEvents]);
  const lffMissingGroups=useMemo(()=>groupMissingLff(activeEvents),[activeEvents]);
  const lffMissingEvents=useMemo(()=>lffMissingGroups.reduce((sum,g)=>sum+g.events.length,0),[lffMissingGroups]);
 
@@ -820,7 +841,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
     ['userSubmissions','Iesniegumi',submissionQueue.count,submissionQueue.count?'attention':''],
     ['mapping','Vietas',mappingGroups.length,mappingGroups.length?'attention':''],
     ['all','Visi aktuālie',activeEvents.length,''],
-    ['register','Reģistrs',events.length+userSubmissions.filter(item=>item.status!=='published'||!item.event_id).length,''],
+    ['register','Reģistrs',registerEvents.length+userSubmissions.filter(item=>item.status!=='published'||!item.event_id).length,''],
     ['sources','Datu avoti',sources.filter(source=>source.map_visible!==false).length+'/'+sources.length,importProblems?'attention':'']
    ].map(([key,label,count,tone])=><button key={key} type="button" aria-pressed={workspaceView===key}
     className={[workspaceView===key?'active':'',tone].filter(Boolean).join(' ')}
@@ -834,7 +855,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   </div>}
 
   {workspaceView==='register'&&<AdminEventRegister
-   events={events}
+   events={registerEvents}
    submissions={userSubmissions}
    sources={sources}
    today={today}
