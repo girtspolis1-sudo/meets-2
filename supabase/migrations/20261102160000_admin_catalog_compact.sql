@@ -1,7 +1,3 @@
--- Replaces the one-argument draft applied earlier the same day.
-drop function if exists public.meets_admin_catalog_compact(text);
-drop function if exists meets_private.read_admin_catalog_compact(text);
-
 -- The admin catalogue in a compact form for slow (mobile) connections.
 -- The old form repeated 52 keys in each of ~4 000 events (6.3 MB). This one
 -- sends the field names once, rows as arrays, only the fields the admin uses,
@@ -9,7 +5,7 @@ drop function if exists meets_private.read_admin_catalog_compact(text);
 -- Current events come first (p_past=false); the events that ended in the last
 -- 14 days, which only the register shows, are loaded afterwards (p_past=true).
 
-create or replace function meets_private.read_admin_catalog_compact(p_session_token text, p_past boolean default false)
+create or replace function meets_private.read_admin_catalog_rows(p_session_token text, p_past boolean default false)
 returns jsonb
 language plpgsql
 security definer
@@ -65,15 +61,15 @@ begin
 end
 $function$;
 
-create or replace function public.meets_admin_catalog_compact(p_session_token text default null, p_past boolean default false)
+create or replace function public.meets_admin_catalog_rows(p_session_token text default null, p_past boolean default false)
 returns jsonb
 language sql
 security definer
 set search_path to ''
 as $function$
-  select meets_private.read_admin_catalog_compact(p_session_token,p_past)
+  select meets_private.read_admin_catalog_rows(p_session_token,p_past)
 $function$;
 
-revoke all on function public.meets_admin_catalog_compact(text,boolean) from public, anon;
-grant execute on function public.meets_admin_catalog_compact(text,boolean) to authenticated;
-revoke all on function meets_private.read_admin_catalog_compact(text,boolean) from public, anon, authenticated;
+revoke all on function public.meets_admin_catalog_rows(text,boolean) from public, anon;
+grant execute on function public.meets_admin_catalog_rows(text,boolean) to authenticated;
+revoke all on function meets_private.read_admin_catalog_rows(text,boolean) from public, anon, authenticated;
