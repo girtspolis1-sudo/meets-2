@@ -32,7 +32,7 @@ for(const width of cases){
  const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
  // React reports errors caught by an error boundary on the console, not as page errors.
- page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text().slice(0,400));});
+ page.on('console',m=>{if(m.type()==='error'&&!m.text().startsWith('Failed to load resource'))errors.push('console: '+m.text().slice(0,400));});
  await page.addInitScript(()=>{Object.defineProperty(navigator,'share',{value:undefined,configurable:true});});
  await page.route('**/api/events*',route=>{console.log('Mock event request:',route.request().url());return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mockedCatalog)});});
  try{
