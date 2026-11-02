@@ -1,0 +1,108 @@
+name: DB migration history
+
+# One-off (and safe to re-run) sync of the schema history between the live
+# Supabase project and supabase/migrations:
+#  1. writes every migration recorded in the database into supabase/migrations
+#     (recorded SQL wins for versions that exist on both sides);
+#  2. marks repo migrations that were applied by hand but never recorded as
+#     applied (`migration repair`), without running them again;
+#  3. opens a pull request with the files, and prints `migration list` so both
+#     sides can be compared in the log.
+#
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  personal token from supabase.com/dashboard/account/tokens
+#   SUPABASE_DB_PASSWORD   database password of the project
+# The project ref is not secret.
+
+on:
+  workflow_dispatch:
+    inputs:
+      repair:
+        description: Mark repo-only migrations as applied in the database
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  PROJECT_REF: qplvmhtwkjiyjmgpjzzz
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Check secrets
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
+            echo "::error::Add SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD as repository secrets."
+            exit 1
+          fi
+
+      - name: Fetch the recorded history into a scratch project
+        run: |
+          mkdir -p "$RUNNER_TEMP/remote" && cd "$RUNNER_TEMP/remote"
+          supabase init --force >/dev/null
+          supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase migration fetch --linked
+          ls supabase/migrations | tee "$RUNNER_TEMP/remote-files.txt"
+          echo "Recorded in database: $(wc -l < "$RUNNER_TEMP/remote-files.txt")"
+
+      - name: Copy recorded migrations into the repo
+        run: |
+          remote="$RUNNER_TEMP/remote/supabase/migrations"
+          for file in "$remote"/*.sql; do
+            version=$(basename "$file" | cut -d_ -f1)
+            # Replace a repo file with the same version (the recorded SQL is what ran).
+            find supabase/migrations -name "${version}_*.sql" ! -name "$(basename "$file")" -delete
+            cp "$file" supabase/migrations/
+          done
+          ls supabase/migrations | cut -d_ -f1 | sort | uniq -d > "$RUNNER_TEMP/dupes.txt"
+          if [ -s "$RUNNER_TEMP/dupes.txt" ]; then
+            echo "::error::Duplicate versions: $(tr '\n' ' ' < "$RUNNER_TEMP/dupes.txt")"; exit 1
+          fi
+
+      - name: Mark repo-only migrations as applied
+        if: inputs.repair
+        run: |
+          cut -d_ -f1 "$RUNNER_TEMP/remote-files.txt" | sort > "$RUNNER_TEMP/remote-versions.txt"
+          ls supabase/migrations | cut -d_ -f1 | sort > "$RUNNER_TEMP/repo-versions.txt"
+          missing=$(comm -13 "$RUNNER_TEMP/remote-versions.txt" "$RUNNER_TEMP/repo-versions.txt" | tr '\n' ' ')
+          echo "Repo-only versions: ${missing:-none}"
+          if [ -n "$missing" ]; then
+            supabase init --force >/dev/null
+            supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+            supabase migration repair --linked --status applied $missing
+          fi
+
+      - name: Compare both sides
+        run: |
+          [ -f supabase/config.toml ] || { supabase init --force >/dev/null; supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"; }
+          supabase migration list --linked
+
+      - name: Open a pull request with the history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="db/history-sync-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add supabase/migrations
+          if git diff --cached --quiet; then echo "History already in sync."; exit 0; fi
+          git commit -m "Datubāzes migrāciju vēsture no Supabase (automātiski)"
+          git push origin "$branch"
+          gh pr create --base "${{ github.ref_name }}" --head "$branch" \
+            --title "Datubāzes migrāciju vēsture no Supabase" \
+            --body "Automātiski: visas Supabase reģistrētās migrācijas ierakstītas supabase/migrations; tikai repozitorijā esošās atzīmētas kā izpildītas. Salīdzinājums: workflow žurnāla solis *Compare both sides*." \
+            || echo "::warning::Pull request not created (enable 'Allow GitHub Actions to create pull requests'); branch $branch is pushed."
