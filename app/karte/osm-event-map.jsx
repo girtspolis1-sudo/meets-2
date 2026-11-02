@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
 import NearbyList from './nearby-list.jsx';
+import CategoryIcon from '../components/category-icon.jsx';
 import {PERIODS,RADII,DEFAULT_PERIOD,DEFAULT_RADIUS,periodKey,periodRange,periodPhrase,radiusLabel,nearbyGroups,widerOptions,countLabel,markerLabel} from '../../lib/map-nearby.js';
 import {CLUSTER_MAX_ZOOM,clusterPoints,clusterTone,radiusForView} from '../../lib/map-cluster.js';
 import {useAdminSession} from '../use-admin-session.js';
@@ -572,9 +573,9 @@ export default function OsmEventMap(){
   const focus=L.layerGroup().addTo(map);focusLayerRef.current=focus;
   if(!userLocation)return;
   const center=[userLocation.lat,userLocation.lon];
-  L.circleMarker(center,{pane:'centerPane',radius:5,color:'#7f00ff',weight:1.5,opacity:.9,fillColor:'#fff',fillOpacity:.96,interactive:false}).addTo(focus);
+  L.circleMarker(center,{pane:'centerPane',radius:5,color:'#9e3039',weight:1.5,opacity:.9,fillColor:'#fff',fillOpacity:.96,interactive:false}).addTo(focus);
   if(radiusKm>0){
-   const circle=L.circle(center,{pane:'centerPane',radius:radiusKm*1000,color:'#7f00ff',weight:1.1,opacity:.62,fillColor:'#b56cff',fillOpacity:.018,interactive:false}).addTo(focus);
+   const circle=L.circle(center,{pane:'centerPane',radius:radiusKm*1000,color:'#9e3039',weight:1.1,opacity:.62,fillColor:'#de8d95',fillOpacity:.018,interactive:false}).addTo(focus);
    map.fitBounds(circle.getBounds(),{padding:[45,45],maxZoom:13,animate:false});
   }else{
    if(userLocation.source==='fallback')map.fitBounds([[54.5,19.5],[59.5,29.5]],{animate:false,padding:[25,25]});
@@ -793,7 +794,7 @@ export default function OsmEventMap(){
     </div>
     <div className="map-chip-row map-chip-row-what" role="group" aria-label="Ko darīt">
      {HOME_GROUP_KEYS.map(key=><button key={key} type="button" aria-pressed={homeCategory===key} className={homeCategory===key?'active':''}
-      onClick={()=>setDiscoveryFilter('category',homeCategory===key?'':key)}><span aria-hidden="true">{HOME_CATEGORY_FILTERS[key].icon}</span> {HOME_CATEGORY_FILTERS[key].title}</button>)}
+      onClick={()=>setDiscoveryFilter('category',homeCategory===key?'':key)}><CategoryIcon name={key}/>{HOME_CATEGORY_FILTERS[key].title}</button>)}
      <button type="button" aria-pressed={price==='free'} className={price==='free'?'active':''} onClick={()=>setPrice(price==='free'?'':'free')}>Bezmaksas</button>
     </div>
     {activeChips.filter(c=>c.key!=='category').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">

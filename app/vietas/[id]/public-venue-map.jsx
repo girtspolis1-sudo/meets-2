@@ -9,7 +9,7 @@ export default function PublicVenueMap({latitude,longitude,name}){
   const L=await loadLeaflet();if(disposed||!ref.current)return;
   map=L.map(ref.current,{scrollWheelZoom:false}).setView([lat,lon],15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map);
-  L.circleMarker([lat,lon],{radius:9,color:'#fff',weight:3,fillColor:'#6d28d9',fillOpacity:1}).addTo(map).bindTooltip(name||'Norises vieta');
+  L.circleMarker([lat,lon],{radius:9,color:'#fff',weight:3,fillColor:'#c33e4b',fillOpacity:1}).addTo(map).bindTooltip(name||'Norises vieta');
   requestAnimationFrame(()=>map?.invalidateSize());
  }catch{if(!disposed)setFailed(true);}})();return()=>{disposed=true;map?.remove();};},[valid,lat,lon,name]);
  if(!valid)return null;

@@ -20,18 +20,18 @@ export default function VenueCalendar({events=[],embedded=false}){
    .venue-calendar-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
    .venue-calendar-head h2{font-size:19px;margin:0}
    .venue-calendar-head>div{display:flex;gap:8px}
-   .venue-calendar-head button{border:1px solid #e2dbec;background:white;border-radius:9px;padding:8px 12px;cursor:pointer}
+   .venue-calendar-head button{border:1px solid #dbe3ec;background:white;border-radius:9px;padding:8px 12px;cursor:pointer}
    .venue-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
    .venue-day-name{text-align:center;font-size:12px;color:#697185;font-weight:700}
-   .venue-month-day{min-width:0;min-height:55px;padding:5px;border:1px solid #e6e2ee;border-radius:9px;background:white;position:relative;font-size:13px}
-   .venue-month-day.has-events{background:#f4edff;border-color:#c7b4e6}
-   .venue-month-day small{display:block;margin-top:4px;color:#6137a4;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+   .venue-month-day{min-width:0;min-height:55px;padding:5px;border:1px solid #e2e7ee;border-radius:9px;background:white;position:relative;font-size:13px}
+   .venue-month-day.has-events{background:#f3f6f9;border-color:#e0babe}
+   .venue-month-day small{display:block;margin-top:4px;color:#96454d;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
    .venue-event-list{display:grid;gap:10px}
    .venue-event{display:flex;gap:14px;border:1px solid #e3dfeb;background:#fff;border-radius:13px;padding:13px;min-width:0}
    .venue-event>img{width:90px;height:90px;object-fit:cover;border-radius:10px}
    .venue-event h3{font-size:16px;line-height:1.3;margin:4px 0}
    .venue-event p{color:#647084;font-size:13px;margin:4px 0}
-   .venue-event a{color:#5a2db5;font-weight:700;font-size:13px;text-decoration:none}
+   .venue-event a{color:#a43e48;font-weight:700;font-size:13px;text-decoration:none}
    @media(max-width:420px){.venue-month-day{min-height:43px;font-size:11px}.venue-month-day small{font-size:9px}.venue-event>img{width:64px;height:64px}}
   `}</style>
   <div className="venue-calendar-head"><h2>{names[current.getMonth()]} {current.getFullYear()}</h2>

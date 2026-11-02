@@ -100,7 +100,7 @@ export default function NearbyList({groups,total,today,clock,summary,loading,fav
     {groups.map(group=>{
      if(left<=0)return null;
      const items=group.items.slice(0,left);left-=items.length;
-     return <section key={group.key} className="nearby-group" aria-label={group.label}>
+     return <section key={group.key} className={'nearby-group group-'+group.key} aria-label={group.label}>
       <h3>{group.label} <span>{group.items.length}</span></h3>
       <ol>{items.map(item=><NearbyItem key={item.event.id} item={item} today={today} clock={clock}
        saved={favorites.has(String(item.event.id))} highlighted={String(item.event.id)===String(highlightedId)}

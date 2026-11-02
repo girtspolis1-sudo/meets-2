@@ -1,0 +1,146 @@
+/* meets.lv theme (loaded last).
+   Palette from Latvia itself: Sniegs (ground), Tinte (ink), Karmīns (the
+   flag's carmine, the one accent), Priede (sport and outdoors), Dzintars
+   (only for "notiek tagad"), Migla (lines). Fonts come from next/font in
+   layout.jsx: Unbounded for the wordmark, headings and dates, Manrope for
+   everything else. Both load with latin-ext for ā č ē ģ ī ķ ļ ņ š ū ž. */
+
+:root{
+ --sniegs:#fafbfc;
+ --tinte:#1b2430;
+ --karmins:#9e3039;
+ --karmins-dark:#7a2029;
+ --karmins-soft:#f6e8ea;
+ --priede:#2f5d50;
+ --priede-soft:#eaf1ee;
+ --dzintars:#e0a526;
+ --dzintars-soft:#fdf6e6;
+ --migla:#d8dee6;
+ --teksts-2:#4a5565;
+
+ --bg:var(--sniegs);
+ --text:var(--tinte);
+ --muted:var(--teksts-2);
+ --border:var(--migla);
+ --accent:var(--karmins);
+ --accent-dark:var(--karmins-dark);
+ --accent-soft:var(--karmins-soft);
+ --accent-soft-2:#ecd3d6;
+ --meets-ink:var(--tinte);
+ --meets-primary:var(--karmins);
+ --meets-primary-hover:var(--karmins-dark);
+ --meets-blue:var(--karmins);
+
+ /* The fallback inside var() keeps a sans stack if next/font has not set the variable. */
+ --font-display:var(--font-unbounded,'Unbounded'),system-ui,sans-serif;
+ --font-body:var(--font-manrope,'Manrope'),system-ui,sans-serif;
+}
+
+body{background:var(--sniegs);color:var(--tinte);font-family:var(--font-body)}
+button,input,select,textarea{font-family:inherit}
+h1,h2,.catalog-toolbar strong{font-family:var(--font-display);font-weight:600;letter-spacing:-.02em}
+h3,h4{font-family:var(--font-body)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--karmins);outline-offset:2px}
+.tabular,time,.event-facts-when{font-variant-numeric:tabular-nums}
+
+/* Header and wordmark ------------------------------------------------------ */
+.header{background:rgba(255,255,255,.96);border-bottom:1px solid var(--migla)}
+.brand{line-height:1}
+.brand .meets-wordmark,footer .meets-wordmark,.meets-wordmark{font-family:var(--font-display);font-weight:700;font-size:26px;letter-spacing:-.04em;color:var(--tinte);line-height:1}
+.brand .meets-wordmark span,footer .meets-wordmark span,.meets-wordmark span{color:var(--karmins)}
+footer .meets-wordmark{font-size:18px}
+.header .meets-nav-desktop>a{color:var(--tinte)}
+.header .meets-nav-desktop>a:hover{background:#eef1f4}
+.header nav a.active,.header nav a[aria-current="page"],
+.header .meets-nav-desktop>a.active{background:var(--tinte);color:#fff;box-shadow:none}
+.header nav a.active:hover,.header nav a[aria-current="page"]:hover,
+.header .meets-nav-desktop>a.active:hover{background:#2c3848;color:#fff}
+
+/* Buttons: one flat accent, no gradients ----------------------------------- */
+.primary,
+body:not(.admin-environment) .button.primary,
+body:not(.admin-environment) .meets-card-main-action{background:var(--karmins);border-color:var(--karmins);color:#fff;box-shadow:none;filter:none}
+.primary:hover,
+body:not(.admin-environment) .button.primary:hover,
+body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karmins-dark);border-color:var(--karmins-dark);filter:none}
+.button:hover{background:#eef1f4;border-color:var(--migla)}
+
+/* Time chips: selected = ink, like the map filters ------------------------- */
+.catalog-period-chips button[aria-pressed="true"],
+.catalog-period-chips button.active{background:var(--tinte);border-color:var(--tinte);color:#fff}
+
+/* Event cards: flat category tints instead of gradients -------------------- */
+.meets-card-symbol{background:#eef1f4}
+.theme-sport .meets-card-symbol,.theme-active .meets-card-symbol{background:var(--priede-soft)}
+.theme-culture .meets-card-symbol,.theme-stage .meets-card-symbol{background:var(--karmins-soft)}
+.theme-markets .meets-card-symbol{background:var(--dzintars-soft)}
+.meets-discovery-card.catalog-event-card{border-color:var(--migla);box-shadow:none}
+.meets-discovery-card.catalog-event-card:hover{border-color:#b9c3cf;box-shadow:0 4px 14px rgba(27,36,48,.08)}
+.meets-discovery-card .meets-card-category{color:var(--teksts-2);text-transform:none;letter-spacing:0;font-size:12px;font-weight:700}
+.meets-discovery-card .meets-discovery-card-facts h3{color:var(--tinte)}
+.event-facts-when{color:var(--tinte)}
+
+/* Day headings: the big date is the one bold element on the page ---------- */
+.catalog-day-heading{display:flex;align-items:flex-end;gap:14px;padding:18px 0 10px;background:var(--sniegs);font-family:var(--font-body);letter-spacing:0}
+.catalog-day-heading .day-number{font-family:var(--font-display);font-weight:700;font-size:52px;line-height:.86;color:var(--tinte);font-variant-numeric:tabular-nums}
+.catalog-day-heading.is-today .day-number{color:var(--karmins)}
+.catalog-day-heading .day-text{display:flex;flex-direction:column;gap:2px;padding-bottom:2px}
+.catalog-day-heading .day-label{font-size:17px;font-weight:800;color:var(--tinte)}
+.catalog-day-heading .day-count{font-size:13px;font-weight:600;color:var(--teksts-2)}
+.catalog-day-heading span{color:inherit}
+@media(max-width:640px){
+ .catalog-day-heading .day-number{font-size:42px}
+ .catalog-day-heading .day-label{font-size:16px}
+}
+
+/* Map list: same day-group voice as the catalogue -------------------------- */
+.nearby-group h3{align-items:baseline;gap:8px;padding:14px 6px 8px;font-family:var(--font-display);font-size:20px;font-weight:700;letter-spacing:-.02em;text-transform:none;color:var(--tinte)}
+.nearby-group.group-today h3{color:var(--karmins)}
+.nearby-group h3 span{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:0;color:var(--teksts-2)}
+.nearby-item{border-color:var(--migla)}
+.nearby-item:hover,.nearby-item.is-highlighted{border-color:var(--tinte);box-shadow:0 0 0 1px var(--tinte)}
+.nearby-item:has(.nearby-live.now){border-color:var(--dzintars);background:var(--dzintars-soft);box-shadow:inset 4px 0 0 var(--dzintars)}
+
+/* Category icons and chips ------------------------------------------------ */
+.meets-category-icon{flex:none;vertical-align:-.2em}
+.map-chip-row button,.meets-hero-chips>a{display:inline-flex;align-items:center;gap:6px}
+.map-chip-row button{border-color:var(--migla);color:var(--tinte)}
+.map-chip-row button:hover{border-color:var(--tinte)}
+.map-chip-row button.active,.meets-hero-chips>a.active{background:var(--tinte);border-color:var(--tinte);color:#fff}
+.meets-hero-chips>a{color:var(--tinte);border-color:var(--migla)}
+.meets-all-categories>a{border-color:var(--migla)}
+.meets-all-categories>a:hover{transform:none;border-color:var(--tinte)}
+.meets-all-categories>a>.meets-category-tile-icon{background:#eef1f4;color:var(--tinte)}
+.meets-all-categories>a[href$="=sport"]>.meets-category-tile-icon,.meets-all-categories>a[href$="=active"]>.meets-category-tile-icon{background:var(--priede-soft);color:var(--priede)}
+.meets-all-categories>a[href$="=music"]>.meets-category-tile-icon,.meets-all-categories>a[href$="=stage"]>.meets-category-tile-icon,.meets-all-categories>a[href$="=culture"]>.meets-category-tile-icon{background:var(--karmins-soft);color:var(--karmins)}
+.meets-all-categories strong{font-size:14px;color:var(--tinte)}
+.meets-all-categories small{font-size:12px;color:var(--teksts-2)}
+
+/* "Notiek tagad" is the only use of amber ---------------------------------- */
+.nearby-live.now{background:var(--dzintars);color:var(--tinte)}
+.nearby-live.soon{background:var(--dzintars-soft);color:#7a4f00;box-shadow:inset 0 0 0 1px #ecd29a}
+.meets-discovery-card:has(.nearby-live.now){border-color:var(--dzintars);box-shadow:inset 4px 0 0 var(--dzintars)}
+
+/* Map: today = carmine, tomorrow = ink, later = grey ---------------------- */
+.legend-dot.today{background:var(--karmins)}
+.legend-dot.tomorrow{background:var(--tinte)}
+.legend-dot.future{background:#8a94a3}
+.map-cluster.today{background:var(--karmins);box-shadow:0 0 0 4px rgba(158,48,57,.22),0 6px 14px rgba(27,36,48,.22)}
+.event-count-marker.date-today:not(.dimmed){outline-color:var(--karmins);box-shadow:0 0 0 2px rgba(158,48,57,.2),0 3px 12px rgba(27,36,48,.28)}
+.event-count-marker.date-tomorrow:not(.dimmed){outline-color:var(--tinte);box-shadow:0 0 0 2px rgba(27,36,48,.16),0 3px 12px rgba(27,36,48,.28)}
+.event-date-indicator.today{border-color:var(--karmins);color:var(--karmins);background:var(--karmins-soft)}
+.event-date-badge.today,.event-date-badge-prominent.today,.event-date-badge-prominent.ended-today{background:var(--karmins-soft);color:var(--karmins-dark);border-color:#e3bcc1}
+
+.event-drop-marker.today:not(.dimmed){background:var(--karmins);box-shadow:0 0 0 2px rgba(158,48,57,.2),0 5px 14px rgba(27,36,48,.2)}
+.event-drop-marker.today .event-drop-icon,.event-drop-marker.today .event-drop-count{color:var(--karmins)}
+.event-symbol-marker.date-today:not(.dimmed){border-color:var(--karmins)}
+/* Already finished today: quiet grey, so it never reads as "today" or "live". */
+.map-cluster.ended-today{background:#8a94a3;box-shadow:0 0 0 4px rgba(138,148,163,.22),0 6px 14px rgba(27,36,48,.18)}
+.event-drop-marker.ended-today:not(.dimmed){background:#8a94a3;box-shadow:0 0 0 2px rgba(138,148,163,.2),0 5px 14px rgba(27,36,48,.16)}
+.event-drop-marker.ended-today .event-drop-icon,.event-drop-marker.ended-today .event-drop-count{color:#5b6675}
+.event-symbol-marker.date-ended-today:not(.dimmed){border-color:#8a94a3;background:#f3f5f7;box-shadow:0 3px 12px rgba(27,36,48,.2)}
+.event-count-marker.date-ended-today:not(.dimmed){outline-color:#8a94a3;background:#8a94a3;box-shadow:0 3px 12px rgba(27,36,48,.2)}
+.event-date-indicator.ended-today{border-color:#8a94a3;color:#4a5565;background:#f3f5f7}
+.event-date-badge.ended-today{background:#eef1f4;color:#4a5565}
+
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}

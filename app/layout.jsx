@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import {Manrope,Unbounded} from 'next/font/google';
 import SiteNav from './site-nav.jsx';
 import MobileBottomNav from './mobile-bottom-nav.jsx';
 import AdminFooterControl from './admin-footer-control.jsx';
@@ -12,6 +13,15 @@ import './organizer-workspace.css';
 import './discovery-design.css';
 import './personal-collections.css';
 import './design-refresh.css';
+import './meets-theme.css';
+
+// latin-ext carries the Latvian letters (ā č ē ģ ī ķ ļ ņ š ū ž).
+const manrope=Manrope({subsets:['latin','latin-ext'],weight:['400','500','600','700','800'],variable:'--font-manrope',display:'swap'});
+const unbounded=Unbounded({subsets:['latin','latin-ext'],weight:['500','600','700'],variable:'--font-unbounded',display:'swap'});
+
+function Wordmark(){
+  return <span className="meets-wordmark">meets<span>.</span>lv</span>;
+}
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://meets.lv'),
@@ -27,18 +37,18 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  return <html lang="lv"><body>
+  return <html lang="lv" className={manrope.variable+' '+unbounded.variable}><body>
     <a className="skip" href="#saturs">Pāriet uz saturu</a>
     <header className="header">
-      <Link className="brand" href="/" aria-label="MEETS sākumlapa">
-        <img className="brand-logo" src="/meets-logo-purple.png" alt="MEETS"/>
+      <Link className="brand" href="/" aria-label="meets.lv sākumlapa">
+        <Wordmark/>
       </Link>
       <SiteNav/>
     </header>
     <main id="saturs">{children}</main>
     <MobileBottomNav/>
     <footer>
-      <img className="footer-logo" src="/meets-logo-purple.png" alt="MEETS"/>
+      <Wordmark/>
       <p>Pasākumi, kas saved cilvēkus kopā.</p>
       <nav className="footer-links" aria-label="Kājenes saites">
         <Link href="/karte">Karte</Link>

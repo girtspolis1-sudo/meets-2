@@ -52,7 +52,7 @@ function LocationMap({point,onPick,preview=false}){
      });
     }
     if(point&&validPoint(point.latitude,point.longitude)){
-     markerRef.current=L.circleMarker(current,{radius:9,color:'#fff',weight:3,fillColor:'#6d28d9',fillOpacity:1}).addTo(map);
+     markerRef.current=L.circleMarker(current,{radius:9,color:'#fff',weight:3,fillColor:'#c33e4b',fillOpacity:1}).addTo(map);
     }
     observer=new ResizeObserver(()=>map.invalidateSize());
     observer.observe(element.current);
@@ -66,7 +66,7 @@ function LocationMap({point,onPick,preview=false}){
   if(!map||!L)return;
   const coords=mapPoint(point);
   if(!coords){markerRef.current?.remove();markerRef.current=null;return;}
-  if(!markerRef.current)markerRef.current=L.circleMarker(coords,{radius:9,color:'#fff',weight:3,fillColor:'#6d28d9',fillOpacity:1}).addTo(map);
+  if(!markerRef.current)markerRef.current=L.circleMarker(coords,{radius:9,color:'#fff',weight:3,fillColor:'#c33e4b',fillOpacity:1}).addTo(map);
   else markerRef.current.setLatLng(coords);
   map.setView(coords,Math.max(map.getZoom(),14),{animate:false});
  },[point?.latitude,point?.longitude]);
