@@ -37,6 +37,7 @@ const CITIES=[
  {label:'Ogre',latitude:56.8162,longitude:24.614},{label:'Cēsis',latitude:57.3119,longitude:25.2706}
 ];
 
+const FAR_DAYS=15;
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function norm(v=''){return String(v).toLocaleLowerCase('lv').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
 function countryLabel(code){return ({LV:'Latvija',EE:'Igaunija',LT:'Lietuva'})[code]||'';}
@@ -402,6 +403,7 @@ export default function OsmEventMap(){
     if(map.zoomControl?.setPosition)map.zoomControl.setPosition('bottomright');
     map.createPane('centerPane');map.getPane('centerPane').style.zIndex='390';
     map.createPane('backgroundMarkers');map.getPane('backgroundMarkers').style.zIndex='450';
+    map.createPane('farMarkers');map.getPane('farMarkers').style.zIndex='470';
     map.createPane('activeMarkers');map.getPane('activeMarkers').style.zIndex='490';
     if(map.getPane('popupPane'))map.getPane('popupPane').style.zIndex='920';
     leafletRef.current=L;
@@ -522,6 +524,8 @@ export default function OsmEventMap(){
    const term=eventTerm(nearest,rigaTodayIso(clockNow),clockNow);
    const shownCount=isActive?activeInGroup.length:group.events.length;
    const dimmed=!isActive;
+   // More than 15 days ahead: kept in the background, faint and grey, so the near events stand out.
+   const far=term.days!=null&&term.days>FAR_DAYS;
    const saved=group.events.some(e=>favorites.has(String(e.id)));
    const group0=eventGroup(nearest);
    // A pin whose events are all one sport shows that sport (⚽ 🏀 🏒 …).
@@ -529,7 +533,7 @@ export default function OsmEventMap(){
    const pinIcon=sport?'<span class="c3-pin-sport" title="'+esc(sport.label)+'">'+esc(sport.glyph)+'</span>':categoryIconSvg(group0,22);
    // C3 "minimal duo icon": the category icon leads, the days badge is a small
    // accent. Only events at the very same place share a pin (with a count).
-   const html='<span class="c3-pin tone-'+esc(term.tone)+(dimmed?' dimmed':'')+'">'+
+   const html='<span class="c3-pin tone-'+esc(term.tone)+(dimmed?' dimmed':'')+(far?' far':'')+'">'+
      '<svg class="c3-pin-shape" width="44" height="56" viewBox="0 0 44 56" aria-hidden="true"><path d="M22 54C22 54 4 35 4 21.5A18 18 0 1 1 40 21.5C40 35 22 54 22 54Z"/></svg>'+
      '<span class="c3-pin-icon">'+pinIcon+'</span>'+
      '<span class="c3-pin-days">'+esc(term.badge)+'</span>'+
@@ -539,7 +543,7 @@ export default function OsmEventMap(){
    const size=dimmed?[34,44]:[44,56];
    const icon=L.divIcon({className:'c3-pin-wrap',html,iconSize:size,iconAnchor:[size[0]/2,size[1]-2],tooltipAnchor:[size[0]/2,-size[1]/2]});
    const label=nearest.title+', '+term.label+(shownCount>1?', vēl '+(shownCount-1)+' šajā vietā':'');
-   const marker=L.marker([displayLat,displayLon],{icon,pane:isActive?'activeMarkers':'backgroundMarkers',keyboard:isActive,title:label,alt:label,riseOnHover:true});
+   const marker=L.marker([displayLat,displayLon],{icon,pane:!isActive?'backgroundMarkers':far?'farMarkers':'activeMarkers',keyboard:isActive,title:label,alt:label,riseOnHover:true});
    if(canHover){
     const place=[nearest.venue_name,nearest.settlement||nearest.municipality].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ');
     const image=String(nearest.cover_image_url||'').startsWith('https://')?nearest.cover_image_url:'';
@@ -918,7 +922,8 @@ export default function OsmEventMap(){
    <div className="map-legend map-legend-overlay" aria-label="Kartes leģenda">
     <span><i className="legend-dot today" aria-hidden="true"></i>Šodien</span>
     <span><i className="legend-dot tomorrow" aria-hidden="true"></i>Rīt</span>
-    <span><i className="legend-dot future" aria-hidden="true"></i>Vēlāk</span>
+    <span><i className="legend-dot future" aria-hidden="true"></i>2–15 d</span>
+    <span><i className="legend-dot far" aria-hidden="true"></i>Pēc 15 d</span>
     <span><i className="legend-dot outside" aria-hidden="true"></i>Neatbilst filtriem (mazāka)</span>
     {mapMode!=='raster'&&<span className="map-style-switch">
      <button type="button" aria-expanded={styleMenuOpen} onClick={()=>setStyleMenuOpen(v=>!v)}>Kartes stils</button>

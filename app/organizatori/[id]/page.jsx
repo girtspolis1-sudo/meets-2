@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {publicOrganizer} from '../../../lib/public-organizers.js';
 import FollowButton from '../../components/follow-button.jsx';
+import {socialLabel} from '../../../lib/social-links.js';
 
 export const dynamic='force-dynamic';
 export async function generateMetadata({params}){const {id}=await params;const value=await publicOrganizer(id);return {title:value?.organization?.name?value.organization.name+' — MEETS organizators':'MEETS organizators'};}
@@ -13,7 +14,7 @@ export default async function OrganizerPublicPage({params}){
    <div className="public-organizer-logo">{org.image_url?<img src={org.image_url} alt=""/>:<span>{org.name.slice(0,1).toLocaleUpperCase('lv')}</span>}</div>
    <div><p className="eyebrow">MEETS · Organizators</p><h1>{org.name}</h1>{org.description&&<p>{org.description}</p>}
     {contactDetails&&<div className="public-organizer-details">{contactDetails.address&&<p><strong>Galvenā adrese:</strong> {contactDetails.address}</p>}{Array.isArray(contactDetails.contacts)&&contactDetails.contacts.map((contact,i)=><p key={i}><strong>{contact.label||({email:'E-pasts',phone:'Telefons',person:'Kontaktpersona',other:'Kontakts'}[contact.type]||'Kontakts')}:</strong> {contact.type==='email'?<a href={'mailto:'+contact.value}>{contact.value}</a>:contact.type==='phone'?<a href={'tel:'+contact.value}>{contact.value}</a>:contact.value}</p>)}</div>}
-    <div className="public-organizer-contacts">{org.public_email&&<a href={'mailto:'+org.public_email}>{org.public_email}</a>}{org.public_phone&&<a href={'tel:'+org.public_phone}>{org.public_phone}</a>}{org.public_url&&<a href={org.public_url} target="_blank" rel="noopener noreferrer">Mājaslapa ↗</a>}</div>
+    <div className="public-organizer-contacts">{org.public_email&&<a href={'mailto:'+org.public_email}>{org.public_email}</a>}{org.public_phone&&<a href={'tel:'+org.public_phone}>{org.public_phone}</a>}{org.public_url&&<a href={org.public_url} target="_blank" rel="noopener noreferrer">Mājaslapa ↗</a>}{(Array.isArray(org.social_links)?org.social_links:[]).filter(l=>/^https:\/\//.test(String(l?.url||''))).map(l=><a key={l.network} className={'public-organizer-social social-'+l.network} href={l.url} target="_blank" rel="noopener noreferrer">{socialLabel(l.network)} ↗</a>)}</div>
    </div><FollowButton targetKind="organization" targetId={org.id} className="button primary"/>
   </header>
   <section className="public-organizer-section"><div className="org-panel-head"><div><h2>Gaidāmie pasākumi</h2><p>Publicētie pasākumi, ko šis organizators ir iesniedzis MEETS.</p></div><Link className="button" href="/karte">Atvērt karti →</Link></div>

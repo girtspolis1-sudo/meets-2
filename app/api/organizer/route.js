@@ -1,4 +1,5 @@
 import {validateQuickEvent} from '../../../lib/event-entry.js';
+import {cleanSocialLinks} from '../../../lib/social-links.js';
 import {cleanSlots,countOccurrences,cleanPrice} from '../../../lib/event-schedule.js';
 import {rigaDate} from '../../../lib/meets-personal.js';
 import {NextResponse} from 'next/server';
@@ -89,7 +90,7 @@ export async function POST(request){
 
   if(action==='list'){
    const [organizations,memberships,visibleVenues,submissions,venueLinks,contacts]=await Promise.all([
-    api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id,description,image_url,public_email,public_phone,public_url,is_public,created_at,updated_at&order=created_at.desc'),
+    api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id,description,image_url,public_email,public_phone,public_url,social_links,is_public,created_at,updated_at&order=created_at.desc'),
     api(TABLES.members,token,'GET',null,'?select=organization_id,role&user_id=eq.'+user.id),
     api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,directions,description,is_public,created_at&order=created_at.desc'),
     api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,price_min,price_max,cover_image_path,recurrence_slots,admin_note,review_reason,reviewed_at,latitude,longitude,schedule_kind,recurrence_note,event_id,created_at,updated_at&order=created_at.desc'),
@@ -145,6 +146,11 @@ export async function POST(request){
   const canEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
   if(canEdit!==true)return NextResponse.json({error:'Nav tiesību veikt izmaiņas šajā organizācijā.'},{status:403});
 
+  if(action==='saveOrgSocials'){
+   const links=cleanSocialLinks(Array.isArray(data.social_links)?data.social_links:[]);
+   const result=await api('rpc/meets_update_organization_socials',token,'POST',{p_organization_id:data.organization_id,p_links:links});
+   return NextResponse.json({social_links:result});
+  }
   if(action==='updateOrganization'){
    const name=String(data.name||'').trim();
    const result=await api('rpc/meets_update_organization_profile',token,'POST',{
