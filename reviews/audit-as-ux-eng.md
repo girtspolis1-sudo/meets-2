@@ -106,3 +106,25 @@ Lēnumu rada trīs lietas:
    - #4 satura pārbaudes rinda.
 4. **Skaidrība:**
    - #6–#8 un #11: cilņu sakārtošana un latviski termini.
+
+## Izpildes statuss (2026-11-02)
+
+| # | Statuss | Kā |
+|---|---------|----|
+| 1 | ✅ | Vietas redaktorā "Publicēt/Saglabāt un nākamais →", "Izlaist →" un "3 no 41". Vietu sasaistē "Saglabāt un nākamā →". Pēc lēmuma par iesniegumu ritina uz nākamo |
+| 2 | ✅ | `?view=all&bucket=critical&issue=no_point&q=…`; poga "Kopēt saiti uz šo skatu" |
+| 3 | ✅ | Konkrēts apstiprinājums masveida publicēšanai un vietu apstiprināšanai. Masveida publicēšanu var atsaukt |
+| 4 | ✅ | `lib/admin-checks.js`: dublikāti, HTML atliekas, lielie burti, beigu datums pirms sākuma, ilgāk par pusgadu, nav avota, nav apraksta (tikai informatīvi) |
+| 5 | ✅ | Paziņojumā "Atsaukt"; panelī "Pēdējās darbības" ar atsaukšanu |
+| 6–7 | ✅ | Cilnes: Pārskats, Iesniegumi, Vietas, Visi aktuālie, Reģistrs, Datu avoti |
+| 8 | ✅ | Statusi latviski, "Mapping" → "Vietu sasaiste" / "Vietas" |
+| 9 | ✅ | j/k, e/Enter, p, x, n/b, /, ? |
+| 10 | ✅ | Ielādes laiks sekundēs, josla un paskaidrojums |
+| 11–12 | ✅ | 4 bloki ar vienotu definīciju; skaitļi un iemesli atver filtrētu sarakstu |
+| 13 | ✅ | "Skatīt punktu": kartes priekšskats ieteikumam |
+| 14 | ✅ | "Pēdējās darbības" (40 sesijas ierakstu) |
+| 15 | ✅ | Pēc lēmuma par iesniegumu fokuss pāriet uz nākamo iesniegumu |
+| 16 | ✅ | Importu veselība rāda tikai problēmas; tās ir arī "Ko darīt vispirms" sarakstā |
+| 17 | ✅ | "šajā sesijā sakārtoti N" |
+| 18, 20, 21 | ✅ | Saglabāts skats saitē, CSV eksports, kompakts skats |
+| 19 | ⏳ | "Pirms → pēc" kartē: vēl nav |

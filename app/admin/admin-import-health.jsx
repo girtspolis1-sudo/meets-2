@@ -1,4 +1,5 @@
 'use client';
+import {useState} from 'react';
 
 function when(value){
  if(!value)return 'Nav datu';
@@ -22,25 +23,39 @@ function municipalityLabel(item){
  return item.last_status==='success'?'Ielādēts':'Nav statusa';
 }
 
+function problemSportsOf(health){
+ return (Array.isArray(health?.sports)?health.sports:[]).filter(item=>item.stale||!item.cron_active||!['complete','completed'].includes(String(item.last_status||'').toLowerCase()));
+}
+function staleMunicipalitiesOf(health){
+ return (Array.isArray(health?.municipalities)?health.municipalities:[]).filter(item=>item.stale||!item.automated||item.last_status==='partial');
+}
+export function importProblemCount(health){return problemSportsOf(health).length+staleMunicipalitiesOf(health).length;}
+
 export default function AdminImportHealth({health}){
+ const [showAll,setShowAll]=useState(false);
  const sports=Array.isArray(health?.sports)?health.sports:[];
  const municipalities=Array.isArray(health?.municipalities)?health.municipalities:[];
- const staleMunicipalities=municipalities.filter(item=>item.stale||!item.automated||item.last_status==='partial');
- const problemSports=sports.filter(item=>item.stale||!item.cron_active||!['complete','completed'].includes(String(item.last_status||'').toLowerCase()));
+ const staleMunicipalities=staleMunicipalitiesOf(health);
+ const problemSports=problemSportsOf(health);
+ // Only sources that need attention are shown until the admin asks for all.
+ const shownSports=showAll?sports:problemSports;
+ const shownMunicipalities=showAll?municipalities:staleMunicipalities;
+ const hidden=sports.length+municipalities.length-problemSports.length-staleMunicipalities.length;
 
- return <section className="admin-import-health">
+ return <section className="admin-import-health" id="admin-import-health">
   <div className="admin-overview-panel-head">
    <div><span>Datu avoti</span><h3>Importu veselība</h3></div>
    <span className={'quality-badge '+(problemSports.length||staleMunicipalities.length?'bad':'ok')}>
     {problemSports.length+staleMunicipalities.length} jāpārbauda
    </span>
   </div>
-
+  {hidden>0&&<button type="button" className="text-button" aria-expanded={showAll} onClick={()=>setShowAll(v=>!v)}>{showAll?'Rādīt tikai problēmas':'Rādīt arī avotus, kas strādā ('+hidden+')'}</button>}
+  {!showAll&&!problemSports.length&&!staleMunicipalities.length&&<p className="admin-empty-inline">Visi avoti ielādējas kārtībā.</p>}
   <div className="import-health-grid">
    <div>
     <h4>Automatizētie sporta avoti</h4>
     <div className="import-health-list">
-     {sports.map(item=><article key={item.key}>
+     {shownSports.map(item=><article key={item.key}>
       <div><strong>{item.label}</strong><span>{item.cron_active?'Cron aktīvs':'Cron nav aktīvs'}{item.schedule?' · '+item.schedule:''}</span></div>
       <span className={'quality-badge '+statusTone(item)}>{item.stale?'Novecojis':item.last_status||'Nav statusa'}</span>
       <small>Pēdējais mēģinājums: {when(item.last_attempt_at)}<br/>Pēdējā veiksmīgā izpilde: {when(item.last_success_at)}</small>
@@ -54,7 +69,7 @@ export default function AdminImportHealth({health}){
     <h4>Pašvaldību kalendāri</h4>
     <p className="sync-text">Ielādē katru trešdienu; lapas, kas neatbild, tiek pieprasītas atkārtoti. Ja avots neizdodas, paliek iepriekšējā kopija.</p>
     <div className="import-health-list municipality-health">
-     {[...municipalities].sort((a,b)=>Number(municipalityTone(a)==='ok')-Number(municipalityTone(b)==='ok')).map(item=><article key={item.source_id}>
+     {[...shownMunicipalities].sort((a,b)=>Number(municipalityTone(a)==='ok')-Number(municipalityTone(b)==='ok')).map(item=><article key={item.source_id}>
       <div><strong>{item.label}</strong><span>{item.domain}</span></div>
       <span className={'quality-badge '+municipalityTone(item)}>{municipalityLabel(item)}</span>
       <small>Pēdējā veiksmīgā ielāde: {when(item.last_success_at)}</small>
