@@ -1,5 +1,6 @@
 import {validateQuickEvent} from '../../../lib/event-entry.js';
-import {cleanSlots,countOccurrences,cleanPrice} from '../../../lib/event-schedule.js';
+import {cleanSocialLinks} from '../../../lib/social-links.js';
+import {cleanSlots,countOccurrences,cleanPrice,cleanDatedSlots} from '../../../lib/event-schedule.js';
 import {rigaDate} from '../../../lib/meets-personal.js';
 import {NextResponse} from 'next/server';
 
@@ -89,17 +90,20 @@ export async function POST(request){
 
   if(action==='list'){
    const [organizations,memberships,visibleVenues,submissions,venueLinks,contacts]=await Promise.all([
-    api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id,description,image_url,public_email,public_phone,public_url,is_public,created_at,updated_at&order=created_at.desc'),
+    api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id,description,image_url,public_email,public_phone,public_url,social_links,is_public,created_at,updated_at&order=created_at.desc'),
     api(TABLES.members,token,'GET',null,'?select=organization_id,role&user_id=eq.'+user.id),
     api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,directions,description,is_public,created_at&order=created_at.desc'),
     api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,price_min,price_max,cover_image_path,recurrence_slots,admin_note,review_reason,reviewed_at,latitude,longitude,schedule_kind,recurrence_note,event_id,created_at,updated_at&order=created_at.desc'),
     api(TABLES.venueLinks,token,'GET',null,'?select=organization_id,venue_id,relation_type,created_at'),
-    api(TABLES.contacts,token,'GET',null,'?select=organization_id,address,contacts,contacts_public')
+    api(TABLES.contacts,token,'GET',null,'?select=organization_id,address,address_latitude,address_longitude,address_public,contacts,contacts_public')
    ]);
    const memberRole=new Map((memberships||[]).map(x=>[x.organization_id,x.role]));
    const details=new Map((contacts||[]).map(c=>[c.organization_id,c]));
    const orgs=(organizations||[]).map(org=>({...org,...(details.get(org.id)||{}),role:org.owner_id===user.id?'owner':memberRole.get(org.id)||'viewer'}));
    const orgIds=new Set(orgs.map(org=>org.id));
+   // Whether the organizer publishes without MEETS review (trusted by an admin).
+   const trusted=await Promise.all(orgs.map(org=>api('rpc/meets_org_is_trusted',token,'POST',{p_organization_id:org.id}).catch(()=>false)));
+   orgs.forEach((org,i)=>{org.trusted=trusted[i]===true;});
    const venues=(visibleVenues||[]).filter(v=>orgIds.has(v.organization_id));
    const publicVenues=(visibleVenues||[]).filter(v=>publicVenue(v,orgIds));
    return NextResponse.json({organizations:orgs,venues,publicVenues,venueLinks:venueLinks||[],submissions:submissions||[]});
@@ -128,7 +132,9 @@ export async function POST(request){
    const mayEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
    if(!owned.length||mayEdit!==true)return NextResponse.json({error:'Nav tiesību mainīt organizācijas kontaktus.'},{status:403});
    const contacts=cleanOrgContacts(data.contacts);
-   const details={organization_id:data.organization_id,address:String(data.address||'').trim().slice(0,300),contacts,contacts_public:data.contacts_public===true&&owned[0].is_public===true,address_public:data.address_public===true,updated_at:new Date().toISOString()};
+   const lat=Number(data.address_latitude),lon=Number(data.address_longitude);
+   const point=Number.isFinite(lat)&&Number.isFinite(lon)&&data.address_latitude!==''&&data.address_latitude!=null&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180?{address_latitude:lat,address_longitude:lon}:{address_latitude:null,address_longitude:null};
+   const details={organization_id:data.organization_id,address:String(data.address||'').trim().slice(0,300),...point,contacts,contacts_public:data.contacts_public===true&&owned[0].is_public===true,address_public:data.address_public===true,updated_at:new Date().toISOString()};
    const saved=await api(TABLES.contacts,token,'POST',details,'?on_conflict=organization_id');
    return NextResponse.json({item:saved[0]||details});
   }
@@ -145,6 +151,20 @@ export async function POST(request){
   const canEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
   if(canEdit!==true)return NextResponse.json({error:'Nav tiesību veikt izmaiņas šajā organizācijā.'},{status:403});
 
+  // Deleting: first all events, then the organizer (owner only, checked in the database).
+  if(action==='deleteOrgEvents'){
+   const result=await rpcCall('meets_org_delete_events',token,{p_organization_id:data.organization_id});
+   return NextResponse.json({result});
+  }
+  if(action==='deleteOrganization'){
+   const result=await rpcCall('meets_org_delete',token,{p_organization_id:data.organization_id});
+   return NextResponse.json({result});
+  }
+  if(action==='saveOrgSocials'){
+   const links=cleanSocialLinks(Array.isArray(data.social_links)?data.social_links:[]);
+   const result=await api('rpc/meets_update_organization_socials',token,'POST',{p_organization_id:data.organization_id,p_links:links});
+   return NextResponse.json({social_links:result});
+  }
   if(action==='updateOrganization'){
    const name=String(data.name||'').trim();
    const result=await api('rpc/meets_update_organization_profile',token,'POST',{
@@ -213,9 +233,10 @@ export async function POST(request){
    if(data.date_to&&(!DATE.test(String(data.date_to))||date_from&&data.date_to<date_from))return NextResponse.json({error:'Beigu datums nevar būt pirms sākuma datuma.'},{status:400});
 
    const recurring=data.schedule_kind==='recurring';
+   const dated=data.schedule_kind==='dated';
    let slots=[],pricing;
    try{
-    slots=recurring?cleanSlots(data.recurrence_slots):[];
+    slots=recurring?cleanSlots(data.recurrence_slots):dated?cleanDatedSlots(data.recurrence_slots,date_from,String(data.date_to||''),isDraft):[];
     if(recurring&&!isDraft)countOccurrences(date_from,String(data.date_to||''),slots);
     const incompleteDraft=isDraft&&['paid','mixed'].includes(data.price_status)&&
       (data.price_min==null||data.price_min===''||data.price_max==null||data.price_max==='');
@@ -244,7 +265,7 @@ export async function POST(request){
     venue_id:venue?.id||null,
     title,
     description:String(data.description||'').slice(0,6000),
-    schedule_kind:['once','recurring','ongoing'].includes(data.schedule_kind)?data.schedule_kind:'once',
+    schedule_kind:['once','recurring','ongoing','dated'].includes(data.schedule_kind)?data.schedule_kind:'once',
     recurrence_note:String(data.recurrence_note||'').slice(0,300),
     category:String(data.category||'Cits').slice(0,100),
     date_from:date_from||null,
@@ -261,7 +282,7 @@ export async function POST(request){
    };
 
    if(!isDraft){
-    const problem=validateQuickEvent(recurring?{...payload,time_from:'',time_to:''}:payload);
+    const problem=validateQuickEvent(recurring||dated?{...payload,time_from:'',time_to:''}:payload);
     if(problem)return NextResponse.json({error:problem},{status:400});
     if(String(payload.date_to||payload.date_from)<rigaDate())return NextResponse.json({error:'Pasākuma beigu datums jau ir pagājis.'},{status:400});
    }

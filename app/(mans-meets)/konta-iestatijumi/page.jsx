@@ -29,6 +29,17 @@ export default function AccountSettings(){
  async function savePhoto(e){const file=e.target.files?.[0];if(!file)return;
   await act(async()=>{const value=await resizeImage(file);const saved=await accountRequest('/api/account','updateAvatar',{avatarDataUrl:value});setAccountData('avatar',d=>({...d,avatar_url:saved.avatar_url,avatar_data_url:null}));},'avatar');e.target.value='';
  }
+ async function deleteAccount(){
+  const typed=window.prompt('Dzēst MEETS kontu? Tiks izdzēsti arī saglabātie pasākumi un sekošana. To nevar atsaukt.\nLai turpinātu, ieraksti DZĒST:','');
+  if(String(typed||'').trim().toUpperCase()!=='DZĒST')return;
+  setBusy('delete');setError('');setMessage('');
+  try{
+   await accountRequest('/api/account','deleteAccount');
+   try{localStorage.removeItem('meets_user_session_v1');localStorage.removeItem('meets_favorites_v1');localStorage.removeItem('meets_favorites_owner_v1');}catch{}
+   window.dispatchEvent(new Event('meets-user-changed'));
+   window.location.assign('/?konts=dzests');
+  }catch(e){setError(e.message);setBusy('');}
+ }
  async function removePhoto(){await act(async()=>{await accountRequest('/api/account','updateAvatar',{avatarDataUrl:null});setAccountData('avatar',d=>({...d,avatar_url:null,avatar_data_url:null}));},'avatar')}
  async function changePassword(e){e.preventDefault();if(password!==repeat){setError('Jaunās paroles nesakrīt.');return}
   await act(async()=>{await accountRequest('/api/account','changePassword',{currentPassword,newPassword:password});setCurrentPassword('');setPassword('');setRepeat('');},'password')
@@ -55,5 +66,10 @@ export default function AccountSettings(){
    <label>Atkārtot jauno paroli<input type="password" autoComplete="new-password" minLength={8} required value={repeat} onChange={e=>setRepeat(e.target.value)}/></label>
    <button className="button primary" disabled={!!busy}>Mainīt paroli</button>
   </form></section>
+  <section className="meets-settings-panel meets-settings-danger"><h2>Dzēst MEETS kontu</h2>
+   <p>Tiks izdzēsts tavs konts, saglabātie pasākumi, sekošana un atgādinājumi. To nevar atsaukt.</p>
+   <p className="meets-muted">Ja tev ir organizatori, vispirms izdzēs tos: Organizēšana → Profils → Dzēst organizatoru.</p>
+   <button type="button" className="button danger" disabled={!!busy} onClick={deleteAccount}>{busy==='delete'?'Dzēš…':'Dzēst kontu…'}</button>
+  </section>
  </div>;
 }

@@ -8,7 +8,7 @@ import Authentication from '../../components/account-auth-flow.jsx';
 import ProfileShell from '../../components/profile-shell.jsx';
 import {rigaDate} from '../../../lib/meets-personal.js';
 import WeeklySchedule from '../../components/weekly-schedule.jsx';
-import {countOccurrences,cleanPrice} from '../../../lib/event-schedule.js';
+import {countOccurrences,cleanPrice,cleanDatedSlots,datesBetween} from '../../../lib/event-schedule.js';
 import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,normalizeEventTime,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
 import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
 import {refreshSession} from '../../../lib/auth-client.js';
@@ -214,17 +214,52 @@ function SimpleEventFlow(){
   setOrgId(value);setSavedId(stored?.saved_id||'');setSaveVenue(stored?.save_venue===true);setForm(stored?cleanDraft(stored):{...DEFAULT});setNotice(stored?'Atjaunots šīs organizācijas melnraksts.':'');setError('');
   const u=new URL(window.location.href);u.searchParams.set('org',value);u.searchParams.delete('edit');u.searchParams.delete('copy');u.searchParams.delete('venue');window.history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString());
  }
+ // Multi-day events: one time for all days (09:00–17:00 by default) or a time per day.
+ const multiDay=form.schedule_kind==='ongoing'||form.schedule_kind==='dated';
+ const dayList=form.schedule_kind==='dated'?datesBetween(form.date_from,form.date_to):[];
+ const WD=['Sv','P','O','T','C','Pk','S'];
+ function dayLabel(day){const d=new Date(day+'T12:00:00Z');return WD[d.getUTCDay()]+' '+day.slice(8,10)+'.'+day.slice(5,7)+'.';}
+ function daySlot(day){return (form.recurrence_slots||[]).find(x=>x.date===day)||{date:day,start:form.time_from||'09:00',end:form.time_to||'17:00'};}
+ function setDayTime(day,key,value){
+  const slots=datesBetween(form.date_from,form.date_to).map(d=>{const s=daySlot(d);return d===day?{...s,[key]:value}:s;});
+  update('recurrence_slots',slots);
+ }
+ function chooseScheduleKind(kind){
+  setForm(before=>{
+   const next={...before,schedule_kind:kind};
+   if(kind==='ongoing'){
+    if(!before.time_from)next.time_from='09:00';
+    if(!before.time_to)next.time_to='17:00';
+   }
+   if(kind!=='recurring'&&before.schedule_kind==='recurring')next.recurrence_slots=[];
+   return next;
+  });
+  setError('');
+ }
+ function chooseDayTimes(perDay){
+  setForm(before=>{
+   if(!perDay)return {...before,schedule_kind:'ongoing',recurrence_slots:[]};
+   const start=before.time_from||'09:00',end=before.time_to||'17:00';
+   return {...before,schedule_kind:'dated',recurrence_slots:datesBetween(before.date_from,before.date_to).map(date=>({date,start,end}))};
+  });
+ }
+ // Trusted organizers are published without MEETS review.
+ const trusted=activeOrg?.trusted===true;
  function showLocation(){locationRef.current?.scrollIntoView({behavior:'smooth',block:'center'});}
  function validateForPreview(){
   if(!form.venue_id){
    setError(account?'Izvēlies norises vietu no saraksta vai pievieno jaunu.':'Lai izvēlētos norises vietu, pieslēdzies — ievadītais saglabāsies.');
    showLocation();return false;
   }
-  const message=validateQuickEvent(form);
+  const message=validateQuickEvent(form.schedule_kind==='dated'?{...form,time_from:'',time_to:''}:form);
   if(message){setError(message);return false;}
   try{
    cleanPrice(form.price_status,form.price_min,form.price_max);
    if(form.schedule_kind==='recurring')countOccurrences(form.date_from,form.date_to,form.recurrence_slots);
+   if(form.schedule_kind==='dated'){
+    if(!form.date_to||form.date_to<=form.date_from)throw Error('Vairāku dienu pasākumam norādi arī beigu datumu.');
+    cleanDatedSlots(datesBetween(form.date_from,form.date_to).map(daySlot),form.date_from,form.date_to);
+   }
   }catch(e){setError(e.message);return false;}
   return true;
  }
@@ -247,7 +282,8 @@ function SimpleEventFlow(){
    const fields={...form,organization_id:orgId,
     venue_id:selectedVenue?.id||null,
     save_venue:false,
-    schedule_kind:form.schedule_kind==='recurring'?'recurring':form.schedule_kind==='ongoing'||(form.date_to&&form.date_to!==form.date_from)?'ongoing':'once'};
+    ...(form.schedule_kind==='dated'?{recurrence_slots:datesBetween(form.date_from,form.date_to).map(daySlot),time_from:'',time_to:''}:{}),
+    schedule_kind:form.schedule_kind==='recurring'?'recurring':form.schedule_kind==='dated'?'dated':form.schedule_kind==='ongoing'||(form.date_to&&form.date_to!==form.date_from)?'ongoing':'once'};
    let id=savedId;
    if(imageFile){
     const draft=await call('saveEvent',{...fields,...(id?{id}:{}),status:'draft'});
@@ -319,14 +355,27 @@ function SimpleEventFlow(){
    </section>
 
    <section className="event-editor-section"><div className="event-editor-section-title"><span>2</span><div><h2>Kad?</h2><p>Izvēlies vienreizēju, vairāku dienu vai atkārtotu norisi.</p></div></div>
-    <label>Norises veids<select value={form.schedule_kind||'once'} onChange={e=>update('schedule_kind',e.target.value)}><option value="once">Vienreizējs</option><option value="ongoing">Vairāku dienu</option><option value="recurring">Atkārtots grafiks</option></select></label>
+    <label>Norises veids<select value={form.schedule_kind==='dated'?'ongoing':form.schedule_kind||'once'} onChange={e=>chooseScheduleKind(e.target.value)}><option value="once">Vienreizējs</option><option value="ongoing">Vairāku dienu</option><option value="recurring">Atkārtots grafiks</option></select></label>
     {savedId&&recurrenceEditScope(form)==='series'&&<fieldset className="recurrence-scope"><legend>Ko labo?</legend><label><input type="radio" checked readOnly/> Visu sērijas grafiku</label><label aria-disabled="true"><input type="radio" disabled/> Tikai vienu norisi — šajā redaktorā nav pieejams</label><small>Izmaiņas visai sērijai nekad netiek veiktas klusām.</small></fieldset>}
     {form.schedule_kind==='recurring'?<>
      <div className="quick-flow-two"><label>Grafiks no *<input required type="date" min={savedId?undefined:rigaDate()} value={form.date_from||''} onChange={e=>update('date_from',e.target.value)}/></label><label>Grafiks līdz *<input required type="date" min={form.date_from||rigaDate()} value={form.date_to||''} onChange={e=>update('date_to',e.target.value)}/></label></div>
      <WeeklySchedule slots={form.recurrence_slots||[]} onChange={v=>update('recurrence_slots',v)} dateFrom={form.date_from} dateTo={form.date_to}/>
-    </>:<div className="quick-flow-two"><label>Datums no *<input required type="date" min={savedId?undefined:rigaDate()} value={form.date_from||''} onChange={e=>update('date_from',e.target.value)}/></label>
-     <label>Datums līdz<input type="date" min={form.date_from||undefined} value={form.date_to||''} onChange={e=>update('date_to',e.target.value)}/></label>
-     <label>Sākuma laiks<input type="time" value={form.time_from||''} onChange={e=>update('time_from',e.target.value)}/></label><label>Beigu laiks<input type="time" value={form.time_to||''} onChange={e=>update('time_to',e.target.value)}/></label></div>}
+    </>:<>
+     <div className="quick-flow-two"><label>Datums no *<input required type="date" min={savedId?undefined:rigaDate()} value={form.date_from||''} onChange={e=>update('date_from',e.target.value)}/></label>
+      <label>{multiDay?'Datums līdz *':'Datums līdz'}<input type="date" required={multiDay} min={form.date_from||undefined} value={form.date_to||''} onChange={e=>update('date_to',e.target.value)}/></label></div>
+     {multiDay&&<fieldset className="event-day-times-mode"><legend>Norises laiks</legend>
+      <label><input type="radio" name="day-times" checked={form.schedule_kind!=='dated'} onChange={()=>chooseDayTimes(false)}/> Viens laiks visām dienām</label>
+      <label><input type="radio" name="day-times" checked={form.schedule_kind==='dated'} onChange={()=>chooseDayTimes(true)}/> Katrai dienai savs laiks</label>
+     </fieldset>}
+     {form.schedule_kind==='dated'?<div className="event-day-times" role="group" aria-label="Katras dienas laiks">
+      {dayList.length?dayList.map(day=>{const slot=daySlot(day);return <div className="event-day-time" key={day}>
+       <strong>{dayLabel(day)}</strong>
+       <label>No<input type="time" value={slot.start} onChange={e=>setDayTime(day,'start',e.target.value)}/></label>
+       <label>Līdz<input type="time" value={slot.end} onChange={e=>setDayTime(day,'end',e.target.value)}/></label>
+      </div>;}):<p className="event-address-help">Norādi datumu no un līdz — tad varēsi iestatīt katras dienas laiku.</p>}
+     </div>:<div className="quick-flow-two">
+      <label>Sākuma laiks<input type="time" value={form.time_from||''} onChange={e=>update('time_from',e.target.value)}/></label><label>Beigu laiks<input type="time" value={form.time_to||''} onChange={e=>update('time_to',e.target.value)}/></label></div>}
+    </>}
    </section>
 
    <section ref={locationRef} className="event-editor-section event-editor-location"><div className="event-editor-section-title"><span>3</span><div><h2>Kur notiks?</h2><p>Izvēlies saglabāto norises vietu vai pievieno jaunu.</p></div></div>
@@ -371,11 +420,13 @@ function SimpleEventFlow(){
     <div><dt>Kad</dt><dd>{prettyDate(form.date_from)}{form.date_to&&form.date_to!==form.date_from?' – '+prettyDate(form.date_to):''}{form.time_from?' · '+form.time_from:''}{form.time_to?'–'+form.time_to:''}</dd></div>
     <div><dt>Kur</dt><dd>{form.venue_name}{form.address?' · '+form.address:''}</dd></div>
     {form.schedule_kind==='recurring'&&<div><dt>Norises reizes</dt><dd>{countOccurrences(form.date_from,form.date_to,form.recurrence_slots)}</dd></div>}
+    {form.schedule_kind==='dated'&&<div><dt>Laiki</dt><dd>{datesBetween(form.date_from,form.date_to).map(day=>{const x=daySlot(day);return dayLabel(day)+' '+x.start+'–'+x.end;}).join(' · ')}</dd></div>}
     <div><dt>Apraksts</dt><dd>{form.description||'Apraksts nav norādīts.'}</dd></div>
    </dl>
-   <p className="meets-muted">{publishedEdit?'Līdz apstiprināšanai apmeklētāji redz pašreizējo publicēto versiju.':'Iesniegšana neapiet moderāciju. Pasākums kartē būs redzams tikai pēc apstiprināšanas.'}</p>
+   {trusted?<p className="event-trusted-warning" role="note"><strong>Papildu pārbaude nenotiks.</strong> Tavs organizators ir MEETS uzticamo sarakstā, tāpēc pasākums tiks publicēts kartē uzreiz. Pārbaudi datumu, laiku un vietu.</p>
+    :<p className="meets-muted">{publishedEdit?'Līdz apstiprināšanai apmeklētāji redz pašreizējo publicēto versiju.':'Pasākums tiks iesniegts MEETS izvērtēšanai. Kartē tas būs redzams pēc apstiprināšanas (parasti 1–2 darba dienās).'}</p>}
    <div className="quick-flow-actions"><button className="button" type="button" onClick={()=>setStage('edit')}>← Labot</button>
-    <button className="button primary" type="button" disabled={busy||activeOrg?.role==='viewer'} onClick={()=>account?save('pending_review'):startAuth()}>{busy?'Saglabā…':publishedEdit?'Iesniegt izmaiņas pārbaudei →':'Iesniegt pārbaudei →'}</button>
+    <button className="button primary" type="button" disabled={busy||activeOrg?.role==='viewer'} onClick={()=>account?save('pending_review'):startAuth()}>{busy?'Saglabā…':trusted?(publishedEdit?'Publicēt izmaiņas →':'Publicēt uzreiz →'):publishedEdit?'Iesniegt izmaiņas pārbaudei →':'Iesniegt izvērtēšanai →'}</button>
     {!publishedEdit&&<button type="button" className="button" disabled={busy||activeOrg?.role==='viewer'} onClick={()=>save('draft')}>Saglabāt kā melnrakstu</button>}</div>
   </div>}
 
@@ -391,7 +442,7 @@ function SimpleEventFlow(){
     }catch(e){setError(e.message);}
    }}/><button className="button" type="button" onClick={()=>setStage('preview')}>← Atpakaļ</button></div>}
 
-  {stage==='done'&&<div className="quick-flow-card"><div className="quick-flow-success">✓</div><h2>{publishedEdit?'Izmaiņas nosūtītas pārbaudei':'Pasākums nosūtīts pārbaudei'}</h2><p>{form.title}</p><p className="meets-muted">Ieraksts kļūs publisks tikai pēc moderatora apstiprināšanas.</p>
+  {stage==='done'&&<div className="quick-flow-card"><div className="quick-flow-success">✓</div><h2>{trusted?(publishedEdit?'Izmaiņas publicētas':'Pasākums publicēts'):publishedEdit?'Izmaiņas iesniegtas izvērtēšanai':'Pasākums iesniegts izvērtēšanai'}</h2><p>{form.title}</p><p className="meets-muted">{trusted?'Pasākums parādīsies kartē pēc dažām sekundēm. Ja automātiskā pārbaude atradīs neskaidrību (piem., iespējamu dublikātu), MEETS to izvērtēs un tu saņemsi e-pastu.':'Pasākums ir iesniegts MEETS izvērtēšanai. Kad tas būs publicēts vai būs jāprecizē, saņemsi e-pastu.'}</p>
    <div className="quick-flow-actions"><button type="button" className="button primary" onClick={restart}>+ Pievienot nākamo pasākumu</button><Link className="button" href={'/organizators?org='+orgId+'&panel=events'}>Pasākumu saraksts →</Link></div></div>}
  </section>;
 

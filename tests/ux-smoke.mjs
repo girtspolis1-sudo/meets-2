@@ -333,8 +333,8 @@ for(const width of [360,390]){
   await p.getByText('MEETS mobilais pasākums').first().waitFor({timeout:10000});
   await assertLayout(p,'quick-event',width);
   await p.screenshot({path:'ux-screenshots/'+width+'-quick-event.png',fullPage:true});
-  await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
-  await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei'}).waitFor({timeout:12000});
+  await p.getByRole('button',{name:/Iesniegt izvērtēšanai/}).click();
+  await p.getByRole('heading',{name:'Pasākums iesniegts izvērtēšanai'}).waitFor({timeout:12000});
   if(submitted?.venue_id!==venueId||submitted?.status!=='pending_review'||submitted?.date_from!==day){
    fails++;console.error('Event submission lost data',width,submitted);
   }
@@ -354,8 +354,8 @@ for(const width of [360,390]){
    await next.getByLabel('Pasākuma norises adrese').selectOption(venueId);
    await next.getByRole('button',{name:/Priekšskatīt/}).click();
    await p.getByText('Norises reizes',{exact:true}).waitFor({timeout:10000});
-   await p.getByRole('button',{name:/Iesniegt pārbaudei/}).click();
-   await p.getByRole('heading',{name:'Pasākums nosūtīts pārbaudei'}).waitFor({timeout:10000});
+   await p.getByRole('button',{name:/Iesniegt izvērtēšanai/}).click();
+   await p.getByRole('heading',{name:'Pasākums iesniegts izvērtēšanai'}).waitFor({timeout:10000});
    if(submitted?.schedule_kind!=='recurring'||submitted?.price_min!=='9.50'||
      submitted?.price_max!=='15.00'||submitted?.recurrence_slots?.length!==1){
      fails++;console.error('Recurring paid event payload is invalid',submitted);

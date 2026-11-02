@@ -237,3 +237,12 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
  .unified-event-editor .event-editor-actions{bottom:calc(74px + env(safe-area-inset-bottom))}
  .quick-flow-card,.org-form-card{scroll-margin-bottom:96px}
 }
+
+/* Map: events more than 15 days ahead stay in the background — faint, grey
+   outline and grey days badge — so the coming two weeks stand out. */
+.c3-pin.far{opacity:.5;filter:none}
+.c3-pin.far .c3-pin-shape path{stroke:#b4bcc6;stroke-width:2}
+.c3-pin.far .c3-pin-icon{color:#6b7480}
+.c3-pin.far .c3-pin-days{background:#eef1f4;color:#5b6675}
+.leaflet-marker-icon:hover .c3-pin.far,.leaflet-marker-icon:focus-visible .c3-pin.far{opacity:1}
+.legend-dot.far{background:#eef1f4;box-shadow:0 0 0 1.5px #b4bcc6}
