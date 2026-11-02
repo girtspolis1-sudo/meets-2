@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import HomeFeatured from './home-featured.jsx';
+import CategoryIcon from './components/category-icon.jsx';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS} from '../lib/home-category-filters.js';
 
 const GROUPS=HOME_GROUP_KEYS.map(key=>({key,...HOME_CATEGORY_FILTERS[key]}));
@@ -22,7 +23,7 @@ export default function Home(){
     <div className="meets-hero-chips" aria-label="Populārākās kategorijas">
      <Link href="/karte" className="active">Visi</Link>
      {GROUPS.map(group=><Link key={group.key} href={'/karte?category='+group.key}>
-      <span aria-hidden="true">{group.icon}</span>{group.title}</Link>)}
+      <CategoryIcon name={group.key}/>{group.title}</Link>)}
     </div>
    </div>
   </section>
@@ -35,7 +36,7 @@ export default function Home(){
   <HomeFeatured/>
   <section className="meets-discovery-categories" aria-labelledby="all-categories-heading">
    <header className="meets-home-section-header"><div><p className="eyebrow">Atrodi pēc intereses</p><h2 id="all-categories-heading">Visas kategorijas</h2></div><Link href="/karte">Skatīt kartē →</Link></header>
-   <div className="meets-all-categories">{GROUPS.map(group=><Link href={'/karte?category='+group.key} key={group.key}><span aria-hidden="true">{group.icon}</span><strong>{group.title}</strong><small>{group.subtitle}</small></Link>)}</div>
+   <div className="meets-all-categories">{GROUPS.map(group=><Link href={'/karte?category='+group.key} key={group.key}><span className="meets-category-tile-icon"><CategoryIcon name={group.key} size={24}/></span><strong>{group.title}</strong><small>{group.subtitle}</small></Link>)}</div>
   </section>
  </div>;
 }

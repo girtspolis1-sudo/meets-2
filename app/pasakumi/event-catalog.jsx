@@ -22,6 +22,25 @@ const CARD_PAGE=40;
 const pageSize=50;
 const mobileFilterKeys=new Set(['date_from','title','municipality','event_type','primary_category','price_status']);
 
+// "1 pasākums", "21 pasākums", "2 pasākumi", "11 pasākumi" (Latvian plural follows the last digit).
+// The big number already shows the day of the month, so the label beside it
+// names the day ("Šodien, pirmdiena") and the line below names the month.
+const dayFormat=(options)=>new Intl.DateTimeFormat('lv',{timeZone:'UTC',...options});
+function dayParts(day,today){
+ const date=new Date(day+'T12:00:00Z');
+ if(Number.isNaN(date.getTime()))return null;
+ const weekday=dayFormat({weekday:'long'}).format(date).toLocaleLowerCase('lv');
+ const tomorrow=new Date(Date.parse(today+'T12:00:00Z')+864e5).toISOString().slice(0,10);
+ const prefix=day===today?'Šodien, ':day===tomorrow?'Rīt, ':'';
+ return {number:date.getUTCDate(),label:prefix+(prefix?weekday:weekday.charAt(0).toUpperCase()+weekday.slice(1)),month:dayFormat({month:'long'}).format(date)};
+}
+
+function eventCountLabel(n){
+ const count=Number(n)||0;
+ const word=count===0?'pasākumu':count%10===1&&count%100!==11?'pasākums':'pasākumi';
+ return count+' '+word;
+}
+
 export default function EventCatalog(){
  const {data,loading,error,refresh}=useEvents();
  const [columnFilters,setColumnFilters]=useState({});
@@ -326,7 +345,13 @@ export default function EventCatalog(){
     {viewMode==='cards'&&<div className="catalog-card-grid meets-catalog-image-grid">{cards.map((event,index)=>{
      const day=sort==='date_from'?listDay(event,today):'';
      const showHeading=day&&(index===0||listDay(cards[index-1],today)!==day);
-     return [showHeading&&<h2 key={'day-'+day} className="catalog-day-heading">{dayHeading(event,today)}<span>{dayCounts.get(day)}</span></h2>,
+     return [showHeading&&<h2 key={'day-'+day} className={'catalog-day-heading'+(day===today?' is-today':'')}>
+      {(parts=>parts?<>
+       <span className="day-number" aria-hidden="true">{parts.number}</span>
+       <span className="day-text"><span className="day-label">{parts.label}<span className="sr-only"> {parts.number}. {parts.month}</span></span>
+        <span className="day-count" aria-hidden="true">{parts.month} · {eventCountLabel(dayCounts.get(day))}</span>
+        <span className="sr-only">, {eventCountLabel(dayCounts.get(day))}</span></span>
+      </>:<span className="day-label">{dayHeading(event,today)}</span>)(dayParts(day,today))}</h2>,
       <DiscoveryEventCard key={event.id} event={event} onOpen={setSelected} actions/>];
     })}</div>}
     {viewMode==='cards'&&listed.current.length>shown&&<div className="catalog-more">
