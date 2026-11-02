@@ -2416,3 +2416,83 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 }
 .nearby-place-title h3,.event-detail-facts h3{color:var(--text,#1b2140)}
 .event-detail-description .text-button{padding:0;min-height:0}
+
+/* Admin: data status board — four blocks ------------------------------------ */
+.admin-status-board{margin:0 0 18px;padding:18px;border:1px solid #e3e6ea;border-radius:18px;background:#fff}
+.admin-status-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.admin-status-head span{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#697078}
+.admin-status-head h2{margin:2px 0 4px;font-size:24px}
+.admin-status-head p{margin:0;color:#5b6675;font-size:13px}
+.admin-bucket-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.admin-bucket{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid #e3e6ea;border-top-width:5px;border-radius:14px;background:#fbfbfc}
+.admin-bucket-critical{border-top-color:#c8383f;background:#fff6f6}
+.admin-bucket-ready{border-top-color:#e3ae1c;background:#fffbef}
+.admin-bucket-review{border-top-color:#e07b2c;background:#fff8f2}
+.admin-bucket-ok{border-top-color:#1e9a62;background:#f3fbf6}
+.admin-bucket-head{display:grid;gap:4px;padding:0;border:0;background:none;text-align:left;cursor:pointer;color:inherit;font:inherit}
+.admin-bucket-head:focus-visible{outline:2px solid #1b2430;outline-offset:4px;border-radius:8px}
+.admin-bucket-label{font-size:13px;font-weight:800}
+.admin-bucket-head strong{font-size:34px;line-height:1.05}
+.admin-bucket-share{display:block;height:6px;border-radius:3px;background:rgba(27,36,48,.08);overflow:hidden}
+.admin-bucket-share i{display:block;height:100%;background:currentColor;opacity:.55}
+.admin-bucket-critical .admin-bucket-share i{background:#c8383f;opacity:1}
+.admin-bucket-ready .admin-bucket-share i{background:#e3ae1c;opacity:1}
+.admin-bucket-review .admin-bucket-share i{background:#e07b2c;opacity:1}
+.admin-bucket-ok .admin-bucket-share i{background:#1e9a62;opacity:1}
+.admin-bucket-head small{color:#697078;font-size:12px}
+.admin-bucket>p{margin:0;font-size:12.5px;color:#5b6675;line-height:1.4}
+.admin-bucket-reasons{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.admin-bucket-reasons button{display:flex;justify-content:space-between;gap:8px;width:100%;padding:5px 8px;border:1px solid #e3e6ea;border-radius:8px;background:#fff;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
+.admin-bucket-reasons button:hover{border-color:#9aa3ad}
+.admin-bucket-reasons button.reason-block{border-left:3px solid #c8383f}
+.admin-bucket-reasons button.reason-warn{border-left:3px solid #e07b2c}
+.admin-bucket-reasons button.reason-info{border-left:3px solid #9aa3ad;color:#5b6675}
+.admin-bucket-reasons b{font-variant-numeric:tabular-nums}
+.admin-bucket .button{align-self:flex-start;margin-top:auto}
+.admin-issue-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.admin-issue-tags em{padding:1px 7px;border-radius:999px;font-size:11.5px;font-style:normal;font-weight:700;background:#eef0f3;color:#3d4652}
+.admin-issue-tags em.issue-block{background:#fde8e8;color:#9b1c24}
+.admin-issue-tags em.issue-warn{background:#fdefe2;color:#8a4410}
+.admin-issue-tags em.issue-info{background:#eef0f3;color:#5b6675;font-weight:600}
+.admin-review-action{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.admin-recent ol{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.admin-recent li{display:flex;gap:10px;align-items:baseline;font-size:13px}
+.admin-recent li time{color:#697078;font-variant-numeric:tabular-nums}
+.admin-recent li span{flex:1}
+.admin-recent li.undone span{text-decoration:line-through;color:#8a94a3}
+.admin-loading{display:grid;gap:8px;max-width:420px}
+.admin-loading small{color:#697078}
+.admin-loading-bar{height:6px;border-radius:3px;background:#eef0f3;overflow:hidden}
+.admin-loading-bar i{display:block;height:100%;background:#1b2430;transition:width .9s linear}
+
+/* Admin list: blocks, row colours, tools, shortcuts */
+.admin-bucket-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.admin-bucket-tabs button{padding:7px 12px;border:1px solid #d9dde2;border-radius:999px;background:#fff;font:inherit;font-weight:700;cursor:pointer}
+.admin-bucket-tabs button span{margin-left:4px;color:#697078;font-variant-numeric:tabular-nums}
+.admin-bucket-tabs button.active{background:#1b2430;border-color:#1b2430;color:#fff}
+.admin-bucket-tabs button.active span{color:#d6dbe1}
+.admin-bucket-tabs .bucket-critical:not(.active){border-color:#e8b4b7}
+.admin-bucket-tabs .bucket-review:not(.active){border-color:#f0c9a6}
+.bucket-badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap}
+.bucket-badge.bucket-critical{background:#fde8e8;color:#9b1c24}
+.bucket-badge.bucket-ready{background:#fcf2d6;color:#6e4c00}
+.bucket-badge.bucket-review{background:#fdefe2;color:#8a4410}
+.bucket-badge.bucket-ok{background:#e3f4ea;color:#14653e}
+.bucket-badge.bucket-other{background:#eef0f3;color:#5b6675}
+.admin-events-table tr.bucket-row-critical td:first-child{box-shadow:inset 4px 0 0 #c8383f}
+.admin-events-table tr.bucket-row-ready td:first-child{box-shadow:inset 4px 0 0 #e3ae1c}
+.admin-events-table tr.bucket-row-review td:first-child{box-shadow:inset 4px 0 0 #e07b2c}
+.admin-events-table tr.bucket-row-ok td:first-child{box-shadow:inset 4px 0 0 #1e9a62}
+.admin-events-table tr.row-focused td{background:#eef4ff}
+.admin-events-table.compact-table td{padding-top:5px;padding-bottom:5px}
+.admin-events-table.compact-table .table-subline{display:none}
+.admin-view-tools{display:flex;flex-wrap:wrap;gap:14px;margin:-4px 0 12px;font-size:13px}
+.admin-shortcuts{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:0 0 14px;padding:12px 14px;border:1px solid #e3e6ea;border-radius:12px;background:#fbfbfc;font-size:13px}
+.admin-shortcuts dt{font-weight:700}
+.admin-shortcuts dd{margin:0}
+kbd{display:inline-block;min-width:18px;padding:0 5px;border:1px solid #cdd3da;border-bottom-width:2px;border-radius:5px;background:#fff;font:700 11px/16px ui-monospace,monospace;text-align:center}
+.admin-toast .button{flex:none}
+@media(max-width:1100px){.admin-bucket-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.admin-bucket-grid{grid-template-columns:1fr}.admin-status-head{flex-direction:column}}
+.mapping-map-preview summary{cursor:pointer;font-size:12.5px;font-weight:700;color:#1b2430}
+.mapping-map-preview iframe{display:block;width:min(320px,100%);height:180px;margin-top:6px;border:1px solid #d9dde2;border-radius:10px}
