@@ -3,6 +3,7 @@ import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
 import {useSearchParams} from 'next/navigation';
 import EventVenueDialog from '../../components/event-venue-dialog.jsx';
+import DiscoveryEventCard from '../../components/discovery-event-card.jsx';
 import Authentication from '../../components/account-auth-flow.jsx';
 import ProfileShell from '../../components/profile-shell.jsx';
 import {rigaDate} from '../../../lib/meets-personal.js';
@@ -48,6 +49,10 @@ function SimpleEventFlow(){
  const [imagePreview,setImagePreview]=useState('');
  const [savedId,setSavedId]=useState('');
  const [lastSaved,setLastSaved]=useState('');
+ // Editing an event that is already public: changes go to review, no draft.
+ const [publishedEdit,setPublishedEdit]=useState(false);
+ const [dragging,setDragging]=useState(false);
+ const locationRef=useRef(null);
  const initialized=useRef(false);
  const activeOrg=orgs.find(o=>o.id===orgId)||null;
  const selectedVenue=[...venues,...publicVenues].find(v=>v.id===form.venue_id);
@@ -122,11 +127,26 @@ function SimpleEventFlow(){
    let next=null;
    if(editId&&chosen){
     const original=(result.submissions||[]).find(e=>e.id===editId&&e.organization_id===chosen);
-    if(original){next=cleanDraft(original);setSavedId(original.id);setNotice(original.schedule_kind==='recurring'?'Tu labo visu atkārtotā pasākuma sēriju. Viena norise netiks mainīta atsevišķi.':'Atvērts esošais pasākums labošanai.');}
+    if(original){
+     next=cleanDraft(original);setSavedId(original.id);
+     const live=Boolean(original.event_id);setPublishedEdit(live);
+     setNotice(live?'Tu labo jau publicētu pasākumu. Izmaiņas parādīsies pēc MEETS apstiprināšanas; līdz tam apmeklētāji redz pašreizējo versiju.'
+      :original.schedule_kind==='recurring'?'Tu labo visu atkārtotā pasākuma sēriju. Viena norise netiks mainīta atsevišķi.':'Atvērts esošais pasākums labošanai.');
+    }
     else setError('Norādītais pasākums nav pieejams labošanai šajā organizācijā.');
    }else if(copyId&&chosen){
     const original=(result.submissions||[]).find(e=>e.id===copyId&&e.organization_id===chosen);
-    if(original){next=copyEventDraft(original);setNotice('Izveidota kopija. Pārbaudi jaunos datumus — kopija netiks publicēta automātiski.');}
+    if(original){
+     next=copyEventDraft(original);
+     // "Dublēt ar citu datumu": the new start date comes from the list, the length stays.
+     const newDate=params.get('date')||'';
+     if(/^\d{4}-\d{2}-\d{2}$/.test(newDate)&&original.date_from){
+      const span=original.date_to?Math.round((Date.parse(original.date_to)-Date.parse(original.date_from))/864e5):0;
+      const end=new Date(Date.parse(newDate+'T12:00:00Z')+span*864e5).toISOString().slice(0,10);
+      next={...next,date_from:newDate,date_to:original.date_to?end:''};
+     }
+     setNotice(newDate?'Izveidota kopija ar jauno datumu. Pārbaudi un iesniedz — kopija netiks publicēta automātiski.':'Izveidota kopija. Pārbaudi jaunos datumus — kopija netiks publicēta automātiski.');
+    }
     else setError('Norādītais pasākums nav pieejams kopēšanai šajā organizācijā.');
    }else if(venueId&&chosen){
     const all=[...(result.venues||[]),...(result.publicVenues||[])];
@@ -194,8 +214,12 @@ function SimpleEventFlow(){
   setOrgId(value);setSavedId(stored?.saved_id||'');setSaveVenue(stored?.save_venue===true);setForm(stored?cleanDraft(stored):{...DEFAULT});setNotice(stored?'Atjaunots šīs organizācijas melnraksts.':'');setError('');
   const u=new URL(window.location.href);u.searchParams.set('org',value);u.searchParams.delete('edit');u.searchParams.delete('copy');u.searchParams.delete('venue');window.history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString());
  }
+ function showLocation(){locationRef.current?.scrollIntoView({behavior:'smooth',block:'center'});}
  function validateForPreview(){
-  if(!form.venue_id){setError('Izvēlies organizatora adresi no saraksta vai pievieno jaunu adresi.');return false;}
+  if(!form.venue_id){
+   setError(account?'Izvēlies norises vietu no saraksta vai pievieno jaunu.':'Lai izvēlētos norises vietu, pieslēdzies — ievadītais saglabāsies.');
+   showLocation();return false;
+  }
   const message=validateQuickEvent(form);
   if(message){setError(message);return false;}
   try{
@@ -217,6 +241,7 @@ function SimpleEventFlow(){
   if(!orgId){persistLocal();organizerSetup();return;}
   if(!canEdit){setError('Šajā organizācijā tev ir tikai skatīšanas tiesības.');return;}
   if(status==='pending_review'&&!validateForPreview()){setStage('edit');return;}
+  if(status==='draft'&&publishedEdit){setError('Publicētam pasākumam izmaiņas iesniedz pārbaudei — melnraksts nav pieejams.');return;}
   setBusy(true);setError('');
   try{
    const fields={...form,organization_id:orgId,
@@ -239,7 +264,17 @@ function SimpleEventFlow(){
   }catch(e){setError(e.message);if(e.status===401)startAuth();}
   finally{setBusy(false);}
  }
- function restart(){clearLocal();setForm({...DEFAULT});setSubmitted(null);setSaveVenue(false);setImageFile(null);setImagePreview('');setSavedId('');setStage('edit');setError('');setNotice('');}
+ function pickImage(file){
+  if(!file){setImageFile(null);setImagePreview('');return;}
+  if(file.size>4*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){setError('Atļauti JPG, PNG un WebP attēli līdz 4 MB.');return;}
+  if(imagePreview)URL.revokeObjectURL(imagePreview);setImageFile(file);setImagePreview(URL.createObjectURL(file));setError('');
+ }
+ // The preview is the real public card, so the organizer sees what visitors will see.
+ const previewEvent={id:'preview',title:form.title||'Pasākuma nosaukums',description:form.description,date_from:form.date_from,date_to:form.date_to||null,
+  time_from:form.time_from||null,time_to:form.time_to||null,venue_name:form.venue_name,address_raw:form.address,primary_category:form.category,
+  event_type:'Pasākums',price_status:form.price_status,price_min:form.price_min,price_max:form.price_max,cover_image_url:imagePreview||'',
+  latitude:form.latitude,longitude:form.longitude,location_precision:'venue',sources:[]};
+ function restart(){clearLocal();setPublishedEdit(false);setForm({...DEFAULT});setSubmitted(null);setSaveVenue(false);setImageFile(null);setImagePreview('');setSavedId('');setStage('edit');setError('');setNotice('');}
  const venueChosen=Boolean(form.venue_id||form.address||isCoordinatePair(form));
 
  if(!loaded)return <p className="meets-profile-skeleton" role="status">Ielādē pasākuma redaktoru…</p>;
@@ -271,12 +306,14 @@ function SimpleEventFlow(){
     <label>Kategorija<select value={form.category} onChange={e=>update('category',e.target.value)}>{EVENT_CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></label>
     <details className="event-extra-details" defaultOpen={Boolean(form.description||imagePreview)}>
      <summary>+ Apraksts un attēls <small>(neobligāti)</small></summary>
-     <label>Pasākuma attēls<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{
-      const file=e.target.files?.[0];if(!file){setImageFile(null);setImagePreview('');return;}
-      if(file.size>4*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){setError('Atļauti JPG, PNG un WebP attēli līdz 4 MB.');e.target.value='';return;}
-      if(imagePreview)URL.revokeObjectURL(imagePreview);setImageFile(file);setImagePreview(URL.createObjectURL(file));setError('');
-     }}/></label>
-     {imagePreview&&<div className="event-image-preview"><img src={imagePreview} alt="Pasākuma attēla priekšskatījums"/><button className="button" type="button" onClick={()=>{URL.revokeObjectURL(imagePreview);setImageFile(null);setImagePreview('');}}>Noņemt attēlu</button></div>}
+     <label className={'event-image-drop'+(dragging?' dragging':'')}
+      onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)}
+      onDrop={e=>{e.preventDefault();setDragging(false);pickImage(e.dataTransfer.files?.[0]);}}>
+      <strong>{imagePreview?'Nomainīt attēlu':'Pievieno attēlu'}</strong>
+      <span>Ievelc šeit vai izvēlies failu · JPG, PNG vai WebP līdz 4 MB · ieteicams 16:9, vismaz 1200 × 675 px</span>
+      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{pickImage(e.target.files?.[0]);e.target.value='';}}/>
+     </label>
+     {imagePreview&&<div className="event-image-preview event-image-preview-wide"><img src={imagePreview} alt="Pasākuma attēla priekšskatījums — tā tas izskatīsies kartītē"/><button className="button" type="button" onClick={()=>{URL.revokeObjectURL(imagePreview);setImageFile(null);setImagePreview('');}}>Noņemt attēlu</button></div>}
      <label>Apraksts<textarea rows={3} maxLength={6000} value={form.description} placeholder="Kas notiks un kam pasākums paredzēts?" onChange={e=>update('description',e.target.value)}/></label>
     </details>
    </section>
@@ -292,21 +329,23 @@ function SimpleEventFlow(){
      <label>Sākuma laiks<input type="time" value={form.time_from||''} onChange={e=>update('time_from',e.target.value)}/></label><label>Beigu laiks<input type="time" value={form.time_to||''} onChange={e=>update('time_to',e.target.value)}/></label></div>}
    </section>
 
-   <section className="event-editor-section event-editor-location"><div className="event-editor-section-title"><span>3</span><div><h2>Kur notiks?</h2><p>Izvēlies saglabāto adresi vai pievieno jaunu.</p></div></div>
+   <section ref={locationRef} className="event-editor-section event-editor-location"><div className="event-editor-section-title"><span>3</span><div><h2>Kur notiks?</h2><p>Izvēlies saglabāto norises vietu vai pievieno jaunu.</p></div></div>
+    {!account&&<div className="event-signin-card" role="note"><strong>Norises vietas glabājas organizatora kontā</strong>
+     <p>Pieslēdzies, lai izvēlētos vai pievienotu vietu. Viss, ko jau ievadīji, saglabāsies.</p>
+     <button type="button" className="button primary" onClick={startAuth}>Pieslēgties un izvēlēties vietu →</button></div>}
     <div className="event-address-choice">
-     <label>Norises adrese *
-      <select aria-label="Pasākuma norises adrese" required value={form.venue_id||''} onChange={e=>selectAddress(e.target.value)}>
-       <option value="">Izvēlies adresi no saraksta</option>
-       {addressOptions.mine.length>0&&<optgroup label="Manas adreses">{addressOptions.mine.map(v=><option key={v.id} value={v.id}>{v.name} — {v.address}</option>)}</optgroup>}
+     <label>Norises vieta *
+      <select aria-label="Pasākuma norises adrese" required disabled={!account} value={form.venue_id||''} onChange={e=>selectAddress(e.target.value)}>
+       <option value="">{account?'Izvēlies vietu no saraksta':'Vispirms pieslēdzies'}</option>
+       {addressOptions.mine.length>0&&<optgroup label="Manas vietas">{addressOptions.mine.map(v=><option key={v.id} value={v.id}>{v.name} — {v.address}</option>)}</optgroup>}
        {addressOptions.shared.length>0&&<optgroup label="Pievienotās publiskās vietas">{addressOptions.shared.map(v=><option key={v.id} value={v.id}>{v.name} — {v.address}</option>)}</optgroup>}
        {form.venue_id&&!selectedVenue&&<option value={form.venue_id}>Iepriekš izvēlētā adrese (nav pieejama)</option>}
       </select>
      </label>
-     <button className="button event-add-address" type="button" disabled={!account||!orgId||!canEdit||busy} onClick={()=>setAddressOpen(true)}>+ Pievienot jaunu</button>
+     {account&&<button className="button event-add-address" type="button" disabled={!orgId||!canEdit||busy} onClick={()=>setAddressOpen(true)}>+ Jauna vieta</button>}
     </div>
-    {!account&&<p className="event-address-help event-address-signin">Norises adreses glabājas organizatora kontā. <button type="button" className="text-button" onClick={startAuth}>Pieslēdzies</button>, lai izvēlētos vai pievienotu adresi — ievadītais saturs saglabāsies.</p>}
     {!account?null:selectedVenue?<p className="event-selected-address" role="status"><strong>⌖ {selectedVenue.name}</strong><span>{selectedVenue.address}</span></p>:
-      <p className="event-address-help">{addressOptions.mine.length? 'Izvēlies organizatora reģistrētu adresi, vai pievieno jaunu.':'Šai organizācijai vēl nav saglabātu adrešu. Pievieno pirmo adresi.'}</p>}
+      <p className="event-address-help">{addressOptions.mine.length? 'Izvēlies organizatora norises vietu vai pievieno jaunu.':'Šim organizatoram vēl nav saglabātu vietu. Pievieno pirmo — tā saglabāsies nākamajiem pasākumiem.'}</p>}
    </section>
 
    <section className="event-editor-section"><div className="event-editor-section-title"><span>4</span><div><h2>Dalība</h2><p>Norādi, vai pasākums ir bezmaksas vai maksas.</p></div></div>
@@ -315,27 +354,29 @@ function SimpleEventFlow(){
    </section>
 
    <div className="quick-flow-actions event-editor-actions">
-    <button className="button primary" type="submit">Priekšskatīt →</button>
-    <button type="button" className="button" disabled={busy||activeOrg?.role==='viewer'} onClick={()=>save('draft')}>{busy?'Saglabā…':account&&orgId?'Saglabāt melnrakstu kontā':'Saglabāt melnrakstu'}</button>
-    <button type="button" className="button" onClick={()=>{if(window.confirm('Notīrīt aizpildīto formu?')){clearLocal();setForm({...DEFAULT});setSaveVenue(false);setSavedId('');setNotice('Forma notīrīta.');}}}>Notīrīt</button>
+    <button className="button primary" type="submit">{publishedEdit?'Pārskatīt izmaiņas →':'Priekšskatīt →'}</button>
+    {!publishedEdit&&<button type="button" className="button event-save-draft" disabled={busy||activeOrg?.role==='viewer'} onClick={()=>save('draft')}>{busy?'Saglabā…':account&&orgId?'Saglabāt melnrakstu':'Saglabāt ierīcē'}</button>}
    </div>
+   {!publishedEdit&&<p className="event-editor-reset"><button type="button" className="text-button" onClick={()=>{if(window.confirm('Notīrīt aizpildīto formu? Ievadītais tiks dzēsts no šīs ierīces.')){clearLocal();setForm({...DEFAULT});setSaveVenue(false);setSavedId('');setNotice('Forma notīrīta.');}}}>Notīrīt formu</button></p>}
   </form>}
 
   <EventVenueDialog open={addressOpen&&stage==='edit'} onClose={()=>setAddressOpen(false)} onSave={addOrChooseVenue}
     busy={addressBusy} existingVenues={addressOptions.mine} publicVenues={publicVenues}/>
 
   {stage==='preview'&&<div className="quick-flow-card quick-flow-preview">
-   <div className="event-editor-section-title"><span>5</span><div><h2>Priekšskatījums un iesniegšana</h2><p>Pārbaudi svarīgāko pirms nosūtīšanas moderatoram.</p></div></div>
-   <p className="eyebrow">{activeOrg?.name||'Organizators nav izvēlēts'}</p><h2>{form.title}</h2>
-   <p><strong>📅 {prettyDate(form.date_from)}{form.date_to&&form.date_to!==form.date_from?' – '+prettyDate(form.date_to):''}</strong>{form.time_from?' · '+form.time_from:''}{form.time_to?'–'+form.time_to:''}</p>
-   <p>⌖ {form.venue_name} · {form.address||'Vieta atzīmēta kartē'}</p><p>{form.description||'Apraksts nav norādīts.'}</p>
-   <div className="quick-flow-tags"><span>{form.category}</span><span>{({free:'Bezmaksas',paid:'Maksas',mixed:'Cenu diapazons',unknown:'Cena nav zināma'})[form.price_status]}{['paid','mixed'].includes(form.price_status)?' · '+form.price_min+'–'+form.price_max+' EUR':''}</span></div>
-   {form.schedule_kind==='recurring'&&<p><strong>Norises reizes:</strong> {countOccurrences(form.date_from,form.date_to,form.recurrence_slots)}</p>}
-   {imagePreview&&<img src={imagePreview} alt="" className="quick-event-image"/>}
-   <p className="meets-muted">Iesniegšana neapiet moderāciju. Pasākums kartē būs redzams tikai pēc apstiprināšanas.</p>
+   <div className="event-editor-section-title"><span>5</span><div><h2>{publishedEdit?'Izmaiņu pārskats un iesniegšana':'Priekšskatījums un iesniegšana'}</h2><p>Tā pasākums izskatīsies sarakstā un kartē.</p></div></div>
+   <p className="eyebrow">{activeOrg?.name||'Organizators nav izvēlēts'}</p>
+   <div className="event-preview-card" inert=""><DiscoveryEventCard event={previewEvent}/></div>
+   <dl className="event-preview-facts">
+    <div><dt>Kad</dt><dd>{prettyDate(form.date_from)}{form.date_to&&form.date_to!==form.date_from?' – '+prettyDate(form.date_to):''}{form.time_from?' · '+form.time_from:''}{form.time_to?'–'+form.time_to:''}</dd></div>
+    <div><dt>Kur</dt><dd>{form.venue_name}{form.address?' · '+form.address:''}</dd></div>
+    {form.schedule_kind==='recurring'&&<div><dt>Norises reizes</dt><dd>{countOccurrences(form.date_from,form.date_to,form.recurrence_slots)}</dd></div>}
+    <div><dt>Apraksts</dt><dd>{form.description||'Apraksts nav norādīts.'}</dd></div>
+   </dl>
+   <p className="meets-muted">{publishedEdit?'Līdz apstiprināšanai apmeklētāji redz pašreizējo publicēto versiju.':'Iesniegšana neapiet moderāciju. Pasākums kartē būs redzams tikai pēc apstiprināšanas.'}</p>
    <div className="quick-flow-actions"><button className="button" type="button" onClick={()=>setStage('edit')}>← Labot</button>
-    <button className="button primary" type="button" disabled={busy||activeOrg?.role==='viewer'} onClick={()=>account?save('pending_review'):startAuth()}>{busy?'Saglabā…':'Iesniegt pārbaudei →'}</button>
-    <button type="button" className="button" disabled={busy||activeOrg?.role==='viewer'} onClick={()=>save('draft')}>Saglabāt kā melnrakstu</button></div>
+    <button className="button primary" type="button" disabled={busy||activeOrg?.role==='viewer'} onClick={()=>account?save('pending_review'):startAuth()}>{busy?'Saglabā…':publishedEdit?'Iesniegt izmaiņas pārbaudei →':'Iesniegt pārbaudei →'}</button>
+    {!publishedEdit&&<button type="button" className="button" disabled={busy||activeOrg?.role==='viewer'} onClick={()=>save('draft')}>Saglabāt kā melnrakstu</button>}</div>
   </div>}
 
   {stage==='auth'&&<div className="quick-flow-card"><h2>Pieslēdzies, lai turpinātu</h2><p className="meets-muted">Ievadītais pasākums paliks saglabāts šajā ierīcē.</p><Authentication onSuccess={async value=>{
@@ -350,7 +391,7 @@ function SimpleEventFlow(){
     }catch(e){setError(e.message);}
    }}/><button className="button" type="button" onClick={()=>setStage('preview')}>← Atpakaļ</button></div>}
 
-  {stage==='done'&&<div className="quick-flow-card"><div className="quick-flow-success">✓</div><h2>Pasākums nosūtīts pārbaudei</h2><p>{form.title}</p><p className="meets-muted">Ieraksts kļūs publisks tikai pēc moderatora apstiprināšanas.</p>
+  {stage==='done'&&<div className="quick-flow-card"><div className="quick-flow-success">✓</div><h2>{publishedEdit?'Izmaiņas nosūtītas pārbaudei':'Pasākums nosūtīts pārbaudei'}</h2><p>{form.title}</p><p className="meets-muted">Ieraksts kļūs publisks tikai pēc moderatora apstiprināšanas.</p>
    <div className="quick-flow-actions"><button type="button" className="button primary" onClick={restart}>+ Pievienot nākamo pasākumu</button><Link className="button" href={'/organizators?org='+orgId+'&panel=events'}>Pasākumu saraksts →</Link></div></div>}
  </section>;
 

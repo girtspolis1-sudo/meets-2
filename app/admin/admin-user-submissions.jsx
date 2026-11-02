@@ -6,7 +6,7 @@ import {rigaTodayIso} from '../../lib/event-date.js';
 import {CHANGE_REASONS,DECLINE_REASONS,historyLabel,inLatvia,reasonLabel,reasonTemplate,reviewProblem,submissionChecks} from '../../lib/submission-review.js';
 
 const WEEKDAYS=['','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena','Svētdiena'];
-const STATUS={published:'Publicēts',auto:'Publicēts automātiski',rejected:'Gaida organizatora labojumus',declined:'Noraidīts'};
+const STATUS={published:'Publicēts',auto:'Publicēts automātiski',rejected:'Gaida organizatora labojumus',declined:'Noraidīts',cancelled:'Organizators atcēla'};
 const ACTIONS=[
  {key:'publish',label:'Publicēt'},
  {key:'request_changes',label:'Lūgt precizēt'},
@@ -70,6 +70,7 @@ function SubmissionCard({item,today,focused,matches,onSearchPlace,onReview,busy,
   <header className="admin-submission-head">
    <div>
     <h3>{item.title}</h3>
+    {item.event_id&&item.status==='pending_review'&&<p className="admin-submission-change"><strong>Izmaiņas jau publicētam pasākumam.</strong> Līdz apstiprināšanai apmeklētāji redz iepriekšējo versiju. <a href={'/pasakumi/'+item.event_id} target="_blank" rel="noreferrer">Publiskā versija ↗</a></p>}
     <p>{item.organization_name} · {dateText(item.date_from)}{item.date_to&&item.date_to!==item.date_from?'–'+dateText(item.date_to):''} {item.time_from?String(item.time_from).slice(0,5):''}</p>
     {organization&&onSetTrust&&<p className="admin-submission-trust">
      {organization.trusted?<><span className="admin-trust-badge">Uzticams organizators</span> Šis pasākums netika publicēts automātiski — skatīt pārbaudes zemāk.</>
