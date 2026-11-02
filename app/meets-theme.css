@@ -162,7 +162,7 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .legend-dot.today{background:var(--sodien)}
 .legend-dot.tomorrow{background:var(--rit)}
 .legend-dot.future{background:var(--velak)}
-.legend-dot.outside{width:9px;height:9px;background:#fff;box-shadow:0 0 0 1.5px #8a94a3;opacity:.85}
+.legend-dot.outside{width:9px;height:9px;background:#fff;box-shadow:0 0 0 1.5px #9aa3ad}
 
 /* C3 map pin: white pin, category icon, days badge, optional heart and count */
 .c3-pin-wrap{background:none;border:0}
@@ -194,7 +194,10 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 /* Outside the filters the pin keeps its term colour (green today, …), only smaller and fainter. */
 .c3-pin.dimmed{width:34px;height:44px;opacity:.8;filter:drop-shadow(0 2px 3px rgba(27,36,48,.16))}
 .c3-pin.dimmed .c3-pin-shape{width:34px;height:44px}
-.c3-pin.dimmed .c3-pin-icon{left:9px;top:8px;transform:scale(.75);transform-origin:0 0}
+.c3-pin.dimmed .c3-pin-icon{left:10px;top:10px;transform:scale(.62);transform-origin:0 0}
+/* Outside the filters: a grey outline whatever the day; the days badge keeps its colour. */
+.c3-pin.dimmed .c3-pin-shape path{stroke:#9aa3ad;stroke-width:2}
+.c3-pin.dimmed .c3-pin-icon{color:#6b7480}
 .c3-pin.dimmed .c3-pin-days{left:20px;transform:scale(.85);transform-origin:0 100%}
 
 /* Hover preview (desktop only) ---------------------------------------------- */
