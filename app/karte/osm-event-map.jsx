@@ -3,6 +3,8 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
 import NearbyList from './nearby-list.jsx';
 import CategoryIcon from '../components/category-icon.jsx';
+import {eventTerm} from '../../lib/event-term.js';
+import {categoryIconSvg} from '../../lib/category-icons.js';
 import {PERIODS,RADII,DEFAULT_PERIOD,DEFAULT_RADIUS,periodKey,periodRange,periodPhrase,radiusLabel,nearbyGroups,widerOptions,countLabel,markerLabel} from '../../lib/map-nearby.js';
 import {CLUSTER_MAX_ZOOM,radiusForView} from '../../lib/map-cluster.js';
 import {useAdminSession} from '../use-admin-session.js';
