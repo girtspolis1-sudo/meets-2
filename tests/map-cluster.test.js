@@ -21,6 +21,6 @@ test('marker labels say the weekday within a week, then the date',()=>{
  const today='2026-10-28'; // Wednesday
  assert.equal(markerLabel({date_from:'2026-10-28'},today),'ŠODIEN');
  assert.equal(markerLabel({date_from:'2026-10-29'},today),'RĪT');
- assert.equal(markerLabel({date_from:'2026-11-01'},today),'SV');
- assert.equal(markerLabel({date_from:'2026-11-10'},today),'10.11.');
+ assert.equal(markerLabel({date_from:'2026-11-01'},today),'PĒC 4D');
+ assert.equal(markerLabel({date_from:'2026-11-10'},today),'PĒC 13D');
 });

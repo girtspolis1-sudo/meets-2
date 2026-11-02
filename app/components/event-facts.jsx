@@ -10,7 +10,7 @@ export default function EventFacts({event,today,clock=null,km=null,title=null,co
  const category=event.primary_category||display(event,'event_type')||'';
  const price=priceLabel(event);
  return <>
-  <span className="event-facts-when">{whenLabel(event,today)}{multiDay?' – '+shortDate(event.date_to):''}
+  <span className="event-facts-when">{whenLabel(event,today,{withDate:!compact})}{multiDay?' – '+shortDate(event.date_to):''}
    {live&&<em className={'nearby-live '+live}>{live==='now'?'Notiek tagad':'Drīz sāksies'}</em>}</span>
   {title}
   <span className="event-facts-place">{[distanceLabel(km),place].filter(Boolean).join(' · ')||'Vieta nav norādīta'}</span>
