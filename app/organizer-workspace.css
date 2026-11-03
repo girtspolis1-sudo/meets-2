@@ -437,3 +437,78 @@
 .public-event-description{font-size:13px;color:#5b6675}
 @media(max-width:700px){.public-organizer-hero{grid-template-columns:64px minmax(0,1fr)}.public-organizer-actions{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}}
 .org-head-share{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.org-requisites{display:grid;gap:10px;margin:6px 0 0;padding:12px;border:1px solid #e3e8ef;border-radius:12px}
+.org-requisites legend{padding:0 6px;font-weight:800;font-size:13px}
+
+/* ---- Public organizer page: a small website of its own ---- */
+.org-site{display:grid;gap:18px;max-width:1120px;margin:0 auto;padding:22px 16px 40px}
+.org-site-hero{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:22px;align-items:start;padding:26px;border:1px solid #e3e8ef;border-radius:22px;background:linear-gradient(135deg,#fff 55%,#f3f6fa)}
+.org-site-logo{width:96px;height:96px;border-radius:22px;overflow:hidden;display:grid;place-items:center;background:#eef2f6;border:1px solid #e3e8ef}
+.org-site-logo img{width:100%;height:100%;object-fit:cover}
+.org-site-logo span{font:800 40px/1 var(--font-display,inherit);color:#1b2430}
+.org-site-intro{display:grid;gap:8px;min-width:0}
+.org-site-intro h1{margin:0;font-size:clamp(28px,4.4vw,46px);line-height:1.05;letter-spacing:-.02em;overflow-wrap:anywhere}
+.org-site-description{margin:0;font-size:16px;line-height:1.55;color:#4b5565;max-width:62ch;white-space:pre-line}
+.org-site-stats{display:flex;flex-wrap:wrap;gap:8px 16px;margin:4px 0 0;padding:0;list-style:none;color:#4b5565;font-size:14px}
+.org-site-stats strong{color:#1b2430}
+.org-site-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.org-site-link{display:inline-flex;align-items:center;min-height:36px;padding:6px 12px;border-radius:999px;border:1px solid #dfe5ec;background:#fff;color:#1b2430;font-weight:700;font-size:13px;text-decoration:none}
+.org-site-link:hover,.org-site-link:focus-visible{border-color:#b9c3cf;background:#f6f8fb}
+.org-site-link.social-facebook{color:#1659c7}.org-site-link.social-instagram{color:#b4246f}.org-site-link.social-tiktok{color:#111}
+.org-site-link.social-youtube{color:#c4302b}.org-site-link.social-linkedin{color:#0a66c2}
+.org-site-actions{display:grid;gap:8px;min-width:190px}
+.org-site-actions .meets-follow-control,.org-site-actions .meets-follow-control button,.org-site-actions>.button,.org-site-actions .share-button-wrap,.org-site-actions .share-button-wrap>button{width:100%;justify-content:center}
+.org-site-section,.org-site-card{padding:22px;border:1px solid #e3e8ef;border-radius:20px;background:#fff}
+.org-site-section-head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+.org-site-section-head h2,.org-site-card h2{margin:0;font-size:22px}
+.org-site-section-head p{margin:4px 0 0;color:#5b6475}
+.org-site-events{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.org-site-event{display:grid;grid-template-columns:62px minmax(0,1fr);gap:14px;padding:14px;border:1px solid #e9edf2;border-radius:16px;background:#fbfcfd}
+.org-site-date{display:grid;place-items:center;align-content:center;height:68px;border-radius:14px;background:#1b2430;color:#fff;text-align:center}
+.org-site-date strong{font:800 26px/1 var(--font-display,inherit)}
+.org-site-date span{font-size:12px;font-weight:700;opacity:.85}
+.org-site-event-body{display:flex;flex-direction:column;gap:4px;min-width:0}
+.org-site-event-when{margin:0;font-size:12px;font-weight:800;color:#7a2029}
+.org-site-event h3{margin:0;font-size:17px;line-height:1.3}
+.org-site-event h3 a{color:#1b2430;text-decoration:none}
+.org-site-event h3 a:hover{text-decoration:underline}
+.org-site-event-place{margin:0;font-size:13px;color:#5b6475}
+.org-site-event-text{margin:0;font-size:13px;line-height:1.5;color:#667085;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.org-site-event-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px}
+.org-site-tags{display:flex;gap:6px;flex-wrap:wrap}
+.org-site-tags span{padding:2px 8px;border-radius:999px;background:#eef1f6;font-size:12px;font-weight:700;color:#4b5565}
+.org-site-tags span.free{background:#e7f6ee;color:#1d6b43}
+.org-site-event-actions{display:flex;flex-wrap:wrap;gap:6px}
+.org-site-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.org-site-card h2{margin-bottom:12px}
+.org-site-place{display:grid;gap:10px;padding-bottom:12px}
+.org-site-place-actions{display:flex;flex-wrap:wrap;gap:6px}
+.org-site-venues{display:grid;gap:10px;margin:0;padding:12px 0 0;list-style:none;border-top:1px solid #edf0f4}
+.org-site-venues li{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
+.org-site-venues li div{display:grid;gap:2px}
+.org-site-venues li span{font-size:13px;color:#5b6475}
+.org-site-list{display:grid;gap:10px;margin:0}
+.org-site-list div{display:grid;gap:2px}
+.org-site-list dt{font-size:12px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+.org-site-list dd{margin:0;font-size:15px;color:#1b2430;overflow-wrap:anywhere}
+.org-site-list a{color:#7a2029;font-weight:700}
+.org-site-foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:6px 4px;color:#5b6475}
+.org-site-foot p{margin:0}
+.org-site-foot a{color:#7a2029;font-weight:800}
+/* Header on the mini-site: only the way back to meets.lv. */
+.meets-minisite-nav{display:flex;align-items:center}
+.meets-minisite-home{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:8px 14px;border-radius:999px;background:#1b2430;color:#fff!important;font-weight:800;font-size:14px;text-decoration:none}
+.meets-minisite-home:hover{background:#2a3648}
+@media (max-width:760px){
+ .org-site{padding:12px 12px 28px}
+ .org-site-hero{grid-template-columns:auto minmax(0,1fr);padding:18px;gap:14px}
+ .org-site-logo{width:64px;height:64px;border-radius:16px}
+ .org-site-actions{grid-column:1/-1;min-width:0;grid-template-columns:1fr 1fr}
+ .org-site-actions>.button{grid-column:1/-1}
+ .org-site-events{grid-template-columns:1fr}
+ .org-site-section,.org-site-card{padding:16px}
+ .meets-minisite-home{font-size:13px;padding:7px 12px}
+}
+.meets-minisite-home .narrow{display:none}
+@media (max-width:560px){.meets-minisite-home .wide{display:none}.meets-minisite-home .narrow{display:inline}
+ .header:has(.meets-minisite-nav){flex-wrap:nowrap}}

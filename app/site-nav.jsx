@@ -49,6 +49,10 @@ export default function SiteNav(){
    window.location.assign('/profils');
   }
  }
+ // A public organizer page works as the organizer's own mini-site: no app menu, one way to meets.lv.
+ if(pathname.startsWith('/organizatori/'))return <nav aria-label="MEETS" className="meets-minisite-nav">
+  <Link className="meets-minisite-home" href="/karte"><span className="wide">Atklāj vairāk pasākumu meets.lv</span><span className="narrow">Vairāk pasākumu</span> <span aria-hidden="true">→</span></Link>
+ </nav>;
  const navLink=item=><Link key={item.href} href={item.href}
    className={isActive(item)?'active':''} aria-current={isActive(item)?'page':undefined}>{item.label}</Link>;
  const exit=<button className="meets-header-logout" type="button" onClick={logout} disabled={loggingOut}
