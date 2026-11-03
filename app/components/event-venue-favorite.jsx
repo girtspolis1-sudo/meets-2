@@ -24,7 +24,7 @@ async function account(action,token,fields={}){
  if(!r.ok)throw Error(b.error||'Neizdevās saglabāt norises vietu.');
  return b;
 }
-export default function EventVenueFavorite({event,compact=false}){
+export default function EventVenueFavorite({event,compact=false,fullLabel=false}){
  const place=placeFromEvent(event);
  const [following,setFollowing]=useState(false),[busy,setBusy]=useState(false),[ready,setReady]=useState(false),[status,setStatus]=useState('');
  useEffect(()=>{let live=true;
@@ -60,7 +60,7 @@ export default function EventVenueFavorite({event,compact=false}){
     stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.6" fill={following?'#fff':'none'}/>
    </svg>
-   <span>{following?(compact?'Sekoju':'Sekoju vietai'):(compact?'Sekot':'Sekot vietai')}</span>
+   <span>{following?(compact&&!fullLabel?'Sekoju':'Sekoju vietai'):(compact&&!fullLabel?'Sekot':'Sekot vietai')}</span>
   </button>{status&&<small role="status">{status}</small>}
  </span>;
 }

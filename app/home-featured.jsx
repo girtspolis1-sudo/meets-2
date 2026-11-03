@@ -40,7 +40,7 @@ export default function HomeFeatured(){
     <header className="meets-home-section-header"><div><p className="eyebrow">Atrodi ko piedzīvot</p><h2 id="featured-events-title">Tuvākie pasākumi</h2></div><Link href="/pasakumi">Skatīt visus <span aria-hidden="true">→</span></Link></header>
     {error&&<p className="meets-discovery-error" role="alert">{error} <button type="button" onClick={refresh}>Mēģināt vēlreiz</button></p>}
     {loading&&!data?<div className="meets-home-loading" role="status">Ielādējam aktuālos pasākumus…</div>:
-     picks.length?<div className="meets-discovery-grid">{picks.map(event=><DiscoveryEventCard key={event.id} event={event}/>)}</div>:
+     picks.length?<div className="meets-discovery-grid">{picks.map(event=><DiscoveryEventCard key={event.id} event={event} actions/>)}</div>:
      <div className="meets-home-empty"><strong>Šobrīd nav atlasītu tuvāko pasākumu.</strong><p>Pamēģini plašāku periodu vai apskati visus notikumus kartē.</p><Link className="button primary" href="/karte">Atvērt karti →</Link></div>}
    </div>
    <aside className="meets-home-side" aria-label="Personiskie pasākumu ieteikumi">

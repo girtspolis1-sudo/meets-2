@@ -138,11 +138,11 @@ for(const width of cases){
   await page.locator('.catalog-search').waitFor({timeout:30000});
   if(!(await page.getByRole('button',{name:'Tabula un Excel'}).count())){fails++;console.error('Card view is not active by default');}
   if(!(await page.getByRole('button',{name:/Šodien/}).count())){fails++;console.error('Catalog time chips missing',width);}
-  await page.locator('.catalog-event-card .meets-card-secondary-actions summary').first().click();
+  // Card actions are always visible: calendar, route, original, share (the heart sits at the top).
   const catalogCircles=page.locator('.catalog-event-card .meets-circle-actions').first();
   await catalogCircles.waitFor();
-  if(await catalogCircles.locator(':scope > *').count()!==5){
-   fails++;console.error('Catalog lacks five circular actions',width);
+  if(await catalogCircles.locator(':scope > *').count()!==4||!(await page.locator('.catalog-event-card .meets-card-save button').count())){
+   fails++;console.error('Catalog card lacks its actions',width);
   }
   await page.goto(base+'/pasakumi?event='+mockEvent.id,{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.event-dialog[open]').waitFor({timeout:20000});
