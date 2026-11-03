@@ -254,3 +254,45 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .c3-pin-days.c3-pin-now.ended::after,.c3-pin.far .c3-pin-days.c3-pin-now::after{animation:none;display:none}
 @keyframes c3-now-pulse{0%{transform:scale(1);opacity:.85}100%{transform:scale(2.1);opacity:0}}
 @media (prefers-reduced-motion:reduce){.c3-pin-days.c3-pin-now::after{animation:none;display:none}}
+
+/* ---- Event cards (Pasākumi, home): symmetric layout, topic icon, marks, actions ---- */
+.meets-discovery-card.catalog-event-card{height:100%}
+.meets-discovery-card.no-image{grid-template-rows:auto;align-content:stretch}
+.meets-discovery-card .meets-discovery-card-body{display:flex;flex-direction:column;gap:6px;height:100%}
+/* Same rhythm in every card: title up to 3 lines, place 1 line, description always 2 lines. */
+.meets-discovery-card .meets-discovery-card-facts h3{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.meets-discovery-card .meets-discovery-description{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+@media (min-width:700px){.meets-discovery-card .meets-discovery-description{min-height:calc(2 * 1.5em)}}
+/* The first line (time, "Notiek tagad") stays clear of the heart button. */
+.meets-discovery-card .meets-discovery-card-facts>.event-facts-when{max-width:calc(100% - 42px);white-space:normal}
+.meets-discovery-card .meets-discovery-description.is-empty{color:#9aa3b2;font-style:italic}
+.meets-card-links{display:flex;flex-direction:column;gap:3px;font-size:12.5px;line-height:1.4;min-width:0}
+.meets-card-links a{color:var(--accent,#9e3039);font-weight:700;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meets-card-links a:hover,.meets-card-links a:focus-visible{text-decoration:underline}
+.meets-card-organizer{color:#5b6475;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meets-card-original.is-missing{color:#9aa3b2}
+/* Footer is pinned to the bottom, so the rows line up across a grid row. */
+.meets-discovery-card .meets-card-footer{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid #edf0f4}
+.meets-card-follows{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.meets-card-follows .meets-follow-control{display:inline-flex;align-items:center;gap:6px}
+.meets-card-follow-org{min-height:36px;padding:6px 12px;border:1px solid var(--migla,#dfe5ec);border-radius:10px;background:#fff;color:#2a3346;font:700 13px/1.2 var(--font-body);cursor:pointer}
+.meets-card-follow-org[aria-pressed="true"]{border-color:#b9dcc7;background:#eef8f2;color:#1d6b43}
+.meets-card-follows .meets-follow-control small{font-size:11px;color:#5b6475}
+.meets-discovery-card .meets-card-footer .meets-quiet-actions.meets-event-actions-wrapper{margin:0}
+.meets-discovery-card .meets-card-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions{margin:0;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.meets-discovery-card .meets-card-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions>.meets-circle-action{max-width:none;height:50px;min-height:50px;border-color:#edf0f4}
+/* Today: a green pulsing dot instead of "0d". */
+.c3-days-chip.c3-days-now{min-width:0;width:16px;height:16px;padding:0;border-radius:50%;background:var(--sodien-badge);overflow:visible}
+.c3-days-chip.c3-days-now::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--sodien-badge);animation:c3-now-pulse 1.6s ease-out infinite}
+.c3-days-chip.c3-days-now.ended{background:#b6bfca}
+.c3-days-chip.c3-days-now.ended::after{display:none}
+.c3-card-symbol .c3-days-chip.c3-days-now{right:-5px;top:-5px}
+/* Paid: a small "€" mark at the lower corner of the icon. */
+.c3-price-chip{display:inline-grid;place-items:center;min-width:19px;height:19px;box-sizing:border-box;padding:0 4px;border:2px solid #fff;border-radius:10px;background:#1b2430;color:#fff;font:800 11px/1 var(--font-body)}
+.c3-card-symbol .c3-price-chip{position:absolute;right:-7px;bottom:-6px}
+.c3-media-marks{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:4px}
+.c3-media-marks .c3-days-chip{position:relative;height:22px;line-height:18px;font-size:12px}
+.c3-media-marks .c3-days-chip.c3-days-now{width:18px;height:18px}
+.tone-today .c3-media-marks .c3-days-chip,.c3-media-marks.tone-today .c3-days-chip{background:var(--sodien-badge);color:#fff}
+.c3-media-marks.tone-tomorrow .c3-days-chip{background:var(--rit-badge);color:var(--tinte)}
+@media (prefers-reduced-motion:reduce){.c3-days-chip.c3-days-now::after{animation:none;display:none}}
