@@ -296,3 +296,29 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .tone-today .c3-media-marks .c3-days-chip,.c3-media-marks.tone-today .c3-days-chip{background:var(--sodien-badge);color:#fff}
 .c3-media-marks.tone-tomorrow .c3-days-chip{background:var(--rit-badge);color:var(--tinte)}
 @media (prefers-reduced-motion:reduce){.c3-days-chip.c3-days-now::after{animation:none;display:none}}
+
+/* Map: long events (exhibitions, season programmes) — a framed pin with a thinner,
+   dashed outline and no countdown, kept below the day's own events. */
+.c3-pin.long .c3-pin-shape path{stroke-width:1.8;stroke-dasharray:4 3}
+.c3-pin.long:not(.dimmed){opacity:.92}
+.c3-pin.long .c3-pin-icon{top:13px}
+/* Festival weeks and an exhibition's last days: "līdz 7.01." instead of a day count. */
+.c3-pin-days.c3-pin-until{min-width:0;padding:0 5px;font-size:10px;letter-spacing:-.1px}
+/* Map list: running exhibitions in their own collapsed block under the day's events. */
+.nearby-long-count{font:700 14px/1.2 var(--font-body);color:#5b6475;letter-spacing:0}
+.nearby-long{margin:8px 0 4px;border:1px dashed #c9d1db;border-radius:14px;background:#fafbfc}
+.nearby-long>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;padding:10px 14px;cursor:pointer;list-style:none;font-size:13px;color:#5b6475}
+.nearby-long>summary::-webkit-details-marker{display:none}
+.nearby-long>summary::after{content:"▾";margin-left:auto;transition:transform .15s}
+.nearby-long[open]>summary::after{transform:rotate(180deg)}
+.nearby-long>summary strong{color:#1b2430}
+.nearby-long>ol{margin:0;padding:0 6px 6px}
+/* A switch, not a filter: on by default, so it must not look like a chosen filter. */
+.map-chip-row .map-long-toggle{border-style:dashed}
+.map-chip-row .map-long-toggle[aria-pressed="false"]{color:#8a93a0;background:#f3f5f8}
+.c3-days-chip.c3-days-until{min-width:0;padding:0 5px;font-size:10px;background:#eef1f4;color:#4a5565;white-space:nowrap}
+.c3-days-chip.c3-days-until.last{background:#fde8c8;color:#7a4a05}
+.c3-card-symbol .c3-days-chip.c3-days-until{right:auto;left:22px}
+.event-facts-when.term-long,.event-facts-when.term-lastdays{align-self:flex-start;width:fit-content;max-width:100%;box-sizing:border-box;padding:2px 9px;border-radius:999px}
+.event-facts-when.term-long{background:#eef1f4;color:#4a5565}
+.event-facts-when.term-lastdays{background:#fde8c8;color:#7a4a05}

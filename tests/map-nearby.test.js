@@ -30,7 +30,11 @@ test('events are grouped by day, ongoing ones count as today',()=>{
  assert.equal(whenLabel({date_from:'2026-10-31',time_from:'14:00:00'},today,{withDate:true}),'Pēc 3 dienām 14:00 · S 31.10.');
  assert.equal(whenLabel({date_from:'2026-11-18'},today),'Pēc 21 dienas');
  assert.equal(whenLabel({date_from:'2026-10-29'},today,{withDate:true}),'Rīt');
- assert.equal(whenLabel({date_from:'2026-10-20',date_to:'2026-11-02',time_from:'10:00:00'},today),'Notiek šodien');
+ assert.equal(whenLabel({date_from:'2026-10-20',date_to:'2026-11-02',time_from:'10:00:00'},today),'Notiek līdz 2. nov. · vēl 5 dienas');
+ assert.equal(whenLabel({date_from:'2026-10-27',date_to:'2026-10-29'},today),'Notiek šodien · 2. diena no 3');
+ assert.equal(whenLabel({date_from:'2026-09-01',date_to:'2027-01-07'},today),'Apskatāms līdz 7. janv.');
+ assert.equal(whenLabel({date_from:'2026-09-01',date_to:'2026-11-01'},today),'Pēdējās dienas · līdz 1. nov.');
+ assert.equal(whenLabel({date_from:'2026-10-28',date_to:'2026-12-01',time_from:'17:00:00'},today),'Atklāšana šodien 17:00');
 });
 
 test('within a day the nearest event comes first',()=>{
