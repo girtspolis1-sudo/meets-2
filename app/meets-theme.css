@@ -354,7 +354,7 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .map-what-scroller .map-topic.map-long-toggle[aria-pressed="false"]{color:#8a93a0;background:#f3f5f8}
 .map-what-scroller .map-topic.map-long-toggle[aria-pressed="true"]{background:rgba(255,255,255,.94);color:var(--tinte,#1b2430)}
 .map-segment-price{flex:0 0 auto}
-.map-segment-price button[aria-pressed="true"]:nth-child(2){background:var(--sodien,#1f8a4c)}
+
 .map-what-divider{flex:0 0 1px;align-self:stretch;margin:4px 2px;background:var(--migla,#dfe5ec)}
 .map-controls-overlay{padding:6px}
 @media (max-width:1180px){
