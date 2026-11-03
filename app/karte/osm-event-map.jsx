@@ -667,7 +667,7 @@ export default function OsmEventMap(){
 
  // Radius, period, group and audience are visible outside the panel, so the badge skips them.
  // Everything inside "Vairāk filtru"; time, distance and the chip rows are visible outside it.
- const advancedFilterCount=[placeFilter,audience,eventTypes.length>0,competition,category,eventSearch,price&&!['free','paid'].includes(price),country,municipality].filter(Boolean).length;
+ const advancedFilterCount=[placeFilter,audience,eventTypes.length>0,competition,category,eventSearch,price&&price!=='paid',country,municipality].filter(Boolean).length;
  const audienceOptions=Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key)));
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
@@ -770,7 +770,7 @@ export default function OsmEventMap(){
   competition&&{key:'competition',label:competitionOptions.find(c=>c.key===competition)?.name||'Turnīrs',clear:()=>setCompetition('')},
   category&&{key:'subcategory',label:category,clear:()=>setCategory('')},
   eventSearch&&{key:'q',label:'„'+eventSearch+'”',clear:()=>setEventSearch('')},
-  price&&!['free','paid'].includes(price)&&{key:'price',label:{paid:'Maksas',mixed:'Daļēji maksas',unknown:'Maksa nav zināma'}[price]||price,clear:()=>setPrice('')},
+  price&&price!=='paid'&&{key:'price',label:{free:'Bezmaksas',paid:'Maksas',mixed:'Daļēji maksas',unknown:'Maksa nav zināma'}[price]||price,clear:()=>setPrice('')},
   municipality&&{key:'municipality',label:municipality,clear:()=>setMunicipality('')},
   country&&{key:'country',label:countryLabel(country),clear:()=>setCountry('')},
   orgFilter&&{key:'org',label:'Organizators: '+(orgName||'izvēlētais'),clear:()=>setOrgFilter('')}
@@ -868,9 +868,9 @@ export default function OsmEventMap(){
     </div>}
     <ChipScroller label="Ko darīt" className="map-what-scroller">
      <span className="map-segment map-segment-price" role="group" aria-label="Maksa">
-      {[['','Visi'],['free','Bez maksas'],['paid','Maksas']].map(([value,text])=><button key={text} type="button" aria-pressed={price===value}
+      {[['','Visi'],['paid','Maksas']].map(([value,text])=><button key={text} type="button" aria-pressed={price===value}
        className={price===value?'active':''} onClick={()=>setPrice(value)}
-       title={value?'Cena zināma tikai daļai pasākumu: '+priceCounts[value]+' no '+priceCounts['']:undefined}>
+       title={value?'Pasākumi, kuriem avotā norādīta maksa vai biļetes: '+priceCounts[value]+' no '+priceCounts['']:undefined}>
        {value==='paid'&&<span className="map-euro" aria-hidden="true">€</span>}{text}{value&&<span className="map-segment-count">{priceCounts[value]}</span>}</button>)}
      </span>
      <span className="map-what-divider" aria-hidden="true"/>
