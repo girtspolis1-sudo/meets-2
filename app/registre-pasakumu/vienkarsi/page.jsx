@@ -9,7 +9,7 @@ import ProfileShell from '../../components/profile-shell.jsx';
 import {rigaDate} from '../../../lib/meets-personal.js';
 import WeeklySchedule from '../../components/weekly-schedule.jsx';
 import {countOccurrences,cleanPrice,cleanDatedSlots,datesBetween} from '../../../lib/event-schedule.js';
-import {EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,normalizeEventTime,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
+import {ATTENDANCE_LABELS,EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,normalizeEventTime,copyEventDraft,isCoordinatePair} from '../../../lib/event-entry.js';
 import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
 import {refreshSession} from '../../../lib/auth-client.js';
 
@@ -309,6 +309,7 @@ function SimpleEventFlow(){
  const previewEvent={id:'preview',title:form.title||'Pasākuma nosaukums',description:form.description,date_from:form.date_from,date_to:form.date_to||null,
   time_from:form.time_from||null,time_to:form.time_to||null,venue_name:form.venue_name,address_raw:form.address,primary_category:form.category,
   event_type:'Pasākums',price_status:form.price_status,price_min:form.price_min,price_max:form.price_max,cover_image_url:imagePreview||'',
+  attendance_mode:form.attendance_mode||'in_person',online_url:form.online_url||'',
   latitude:form.latitude,longitude:form.longitude,location_precision:'venue',sources:[]};
  function restart(){clearLocal();setPublishedEdit(false);setForm({...DEFAULT});setSubmitted(null);setSaveVenue(false);setImageFile(null);setImagePreview('');setSavedId('');setStage('edit');setError('');setNotice('');}
  const venueChosen=Boolean(form.venue_id||form.address||isCoordinatePair(form));
@@ -397,7 +398,14 @@ function SimpleEventFlow(){
       <p className="event-address-help">{addressOptions.mine.length? 'Izvēlies organizatora norises vietu vai pievieno jaunu.':'Šim organizatoram vēl nav saglabātu vietu. Pievieno pirmo — tā saglabāsies nākamajiem pasākumiem.'}</p>}
    </section>
 
-   <section className="event-editor-section"><div className="event-editor-section-title"><span>4</span><div><h2>Dalība</h2><p>Norādi, vai pasākums ir bezmaksas vai maksas.</p></div></div>
+   <section className="event-editor-section"><div className="event-editor-section-title"><span>4</span><div><h2>Dalība</h2><p>Kā notiks un vai ir bezmaksas vai maksas.</p></div></div>
+    <fieldset className="event-attendance"><legend>Kā pasākums notiks?</legend>
+     {Object.entries(ATTENDANCE_LABELS).map(([value,label])=><label key={value} className={'event-attendance-option'+((form.attendance_mode||'in_person')===value?' active':'')}>
+      <input type="radio" name="attendance_mode" value={value} checked={(form.attendance_mode||'in_person')===value} onChange={()=>update('attendance_mode',value)}/>{label}</label>)}
+    </fieldset>
+    {(form.attendance_mode==='online'||form.attendance_mode==='hybrid')&&<label>Saite uz zvanu (Zoom, Teams, Google Meet…)
+     <input type="url" inputMode="url" placeholder="https://…" maxLength={500} value={form.online_url||''} onChange={e=>update('online_url',e.target.value)}/>
+     <small className="meets-muted">Saite būs redzama pasākuma lapā ar pogu "Kopēt saiti". Norises vieta augstāk paliek — tā ir vieta, no kuras pasākums notiek{form.attendance_mode==='hybrid'?' un kur var ierasties klātienē':''}.</small></label>}
     <label>Dalības maksa<select value={form.price_status} onChange={e=>update('price_status',e.target.value)}><option value="free">Bezmaksas</option><option value="paid">Maksas</option><option value="mixed">Cenu diapazons / daļēji maksas</option><option value="unknown">Nav zināms</option></select></label>
     {['paid','mixed'].includes(form.price_status)&&<div className="quick-flow-two"><label>Cena no, EUR *<input required type="number" min="0" step="0.01" value={form.price_min??''} onChange={e=>update('price_min',e.target.value)}/></label><label>Cena līdz, EUR *<input required type="number" min="0" step="0.01" value={form.price_max??''} onChange={e=>update('price_max',e.target.value)}/></label></div>}
    </section>

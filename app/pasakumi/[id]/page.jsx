@@ -8,6 +8,7 @@ import {officialEventUrl} from '../../../lib/event-sharing.js';
 import EventQuickActions from '../../components/event-quick-actions.jsx';
 import EventVenueFavorite from '../../components/event-venue-favorite.jsx';
 import EventFacts from '../../components/event-facts.jsx';
+import OnlineJoin from '../../components/online-join.jsx';
 import {rigaClockMinutes,rigaTodayIso} from '../../../lib/event-date.js';
 
 export const dynamic='force-dynamic';
@@ -97,6 +98,7 @@ export default async function EventPage({params}){
     <span className="event-facts-date">{cardDate({...event,time_from:null})}{time!=='Nav norādīts'?' · '+time:''}</span>
     <EventVenueFavorite event={event} compact/>
    </div>
+   <OnlineJoin event={event}/>
    {description&&<section className="meets-detail-description"><h2>Par pasākumu</h2><p>{description}</p></section>}
    <div className="meets-detail-follow"><EventQuickActions event={event} listOnly/></div>
    <div className="meets-detail-primary-actions">

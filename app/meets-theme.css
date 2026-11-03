@@ -400,3 +400,13 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .c3-pin.dimmed .c3-pin-days.c3-pin-now::after{display:none}
 .c3-pin.dimmed .c3-pin-sport,.c3-pin.dimmed .c3-pin-saved{filter:grayscale(1);opacity:.75}
 .c3-pin.dimmed .c3-pin-count{background:#8a939e}
+
+/* Online and hybrid events */
+.nearby-tags .online{background:#e8eefc;color:#2547a6}
+.online-join{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:10px 12px;border:1px solid #d6e0f5;border-radius:12px;background:#f4f7fe}
+.online-join.compact{padding:8px 10px;margin:6px 0}
+.online-join-mode{display:inline-flex;align-items:center;gap:6px;font-weight:800;color:#2547a6;font-size:13px}
+.online-join-url{display:flex;flex:1 1 260px;gap:6px;min-width:0}
+.online-join-url input{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid #d0d8e6;border-radius:9px;background:#fff;font:13px var(--font-body);color:#1b2430}
+.online-join small{flex-basis:100%;color:#5b6475}
+.map-what-scroller .map-online-toggle.active{background:#2547a6;border-color:#2547a6;color:#fff}

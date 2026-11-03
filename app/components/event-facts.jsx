@@ -12,6 +12,7 @@ export default function EventFacts({event,today,clock=null,km=null,title=null,co
  const place=[event.venue_name,event.settlement||event.municipality].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ');
  const category=event.primary_category||display(event,'event_type')||'';
  const price=priceLabel(event);
+ const online={online:'Tiešsaistē',hybrid:'Klātienē un tiešsaistē'}[event.attendance_mode]||'';
  return <>
   <span className={'event-facts-when term-'+(isBackgroundLong(event,today)?'long':isLastDays(event,today)?'lastdays':eventTerm(event,today).tone)}>{whenLabel(event,today,{withDate:!compact})}{multiDay?' – '+shortDate(event.date_to):''}
    {live&&<em className={'nearby-live '+live}>{live==='now'?'Notiek tagad':'Drīz sāksies'}</em>}</span>
@@ -19,7 +20,7 @@ export default function EventFacts({event,today,clock=null,km=null,title=null,co
   <span className="event-facts-place">{[distanceLabel(km),place].filter(Boolean).join(' · ')||'Vieta nav norādīta'}</span>
   {!compact&&event.address_raw&&event.address_raw!==event.venue_name&&<span className="event-facts-address">{event.address_raw}</span>}
   {!compact&&isApproximatePlace(event)&&<span className="nearby-approx">Precīza vieta nav zināma — kartē rādīts apdzīvotās vietas centrs</span>}
-  {(category||price||(compact&&isApproximatePlace(event)))&&<span className="nearby-tags">{category&&<span>{category}</span>}{price&&<span className={event.price_status==='free'?'free':''}>{price}</span>}
+  {(category||price||online||(compact&&isApproximatePlace(event)))&&<span className="nearby-tags">{category&&<span>{category}</span>}{online&&<span className="online">{online}</span>}{price&&<span className={event.price_status==='free'?'free':''}>{price}</span>}
    {compact&&isApproximatePlace(event)&&<span className="approx" title="Precīza vieta nav zināma — kartē rādīts apdzīvotās vietas centrs">Aptuvena vieta</span>}</span>}
  </>;
 }

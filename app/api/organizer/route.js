@@ -1,4 +1,4 @@
-import {validateQuickEvent} from '../../../lib/event-entry.js';
+import {ATTENDANCE_MODES,cleanOnlineUrl,validateQuickEvent} from '../../../lib/event-entry.js';
 import {cleanSocialLinks} from '../../../lib/social-links.js';
 import {cleanSlots,countOccurrences,cleanPrice,cleanDatedSlots} from '../../../lib/event-schedule.js';
 import {rigaDate} from '../../../lib/meets-personal.js';
@@ -93,7 +93,7 @@ export async function POST(request){
     api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id,description,image_url,public_email,public_phone,public_url,social_links,is_public,slug,created_at,updated_at&order=created_at.desc'),
     api(TABLES.members,token,'GET',null,'?select=organization_id,role&user_id=eq.'+user.id),
     api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,directions,description,is_public,created_at&order=created_at.desc'),
-    api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,price_min,price_max,cover_image_path,recurrence_slots,admin_note,review_reason,reviewed_at,latitude,longitude,schedule_kind,recurrence_note,event_id,created_at,updated_at&order=created_at.desc'),
+    api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,price_min,price_max,attendance_mode,online_url,cover_image_path,recurrence_slots,admin_note,review_reason,reviewed_at,latitude,longitude,schedule_kind,recurrence_note,event_id,created_at,updated_at&order=created_at.desc'),
     api(TABLES.venueLinks,token,'GET',null,'?select=organization_id,venue_id,relation_type,created_at'),
     api(TABLES.contacts,token,'GET',null,'?select=organization_id,address,address_latitude,address_longitude,address_public,contacts,contacts_public,legal_name,reg_number,vat_number,bank_name,bank_account,requisites_public')
    ]);
@@ -247,6 +247,11 @@ export async function POST(request){
     pricing=incompleteDraft?{price_min:null,price_max:null}:
       cleanPrice(String(data.price_status||'unknown'),data.price_min,data.price_max);
    }catch(error){return NextResponse.json({error:error.message},{status:400});}
+   // Online or hybrid: the place stays; the call link is optional and https only.
+   const attendance_mode=ATTENDANCE_MODES.includes(data.attendance_mode)?data.attendance_mode:'in_person';
+   let online_url=null;
+   try{online_url=attendance_mode==='in_person'?null:cleanOnlineUrl(data.online_url)||null;}
+   catch(error){return NextResponse.json({error:error.message},{status:400});}
 
    let venue=null;
    if(data.venue_id){
@@ -281,6 +286,8 @@ export async function POST(request){
     ...point,
     price_status:['free','paid','mixed','unknown'].includes(data.price_status)?data.price_status:'unknown',
     ...pricing,
+    attendance_mode,
+    online_url,
     recurrence_slots:slots,
     status:data.status
    };
