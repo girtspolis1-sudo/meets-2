@@ -19,7 +19,8 @@ test('events that are over are not listed',()=>{
 
 test('long exhibitions and season calendars are kept apart',()=>{
  assert.equal(isLongRunning({date_from:'2023-10-26',date_to:'2026-12-30'},today),true);
- assert.equal(isLongRunning({date_from:'2026-10-20',date_to:'2026-11-05'},today),true,'two weeks or more');
+ assert.equal(isLongRunning({date_from:'2026-10-20',date_to:'2026-11-20'},today),true,'two weeks or more');
+ assert.equal(isLongRunning({date_from:'2026-10-20',date_to:'2026-11-05'},today),false,'last week: back in the main list');
  assert.equal(isLongRunning({date_from:'2026-10-30',date_to:'2026-11-02'},today),false,'a festival weekend');
  assert.equal(isLongRunning({date_from:today,date_to:'2026-12-31'},today),false,'starting today: listed today');
 });

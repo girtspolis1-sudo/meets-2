@@ -4,6 +4,7 @@ import MobileEventSheet from './mobile-event-sheet.jsx';
 import NearbyList from './nearby-list.jsx';
 import CategoryIcon from '../components/category-icon.jsx';
 import {eventTerm} from '../../lib/event-term.js';
+import {durationKind,isBackgroundLong,untilBadge} from '../../lib/event-duration.js';
 import {categoryIconSvg} from '../../lib/category-icons.js';
 import {groupedSportIcon} from '../../lib/event-map-icons.js';
 import {calendarDescription} from '../../lib/catalog-wire.js';
@@ -123,6 +124,8 @@ export default function OsmEventMap(){
  // ?org=<id>: one organizer's events are active, everything else stays grey in the background.
  const [orgFilter,setOrgFilter]=useState(()=>{const v=searchParams.get('org')||'';return /^[0-9a-f-]{36}$/i.test(v)?v:'';});
  const orgFitRef=useRef(false),orgDatesRef=useRef(false);
+ // Running exhibitions and season programmes can be switched off (?long=0).
+ const [showLong,setShowLong]=useState(()=>searchParams.get('long')!=='0');
  function setDiscoveryFilter(key,value){
   const params=new URLSearchParams(searchParams.toString());
   if(value)params.set(key,value);else params.delete(key);
@@ -250,7 +253,7 @@ export default function OsmEventMap(){
   const params=url.searchParams;
   const state={radius:radiusKm>0?String(radiusKm):radiusKm===0&&userLocation.source!=='fallback'?'0':'',period:periodMode===DEFAULT_PERIOD?'':periodMode,
    types:eventTypes.join(','),competition,subcategory:category,q:eventSearch,price,municipality,country,
-   from:periodMode==='manual'?from:'',to:periodMode==='manual'?to:'',style:mapStyle==='positron'?'':mapStyle,org:orgFilter};
+   from:periodMode==='manual'?from:'',to:periodMode==='manual'?to:'',style:mapStyle==='positron'?'':mapStyle,org:orgFilter,long:showLong?'':'0'};
   for(const [key,value] of Object.entries(state)){if(value)params.set(key,value);else params.delete(key);}
   if(['search','events','shared'].includes(userLocation?.source)&&insideBalticView(userLocation.lat,userLocation.lon)){
    params.set('lat',String(Number(userLocation.lat.toFixed(4))));
@@ -258,7 +261,7 @@ export default function OsmEventMap(){
   }else{params.delete('lat');params.delete('lon');}
   const next=url.pathname+(params.size?'?'+params.toString():'')+url.hash;
   if(next!==window.location.pathname+window.location.search+window.location.hash)window.history.replaceState(null,'',next);
- },[radiusKm,periodMode,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,mapStyle,userLocation,orgFilter]);
+ },[radiusKm,periodMode,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,mapStyle,userLocation,orgFilter,showLong]);
 
 
  useEffect(()=>{
@@ -336,6 +339,7 @@ export default function OsmEventMap(){
   if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
   if(placeFilter&&placeFromEvent(e)?.key!==placeFilter)return false;
   if(orgFilter&&e.organization_id!==orgFilter)return false;
+  if(!showLong&&isBackgroundLong(e,rigaTodayIso()))return false;
   if(eventTypeFilter&&e.event_type!==eventTypeFilter)return false;
   if(eventTypes.length&&!eventTypes.includes(sourceType(e)))return false;
   if(competition&&e.competition_key!==competition)return false;
@@ -352,7 +356,7 @@ export default function OsmEventMap(){
    if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radius)return false;
   }
   return true;
- },[homeCategory,audience,placeFilter,orgFilter,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
+ },[homeCategory,audience,placeFilter,orgFilter,showLong,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
  const matchesEvent=useMemo(()=>e=>matchesWith(e),[matchesWith]);
 
  const catalogHref=useMemo(()=>{
@@ -537,7 +541,12 @@ export default function OsmEventMap(){
    const activeInGroup=group.events.filter(e=>activeIds.has(e.id));
    const isActive=activeInGroup.length>0;
    const chosenEvents=isActive?activeInGroup:group.events;
-   const nearest=closestFirst(chosenEvents)[0]||chosenEvents[0];
+   const todayIso=rigaTodayIso(clockNow);
+   // The day's own events lead the pin; a running exhibition only when nothing else is there.
+   const foreground=chosenEvents.filter(e=>!isBackgroundLong(e,todayIso));
+   const nearest=closestFirst(foreground.length?foreground:chosenEvents)[0]||chosenEvents[0];
+   const longPin=!foreground.length;
+   const running=String(nearest.date_from||'')<todayIso&&durationKind(nearest)!=='short';
    const term=eventTerm(nearest,rigaTodayIso(clockNow),clockNow);
    const shownCount=isActive?activeInGroup.length:group.events.length;
    const dimmed=!isActive;
@@ -550,17 +559,21 @@ export default function OsmEventMap(){
    const pinIcon=sport?'<span class="c3-pin-sport" title="'+esc(sport.label)+'">'+esc(sport.glyph)+'</span>':categoryIconSvg(group0,22);
    // C3 "minimal duo icon": the category icon leads, the days badge is a small
    // accent. Only events at the very same place share a pin (with a count).
-   const html='<span class="c3-pin tone-'+esc(term.tone)+(dimmed?' dimmed':'')+(far?' far':'')+'">'+
-     '<svg class="c3-pin-shape" width="44" height="56" viewBox="0 0 44 56" aria-hidden="true"><path d="M22 54C22 54 4 35 4 21.5A18 18 0 1 1 40 21.5C40 35 22 54 22 54Z"/></svg>'+
+   // Exhibitions and other long events: a framed pin with no countdown, kept below the rest.
+   // Festival weeks and an exhibition's last days show until when instead of "0d".
+   const badge=longPin?'':running?'<span class="c3-pin-days c3-pin-until">'+esc(untilBadge(nearest))+'</span>':null;
+   const html='<span class="c3-pin tone-'+esc(term.tone)+(dimmed?' dimmed':'')+(far?' far':'')+(longPin?' long':'')+'">'+
+     (longPin?'<svg class="c3-pin-shape" width="44" height="56" viewBox="0 0 44 56" aria-hidden="true"><path d="M9 6h26a6 6 0 0 1 6 6v24a6 6 0 0 1-6 6h-8l-5 10-5-10H9a6 6 0 0 1-6-6V12a6 6 0 0 1 6-6Z"/></svg>'
+      :'<svg class="c3-pin-shape" width="44" height="56" viewBox="0 0 44 56" aria-hidden="true"><path d="M22 54C22 54 4 35 4 21.5A18 18 0 1 1 40 21.5C40 35 22 54 22 54Z"/></svg>')+
      '<span class="c3-pin-icon">'+pinIcon+'</span>'+
-     (term.days===0?'<span class="c3-pin-days c3-pin-now'+(term.tone==='ended'?' ended':'')+'" aria-hidden="true"></span>':'<span class="c3-pin-days">'+esc(term.badge)+'</span>')+
+     (badge!==null?badge:term.days===0?'<span class="c3-pin-days c3-pin-now'+(term.tone==='ended'?' ended':'')+'" aria-hidden="true"></span>':'<span class="c3-pin-days">'+esc(term.badge)+'</span>')+
      (saved?'<span class="c3-pin-saved" title="Saglabāts"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.8a5.3 5.3 0 0 0-7.5 0L12 6.1l-1.3-1.3a5.3 5.3 0 0 0-7.5 7.5L12 21l8.8-8.7a5.3 5.3 0 0 0 0-7.5Z"/></svg></span>':'')+
      (shownCount>1?'<span class="c3-pin-count">'+shownCount+'</span>':'')+
    '</span>';
    const size=dimmed?[34,44]:[44,56];
    const icon=L.divIcon({className:'c3-pin-wrap',html,iconSize:size,iconAnchor:[size[0]/2,size[1]-2],tooltipAnchor:[size[0]/2,-size[1]/2]});
    const label=nearest.title+', '+term.label+(shownCount>1?', vēl '+(shownCount-1)+' šajā vietā':'');
-   const marker=L.marker([displayLat,displayLon],{icon,pane:!isActive?'backgroundMarkers':far?'farMarkers':'activeMarkers',keyboard:isActive,title:label,alt:label,riseOnHover:true});
+   const marker=L.marker([displayLat,displayLon],{icon,pane:!isActive?'backgroundMarkers':far||longPin?'farMarkers':'activeMarkers',keyboard:isActive,title:label,alt:label,riseOnHover:true});
    if(canHover){
     const place=[nearest.venue_name,nearest.settlement||nearest.municipality].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ');
     const image=String(nearest.cover_image_url||'').startsWith('https://')?nearest.cover_image_url:'';
@@ -674,7 +687,7 @@ export default function OsmEventMap(){
  function resetFilters(){
   const params=new URLSearchParams(searchParams.toString());params.delete('category');params.delete('audience');params.delete('event_type');params.delete('place');
   router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
-  setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setOrgFilter('');setRadiusKm(userLocation.source==='fallback'?0:DEFAULT_RADIUS);setPeriodMode(DEFAULT_PERIOD);
+  setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setOrgFilter('');setShowLong(true);setRadiusKm(userLocation.source==='fallback'?0:DEFAULT_RADIUS);setPeriodMode(DEFAULT_PERIOD);
   {const filterToday=rigaTodayIso(clockNow);const next=periodDates(DEFAULT_PERIOD,filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
@@ -841,6 +854,8 @@ export default function OsmEventMap(){
      {HOME_GROUP_KEYS.map(key=><button key={key} type="button" aria-pressed={homeCategory===key} className={homeCategory===key?'active':''}
       onClick={()=>setDiscoveryFilter('category',homeCategory===key?'':key)}><CategoryIcon name={key}/>{HOME_CATEGORY_FILTERS[key].title}</button>)}
      <button type="button" aria-pressed={price==='free'} className={price==='free'?'active':''} onClick={()=>setPrice(price==='free'?'':'free')}>Bezmaksas</button>
+     <button type="button" aria-pressed={showLong} className="map-long-toggle" onClick={()=>setShowLong(v=>!v)}
+      title="Izstādes un citi pasākumi, kas ilgst vairāk nekā 2 nedēļas">{showLong?'✓ ':''}Izstādes un ilgstošie</button>
     </div>
     {activeChips.filter(c=>c.key!=='category').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
      {activeChips.filter(c=>c.key!=='category').map(chip=><span key={chip.key} className="map-inline-filter-chip"><span>{chip.label}</span><button type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>×</button></span>)}

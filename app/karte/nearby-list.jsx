@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {countLabel} from '../../lib/map-nearby.js';
+import {isBackgroundLong} from '../../lib/event-duration.js';
 import EventFacts from '../components/event-facts.jsx';
 import EventDetailCard from '../components/event-detail-card.jsx';
 import EventVenueFavorite from '../components/event-venue-favorite.jsx';
@@ -86,11 +87,13 @@ export default function NearbyList({groups,total,today,clock,summary,loading,fav
  function step(){setSheet(s=>SHEET_STATES[(SHEET_STATES.indexOf(s)+1)%SHEET_STATES.length]);}
 
  let left=shown;
+ // Running exhibitions and season programmes are counted and listed apart from the day's own events.
+ const longCount=groups.reduce((n,g)=>n+g.items.filter(item=>isBackgroundLong(item.event,today)).length,0);
  const setRefs=node=>{panelRef.current=node;if(listRef)listRef.current=node;};
  return <aside className={'nearby-panel sheet-'+sheet+(place?' has-place':'')} aria-labelledby="nearby-title" ref={setRefs}>
   <header className="nearby-head" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
    <button type="button" className="nearby-handle" onClick={step} aria-label={sheet==='full'?'Samazināt sarakstu':'Paplašināt sarakstu'}><span aria-hidden="true"/></button>
-   <h2 id="nearby-title">{loading?'Ielādē pasākumus…':countLabel(total)}</h2>
+   <h2 id="nearby-title">{loading?'Ielādē pasākumus…':countLabel(total-longCount)}{!loading&&longCount>0&&<small className="nearby-long-count"> + {longCount} ilgstoši</small>}</h2>
    {summary&&<p>{summary}</p>}
   </header>
   <div className="nearby-scroll" ref={scrollRef}>
@@ -99,12 +102,20 @@ export default function NearbyList({groups,total,today,clock,summary,loading,fav
     {!loading&&!total&&empty}
     {groups.map(group=>{
      if(left<=0)return null;
-     const items=group.items.slice(0,left);left-=items.length;
-     return <section key={group.key} className={'nearby-group group-'+group.key} aria-label={group.label}>
-      <h3>{group.label} <span>{group.items.length}</span></h3>
-      <ol>{items.map(item=><NearbyItem key={item.event.id} item={item} today={today} clock={clock}
+     const own=group.items.filter(item=>!isBackgroundLong(item.event,today));
+     const long=group.items.filter(item=>isBackgroundLong(item.event,today));
+     const items=own.slice(0,left);left-=items.length;
+     const row=item=><NearbyItem key={item.event.id} item={item} today={today} clock={clock}
        saved={favorites.has(String(item.event.id))} highlighted={String(item.event.id)===String(highlightedId)}
-       onSelect={onSelect} onHover={onHover} onFavorite={onFavorite}/>)}</ol>
+       onSelect={onSelect} onHover={onHover} onFavorite={onFavorite}/>;
+     const longOpen=long.some(item=>String(item.event.id)===String(highlightedId));
+     return <section key={group.key} className={'nearby-group group-'+group.key} aria-label={group.label}>
+      <h3>{group.label} <span>{own.length}</span></h3>
+      {items.length>0&&<ol>{items.map(row)}</ol>}
+      {long.length>0&&<details className="nearby-long" open={longOpen||!own.length||undefined}>
+       <summary><span>{group.key==='today'?'Šodien arī apskatāms':'Arī apskatāms'}</span><strong>{long.length} {long.length===1?'izstāde vai ilgstošs pasākums':'izstādes un ilgstoši pasākumi'}</strong></summary>
+       <ol>{long.map(row)}</ol>
+      </details>}
      </section>;
     })}
     {total>shown&&<button type="button" className="button nearby-more" onClick={()=>setShown(v=>v+PAGE)}>Rādīt vēl {Math.min(PAGE,total-shown)}</button>}

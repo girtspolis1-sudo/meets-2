@@ -10,11 +10,15 @@ import {officialEventUrl} from '../../lib/event-sharing.js';
 import {priceLabel} from '../../lib/map-nearby.js';
 import {rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
 import {eventTerm} from '../../lib/event-term.js';
+import {durationKind,isLastDays,untilBadge} from '../../lib/event-duration.js';
 
 function hostOf(url){try{return new URL(url).hostname.replace(/^www\./,'');}catch{return '';}}
 
 // The days badge, as on the map pin: today is a green pulsing dot, not "0d".
-function DaysMark({term,className=''}){
+function DaysMark({term,event,today,className=''}){
+ // Festival weeks and exhibitions that are already running: until when, not a countdown.
+ if(event&&String(event.date_from||'')<today&&durationKind(event)!=='short')
+  return <span className={'c3-days-chip c3-days-until'+(isLastDays(event,today)?' last':'')+(className?' '+className:'')} aria-hidden="true">{untilBadge(event)}</span>;
  if(term.days===0)return <span className={'c3-days-chip c3-days-now'+(term.tone==='ended'?' ended':'')+(className?' '+className:'')} aria-hidden="true"/>;
  return <span className={'c3-days-chip'+(className?' '+className:'')} aria-hidden="true">{term.badge}</span>;
 }
@@ -26,7 +30,7 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
  const image=cardImage(event),group=cardGroup(event),summary=cardDescription(event);
  // The icon names the topic: the sport (🏀, 🤾, 🏒…) or what the event is about.
  const icon=eventTopicIcon(event);
- const term=eventTerm(event,rigaTodayIso());
+ const today=rigaTodayIso(),term=eventTerm(event,today);
  const paid=isPaidEvent(event),price=paid?priceLabel(event):'';
  const original=officialEventUrl(event),host=original?hostOf(original):'';
  const orgId=event.organization_id,orgName=event.organizer_name;
@@ -38,9 +42,9 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
  return <article className={'meets-discovery-card catalog-event-card theme-'+group+(image?' has-image':' no-image')}>
   {image?<div className="meets-discovery-card-media">
    <img src={image} alt="" loading="lazy" decoding="async" onError={e=>{e.currentTarget.parentElement.hidden=true;}}/>
-   <span className={'c3-media-marks tone-'+term.tone} title={term.label}><DaysMark term={term}/>{euro}</span>
+   <span className={'c3-media-marks tone-'+term.tone} title={term.label}><DaysMark term={term} event={event} today={today}/>{euro}</span>
   </div>:<span className={'meets-card-symbol c3-card-symbol tone-'+term.tone} title={icon.label+', '+term.label+(paid?', maksas':'')} role="img" aria-label={icon.label}>
-   <span aria-hidden="true">{icon.glyph}</span><DaysMark term={term}/>{euro}</span>}
+   <span aria-hidden="true">{icon.glyph}</span><DaysMark term={term} event={event} today={today}/>{euro}</span>}
   <div className="meets-discovery-card-body">
    <span className="meets-card-category">{cardCategory(event)}</span>
    <div className="meets-discovery-card-facts">
