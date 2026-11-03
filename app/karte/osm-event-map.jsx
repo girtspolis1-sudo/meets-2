@@ -120,6 +120,9 @@ export default function OsmEventMap(){
  const audience=audienceKey(searchParams.get('audience'));
  const eventTypeFilter=searchParams.get('event_type')||'';
  const placeFilter=searchParams.get('place')||'';
+ // ?org=<id>: one organizer's events are active, everything else stays grey in the background.
+ const [orgFilter,setOrgFilter]=useState(()=>{const v=searchParams.get('org')||'';return /^[0-9a-f-]{36}$/i.test(v)?v:'';});
+ const orgFitRef=useRef(false),orgDatesRef=useRef(false);
  function setDiscoveryFilter(key,value){
   const params=new URLSearchParams(searchParams.toString());
   if(value)params.set(key,value);else params.delete(key);
@@ -194,7 +197,8 @@ export default function OsmEventMap(){
    }
    setRadiusKm(current=>current??(known&&!wholeCountry?DEFAULT_RADIUS:0));
    // First visit: offer a place. If the browser already allows location, use it without asking.
-   if(!known&&!searchParams.has('municipality')&&!searchParams.has('event')){
+   if(searchParams.has('org'))setRadiusKm(0);
+   if(!known&&!searchParams.has('municipality')&&!searchParams.has('event')&&!searchParams.has('org')){
     setLocationPrompt(true);
     navigator.permissions?.query({name:'geolocation'}).then(status=>{if(status.state==='granted')useCurrentLocation();}).catch(()=>{});
    }
@@ -246,7 +250,7 @@ export default function OsmEventMap(){
   const params=url.searchParams;
   const state={radius:radiusKm>0?String(radiusKm):radiusKm===0&&userLocation.source!=='fallback'?'0':'',period:periodMode===DEFAULT_PERIOD?'':periodMode,
    types:eventTypes.join(','),competition,subcategory:category,q:eventSearch,price,municipality,country,
-   from:periodMode==='manual'?from:'',to:periodMode==='manual'?to:'',style:mapStyle==='positron'?'':mapStyle};
+   from:periodMode==='manual'?from:'',to:periodMode==='manual'?to:'',style:mapStyle==='positron'?'':mapStyle,org:orgFilter};
   for(const [key,value] of Object.entries(state)){if(value)params.set(key,value);else params.delete(key);}
   if(['search','events','shared'].includes(userLocation?.source)&&insideBalticView(userLocation.lat,userLocation.lon)){
    params.set('lat',String(Number(userLocation.lat.toFixed(4))));
@@ -254,7 +258,7 @@ export default function OsmEventMap(){
   }else{params.delete('lat');params.delete('lon');}
   const next=url.pathname+(params.size?'?'+params.toString():'')+url.hash;
   if(next!==window.location.pathname+window.location.search+window.location.hash)window.history.replaceState(null,'',next);
- },[radiusKm,periodMode,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,mapStyle,userLocation]);
+ },[radiusKm,periodMode,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,mapStyle,userLocation,orgFilter]);
 
 
  useEffect(()=>{
@@ -277,6 +281,18 @@ export default function OsmEventMap(){
   if(!target?.date_from)return;
   setPeriodMode('manual');setFrom(target.date_from);setTo(target.date_to||target.date_from);
  },[events,focusEventId]);
+
+ // The organizer view covers all of the organizer's coming events, whatever their dates.
+ const orgEvents=useMemo(()=>orgFilter?events.filter(e=>e.organization_id===orgFilter):[],[events,orgFilter]);
+ const orgName=orgEvents[0]?.organizer_name||'';
+ useEffect(()=>{
+  if(orgDatesRef.current||!orgFilter||!orgEvents.length)return;
+  orgDatesRef.current=true;
+  const today=rigaTodayIso(clockNow);
+  const starts=orgEvents.map(e=>e.date_from).filter(Boolean).sort();
+  const ends=orgEvents.map(e=>e.date_to||e.date_from).filter(Boolean).sort();
+  setPeriodMode('manual');setFrom(starts[0]<today?today:starts[0]);setTo(ends.at(-1));
+ },[orgEvents,orgFilter]);
 
  const typedEvents=useMemo(()=>eventTypes.length?events.filter(e=>eventTypes.includes(sourceType(e))):events,[events,eventTypes]);
  const competitionOptions=useMemo(()=>{
@@ -319,6 +335,7 @@ export default function OsmEventMap(){
  const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to}={})=>{
   if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
   if(placeFilter&&placeFromEvent(e)?.key!==placeFilter)return false;
+  if(orgFilter&&e.organization_id!==orgFilter)return false;
   if(eventTypeFilter&&e.event_type!==eventTypeFilter)return false;
   if(eventTypes.length&&!eventTypes.includes(sourceType(e)))return false;
   if(competition&&e.competition_key!==competition)return false;
@@ -335,7 +352,7 @@ export default function OsmEventMap(){
    if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radius)return false;
   }
   return true;
- },[homeCategory,audience,placeFilter,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
+ },[homeCategory,audience,placeFilter,orgFilter,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
  const matchesEvent=useMemo(()=>e=>matchesWith(e),[matchesWith]);
 
  const catalogHref=useMemo(()=>{
@@ -598,6 +615,18 @@ export default function OsmEventMap(){
   }
  },[mapReady,userLocation,radiusKm]);
 
+ // Organizer view: show straight away where the organizer's events are.
+ useEffect(()=>{
+  if(orgFitRef.current||!orgFilter||!mapReady||!mapRef.current)return;
+  const points=orgEvents.map(e=>[Number(e.latitude),Number(e.longitude)]).filter(([a,b])=>Number.isFinite(a)&&Number.isFinite(b)&&insideBalticView(a,b));
+  if(!points.length)return;
+  orgFitRef.current=true;
+  // Leave room for the filter panel that floats over the top of the map.
+  const height=mapRef.current.getSize().y;
+  const top=Math.min(340,Math.round(height*0.45));
+  mapRef.current.fitBounds(points.length===1?[points[0],points[0]]:points,{animate:false,paddingTopLeft:[50,top],paddingBottomRight:[50,60],maxZoom:14});
+ },[mapReady,orgEvents,orgFilter,userLocation,radiusKm]);
+
  useEffect(()=>{
   if(focusOpenedRef.current||!focusEventId||!mapReady||!mapRef.current)return;
   // Wait until the event's own dates are applied, so the marker is not rebuilt right after opening.
@@ -645,7 +674,7 @@ export default function OsmEventMap(){
  function resetFilters(){
   const params=new URLSearchParams(searchParams.toString());params.delete('category');params.delete('audience');params.delete('event_type');params.delete('place');
   router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
-  setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setRadiusKm(userLocation.source==='fallback'?0:DEFAULT_RADIUS);setPeriodMode(DEFAULT_PERIOD);
+  setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setOrgFilter('');setRadiusKm(userLocation.source==='fallback'?0:DEFAULT_RADIUS);setPeriodMode(DEFAULT_PERIOD);
   {const filterToday=rigaTodayIso(clockNow);const next=periodDates(DEFAULT_PERIOD,filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
@@ -719,7 +748,8 @@ export default function OsmEventMap(){
   eventSearch&&{key:'q',label:'„'+eventSearch+'”',clear:()=>setEventSearch('')},
   price&&price!=='free'&&{key:'price',label:{paid:'Maksas',mixed:'Daļēji maksas',unknown:'Maksa nav zināma'}[price]||price,clear:()=>setPrice('')},
   municipality&&{key:'municipality',label:municipality,clear:()=>setMunicipality('')},
-  country&&{key:'country',label:countryLabel(country),clear:()=>setCountry('')}
+  country&&{key:'country',label:countryLabel(country),clear:()=>setCountry('')},
+  orgFilter&&{key:'org',label:'Organizators: '+(orgName||'izvēlētais'),clear:()=>setOrgFilter('')}
  ].filter(Boolean);
 
  // A list item opens its place: on desktop in the panel with the map centred on it.

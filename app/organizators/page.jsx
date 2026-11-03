@@ -12,6 +12,7 @@ import {reasonLabel} from '../../lib/submission-review.js';
 import {whenLabel} from '../../lib/map-nearby.js';
 import {eventTerm} from '../../lib/event-term.js';
 import {SOCIAL_NETWORKS,cleanSocialLinks,socialLabel} from '../../lib/social-links.js';
+import {organizerPath} from '../../lib/organizer-path.js';
 
 const SESSION='meets_user_session_v1';
 const PANELS=new Set(['overview','events','venues','team','profile']);
@@ -301,7 +302,8 @@ function OrganizerPageInner(){
    if(profileLogo)step(steps,++n);
    await rpc('updateOrganization',{organization_id:orgId,...profile,image_url},session);
    step(steps,++n);
-   await rpc('saveOrgContacts',{organization_id:orgId,address:profile.address||'',address_latitude:profile.address_latitude??null,address_longitude:profile.address_longitude??null,contacts:profile.contacts||[],contacts_public:profile.is_public===true,address_public:profile.address_public===true},session);
+   await rpc('saveOrgContacts',{organization_id:orgId,address:profile.address||'',address_latitude:profile.address_latitude??null,address_longitude:profile.address_longitude??null,contacts:profile.contacts||[],contacts_public:profile.is_public===true,address_public:profile.address_public===true,
+    legal_name:profile.legal_name||'',reg_number:profile.reg_number||'',vat_number:profile.vat_number||'',bank_name:profile.bank_name||'',bank_account:profile.bank_account||'',requisites_public:profile.requisites_public===true},session);
    await rpc('saveOrgSocials',{organization_id:orgId,social_links:cleanSocialLinks(profile.social_links||[])},session);
    step(steps,++n);
    const data=await rpc('list',{},session);setItems(data);setProfileLogo(null);setProfileDirty(false);setNotice('Organizatora profils saglabāts.');
@@ -475,7 +477,7 @@ function OrganizerPageInner(){
     </ul>
    </details>:<h1>{activeOrg?.name}</h1>}
   </div>
-  {activeOrg?.is_public&&<div className="org-head-share"><Link className="button compact ghost" href={'/organizatori/'+orgId}>Publiskais profils ↗</Link><ShareButton path={'/organizatori/'+orgId} title={activeOrg.name+' — pasākumi MEETS'} label="Dalīties" className="button compact"/></div>}
+  {activeOrg?.is_public&&<div className="org-head-share"><Link className="button compact ghost" href={organizerPath(activeOrg)}>Publiskais profils ↗</Link><ShareButton path={organizerPath(activeOrg)} title={activeOrg.name+' — pasākumi MEETS'} label="Dalīties" className="button compact"/></div>}
   </header>
 
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
@@ -560,13 +562,18 @@ function OrganizerPageInner(){
   </section>}
 
   {panel==='profile'&&profile&&<section className="org-panel">
-   <div className="org-panel-head"><div><h2>Organizatora profils</h2><p>Personas profila vārds un organizatora nosaukums tiek pārvaldīti atsevišķi.</p></div>{(profile.is_public||metrics.published>0)&&<Link className="button" href={'/organizatori/'+orgId}>Publiskais priekšskatījums ↗</Link>}</div>
+   <div className="org-panel-head"><div><h2>Organizatora profils</h2><p>Personas profila vārds un organizatora nosaukums tiek pārvaldīti atsevišķi.</p></div>{(profile.is_public||metrics.published>0)&&<Link className="button" href={organizerPath(activeOrg)}>Publiskais priekšskatījums ↗</Link>}</div>
    <form className="org-profile-form org-split-editor" onSubmit={saveProfile}>
     <div className="org-editor-columns">
       <section className="org-editor-column org-editor-private"><h3>🔒 Pārvaldības informācija</h3><p>Informāciju vari saglabāt privāti. Publiskos laukus atzīmē atsevišķi.</p>
     <label>Organizatora nosaukums<input disabled={!canEdit} required minLength={2} maxLength={160} value={profile.name||''} onChange={e=>{setProfile(v=>({...v,name:e.target.value}));setProfileDirty(true);}}/></label>
     <OrgAddressField disabled={!canEdit} value={profile} onChange={v=>{setProfile(o=>({...o,...v}));setProfileDirty(true);}}/><label className="org-contact-visibility"><input type="checkbox" disabled={!canEdit} checked={profile.address_public===true} onChange={e=>{setProfile(v=>({...v,address_public:e.target.checked}));setProfileDirty(true);}}/> Rādīt adresi publiski</label>
     <ContactFields disabled={!canEdit} value={profile.contacts||[]} onChange={contacts=>{setProfile(v=>({...v,contacts}));setProfileDirty(true);}}/>
+    <fieldset className="org-requisites"><legend>Rekvizīti</legend>
+     {[['legal_name','Juridiskais nosaukums',200],['reg_number','Reģistrācijas numurs',60],['vat_number','PVN numurs',60],['bank_name','Banka',60],['bank_account','Konta numurs (IBAN)',60]].map(([key,label,max])=>
+      <label key={key}>{label}<input disabled={!canEdit} maxLength={max} value={profile[key]||''} onChange={e=>{const value=e.target.value;setProfile(v=>({...v,[key]:value}));setProfileDirty(true);}}/></label>)}
+     <label className="org-contact-visibility"><input type="checkbox" disabled={!canEdit} checked={profile.requisites_public===true} onChange={e=>{setProfile(v=>({...v,requisites_public:e.target.checked}));setProfileDirty(true);}}/> Rādīt rekvizītus publiskajā profilā</label>
+    </fieldset>
 
       </section>
       <section className="org-editor-column org-editor-public"><h3>◉ Publiskais profils</h3><p>Apstiprini, ko par organizāciju redzēs apmeklētāji.</p>

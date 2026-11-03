@@ -90,12 +90,12 @@ export async function POST(request){
 
   if(action==='list'){
    const [organizations,memberships,visibleVenues,submissions,venueLinks,contacts]=await Promise.all([
-    api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id,description,image_url,public_email,public_phone,public_url,social_links,is_public,created_at,updated_at&order=created_at.desc'),
+    api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id,description,image_url,public_email,public_phone,public_url,social_links,is_public,slug,created_at,updated_at&order=created_at.desc'),
     api(TABLES.members,token,'GET',null,'?select=organization_id,role&user_id=eq.'+user.id),
     api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,directions,description,is_public,created_at&order=created_at.desc'),
     api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,price_min,price_max,cover_image_path,recurrence_slots,admin_note,review_reason,reviewed_at,latitude,longitude,schedule_kind,recurrence_note,event_id,created_at,updated_at&order=created_at.desc'),
     api(TABLES.venueLinks,token,'GET',null,'?select=organization_id,venue_id,relation_type,created_at'),
-    api(TABLES.contacts,token,'GET',null,'?select=organization_id,address,address_latitude,address_longitude,address_public,contacts,contacts_public')
+    api(TABLES.contacts,token,'GET',null,'?select=organization_id,address,address_latitude,address_longitude,address_public,contacts,contacts_public,legal_name,reg_number,vat_number,bank_name,bank_account,requisites_public')
    ]);
    const memberRole=new Map((memberships||[]).map(x=>[x.organization_id,x.role]));
    const details=new Map((contacts||[]).map(c=>[c.organization_id,c]));
@@ -134,7 +134,11 @@ export async function POST(request){
    const contacts=cleanOrgContacts(data.contacts);
    const lat=Number(data.address_latitude),lon=Number(data.address_longitude);
    const point=Number.isFinite(lat)&&Number.isFinite(lon)&&data.address_latitude!==''&&data.address_latitude!=null&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180?{address_latitude:lat,address_longitude:lon}:{address_latitude:null,address_longitude:null};
-   const details={organization_id:data.organization_id,address:String(data.address||'').trim().slice(0,300),...point,contacts,contacts_public:data.contacts_public===true&&owned[0].is_public===true,address_public:data.address_public===true,updated_at:new Date().toISOString()};
+   const details={organization_id:data.organization_id,address:String(data.address||'').trim().slice(0,300),...point,contacts,contacts_public:data.contacts_public===true&&owned[0].is_public===true,address_public:data.address_public===true,
+    // Requisites: plain text fields, public only when the organizer ticks it.
+    ...Object.fromEntries(['legal_name','reg_number','vat_number','bank_name','bank_account'].map(k=>[k,String(data[k]||'').trim().slice(0,k==='legal_name'?200:60)||null])),
+    requisites_public:data.requisites_public===true&&owned[0].is_public===true,
+    updated_at:new Date().toISOString()};
    const saved=await api(TABLES.contacts,token,'POST',details,'?on_conflict=organization_id');
    return NextResponse.json({item:saved[0]||details});
   }
