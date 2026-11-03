@@ -338,7 +338,7 @@ export default function OsmEventMap(){
   return [...map.values()].sort((a,b)=>a.label.localeCompare(b.label,'lv'));
  },[events]);
 
- const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to}={})=>{
+ const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to,anyPrice=false}={})=>{
   if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
   if(placeFilter&&placeFromEvent(e)?.key!==placeFilter)return false;
   if(orgFilter&&e.organization_id!==orgFilter)return false;
@@ -349,7 +349,7 @@ export default function OsmEventMap(){
   if(category&&e.primary_category!==category)return false;
   if(eventSearch&& !norm(e.title).includes(norm(eventSearch)))return false;
   // The quick "Maksas" choice also covers partly paid events.
-  if(price&&e.price_status!==price&&!(price==='paid'&&e.price_status==='mixed'))return false;
+  if(!anyPrice&&price&&e.price_status!==price&&!(price==='paid'&&e.price_status==='mixed'))return false;
   if(municipality&&e.municipality!==municipality)return false;
   if(country&&e.country_code!==country)return false;
   if(start&&(e.date_to||e.date_from)<start)return false;
@@ -362,6 +362,13 @@ export default function OsmEventMap(){
   return true;
  },[homeCategory,audience,placeFilter,orgFilter,showLong,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
  const matchesEvent=useMemo(()=>e=>matchesWith(e),[matchesWith]);
+ // How many events each price choice leaves; most sources do not state a price.
+ const priceCounts=useMemo(()=>{
+  const counts={'':0,free:0,paid:0};
+  for(const e of events){if(!matchesWith(e,{anyPrice:true}))continue;counts['']++;
+   if(e.price_status==='free')counts.free++;else if(e.price_status==='paid'||e.price_status==='mixed')counts.paid++;}
+  return counts;
+ },[events,matchesWith]);
 
  const catalogHref=useMemo(()=>{
   const params=new URLSearchParams();
@@ -862,7 +869,9 @@ export default function OsmEventMap(){
     <ChipScroller label="Ko darīt" className="map-what-scroller">
      <span className="map-segment map-segment-price" role="group" aria-label="Maksa">
       {[['','Visi'],['free','Bez maksas'],['paid','Maksas']].map(([value,text])=><button key={text} type="button" aria-pressed={price===value}
-       className={price===value?'active':''} onClick={()=>setPrice(value)}>{value==='paid'&&<span className="map-euro" aria-hidden="true">€</span>}{text}</button>)}
+       className={price===value?'active':''} onClick={()=>setPrice(value)}
+       title={value?'Cena zināma tikai daļai pasākumu: '+priceCounts[value]+' no '+priceCounts['']:undefined}>
+       {value==='paid'&&<span className="map-euro" aria-hidden="true">€</span>}{text}{value&&<span className="map-segment-count">{priceCounts[value]}</span>}</button>)}
      </span>
      <span className="map-what-divider" aria-hidden="true"/>
      {HOME_GROUP_KEYS.map(key=><button key={key} type="button" className={'map-topic'+(homeCategory===key?' active':'')} aria-pressed={homeCategory===key}

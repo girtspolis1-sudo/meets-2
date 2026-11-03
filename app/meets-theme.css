@@ -367,3 +367,28 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 }
 .map-euro{margin-right:4px;font-weight:800}
 .map-quick-scroller .chip-scroller-row{gap:6px}
+
+/* ---- Map filters: one thin strip across the whole map (desktop) ----
+   Line 1: locate · search · filters | when | how far.   Line 2: price + topics. */
+@media (min-width:1101px){
+ .map-shell .map-controls-overlay{left:8px;right:8px;width:auto;max-width:none;padding:5px;display:grid;grid-template-columns:minmax(260px,1fr) auto;column-gap:8px;row-gap:5px;align-items:center;border-radius:14px}
+ .map-shell .map-controls-overlay>*{grid-column:1/-1;margin-top:0}
+ .map-shell .map-controls-overlay>.map-primary-controls{grid-column:1}
+ .map-shell .map-controls-overlay>.map-quick-scroller{grid-column:2;min-width:0;max-width:100%}
+ .map-shell .map-controls-overlay .map-control-button{width:36px;height:36px;border-radius:10px}
+ .map-shell .map-controls-overlay .map-primary-controls{grid-template-columns:36px minmax(0,1fr);gap:5px}
+ .map-shell .map-controls-overlay .map-location-control{grid-template-columns:minmax(0,1fr) 34px 36px;gap:4px}
+ .map-shell .map-controls-overlay .map-location-control input{height:36px;min-height:36px;font-size:13px}
+ .map-shell .map-controls-overlay .map-location-control .map-search-button{width:34px;height:36px;border-radius:10px}
+ .map-shell .map-controls-overlay .map-location-control .filters-button{width:36px;height:36px}
+ .map-shell .map-controls-overlay .map-segment button{height:28px}
+ .map-shell .map-controls-overlay .map-what-scroller .map-topic{height:30px}
+ .map-shell .map-controls-overlay .map-primary-manual-period{grid-column:1/-1}
+}
+/* Mid-size screens: the "when" names get short before the strip wraps. */
+@media (min-width:1101px) and (max-width:1500px){
+ .map-segment-when .long{display:none}.map-segment-when .short{display:inline}
+}
+@media (min-width:1501px){.map-segment-when .long{display:inline}.map-segment-when .short{display:none}}
+.map-segment-count{margin-left:5px;padding:1px 5px;border-radius:999px;background:#eef1f5;color:#5b6475;font-size:10.5px;font-weight:700}
+.map-segment button[aria-pressed="true"] .map-segment-count{background:rgba(255,255,255,.22);color:#fff}
