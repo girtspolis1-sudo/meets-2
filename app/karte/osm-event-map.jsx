@@ -5,6 +5,9 @@ import NearbyList from './nearby-list.jsx';
 import CategoryIcon from '../components/category-icon.jsx';
 import {eventTerm} from '../../lib/event-term.js';
 import {durationKind,isBackgroundLong,untilBadge} from '../../lib/event-duration.js';
+import ChipScroller from './chip-scroller.jsx';
+// Narrow screens: the period buttons get shorter names.
+const SHORT_PERIOD={weekend:'Brīvdienas','7days':'7 d.','30days':'30 d.',manual:'Datumi'};
 import {categoryIconSvg} from '../../lib/category-icons.js';
 import {groupedSportIcon} from '../../lib/event-map-icons.js';
 import {calendarDescription} from '../../lib/catalog-wire.js';
@@ -335,7 +338,7 @@ export default function OsmEventMap(){
   return [...map.values()].sort((a,b)=>a.label.localeCompare(b.label,'lv'));
  },[events]);
 
- const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to}={})=>{
+ const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to,anyPrice=false}={})=>{
   if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
   if(placeFilter&&placeFromEvent(e)?.key!==placeFilter)return false;
   if(orgFilter&&e.organization_id!==orgFilter)return false;
@@ -345,7 +348,8 @@ export default function OsmEventMap(){
   if(competition&&e.competition_key!==competition)return false;
   if(category&&e.primary_category!==category)return false;
   if(eventSearch&& !norm(e.title).includes(norm(eventSearch)))return false;
-  if(price&&e.price_status!==price)return false;
+  // The quick "Maksas" choice also covers partly paid events.
+  if(!anyPrice&&price&&e.price_status!==price&&!(price==='paid'&&e.price_status==='mixed'))return false;
   if(municipality&&e.municipality!==municipality)return false;
   if(country&&e.country_code!==country)return false;
   if(start&&(e.date_to||e.date_from)<start)return false;
@@ -358,6 +362,13 @@ export default function OsmEventMap(){
   return true;
  },[homeCategory,audience,placeFilter,orgFilter,showLong,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
  const matchesEvent=useMemo(()=>e=>matchesWith(e),[matchesWith]);
+ // How many events each price choice leaves; most sources do not state a price.
+ const priceCounts=useMemo(()=>{
+  const counts={'':0,free:0,paid:0};
+  for(const e of events){if(!matchesWith(e,{anyPrice:true}))continue;counts['']++;
+   if(e.price_status==='free')counts.free++;else if(e.price_status==='paid'||e.price_status==='mixed')counts.paid++;}
+  return counts;
+ },[events,matchesWith]);
 
  const catalogHref=useMemo(()=>{
   const params=new URLSearchParams();
@@ -656,7 +667,7 @@ export default function OsmEventMap(){
 
  // Radius, period, group and audience are visible outside the panel, so the badge skips them.
  // Everything inside "Vairāk filtru"; time, distance and the chip rows are visible outside it.
- const advancedFilterCount=[placeFilter,audience,eventTypes.length>0,competition,category,eventSearch,price&&price!=='free',country,municipality].filter(Boolean).length;
+ const advancedFilterCount=[placeFilter,audience,eventTypes.length>0,competition,category,eventSearch,price&&!['free','paid'].includes(price),country,municipality].filter(Boolean).length;
  const audienceOptions=Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key)));
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
@@ -759,7 +770,7 @@ export default function OsmEventMap(){
   competition&&{key:'competition',label:competitionOptions.find(c=>c.key===competition)?.name||'Turnīrs',clear:()=>setCompetition('')},
   category&&{key:'subcategory',label:category,clear:()=>setCategory('')},
   eventSearch&&{key:'q',label:'„'+eventSearch+'”',clear:()=>setEventSearch('')},
-  price&&price!=='free'&&{key:'price',label:{paid:'Maksas',mixed:'Daļēji maksas',unknown:'Maksa nav zināma'}[price]||price,clear:()=>setPrice('')},
+  price&&!['free','paid'].includes(price)&&{key:'price',label:{paid:'Maksas',mixed:'Daļēji maksas',unknown:'Maksa nav zināma'}[price]||price,clear:()=>setPrice('')},
   municipality&&{key:'municipality',label:municipality,clear:()=>setMunicipality('')},
   country&&{key:'country',label:countryLabel(country),clear:()=>setCountry('')},
   orgFilter&&{key:'org',label:'Organizators: '+(orgName||'izvēlētais'),clear:()=>setOrgFilter('')}
@@ -838,25 +849,36 @@ export default function OsmEventMap(){
      </div>
     </div>
 
-    <div className="map-chip-row" role="group" aria-label="Kad">
-     {PERIODS.map(p=><button key={p.key} type="button" aria-pressed={periodMode===p.key} className={periodMode===p.key?'active':''} onClick={()=>changePeriod(p.key)}>{p.label}</button>)}
-    </div>
+    {/* When and how far share one line of two joined button groups; the topic row scrolls sideways. */}
+    <ChipScroller label="Kad un cik tālu" className="map-quick-scroller">
+     <div className="map-segment map-segment-when" role="group" aria-label="Kad">
+      {PERIODS.map(p=><button key={p.key} type="button" aria-pressed={periodMode===p.key} className={periodMode===p.key?'active':''} onClick={()=>changePeriod(p.key)}
+       title={p.label}><span className="long">{p.label}</span><span className="short">{SHORT_PERIOD[p.key]||p.label}</span></button>)}
+     </div>
+     <div className="map-segment map-segment-radius" role="group" aria-label="Cik tālu">
+      {RADII.map(km=><button key={km} type="button" aria-pressed={radiusKm===km} className={radiusKm===km?'active':''} title={radiusLabel(km)}
+       onClick={()=>{if(km>0&&!origin){setLocationPrompt(true);setLocationMessage('Vispirms izvēlies vietu, no kuras skaitīt attālumu.');return;}setRadiusKm(km);}}>{km?km:'LV'}</button>)}
+      <span className="map-segment-unit" aria-hidden="true">km</span>
+     </div>
+    </ChipScroller>
     {periodMode==='manual'&&<div className="map-primary-manual-period">
      <input aria-label="Datums no" title="Datums no" type="date" min={today} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setPeriodMode('manual');setFrom(value);if(!to||value>to)setTo(value);}}/>
      <span aria-hidden="true">–</span>
      <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||today} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
     </div>}
-    <div className="map-chip-row" role="group" aria-label="Cik tālu">
-     {RADII.map(km=><button key={km} type="button" aria-pressed={radiusKm===km} className={radiusKm===km?'active':''}
-      onClick={()=>{if(km>0&&!origin){setLocationPrompt(true);setLocationMessage('Vispirms izvēlies vietu, no kuras skaitīt attālumu.');return;}setRadiusKm(km);}}>{radiusLabel(km)}</button>)}
-    </div>
-    <div className="map-chip-row map-chip-row-what" role="group" aria-label="Ko darīt">
-     {HOME_GROUP_KEYS.map(key=><button key={key} type="button" aria-pressed={homeCategory===key} className={homeCategory===key?'active':''}
+    <ChipScroller label="Ko darīt" className="map-what-scroller">
+     <span className="map-segment map-segment-price" role="group" aria-label="Maksa">
+      {[['','Visi'],['free','Bez maksas'],['paid','Maksas']].map(([value,text])=><button key={text} type="button" aria-pressed={price===value}
+       className={price===value?'active':''} onClick={()=>setPrice(value)}
+       title={value?'Cena zināma tikai daļai pasākumu: '+priceCounts[value]+' no '+priceCounts['']:undefined}>
+       {value==='paid'&&<span className="map-euro" aria-hidden="true">€</span>}{text}{value&&<span className="map-segment-count">{priceCounts[value]}</span>}</button>)}
+     </span>
+     <span className="map-what-divider" aria-hidden="true"/>
+     {HOME_GROUP_KEYS.map(key=><button key={key} type="button" className={'map-topic'+(homeCategory===key?' active':'')} aria-pressed={homeCategory===key}
       onClick={()=>setDiscoveryFilter('category',homeCategory===key?'':key)}><CategoryIcon name={key}/>{HOME_CATEGORY_FILTERS[key].title}</button>)}
-     <button type="button" aria-pressed={price==='free'} className={price==='free'?'active':''} onClick={()=>setPrice(price==='free'?'':'free')}>Bezmaksas</button>
-     <button type="button" aria-pressed={showLong} className="map-long-toggle" onClick={()=>setShowLong(v=>!v)}
+     <button type="button" aria-pressed={showLong} className="map-topic map-long-toggle" onClick={()=>setShowLong(v=>!v)}
       title="Izstādes un citi pasākumi, kas ilgst vairāk nekā 2 nedēļas">{showLong?'✓ ':''}Izstādes un ilgstošie</button>
-    </div>
+    </ChipScroller>
     {activeChips.filter(c=>c.key!=='category').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
      {activeChips.filter(c=>c.key!=='category').map(chip=><span key={chip.key} className="map-inline-filter-chip"><span>{chip.label}</span><button type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>×</button></span>)}
      <button type="button" className="text-button" onClick={resetFilters}>Notīrīt visu</button>
