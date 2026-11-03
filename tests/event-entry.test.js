@@ -40,3 +40,16 @@ test('one-day events still reject equal or reversed times in different formats',
  assert.equal(validateQuickEvent({...base,time_from:'11:00:00',time_to:'15:00'}),'');
  assert.match(validateQuickEvent({...base,time_from:'11:00:99'}),/derīgu sākuma/);
 });
+
+test('online events: how it takes place and the call link',async()=>{
+ const {cleanOnlineUrl,validateQuickEvent:validate,QUICK_EVENT_EMPTY:empty}=await import('../lib/event-entry.js');
+ assert.equal(cleanOnlineUrl(' https://zoom.us/j/123 '),'https://zoom.us/j/123');
+ assert.equal(cleanOnlineUrl(''),'');
+ assert.throws(()=>cleanOnlineUrl('http://zoom.us/j/1'),/https/);
+ assert.throws(()=>cleanOnlineUrl('zoom.us/j/1'),/https/);
+ assert.equal(empty.attendance_mode,'in_person');
+ const base={title:'Tiešsaistes lekcija',date_from:'2099-01-01',category:'Cits',price_status:'free',venue_name:'Bibliotēka',address:'Rīga'};
+ assert.equal(validate({...base,attendance_mode:'online',online_url:'https://meet.google.com/abc'}),'');
+ assert.match(validate({...base,attendance_mode:'radio'}),/kā pasākums notiks/);
+ assert.match(validate({...base,attendance_mode:'online',online_url:'ftp://x'}),/https/);
+});

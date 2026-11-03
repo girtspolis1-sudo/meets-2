@@ -2,6 +2,7 @@
 import {useState} from 'react';
 import EventFacts from './event-facts.jsx';
 import EventQuickActions from './event-quick-actions.jsx';
+import OnlineJoin from './online-join.jsx';
 import {cardDescription} from '../../lib/discovery-card.js';
 import {useFullEvent} from '../../lib/use-full-event.js';
 
@@ -10,7 +11,7 @@ import {useFullEvent} from '../../lib/use-full-event.js';
 export default function EventDetailCard({event,today,clock,km,saved,onSave,onCalendar,outside=false,highlighted=false,isAdmin=false,className=''}){
  const [open,setOpen]=useState(false);
  // The list carries a shortened description; opening "Vairāk" loads the full one.
- const {event:full}=useFullEvent(event,open&&event.description_more===true);
+ const {event:full}=useFullEvent(event,(open&&event.description_more===true)||['online','hybrid'].includes(event.attendance_mode));
  const description=cardDescription(open?full:event);
  const long=description.length>220||event.description_more===true;
  return <article className={['event-detail-card',className,highlighted?'is-highlighted':'',outside?'outside':''].filter(Boolean).join(' ')} data-selected={!outside}>
@@ -20,6 +21,7 @@ export default function EventDetailCard({event,today,clock,km,saved,onSave,onCal
   {description?<p className="event-detail-description">{long&&!open?description.slice(0,200).trimEnd()+'…':description}
    {long&&<button type="button" className="text-button" onClick={()=>setOpen(v=>!v)} aria-expanded={open}>{open?'Mazāk':'Vairāk'}</button>}</p>
    :<p className="event-detail-description meets-muted">Apraksts nav norādīts.</p>}
+  <OnlineJoin event={full||event} compact/>
   <EventQuickActions event={event} quiet saved={saved} onSave={onSave} onCalendar={onCalendar}/>
   <div className="event-detail-links">
    <a href={'/pasakumi/'+encodeURIComponent(event.id)}>Pasākuma lapa →</a>

@@ -129,6 +129,8 @@ export default function OsmEventMap(){
  const orgFitRef=useRef(false),orgDatesRef=useRef(false);
  // Running exhibitions and season programmes can be switched off (?long=0).
  const [showLong,setShowLong]=useState(()=>searchParams.get('long')!=='0');
+ // Only events that can be joined online (?online=1).
+ const [onlineOnly,setOnlineOnly]=useState(()=>searchParams.get('online')==='1');
  function setDiscoveryFilter(key,value){
   const params=new URLSearchParams(searchParams.toString());
   if(value)params.set(key,value);else params.delete(key);
@@ -256,7 +258,7 @@ export default function OsmEventMap(){
   const params=url.searchParams;
   const state={radius:radiusKm>0?String(radiusKm):radiusKm===0&&userLocation.source!=='fallback'?'0':'',period:periodMode===DEFAULT_PERIOD?'':periodMode,
    types:eventTypes.join(','),competition,subcategory:category,q:eventSearch,price,municipality,country,
-   from:periodMode==='manual'?from:'',to:periodMode==='manual'?to:'',style:mapStyle==='positron'?'':mapStyle,org:orgFilter,long:showLong?'':'0'};
+   from:periodMode==='manual'?from:'',to:periodMode==='manual'?to:'',style:mapStyle==='positron'?'':mapStyle,org:orgFilter,long:showLong?'':'0',online:onlineOnly?'1':''};
   for(const [key,value] of Object.entries(state)){if(value)params.set(key,value);else params.delete(key);}
   if(['search','events','shared'].includes(userLocation?.source)&&insideBalticView(userLocation.lat,userLocation.lon)){
    params.set('lat',String(Number(userLocation.lat.toFixed(4))));
@@ -264,7 +266,7 @@ export default function OsmEventMap(){
   }else{params.delete('lat');params.delete('lon');}
   const next=url.pathname+(params.size?'?'+params.toString():'')+url.hash;
   if(next!==window.location.pathname+window.location.search+window.location.hash)window.history.replaceState(null,'',next);
- },[radiusKm,periodMode,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,mapStyle,userLocation,orgFilter,showLong]);
+ },[radiusKm,periodMode,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,mapStyle,userLocation,orgFilter,showLong,onlineOnly]);
 
 
  useEffect(()=>{
@@ -338,11 +340,12 @@ export default function OsmEventMap(){
   return [...map.values()].sort((a,b)=>a.label.localeCompare(b.label,'lv'));
  },[events]);
 
- const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to,anyPrice=false}={})=>{
+ const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to,anyPrice=false,anyOnline=false}={})=>{
   if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
   if(placeFilter&&placeFromEvent(e)?.key!==placeFilter)return false;
   if(orgFilter&&e.organization_id!==orgFilter)return false;
   if(!showLong&&isBackgroundLong(e,rigaTodayIso()))return false;
+  if(!anyOnline&&onlineOnly&&!['online','hybrid'].includes(e.attendance_mode))return false;
   if(eventTypeFilter&&e.event_type!==eventTypeFilter)return false;
   if(eventTypes.length&&!eventTypes.includes(sourceType(e)))return false;
   if(competition&&e.competition_key!==competition)return false;
@@ -360,7 +363,7 @@ export default function OsmEventMap(){
    if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radius)return false;
   }
   return true;
- },[homeCategory,audience,placeFilter,orgFilter,showLong,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
+ },[homeCategory,audience,placeFilter,orgFilter,showLong,onlineOnly,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
  const matchesEvent=useMemo(()=>e=>matchesWith(e),[matchesWith]);
  // How many events each price choice leaves; most sources do not state a price.
  const priceCounts=useMemo(()=>{
@@ -369,6 +372,7 @@ export default function OsmEventMap(){
    if(e.price_status==='free')counts.free++;else if(e.price_status==='paid'||e.price_status==='mixed')counts.paid++;}
   return counts;
  },[events,matchesWith]);
+ const onlineCount=useMemo(()=>events.filter(e=>['online','hybrid'].includes(e.attendance_mode)&&matchesWith(e,{anyOnline:true})).length,[events,matchesWith]);
 
  const catalogHref=useMemo(()=>{
   const params=new URLSearchParams();
@@ -698,7 +702,7 @@ export default function OsmEventMap(){
  function resetFilters(){
   const params=new URLSearchParams(searchParams.toString());params.delete('category');params.delete('audience');params.delete('event_type');params.delete('place');
   router.push(pathname+(params.size?'?'+params.toString():''),{scroll:false});
-  setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setOrgFilter('');setShowLong(true);setRadiusKm(userLocation.source==='fallback'?0:DEFAULT_RADIUS);setPeriodMode(DEFAULT_PERIOD);
+  setEventTypes([]);setCompetition('');setCategory('');setEventSearch('');setPrice('');setMunicipality('');setCountry('');setOrgFilter('');setShowLong(true);setOnlineOnly(false);setRadiusKm(userLocation.source==='fallback'?0:DEFAULT_RADIUS);setPeriodMode(DEFAULT_PERIOD);
   {const filterToday=rigaTodayIso(clockNow);const next=periodDates(DEFAULT_PERIOD,filterToday,publicTo,'','');setFrom(next.from);setTo(next.to);}
  }
  function useCurrentLocation(){
@@ -873,6 +877,10 @@ export default function OsmEventMap(){
        title={value?'Pasākumi, kuriem avotā norādīta maksa vai biļetes: '+priceCounts[value]+' no '+priceCounts['']:undefined}>
        {value==='paid'&&<span className="map-euro" aria-hidden="true">€</span>}{text}{value&&<span className="map-segment-count">{priceCounts[value]}</span>}</button>)}
      </span>
+     <button type="button" className={'map-topic map-online-toggle'+(onlineOnly?' active':'')} aria-pressed={onlineOnly} onClick={()=>setOnlineOnly(v=>!v)}
+      title="Pasākumi, kuros var piedalīties tiešsaistē">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><rect x="3" y="5" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>
+      Tiešsaistē<span className="map-segment-count">{onlineCount}</span></button>
      <span className="map-what-divider" aria-hidden="true"/>
      {HOME_GROUP_KEYS.map(key=><button key={key} type="button" className={'map-topic'+(homeCategory===key?' active':'')} aria-pressed={homeCategory===key}
       onClick={()=>setDiscoveryFilter('category',homeCategory===key?'':key)}><CategoryIcon name={key}/>{HOME_CATEGORY_FILTERS[key].title}</button>)}
