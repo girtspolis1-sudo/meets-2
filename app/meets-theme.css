@@ -392,3 +392,11 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 @media (min-width:1501px){.map-segment-when .long{display:inline}.map-segment-when .short{display:none}}
 .map-segment-count{margin-left:5px;padding:1px 5px;border-radius:999px;background:#eef1f5;color:#5b6475;font-size:10.5px;font-weight:700}
 .map-segment button[aria-pressed="true"] .map-segment-count{background:rgba(255,255,255,.22);color:#fff}
+
+/* Pins outside the filters are black and white throughout — the days badge, the
+   today dot, the sport emoji and the count too — so colour belongs to the filtered events. */
+.c3-pin.dimmed .c3-pin-days,.c3-pin.dimmed .c3-pin-days.c3-pin-until{background:#e4e7eb!important;color:#5b6675!important}
+.c3-pin.dimmed .c3-pin-days.c3-pin-now{background:#a3abb5!important}
+.c3-pin.dimmed .c3-pin-days.c3-pin-now::after{display:none}
+.c3-pin.dimmed .c3-pin-sport,.c3-pin.dimmed .c3-pin-saved{filter:grayscale(1);opacity:.75}
+.c3-pin.dimmed .c3-pin-count{background:#8a939e}
