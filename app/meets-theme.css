@@ -322,3 +322,48 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .event-facts-when.term-long,.event-facts-when.term-lastdays{align-self:flex-start;width:fit-content;max-width:100%;box-sizing:border-box;padding:2px 9px;border-radius:999px}
 .event-facts-when.term-long{background:#eef1f4;color:#4a5565}
 .event-facts-when.term-lastdays{background:#fde8c8;color:#7a4a05}
+
+/* ---- Map filters: compact panel ----
+   Line 1 search; line 2 "when" and "how far" as two joined button groups;
+   line 3 price + topics in a row that scrolls sideways (arrows, wheel, drag, touch). */
+.map-controls-overlay .map-quick-line{display:flex;align-items:center;gap:6px;margin-top:6px;overflow-x:auto;scrollbar-width:none}
+.map-controls-overlay .map-quick-line::-webkit-scrollbar{display:none}
+.map-segment{display:inline-flex;flex:0 0 auto;align-items:center;gap:1px;padding:2px;border:1px solid var(--migla,#dfe5ec);border-radius:999px;background:rgba(255,255,255,.94)}
+.map-segment button{display:inline-flex;align-items:center;height:28px;padding:0 10px;border:0;border-radius:999px;background:transparent;color:var(--tinte,#1b2430);font:650 12.5px/1 var(--font-body);white-space:nowrap;cursor:pointer}
+.map-segment button:hover{background:#eef1f5}
+.map-segment button.active,.map-segment button[aria-pressed="true"]{background:var(--tinte,#1b2430);color:#fff}
+.map-segment button:focus-visible{outline:2px solid var(--tinte,#1b2430);outline-offset:1px}
+.map-segment .short{display:none}
+.map-segment-radius button{min-width:30px;justify-content:center;padding:0 8px}
+.map-segment-unit{padding:0 8px 0 4px;font:600 11.5px/1 var(--font-body);color:#6b7480}
+.chip-scroller{position:relative;margin-top:6px;min-width:0}
+.chip-scroller-row{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;scroll-behavior:smooth;padding:1px 0;cursor:grab}
+.chip-scroller-row:active{cursor:grabbing}
+.chip-scroller-row::-webkit-scrollbar{display:none}
+.chip-scroller.more-right .chip-scroller-row{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 48px),transparent)}
+.chip-scroller.more-left .chip-scroller-row{-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 48px),transparent)}
+.chip-scroller.more-left.more-right .chip-scroller-row{-webkit-mask-image:linear-gradient(to right,transparent,#000 48px,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(to right,transparent,#000 48px,#000 calc(100% - 48px),transparent)}
+.chip-scroller-arrow{position:absolute;z-index:2;top:50%;width:28px;height:28px;margin-top:-14px;display:none;place-items:center;padding:0;border:1px solid var(--migla,#dfe5ec);border-radius:50%;background:#fff;color:var(--tinte,#1b2430);font:700 18px/1 var(--font-body);box-shadow:0 2px 8px rgba(27,36,48,.14);cursor:pointer}
+.chip-scroller-arrow.left{left:-2px}.chip-scroller-arrow.right{right:-2px}
+@media (hover:hover){.chip-scroller.more-left .chip-scroller-arrow.left,.chip-scroller.more-right .chip-scroller-arrow.right{display:grid}}
+.map-what-scroller .map-topic{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border:1px solid var(--migla,#dfe5ec);border-radius:999px;background:rgba(255,255,255,.94);color:var(--tinte,#1b2430);font:650 12.5px/1 var(--font-body);white-space:nowrap;cursor:pointer}
+.map-what-scroller .map-topic:hover{border-color:var(--tinte,#1b2430)}
+.map-what-scroller .map-topic.active{background:var(--tinte,#1b2430);border-color:var(--tinte,#1b2430);color:#fff}
+.map-what-scroller .map-topic svg{width:15px;height:15px}
+.map-what-scroller .map-topic.map-long-toggle{border-style:dashed}
+.map-what-scroller .map-topic.map-long-toggle[aria-pressed="false"]{color:#8a93a0;background:#f3f5f8}
+.map-what-scroller .map-topic.map-long-toggle[aria-pressed="true"]{background:rgba(255,255,255,.94);color:var(--tinte,#1b2430)}
+.map-segment-price{flex:0 0 auto}
+.map-segment-price button[aria-pressed="true"]:nth-child(2){background:var(--sodien,#1f8a4c)}
+.map-what-divider{flex:0 0 1px;align-self:stretch;margin:4px 2px;background:var(--migla,#dfe5ec)}
+.map-controls-overlay{padding:6px}
+@media (max-width:1180px){
+ .map-segment-when .long{display:none}.map-segment-when .short{display:inline}
+}
+@media (max-width:760px){
+ .map-segment button{height:30px;padding:0 9px}
+ .map-what-scroller .map-topic{height:34px}
+ .map-controls-overlay .map-quick-line{gap:5px}
+}
+.map-euro{margin-right:4px;font-weight:800}
+.map-quick-scroller .chip-scroller-row{gap:6px}
