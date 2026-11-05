@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import {Manrope,Unbounded} from 'next/font/google';
+import localFont from 'next/font/local';
 import SiteNav from './site-nav.jsx';
 import MobileBottomNav from './mobile-bottom-nav.jsx';
 import AdminFooterControl from './admin-footer-control.jsx';
@@ -16,9 +16,12 @@ import './design-refresh.css';
 import './meets-theme.css';
 import './mobile-bottom-nav.css';
 
-// latin-ext carries the Latvian letters (ā č ē ģ ī ķ ļ ņ š ū ž).
-const manrope=Manrope({subsets:['latin','latin-ext'],weight:['400','500','600','700','800'],variable:'--font-manrope',display:'swap'});
-const unbounded=Unbounded({subsets:['latin','latin-ext'],weight:['500','600','700'],variable:'--font-unbounded',display:'swap'});
+// Fonts ship with the app, so a build never depends on reaching Google Fonts.
+// app/fonts holds the variable Google Fonts originals (OFL, licences beside
+// them) cut to the latin + latin-ext ranges, which carry ā č ē ģ ī ķ ļ ņ š ū ž,
+// and to the weights the site uses.
+const manrope=localFont({src:'./fonts/Manrope-latin.woff2',weight:'400 800',variable:'--font-manrope',display:'swap'});
+const unbounded=localFont({src:'./fonts/Unbounded-latin.woff2',weight:'500 700',variable:'--font-unbounded',display:'swap'});
 
 function Wordmark(){
   return <span className="meets-wordmark">meets<span>.</span>lv</span>;
