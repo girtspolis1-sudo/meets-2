@@ -94,13 +94,14 @@ export default function MobileBottomNav(){
      <path d={d} fill="#000"/>
     </mask>
     <linearGradient id="meets-dock-rim" gradientUnits="userSpaceOnUse" x1="0" y1={DOCK.top} x2="0" y2={BOX}>
-     <stop offset="0" stopColor="#fff" stopOpacity=".72"/>
-     <stop offset="1" stopColor="#fff" stopOpacity=".22"/>
+     <stop className="meets-dock-rim-top" offset="0"/>
+     <stop className="meets-dock-rim-bottom" offset="1"/>
     </linearGradient>
     <clipPath id="meets-dock-inside"><path d={d}/></clipPath>
    </defs>
-   <g mask="url(#meets-dock-outside)"><path d={d} transform="translate(0 10)" fill="#0f1720" fillOpacity=".34" filter="url(#meets-dock-blur)"/></g>
-   <path d={d} fill="none" stroke="#fff" strokeOpacity=".08" strokeWidth="6" clipPath="url(#meets-dock-inside)"/>
+   {/* Colours of the shadow, sheen and rim come from the theme (mobile-bottom-nav.css). */}
+   <g mask="url(#meets-dock-outside)"><path className="meets-dock-shadow" d={d} transform="translate(0 10)" filter="url(#meets-dock-blur)"/></g>
+   <path className="meets-dock-sheen" d={d} fill="none" strokeWidth="6" clipPath="url(#meets-dock-inside)"/>
    <path d={d} fill="none" stroke="url(#meets-dock-rim)" strokeWidth="1.2"/>
   </svg>}
   {index>=0&&<span className="meets-dock-bubble" aria-hidden="true" style={x===null?undefined:{left:0,transform:`translateX(${x-DOCK.bubble/2}px)`}}/>}
