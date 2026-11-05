@@ -14,6 +14,7 @@ import './discovery-design.css';
 import './personal-collections.css';
 import './design-refresh.css';
 import './meets-theme.css';
+import './mobile-bottom-nav.css';
 
 // latin-ext carries the Latvian letters (ā č ē ģ ī ķ ļ ņ š ū ž).
 const manrope=Manrope({subsets:['latin','latin-ext'],weight:['400','500','600','700','800'],variable:'--font-manrope',display:'swap'});

@@ -136,7 +136,6 @@ body:not(.admin-environment) .button{border-radius:13px}
 .meets-profile-mode-switch a.active{color:#cd646e}
 .meets-profile-stat:hover{border-color:#ecbcc1}
 
-.meets-mobile-bottom-nav{display:none}
 @media(max-width:1100px){
  .meets-home-featured-layout{grid-template-columns:minmax(0,1fr) 235px}
  .meets-discovery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -148,12 +147,6 @@ body:not(.admin-environment) .button{border-radius:13px}
  .header .brand-logo{width:132px!important}
  .header nav{margin-left:auto}
  body:not(.admin-environment) main#saturs{padding:0 11px}
- .meets-mobile-bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:1000;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;
-  padding:8px max(8px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
-  background:rgba(255,255,255,.97);border-top:1px solid #e7e9f6;box-shadow:0 -8px 28px rgba(33,44,96,.08);backdrop-filter:blur(12px)}
- .meets-mobile-bottom-nav>a{display:grid;justify-items:center;align-content:center;gap:3px;min-height:48px;color:#717995;font-size:9px;font-weight:600;text-align:center}
- .meets-mobile-bottom-nav>a.active{color:#d36973;font-weight:800}
- body:not(.admin-environment):has(.meets-mobile-bottom-nav) main#saturs{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
  .meets-discovery-home{padding-top:3px}
  .meets-discovery-hero{grid-template-columns:minmax(0,1fr) 110px;gap:0;min-height:0;padding:24px 17px 17px;border-radius:23px}
  .meets-hero-message h1{font-size:clamp(25px,6.4vw,35px);letter-spacing:-1.4px}
@@ -242,7 +235,6 @@ body:not(.admin-environment) .button{border-radius:13px}
 .meets-profile-follow-mini>a>span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#f3f6f9;color:#cf616c}
 .meets-profile-follow-mini strong{min-width:0;flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meets-profile-follow-mini small{font-size:10px;color:#d36772;white-space:nowrap}
-@media(max-width:760px){body.admin-environment .meets-mobile-bottom-nav{display:none}}
 
 /* A single primary CTA stays visible; secondary actions reveal on demand. */
 .meets-card-secondary-actions{border-top:1px solid #f0eef8;padding-top:8px;margin-top:6px}
@@ -265,7 +257,6 @@ body:not(.admin-environment) .button{border-radius:13px}
   height:46px;
   min-height:46px;
  }
- body:has(.meets-mobile-bottom-nav) footer{padding-bottom:calc(94px + env(safe-area-inset-bottom))}
 }
 
 /* Minimalist edition: calm whitespace, subtle geometry, functional benefits */
