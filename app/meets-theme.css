@@ -234,7 +234,6 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
  /* Forms: the main action first, and nothing hidden behind the bottom bar. */
  .org-form-card .org-actions{flex-direction:column-reverse;align-items:stretch}
  .org-form-card .org-actions .button{width:100%;justify-content:center}
- .unified-event-editor .event-editor-actions{bottom:calc(74px + env(safe-area-inset-bottom))}
  .quick-flow-card,.org-form-card{scroll-margin-bottom:96px}
 }
 
