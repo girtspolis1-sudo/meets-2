@@ -360,7 +360,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    await loadEvents();
    if(nextId){setFocusedSubmissionId(nextId);setTimeout(()=>document.getElementById('submission-'+nextId)?.scrollIntoView({behavior:'smooth',block:'start'}),150);}
    setActions(list=>[{id:Date.now()+'-s',at:Date.now(),text:`Iesniegums “${item.title||'bez nosaukuma'}”: ${({publish:'publicēts',request_changes:'lūgts precizēt',decline:'noraidīts'})[action]}.`},...list].slice(0,40));
-   setMessage({publish:'Pasākums publicēts kartē.',request_changes:'Organizatoram nosūtīts lūgums precizēt.',decline:'Pasākums noraidīts.'}[action]+' Organizators saņems e-pastu.');
+   setMessage({publish:'Pasākums publicēts kartē.',request_changes:'Rīkotājam nosūtīts lūgums precizēt.',decline:'Pasākums noraidīts.'}[action]+' Rīkotājs saņems e-pastu.');
   }catch(error){
    let detail='';try{detail=JSON.parse(error.message).message||'';}catch{}
    throw new Error(detail&&!/unauthorized/i.test(detail)?detail:'Iesnieguma apstrāde neizdevās. Pārbaudi vietu un obligātos laukus.');
@@ -502,7 +502,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    await adminRpc(supabaseUrl,publishableKey,'meets_admin_set_organization_trust',{p_organization_id:organization.id,p_trusted:trusted});
    setOrganizations(list=>list.map(o=>o.id===organization.id?{...o,trusted,suggested:false}:o));
    setMessage(trusted?`“${organization.name}” pasākumi turpmāk tiks publicēti automātiski, ja pārbaudes būs kārtībā.`:`“${organization.name}” pasākumi atkal tiks pārbaudīti manuāli.`);
-  }catch{setMessage('Organizatora statusu neizdevās mainīt.');}
+  }catch{setMessage('Rīkotāja statusu neizdevās mainīt.');}
  }
  async function acceptSuggestion(group,candidate){
   await saveMapping(group,{venueName:group.alias,addressText:candidate.displayName||candidate.label||group.alias,
@@ -832,15 +832,15 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
  return <>
   {submissionQueue.count>0&&workspaceView!=='userSubmissions'&&<div className="admin-submission-alert" role="status">
-   <div><strong>{submissionQueue.count===1?'1 organizatora pasākums gaida':submissionQueue.count+' organizatoru pasākumi gaida'} tavu pārbaudi</strong>
-    <span>Vecākais iesniegts pirms {submissionQueue.oldestDays} {submissionQueue.oldestDays===1?'dienas':'dienām'}{submissionQueue.expired>0?' · '+(submissionQueue.expired===1?'1 jau noticis':submissionQueue.expired+' jau notikuši')+', jāatgriež organizatoram':''}</span></div>
+   <div><strong>{submissionQueue.count===1?'1 rīkotāja pasākums gaida':submissionQueue.count+' rīkotāju pasākumi gaida'} tavu pārbaudi</strong>
+    <span>Vecākais iesniegts pirms {submissionQueue.oldestDays} {submissionQueue.oldestDays===1?'dienas':'dienām'}{submissionQueue.expired>0?' · '+(submissionQueue.expired===1?'1 jau noticis':submissionQueue.expired+' jau notikuši')+', jāatgriež rīkotājam':''}</span></div>
    <button type="button" className="button primary" onClick={()=>setWorkspaceView('userSubmissions')}>Izskatīt →</button>
   </div>}
   <div className="admin-workspace-tabs" role="group" aria-label="Admin darba skati">
    {[
     ['overview','Pārskats',audit.counts.critical+audit.counts.review,audit.counts.critical?'attention':''],
     ['userSubmissions','Iesniegumi',submissionQueue.count,submissionQueue.count?'attention':''],
-    ['organizers','Organizatori',organizations.length,organizations.some(o=>o.suggested&&!o.trusted)?'attention':''],
+    ['organizers','Rīkotāji',organizations.length,organizations.some(o=>o.suggested&&!o.trusted)?'attention':''],
     ['mapping','Vietas',mappingGroups.length,mappingGroups.length?'attention':''],
     ['all','Visi aktuālie',activeEvents.length,''],
     ['register','Reģistrs',registerEvents.length+userSubmissions.filter(item=>item.status!=='published'||!item.event_id).length,''],

@@ -18,13 +18,17 @@ export default function SiteNav(){
  const {isAdmin}=useAdminSession();
  const [signedIn,setSignedIn]=useState(false);
  const [loggingOut,setLoggingOut]=useState(false);
+ const [email,setEmail]=useState('');
  useEffect(()=>{
-  const update=()=>setSignedIn(Boolean(readSession()?.access_token));
+  const update=()=>{const session=readSession();setSignedIn(Boolean(session?.access_token));setEmail(session?.user?.email||'');};
   update();
   window.addEventListener('meets-user-changed',update);
   window.addEventListener('storage',update);
   return()=>{window.removeEventListener('meets-user-changed',update);window.removeEventListener('storage',update);};
  },[]);
+ const initial=(email||'M').trim().charAt(0).toLocaleUpperCase('lv');
+ // Close the account menu after moving to another page.
+ useEffect(()=>{document.querySelectorAll('.meets-mobile-account[open]').forEach(menu=>menu.removeAttribute('open'));},[pathname]);
  const profileArea=['/profils','/mani-pasakumi','/mani-registri','/organizators','/sekosana','/konta-iestatijumi','/registre-vietu','/registre-pasakumu'].some(path=>pathname===path||pathname.startsWith(path+'/'));
  const visibleItems=isAdmin?[...items,{href:'/admin',label:'Admin'}]:items;
  const isActive=item=>item.href==='/profils'
@@ -58,11 +62,18 @@ export default function SiteNav(){
  const exit=<button className="meets-header-logout" type="button" onClick={logout} disabled={loggingOut}
   aria-label="Iziet no MEETS konta">{loggingOut?'Iziet…':'Iziet'}</button>;
  return <nav aria-label="Galvenā izvēlne">
-  {/* Phones have no profile sidebar, so the header exit stays available there too. */}
-  {signedIn&&<button className="meets-mobile-header-exit" type="button" disabled={loggingOut}
-   onClick={logout} aria-label="Iziet no MEETS konta" title="Iziet no konta">
-   {loggingOut?'…':<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h3M16 17l5-5-5-5M21 12H9"/></svg>}
-  </button>}
+  {/* Phones: one small account mark beside the logo. Signed in it shows the
+      account's initial and opens a short menu; signed out it is "Ieiet". */}
+  {signedIn?<details className="meets-mobile-account">
+   <summary aria-label={'Mans konts'+(email?': '+email:'')} title={email||'Mans konts'}><span aria-hidden="true">{initial}</span></summary>
+   <div className="meets-mobile-account-menu">
+    {email&&<small>{email}</small>}
+    <Link href="/profils">Mans MEETS</Link>
+    <Link href="/organizators">Pasākumu rīkošana</Link>
+    <Link href="/konta-iestatijumi">Konta iestatījumi</Link>
+    <button type="button" disabled={loggingOut} onClick={logout} aria-label="Iziet no MEETS konta">{loggingOut?'Iziet…':'Iziet no konta'}</button>
+   </div>
+  </details>:<Link className="meets-mobile-signin" href="/profils"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c.6-4 3.6-6 8-6s7.4 2 8 6"/></svg>Ieiet</Link>}
   <div className="meets-nav-desktop">{visibleItems.map(navLink)}{signedIn&&!profileArea&&exit}</div>
   <div className="meets-nav-mobile">{visibleItems.filter(item=>item.href!='/admin').map(navLink)}
    {(isAdmin||(signedIn&&!profileArea))&&<details className="meets-nav-more">

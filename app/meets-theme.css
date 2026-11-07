@@ -414,3 +414,24 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 /* The same switch on the desktop sidebar: the active side is filled, as on phones. */
 .meets-profile-shell .meets-profile-mode-switch a.active{background:var(--karmins);color:#fff;font-weight:700;box-shadow:0 4px 12px rgba(158,48,57,.25)}
 .meets-profile-shell .meets-profile-mode-switch a.active svg{stroke:#fff}
+
+/* Phone header: logo and one account mark on a single, low row. */
+.meets-mobile-account,.meets-mobile-signin{display:none}
+@media(max-width:760px){
+ body:not(.admin-environment) .header{flex-wrap:nowrap!important;min-height:0;padding:8px max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px))!important;gap:10px}
+ body:not(.admin-environment) .header nav{width:auto!important;order:0!important;margin-left:auto!important;overflow:visible!important}
+ .header .brand-logo{width:118px!important}
+ .meets-mobile-header-exit{display:none!important}
+ .meets-mobile-account{display:block;position:relative}
+ .meets-mobile-account>summary{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--karmins);color:#fff;font-weight:800;font-size:16px;list-style:none;cursor:pointer;box-shadow:0 0 0 3px var(--karmins-soft)}
+ .meets-mobile-account>summary::-webkit-details-marker{display:none}
+ .meets-mobile-account[open]>summary{box-shadow:0 0 0 3px var(--karmins-soft),0 0 0 5px var(--karmins)}
+ .meets-mobile-account-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:1100;display:grid;min-width:220px;padding:6px;border:1px solid var(--migla);border-radius:14px;background:#fff;box-shadow:0 14px 34px rgba(27,36,48,.18)}
+ .meets-mobile-account-menu small{padding:8px 10px 6px;font-size:12px;color:var(--teksts-2,#4a5565);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .meets-mobile-account-menu a,.meets-mobile-account-menu button{display:flex;align-items:center;min-height:44px;padding:0 10px;border:0;border-radius:10px;background:transparent;font:inherit;font-size:15px;font-weight:700;color:var(--tinte);text-decoration:none;text-align:left;cursor:pointer}
+ .meets-mobile-account-menu button{color:var(--karmins-dark);border-top:1px solid var(--migla);border-radius:0 0 10px 10px}
+ .header nav a.meets-mobile-signin,.header nav a.meets-mobile-signin:hover{color:#fff;background:var(--tinte);text-decoration:none}
+ .meets-mobile-signin{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 13px;border-radius:999px;background:var(--tinte);color:#fff;font-size:14px;font-weight:800;text-decoration:none}
+ /* Organizer pages on a phone: no band and no lone tab; the switch says where you are. */
+ .meets-org-mode-band{display:none}
+}

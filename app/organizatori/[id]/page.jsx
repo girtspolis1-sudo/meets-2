@@ -10,9 +10,9 @@ export const dynamic='force-dynamic';
 // Link previews on Facebook, WhatsApp and others: name, description and logo.
 export async function generateMetadata({params}){
  const {id}=await params;const value=await publicOrganizer(id);const org=value?.organization;
- if(!org)return {title:'MEETS organizators'};
+ if(!org)return {title:'MEETS rīkotājs'};
  const count=Array.isArray(value.events)?value.events.length:0;
- const description=(String(org.description||'').trim().slice(0,180)||'Organizatora pasākumi MEETS kartē.')+(count?' · '+count+' gaidāmi pasākumi':'');
+ const description=(String(org.description||'').trim().slice(0,180)||'Rīkotāja pasākumi MEETS kartē.')+(count?' · '+count+' gaidāmi pasākumi':'');
  const title=org.name+' — pasākumi MEETS';
  const path=organizerPath(org);
  const images=org.image_url?[{url:org.image_url,alt:org.name}]:undefined;
@@ -68,7 +68,7 @@ export default async function OrganizerPublicPage({params}){
   <header className="org-site-hero">
    <div className="org-site-logo">{org.image_url?<img src={org.image_url} alt=""/>:<span>{org.name.slice(0,1).toLocaleUpperCase('lv')}</span>}</div>
    <div className="org-site-intro">
-    <p className="eyebrow">Organizators · MEETS</p>
+    <p className="eyebrow">Rīkotājs · MEETS</p>
     <h1>{org.name}</h1>
     {org.description&&<p className="org-site-description">{org.description}</p>}
     <ul className="org-site-stats" aria-label="Īsumā">
@@ -90,7 +90,7 @@ export default async function OrganizerPublicPage({params}){
 
   <section className="org-site-section" aria-labelledby="org-events">
    <div className="org-site-section-head">
-    <div><h2 id="org-events">Gaidāmie pasākumi</h2><p>Visi organizatora publicētie pasākumi vienuviet.</p></div>
+    <div><h2 id="org-events">Gaidāmie pasākumi</h2><p>Visi rīkotāja publicētie pasākumi vienuviet.</p></div>
     {events.length>0&&<Link className="button" href={mapHref}>Rādīt kartē →</Link>}
    </div>
    {events.length?<div className="org-site-events">{events.map(e=>{
@@ -112,7 +112,7 @@ export default async function OrganizerPublicPage({params}){
       </div>
      </div>
     </article>;})}</div>
-   :<p className="org-empty">Šobrīd nav gaidāmu pasākumu. Seko organizatoram — paziņosim, kad parādīsies jauni.</p>}
+   :<p className="org-empty">Šobrīd nav gaidāmu pasākumu. Seko rīkotājam — paziņosim, kad parādīsies jauni.</p>}
   </section>
 
   {(hasInfo||venues.length>0)&&<div className="org-site-grid">

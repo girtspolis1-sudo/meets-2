@@ -23,6 +23,6 @@ export default function OnlineJoin({event,compact=false}){
    <span className="online-join-url"><input readOnly value={url} aria-label="Saite uz zvanu" onFocus={e=>e.target.select()}/>
     <button type="button" className="button compact" onClick={copy}>Kopēt saiti</button></span>
    {copied&&<small role="status">{copied}</small>}
-  </>:!compact&&<small className="online-join-note">Pieslēgšanās saiti meklē organizatora lapā.</small>}
+  </>:!compact&&<small className="online-join-note">Pieslēgšanās saiti meklē rīkotāja lapā.</small>}
  </div>;
 }

@@ -86,7 +86,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
 
    <div className="meets-profile-mode-switch meets-org-mode-switch" role="group" aria-label="Profila režīms">
     <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}><ProfileIcon name="heart" size={15}/> <span>Mans MEETS</span></Link>
-    <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={15}/> <span>Organizators</span></Link>
+    <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={15}/> <span>Rīkotājs</span></Link>
    </div>
 
    {!organizerMode?<nav className="meets-profile-nav" aria-label="Mans MEETS">
@@ -96,11 +96,11 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
       <ProfileIcon name={item.icon}/><span>{item.label}</span>{activePersonal(item.href)&&<ProfileIcon name="arrow" size={14}/>}
      </Link>)}
     </div>
-   </nav>:<nav className="meets-profile-nav" aria-label="Organizēšana">
-    {activeOrganization&&pathname!=='/organizators'&&<div className="meets-profile-active-org"><small>Aktīvais organizators</small><strong>{activeOrganization.name}</strong></div>}
-    <div className="meets-profile-nav-group"><span className="meets-profile-nav-label">ORGANIZĒŠANA</span>
+   </nav>:<nav className="meets-profile-nav" aria-label="Pasākumu rīkošana">
+    {activeOrganization&&pathname!=='/organizators'&&<div className="meets-profile-active-org"><small>Aktīvais rīkotājs</small><strong>{activeOrganization.name}</strong></div>}
+    <div className="meets-profile-nav-group"><span className="meets-profile-nav-label">PASĀKUMU RĪKOŠANA</span>
      <Link href="/organizators" className={'meets-profile-nav-link'+(!orgId&&pathname==='/organizators'?' active':'')}>
-      <ProfileIcon name="building"/><span>Organizatori</span>
+      <ProfileIcon name="building"/><span>Rīkotāji</span>
      </Link>
      {orgId&&organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined}
        className={'meets-profile-nav-link'+(activeOrganizer(item)?' active':'')}>
@@ -121,17 +121,18 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
    <div className="meets-profile-mobile-actions">
     <div className="meets-profile-mobile-mode" role="group" aria-label="Profila režīms">
      <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}><ProfileIcon name="heart" size={16}/>Mans MEETS</Link>
-     <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={16}/>Organizators</Link>
+     <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={16}/>Rīkotājs</Link>
     </div>
     {/* The organizer pages start events in their own card. */}
     {organizerMode&&!pathname.startsWith('/registre-pasakumu')&&pathname!=='/organizators'&&<Link className="meets-profile-mobile-new" href={eventHref}>+ Jauns pasākums</Link>}
    </div>
-   <nav ref={tabsRef} className="meets-profile-mobile-tabs" aria-label={organizerMode?'Organizēšanas sadaļas':'Mans MEETS sadaļas'}>
+   {/* Before an organizer is chosen there is only one tab, so the row is left out. */}
+   {(!organizerMode||orgId)&&<nav ref={tabsRef} className="meets-profile-mobile-tabs" aria-label={organizerMode?'Rīkošanas sadaļas':'Mans MEETS sadaļas'}>
     {!organizerMode?personalLinks.map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.short}</Link>):
-     <><Link href="/organizators" className={!orgId?'active':''}>Organizatori</Link>{orgId&&organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined} className={activeOrganizer(item)?'active':''}>{item.label}</Link>)}</>}
-   </nav>
+     <><Link href="/organizators" className={!orgId?'active':''}>Rīkotāji</Link>{orgId&&organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined} className={activeOrganizer(item)?'active':''}>{item.label}</Link>)}</>}
+   </nav>}
    {/* Always clear which account this is: the organizer side is marked. */}
-   {organizerMode&&<div className="meets-org-mode-band" role="note"><ProfileIcon name="building" size={16}/><span>Organizatora konts</span>{activeOrganization?.name&&<strong>{activeOrganization.name}</strong>}</div>}
+   {organizerMode&&<div className="meets-org-mode-band" role="note"><ProfileIcon name="building" size={16}/><span>Rīkotāja konts</span>{activeOrganization?.name&&<strong>{activeOrganization.name}</strong>}</div>}
    <div className="meets-profile-slot">{children}</div>
   </div>
  </div>;

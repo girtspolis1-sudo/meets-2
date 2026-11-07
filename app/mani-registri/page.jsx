@@ -30,7 +30,7 @@ function ListsInner(){
  }
  async function organizer(account){
   const r=await fetch('/api/organizer',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({action:'list',token:account?.access_token})});
-  const b=await r.json().catch(()=>({}));if(!r.ok)throw Error(b.error||'Organizatorus neizdevās ielādēt.');return b;
+  const b=await r.json().catch(()=>({}));if(!r.ok)throw Error(b.error||'Rīkotājus neizdevās ielādēt.');return b;
  }
  async function refresh(account){
   const [result,orgData]=await Promise.all([rpc('list',{},account),orgId?organizer(account):Promise.resolve({organizations:[]})]);
@@ -75,13 +75,13 @@ function ListsInner(){
  }
 
  const page=<section className="meets-account-page meets-registry-page">
-  <div className="meets-account-heading"><div><p className="eyebrow">{orgId?'Organizēšana':'Mans MEETS'}</p><h1>{orgId?'Publiskie saraksti':'Mani saraksti'}</h1>
-   <p className="meets-muted">{orgId?'Veido organizatora publiskas pasākumu izlases un iegulstamus kalendārus.':'Saglabā savas pasākumu izlases. Saraksts nemaina pasākuma īpašnieku.'}</p></div>
+  <div className="meets-account-heading"><div><p className="eyebrow">{orgId?'Pasākumu rīkošana':'Mans MEETS'}</p><h1>{orgId?'Publiskie saraksti':'Mani saraksti'}</h1>
+   <p className="meets-muted">{orgId?'Veido rīkotāja publiskas pasākumu izlases un iegulstamus kalendārus.':'Saglabā savas pasākumu izlases. Saraksts nemaina pasākuma īpašnieku.'}</p></div>
    <Link className="button" href={orgId?'/organizators?org='+orgId+'&panel=lists':'/profils'}>← Atpakaļ</Link></div>
   {loading?<p role="status">Ielādē sarakstus…</p>:!session?<div className="registry-panel"><h2>Nepieciešams MEETS konts</h2><p>Pieslēdzies, lai veidotu savus sarakstus.</p><Link className="button primary" href="/profils">Pieslēgties →</Link></div>:<>
    {!orgId&&<div className="registry-panel"><h2>Mans profils</h2><div className="registry-grid"><label>Profila vārds<input value={profile} maxLength={100} onChange={e=>setProfile(e.target.value)}/></label><label>E-pasts<input readOnly value={session.user?.email||''}/></label></div><div className="registry-actions"><button className="button" disabled={busy} onClick={()=>perform('profile',{display_name:profile})}>Saglabāt profilu</button></div></div>}
    {orgId&&activeOrg&&<div className="registry-context"><strong>{activeOrg.name}</strong><span>{activeOrg.role==='viewer'?'Skatīšanas režīms':'Organizācijas saraksti'}</span></div>}
-   {!editing?<div className="registry-panel"><div className="meets-account-heading"><div><h2>{orgId?'Organizatora saraksti':'Mani saraksti'} ({visible.length})</h2><p className="registry-note">Katram sarakstam var kombinēt automātiskos filtrus un manuāli izvēlētus pasākumus.</p></div>
+   {!editing?<div className="registry-panel"><div className="meets-account-heading"><div><h2>{orgId?'Rīkotāja saraksti':'Mani saraksti'} ({visible.length})</h2><p className="registry-note">Katram sarakstam var kombinēt automātiskos filtrus un manuāli izvēlētus pasākumus.</p></div>
     {canEdit&&<button type="button" className="button primary" onClick={()=>setEditing({...DEFAULT,organization_id:orgId||null,filters:{period:'month'}})}>+ Jauns saraksts</button>}</div>
     {visible.map(item=><div className="registry-item" key={item.id}><strong>{item.title}</strong><small>{item.is_published?'Publisks · iegulšanai gatavs':'Privāts'} · {filterRegistryEvents(events,item.filters,item.included_event_ids,item.excluded_event_ids).length} pasākumi</small><p>{item.description}</p><div className="registry-actions">
      {canEdit&&<button className="button" onClick={()=>setEditing(item)}>Labot</button>}{item.is_published&&<><a className="button" href={'/iegult/'+item.id} target="_blank" rel="noopener noreferrer">Priekšskatīt ↗</a><button className="button" onClick={()=>copyCode(item)}>Kopēt iframe</button></>}{canEdit&&<button className="button" disabled={busy} onClick={()=>window.confirm('Dzēst sarakstu “'+item.title+'”?')&&perform('delete',{id:item.id})}>Dzēst</button>}</div></div>)}

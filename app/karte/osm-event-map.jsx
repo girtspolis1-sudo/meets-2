@@ -777,7 +777,7 @@ export default function OsmEventMap(){
   price&&price!=='paid'&&{key:'price',label:{free:'Bezmaksas',paid:'Maksas',mixed:'Daļēji maksas',unknown:'Maksa nav zināma'}[price]||price,clear:()=>setPrice('')},
   municipality&&{key:'municipality',label:municipality,clear:()=>setMunicipality('')},
   country&&{key:'country',label:countryLabel(country),clear:()=>setCountry('')},
-  orgFilter&&{key:'org',label:'Organizators: '+(orgName||'izvēlētais'),clear:()=>setOrgFilter('')}
+  orgFilter&&{key:'org',label:'Rīkotājs: '+(orgName||'izvēlētais'),clear:()=>setOrgFilter('')}
  ].filter(Boolean);
 
  // A list item opens its place: on desktop in the panel with the map centred on it.

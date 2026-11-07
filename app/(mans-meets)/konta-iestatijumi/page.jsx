@@ -68,7 +68,7 @@ export default function AccountSettings(){
   </form></section>
   <section className="meets-settings-panel meets-settings-danger"><h2>Dzēst MEETS kontu</h2>
    <p>Tiks izdzēsts tavs konts, saglabātie pasākumi, sekošana un atgādinājumi. To nevar atsaukt.</p>
-   <p className="meets-muted">Ja tev ir organizatori, vispirms izdzēs tos: Organizēšana → Profils → Dzēst organizatoru.</p>
+   <p className="meets-muted">Ja tev ir rīkotāji, vispirms izdzēs tos: Pasākumu rīkošana → Profils → Dzēst rīkotāju.</p>
    <button type="button" className="button danger" disabled={!!busy} onClick={deleteAccount}>{busy==='delete'?'Dzēš…':'Dzēst kontu…'}</button>
   </section>
  </div>;

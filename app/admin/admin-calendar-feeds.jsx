@@ -62,7 +62,7 @@ export default function AdminCalendarFeeds({supabaseUrl,publishableKey}){
    <div><span>Datu avoti</span><h3 id="calendar-feeds-title">Kalendāru saites (.ics)</h3></div>
    <button type="button" className="button compact" onClick={load}>Atjaunot</button>
   </div>
-  <p className="sync-text calendar-feeds-help">Organizatora vai pašvaldības kalendāra saite (Google Calendar, Outlook, WordPress “iCal”, <code>webcal://</code>). Tiek ielādēta katru dienu; jaunie pasākumi gaida vietas apstiprinājumu sadaļā Mapping.</p>
+  <p className="sync-text calendar-feeds-help">Rīkotāja vai pašvaldības kalendāra saite (Google Calendar, Outlook, WordPress “iCal”, <code>webcal://</code>). Tiek ielādēta katru dienu; jaunie pasākumi gaida vietas apstiprinājumu sadaļā Mapping.</p>
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}
   {message&&<p className="meets-organizer-success" role="status">{message}</p>}
   <form className="calendar-feed-form" onSubmit={save}>

@@ -468,8 +468,11 @@ for(const width of [360,390,768,1440]){
   if(width<768){
    if(!(await page.locator('.meets-profile-mobile-tabs').isVisible())){fails++;console.error('Mobile profile navigation not visible',width);}
   }else if(!(await page.locator('.meets-profile-aside').isVisible())){fails++;console.error('Desktop profile sidebar not visible',width);}
-  if(width<761&&!await page.getByRole('button',{name:'Iziet no MEETS konta'}).isVisible()){
-   fails++;console.error('Mobile logout action not visible',width);
+  // Phones: the account mark in the header opens a menu with the exit.
+  if(width<761){
+   await page.locator('.meets-mobile-account>summary').click();
+   if(!await page.getByRole('button',{name:'Iziet no MEETS konta'}).isVisible()){fails++;console.error('Mobile logout action not visible',width);}
+   await page.locator('.meets-mobile-account>summary').click();
   }
   await assertLayout(page,'signed-profile',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-signed-profile.png',fullPage:true});

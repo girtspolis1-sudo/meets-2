@@ -46,7 +46,7 @@ export default function EventVenueDialog({open,onClose,onSave,busy=false,existin
   <div className="event-address-dialog-content">
    <div className="event-address-dialog-heading">
     <div><p className="eyebrow">ORGANIZATORA ADRESES</p><h2 id="event-address-dialog-title">Pievienot jaunu adresi</h2>
-     <p>Atrodi adresi, izvēlies punktu kartē un saglabā organizatora sarakstā.</p></div>
+     <p>Atrodi adresi, izvēlies punktu kartē un saglabā rīkotāja sarakstā.</p></div>
     <button type="button" className="event-address-dialog-close" aria-label="Aizvērt" disabled={busy} onClick={onClose}>×</button>
    </div>
    <label className="event-address-dialog-name">Vietas nosaukums *

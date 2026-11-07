@@ -34,7 +34,7 @@ export default function QuickEvent({organizations=[],orgId='',heading='Izveido p
    {problem&&<p className="org-quick-error" id="org-quick-error">{problem}</p>}
    <div className="org-quick-row">
     <label className="org-quick-date"><span>Datums</span><input type="date" min={rigaDate()} value={date} onChange={e=>setDate(e.target.value)}/></label>
-    {chooseOrg&&<label className="org-quick-org"><span>Organizators</span>
+    {chooseOrg&&<label className="org-quick-org"><span>Rīkotājs</span>
      <select value={org} onChange={e=>setOrg(e.target.value)}>{writable.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></label>}
    </div>
    <fieldset className="org-quick-visibility"><legend>Kas redzēs?</legend>
