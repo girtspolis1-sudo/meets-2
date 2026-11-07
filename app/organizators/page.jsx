@@ -13,11 +13,12 @@ import {whenLabel} from '../../lib/map-nearby.js';
 import {eventTerm} from '../../lib/event-term.js';
 import {SOCIAL_NETWORKS,cleanSocialLinks,socialLabel} from '../../lib/social-links.js';
 import {organizerPath} from '../../lib/organizer-path.js';
+import {flyerPath,sharePath} from '../../lib/shared-event.js';
 
 const SESSION='meets_user_session_v1';
 const PANELS=new Set(['overview','events','venues','team','profile']);
 function organizationsFrom(items,id){return id&&Array.isArray(items)&&items.some(o=>o.id===id)?id:'';}
-const STATUS_LABELS={draft:'Melnraksts',pending_review:'Pārbaudē',rejected:'Jālabo',declined:'Netika publicēts',published:'Publicēts',closed:'Slēgts',archived:'Arhivēts',cancelled:'Atcelts'};
+const STATUS_LABELS={draft:'Melnraksts',private:'Privāts',pending_review:'Pārbaudē',rejected:'Jālabo',declined:'Netika publicēts',published:'Publicēts',closed:'Slēgts',archived:'Arhivēts',cancelled:'Atcelts'};
 const EDITOR='/registre-pasakumu/vienkarsi';
 const ROLE_LABELS={owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'};
 
@@ -69,8 +70,10 @@ function lifecycle(item){
 }
 function canChange(item){
  if(['archived','gone'].includes(lifecycle(item)))return false;
- return ['draft','rejected'].includes(item.status)||Boolean(item.event_id)&&['published','pending_review'].includes(item.status);
+ return ['draft','rejected','private'].includes(item.status)||Boolean(item.event_id)&&['published','pending_review'].includes(item.status);
 }
+// Events with a working share link: private, waiting for review or published.
+function shareable(item){return Boolean(item.share_token)&&['private','pending_review','published'].includes(item.status);}
 function canCancel(item){return !['cancelled','declined'].includes(item.status)&&!['archived','gone'].includes(lifecycle(item));}
 function future(item){const end=item.date_to||item.date_from;return end?end>=rigaDate():true;}
 // "Gaidāmie" keeps events that ended in the last 3 days, so they can still be renewed.
@@ -355,8 +358,14 @@ function OrganizerPageInner(){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){setError('Datumu ieraksti formā GGGG-MM-DD, piem., '+rigaDate()+'.');return;}
   window.location.assign(EDITOR+'?org='+orgId+'&copy='+item.id+'&date='+date);
  }
+ async function copyShareLink(item){
+  const url=window.location.origin+sharePath(item.share_token);
+  try{await navigator.clipboard.writeText(url);setNotice('Saite nokopēta: '+url);}
+  catch{window.prompt('Nokopē saiti:',url);}
+ }
  function renderActions(item,primary=false){
-  if(!canEdit)return item.status==='published'&&item.event_id?<Link className="button compact" href={'/pasakumi/'+item.event_id}>Skatīt publiski</Link>:null;
+  if(!canEdit)return item.status==='published'&&item.event_id?<Link className="button compact" href={'/pasakumi/'+item.event_id}>Skatīt publiski</Link>
+   :shareable(item)?<a className="button compact" href={sharePath(item.share_token)} target="_blank" rel="noopener noreferrer">Atvērt saiti ↗</a>:null;
   const stage=lifecycle(item);
   const editLabel=stage==='ended'?'Atjaunot ar jauniem datumiem':item.status==='rejected'?'Labot un iesniegt':item.status==='draft'?'Turpināt':'Labot';
   if(stage==='archived')return <div className="org-row-actions">
@@ -368,6 +377,9 @@ function OrganizerPageInner(){
    <details className="org-more-menu"><summary aria-label={'Vairāk darbību: '+(item.title||'pasākums')}>⋯</summary>
     <div role="menu">
      {item.status==='published'&&item.event_id&&<Link role="menuitem" href={'/pasakumi/'+item.event_id}>Skatīt publiski ↗</Link>}
+     {shareable(item)&&<a role="menuitem" href={sharePath(item.share_token)} target="_blank" rel="noopener noreferrer">Atvērt saiti ↗</a>}
+     {shareable(item)&&<button role="menuitem" type="button" onClick={()=>copyShareLink(item)}>Kopēt saiti</button>}
+     {shareable(item)&&<a role="menuitem" href={flyerPath(item.share_token)} target="_blank" rel="noopener noreferrer">Sludinājums drukai ↗</a>}
      <Link role="menuitem" href={EDITOR+'?org='+orgId+'&copy='+item.id}>Dublēt</Link>
      <button role="menuitem" type="button" onClick={()=>copyWithDate(item)}>Dublēt ar citu datumu…</button>
      {canCancel(item)&&<button role="menuitem" type="button" className="danger" onClick={()=>cancelEvent(item)}>Atcelt pasākumu…</button>}
@@ -402,13 +414,16 @@ function OrganizerPageInner(){
   drafts:orgSubmissions.filter(x=>x.status==='draft').length,
   review:orgSubmissions.filter(x=>x.status==='pending_review').length,
   fixes:orgSubmissions.filter(x=>x.status==='rejected').length,
-  published:orgSubmissions.filter(x=>x.status==='published'&&future(x)).length
+  published:orgSubmissions.filter(x=>x.status==='published'&&future(x)).length,
+  private:orgSubmissions.filter(x=>x.status==='private'&&future(x)).length
  }),[orgSubmissions]);
  const STATUS_CARDS=[
   ['draft','Melnraksti',metrics.drafts,'Vēl nav iesniegti'],
   ['pending_review','Pārbaudē',metrics.review,'Gaida MEETS'],
   ['rejected','Jālabo',metrics.fixes,'MEETS lūdz precizēt'],
-  ['published','Publicēti',metrics.published,'Gaidāmi, redzami kartē']
+  ['published','Publicēti',metrics.published,'Gaidāmi, redzami kartē'],
+  // Shown only to organizers who use private events.
+  ...(metrics.private?[['private','Privāti',metrics.private,'Redzami tikai ar saiti']]:[])
  ];
 
  function eventFilterLink(status){
@@ -519,7 +534,7 @@ function OrganizerPageInner(){
   {panel==='events'&&<section className="org-panel">
    <div className="org-panel-head"><div><h2>Pasākumi</h2></div>{canEdit&&<Link className="button compact" href={EDITOR+'?org='+orgId}>+ Jauns pasākums</Link>}</div>
    <div className="org-filters">
-    <label>Statuss<select value={filters.status} onChange={e=>changeFilter('status',e.target.value)}><option value="all">Visi</option><option value="draft">Melnraksti</option><option value="pending_review">Pārbaudē</option><option value="rejected">Jālabo</option><option value="declined">Netika publicēti</option><option value="published">Publicētie</option><option value="cancelled">Atceltie</option></select></label>
+    <label>Statuss<select value={filters.status} onChange={e=>changeFilter('status',e.target.value)}><option value="all">Visi</option><option value="draft">Melnraksti</option><option value="private">Privātie</option><option value="pending_review">Pārbaudē</option><option value="rejected">Jālabo</option><option value="declined">Netika publicēti</option><option value="published">Publicētie</option><option value="cancelled">Atceltie</option></select></label>
     <label>Laiks<select value={filters.time} onChange={e=>changeFilter('time',e.target.value)}><option value="upcoming">Gaidāmie</option><option value="past">Arhīvs (līdz 30 d.)</option><option value="all">Visi</option></select></label>
     <label>Vieta<select value={filters.venue} onChange={e=>changeFilter('venue',e.target.value)}><option value="">Visas vietas</option>{managedVenues.map(v=><option value={v.id} key={v.id}>{v.name}</option>)}{usedVenues.map(v=><option value={v.id} key={v.id}>{v.name} · izmantota</option>)}</select></label>
     <label className="org-filter-search">Meklēt<input type="search" value={filters.query} onChange={e=>changeFilter('query',e.target.value)} placeholder="Nosaukums vai vieta"/></label>

@@ -43,12 +43,15 @@
 .org-row-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 .org-status{display:inline-flex;align-items:center;border-radius:999px;background:#f1edf4;color:#66566e;padding:5px 8px;font-size:11px;font-style:normal;font-weight:800;white-space:nowrap}
 /* Status colours come from the theme tokens (meets-theme.css). */
-.org-status-draft{background:#eef1f4;color:var(--teksts-2,#4a5565)}.org-status-pending-review{background:var(--rit-soft);color:var(--rit-text)}.org-status-rejected{background:var(--karmins-soft);color:var(--karmins-dark)}.org-status-published{background:var(--sodien-soft);color:var(--sodien-text)}.org-status-cancelled,.org-status-declined{background:#eef1f4;color:#5b6675;text-decoration:line-through}
+.org-status-draft{background:#eef1f4;color:var(--teksts-2,#4a5565)}.org-status-private{background:var(--tinte,#1b2430);color:#fff}.org-status-pending-review{background:var(--rit-soft);color:var(--rit-text)}.org-status-rejected{background:var(--karmins-soft);color:var(--karmins-dark)}.org-status-published{background:var(--sodien-soft);color:var(--sodien-text)}.org-status-cancelled,.org-status-declined{background:#eef1f4;color:#5b6675;text-decoration:line-through}
 .org-rejection{display:block;margin-top:4px;color:#9a3925!important}
 .org-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:10px 0 15px}
 .org-filters label,.org-form-card label,.org-profile-form label,.org-invite label,.event-editor-context label{display:grid;gap:5px;font-size:12px;font-weight:750;color:#55445f}
 .org-filters input,.org-filters select,.org-form-card input,.org-form-card textarea,.org-profile-form input,.org-profile-form textarea,.org-invite input,.org-invite select{width:100%;min-width:0;border:1px solid #dcd2e3;border-radius:9px;padding:10px 11px;background:#fff;font:inherit}
-.org-table{display:grid;border:1px solid #e8e0ec;border-radius:13px;overflow:hidden}
+/* The row menu may reach past the table, so the corners are rounded per row. */
+.org-table{display:grid;border:1px solid #e8e0ec;border-radius:13px}
+.org-table>:first-child{border-radius:12px 12px 0 0}
+.org-table>:last-child{border-radius:0 0 12px 12px}
 .org-table-head,.org-table-row{display:grid;grid-template-columns:2fr 1fr 1.2fr .8fr 1.5fr;gap:9px;align-items:center;padding:10px 12px}
 .org-table-head{background:#f5f7fa;color:#776a7e;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
 .org-table-row{border-top:1px solid #eee8f1;font-size:13px}.org-table-row>div:first-child{min-width:0}.org-table-row strong{display:block;overflow-wrap:anywhere}
@@ -305,14 +308,14 @@
 .org-switcher li button small{font-weight:600;color:#6b7480}
 
 /* Status cards: what needs attention, one click to the filtered list */
-.org-status-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.org-status-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px}
 .org-status-card{display:grid;gap:2px;padding:13px 14px;border:1px solid var(--migla);border-top:4px solid var(--migla);border-radius:12px;background:#fff;color:var(--tinte);text-decoration:none;transition:border-color .15s ease-out,box-shadow .15s ease-out}
 .org-status-card:hover{box-shadow:0 6px 16px rgba(27,36,48,.08)}
 .org-status-card:focus-visible{outline:3px solid var(--tinte);outline-offset:2px}
 .org-status-card strong{font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
 .org-status-card span{font-weight:800;font-size:13px}
 .org-status-card small{color:#6b7480;font-size:12px}
-.org-status-card-pending-review{border-top-color:var(--rit)}
+.org-status-card-pending-review{border-top-color:var(--rit)}.org-status-card-private{border-top-color:var(--tinte,#1b2430)}
 .org-status-card-rejected{border-top-color:var(--karmins)}
 .org-status-card-rejected:not(.empty){background:var(--karmins-soft)}
 .org-status-card-published{border-top-color:var(--sodien)}
