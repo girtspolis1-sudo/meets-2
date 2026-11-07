@@ -8,7 +8,7 @@ import ProfileShell from '../../components/profile-shell.jsx';
 import WeeklySchedule from '../../components/weekly-schedule.jsx';
 import {rigaDate} from '../../../lib/meets-personal.js';
 import {countOccurrences,cleanPrice,cleanDatedSlots,datesBetween} from '../../../lib/event-schedule.js';
-import {ATTENDANCE_LABELS,EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,validateQuickEvent,normalizeEventTime,copyEventDraft,venueRequired} from '../../../lib/event-entry.js';
+import {ATTENDANCE_LABELS,EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,quickEventIssue,normalizeEventTime,copyEventDraft,venueRequired} from '../../../lib/event-entry.js';
 import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
 import {refreshSession} from '../../../lib/auth-client.js';
 import {VISIBILITY_HINTS,flyerPath,rigaOffsetLabel,scheduleLines,sharePath} from '../../../lib/shared-event.js';
@@ -71,6 +71,10 @@ function SimpleEventFlow(){
  const [whereOpen,setWhereOpen]=useState(false);
  const [descOpen,setDescOpen]=useState(false);
  const [copied,setCopied]=useState(false);
+ // The field the last error belongs to: it is marked and scrolled into view.
+ const [issue,setIssue]=useState(null);
+ // Signed in without an organizer profile: it is made from this name on saving.
+ const [newOrgName,setNewOrgName]=useState('');
  const locationRef=useRef(null);
  const initialized=useRef(false);
  const activeOrg=orgs.find(o=>o.id===orgId)||null;
@@ -82,7 +86,8 @@ function SimpleEventFlow(){
   return {mine,shared};
  },[venues,publicVenues,venueLinks,orgId]);
 
- const canEdit=canWriteOrganization(activeOrg?.role);
+ const orgPending=Boolean(account&&!orgs.length);
+ const canEdit=activeOrg?canWriteOrganization(activeOrg.role):orgPending;
  const viewer=activeOrg?.role==='viewer';
  const privateEvent=form.visibility==='private';
  // Trusted organizers are published without MEETS review.
@@ -95,7 +100,7 @@ function SimpleEventFlow(){
  async function call(action,payload={},token=account?.access_token){
   const response=await fetch('/api/organizer',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({action,token,...payload})});
   const body=await response.json().catch(()=>({}));
-  if(!response.ok){const e=new Error(body.error||'Neizdevās saglabāt.');e.status=response.status;throw e;}
+  if(!response.ok){const e=new Error(body.error||'Neizdevās saglabāt.');e.status=response.status;e.field=body.field||'';throw e;}
   return body;
  }
 
@@ -179,6 +184,14 @@ function SimpleEventFlow(){
     const venue=all.find(v=>v.id===venueId);
     if(venue)next={...DEFAULT,venue_id:venue.id,venue_name:venue.name,address:venue.address||'',latitude:venue.latitude??'',longitude:venue.longitude??''};
    }
+   // Started in the organizer area: name, date and visibility come along.
+   const preTitle=(params.get('title')||'').slice(0,200),preStart=params.get('start')||'',prePrivate=params.get('private')==='1';
+   if(!next&&!editId&&!copyId&&(preTitle||preStart||prePrivate)){
+    next={...DEFAULT,title:preTitle,visibility:prePrivate?'private':'public',
+     date_from:/^\d{4}-\d{2}-\d{2}$/.test(preStart)&&preStart>=rigaDate()?preStart:''};
+    const u=new URL(window.location.href);['title','start','private'].forEach(k=>u.searchParams.delete(k));
+    window.history.replaceState(null,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():''));
+   }
    if(!next){
     const stored=restoreLocal(session?.user?.id,chosen);
     if(stored){next=cleanDraft(stored);setSaveVenue(stored.save_venue===true);setSavedId(stored.saved_id||'');setNotice('Atjaunots iepriekš saglabātais melnraksts.');}
@@ -195,6 +208,31 @@ function SimpleEventFlow(){
   return()=>clearTimeout(timer);
  },[form,saveVenue,savedId,loaded,stage,orgId,account?.user?.id]);
 
+ useEffect(()=>{if(!error)setIssue(null);},[error]);
+ useEffect(()=>{
+  if(!issue?.field)return;
+  const box=document.querySelector('[data-field~="'+issue.field+'"]');
+  if(!box)return;
+  box.scrollIntoView({behavior:'smooth',block:'center'});
+  const input=box.querySelector('[aria-invalid="true"]')||box.querySelector('input:not([type=file]):not([type=radio]),select,textarea');
+  // Date and time pickers are not opened by themselves; the field is only shown.
+  if(input&&!['date','time'].includes(input.type))setTimeout(()=>input.focus({preventScroll:true}),400);
+ },[issue]);
+ function fail(field,message){
+  setError(message);setIssue(field?{field,message}:null);
+  if(field==='venue'||field==='online_url')setWhereOpen(true);
+ }
+ function errorField(message){
+  const m=String(message||'');
+  if(/organizator|organizācij/i.test(m))return 'organization';
+  if(/viet|adres/i.test(m))return 'venue';
+  if(/zvan|https/i.test(m))return 'online_url';
+  if(/cen|EUR|maks/i.test(m))return 'price';
+  if(/laik/i.test(m))return 'time_to';
+  if(/datum/i.test(m))return 'date_from';
+  if(/nosaukum/i.test(m))return 'title';
+  return '';
+ }
  function update(field,value){setForm(before=>({...before,[field]:value}));setError('');}
  function applyVenue(venue){
   if(!venue)return;
@@ -203,16 +241,19 @@ function SimpleEventFlow(){
   setSaveVenue(false);setError('');
  }
  async function addOrChooseVenue(next){
-  if(!account?.access_token||!orgId||!canEdit)throw Error('Pieslēdzies organizatora kontam ar rediģēšanas tiesībām.');
+  if(!account?.access_token||(orgId&&!canEdit))throw Error('Pieslēdzies organizatora kontam ar rediģēšanas tiesībām.');
+  if(!orgId&&(orgs.length||newOrgName.trim().length<2))throw Error(orgs.length?'Vispirms izvēlies organizatoru pasākuma augšā.':'Vispirms ieraksti organizatora nosaukumu pasākuma augšā.');
   setAddressBusy(true);
   try{
+   const org=orgId||await ensureOrg();
+   if(!org)throw Error('Vispirms norādi organizatoru.');
    const known=[...venues,...publicVenues].find(v=>v.id===next.venue_id);
    let item=known;
-   if(known&&known.organization_id!==orgId){
-    const result=await call('useVenue',{organization_id:orgId,venue_id:known.id});
+   if(known&&known.organization_id!==org){
+    const result=await call('useVenue',{organization_id:org,venue_id:known.id});
     item=result.item||known;
    }else if(!known){
-    const result=await call('createVenue',{organization_id:orgId,name:next.name,
+    const result=await call('createVenue',{organization_id:org,name:next.name,
      address:next.address,latitude:next.latitude,longitude:next.longitude,
      description:'',directions:'',is_public:false});
     item=result.item;
@@ -286,40 +327,60 @@ function SimpleEventFlow(){
   });
  }
  function openLocation(){setWhereOpen(true);locationRef.current?.scrollIntoView({behavior:'smooth',block:'center'});}
- function validateForSubmit(){
-  if(needsVenue&&!form.venue_id){
-   setError(account?'Izvēlies norises vietu no saraksta vai pievieno jaunu.':'Lai izvēlētos norises vietu, pieslēdzies — ievadītais saglabāsies.');
-   openLocation();return false;
+ // Checks the form top to bottom and marks the first field to fix. Before
+ // signing in only what needs no account is checked; the place comes after.
+ function validateForSubmit({guest=false}={}){
+  const values=perDay||recurring?{...form,time_from:'',time_to:''}:form;
+  const first=quickEventIssue(values,{requireVenue:false});
+  if(first){fail(first.field,first.message);return false;}
+  if(!guest&&!orgId){
+   if(orgs.length){fail('organization','Izvēlies, kurš organizators rīko pasākumu.');return false;}
+   if(newOrgName.trim().length<2){fail('organization','Ieraksti organizatora nosaukumu — vismaz 2 rakstzīmes.');return false;}
   }
-  const message=validateQuickEvent(perDay||recurring?{...form,time_from:'',time_to:''}:form,{requireVenue:needsVenue});
-  if(message){setError(message);return false;}
+  try{cleanPrice(form.price_status,form.price_min,form.price_max);}
+  catch(e){fail('price',e.message);return false;}
   try{
-   cleanPrice(form.price_status,form.price_min,form.price_max);
    if(recurring)countOccurrences(form.date_from,form.date_to,form.recurrence_slots);
    if(perDay){
     if(!form.date_to||form.date_to<=form.date_from)throw Error('Vairāku dienu pasākumam norādi arī beigu datumu.');
     cleanDatedSlots(datesBetween(form.date_from,form.date_to).map(daySlot),form.date_from,form.date_to);
    }
-  }catch(e){setError(e.message);return false;}
+  }catch(e){fail('schedule',e.message);return false;}
+  if(guest)return true;
+  if(needsVenue&&!form.venue_id){fail('venue','Izvēlies norises vietu no saraksta vai pievieno jaunu ar “+ Jauna vieta”.');return false;}
+  const place=quickEventIssue(values,{requireVenue:needsVenue});
+  if(place){fail(place.field,place.message);return false;}
   return true;
  }
- function startAuth(){persistLocal();setStage('auth');window.scrollTo({top:0,behavior:'smooth'});}
- function organizerSetup(){
-  persistLocal();
-  const returnPath='/registre-pasakumu/vienkarsi';
-  window.location.assign('/organizators?new=1&return='+encodeURIComponent(returnPath));
+ // The organizer of the event; made from the typed name when there is none yet.
+ async function ensureOrg(){
+  if(orgId)return orgId;
+  if(orgs.length){fail('organization','Izvēlies, kurš organizators rīko pasākumu.');return '';}
+  const name=newOrgName.trim();
+  if(name.length<2){fail('organization','Ieraksti organizatora nosaukumu — vismaz 2 rakstzīmes.');return '';}
+  const result=await call('createOrganization',{name,kind:'organizer'});
+  const item=result.item;
+  if(!item?.id)throw Error('Organizatoru neizdevās izveidot.');
+  setOrgs([item]);setOrgId(item.id);clearLocal(account?.user?.id,'');
+  const u=new URL(window.location.href);u.searchParams.set('org',item.id);window.history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString());
+  setNotice('Organizators “'+item.name+'” izveidots. Profilu vari papildināt vēlāk.');
+  return item.id;
  }
+ function startAuth(){persistLocal();setStage('auth');window.scrollTo({top:0,behavior:'smooth'});}
  async function save(status='draft'){
   if(!account){persistLocal();if(status==='draft')setNotice('Melnraksts saglabāts šajā ierīcē. Pieslēdzies, lai saglabātu to kontā.');else startAuth();return;}
-  if(!orgId){persistLocal();organizerSetup();return;}
-  if(!canEdit){setError('Šim organizatoram tev ir tikai skatīšanas tiesības.');return;}
+  if(orgId&&!canEdit){setError('Šim organizatoram tev ir tikai skatīšanas tiesības.');return;}
   if(status!=='draft'&&!validateForSubmit())return;
   if(status==='draft'&&publishedEdit){setError('Publicētam pasākumam izmaiņas iesniedz pārbaudei — melnraksts nav pieejams.');return;}
+  // The table keeps no event without a name, not even a draft.
+  if(form.title.trim().length<3){fail('title','Lai saglabātu, ieraksti pasākuma nosaukumu (vismaz 3 rakstzīmes).');return;}
   setBusy(true);setError('');
   try{
+   const org=await ensureOrg();
+   if(!org)return;
    // A private online-only event keeps no place, even one picked earlier.
    const placeless=!needsVenue;
-   const fields={...form,organization_id:orgId,
+   const fields={...form,organization_id:org,
     visibility:publishedEdit?'public':form.visibility,
     venue_id:placeless?null:selectedVenue?.id||null,
     ...(placeless?{venue_name:'',address:'',latitude:'',longitude:''}:{}),
@@ -337,21 +398,18 @@ function SimpleEventFlow(){
    const result=await call('saveEvent',{...fields,...(id?{id}:{}),status});
    setSavedId(result.item.id);
    setLastSaved(new Date().toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'}));
-   if(status==='draft'){setNotice('Melnraksts saglabāts kontā.');persistLocal({...form},orgId,account);return;}
-   setSubmitted(result.item);setStage('done');clearLocal();setNotice('');window.scrollTo({top:0,behavior:'smooth'});
-  }catch(e){setError(e.message);if(e.status===401)startAuth();}
+   if(status==='draft'){setNotice('Melnraksts saglabāts kontā.');persistLocal({...form},org,account);return;}
+   setSubmitted(result.item);setStage('done');clearLocal(account?.user?.id,org);setNotice('');window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){
+   if(e.status===401){setError(e.message);startAuth();return;}
+   fail(e.field||errorField(e.message),e.message);
+  }
   finally{setBusy(false);}
  }
  function submit(event){
   event.preventDefault();
-  if(!account){if(validateForSubmitGuest())startAuth();return;}
+  if(!account){if(validateForSubmit({guest:true}))startAuth();return;}
   save(publishedEdit||!privateEvent?'pending_review':'private');
- }
- // Before signing in only what needs no account is checked; the place comes after.
- function validateForSubmitGuest(){
-  const message=validateQuickEvent(perDay||recurring?{...form,time_from:'',time_to:''}:form,{requireVenue:false});
-  if(message){setError(message);return false;}
-  return true;
  }
  function pickImage(file){
   if(!file){setImageFile(null);setImagePreview('');return;}
@@ -386,11 +444,15 @@ function SimpleEventFlow(){
   :trusted?'Pasākums kartē parādīsies pēc dažām sekundēm. Ja automātiskā pārbaude atradīs neskaidrību, MEETS to izvērtēs un tu saņemsi e-pastu.'
   :'Kad pasākums būs publicēts vai būs jāprecizē, saņemsi e-pastu. Saite uz pasākumu darbojas jau tagad.';
 
+ const bad=name=>issue?.field===name;
+ const invalid=name=>bad(name)?{'aria-invalid':true,'aria-describedby':'ev-err-'+name}:{};
+ const errorFor=(...names)=>{const name=names.find(bad);return name?<span className="ev-field-error" id={'ev-err-'+name} role="alert">{issue.message}</span>:null;};
  const orgChip=!account?<button type="button" className="ev-chip" onClick={startAuth}>Pieslēgties</button>
-  :!orgs.length?<button type="button" className="ev-chip" onClick={organizerSetup}>+ Sākt organizēt</button>
+  :!orgs.length?<label className={'ev-chip ev-chip-input'+(bad('organization')?' has-error':'')}><span className="ev-avatar" aria-hidden="true">{(newOrgName.trim()||'+').slice(0,1)}</span>
+    <input aria-label="Organizatora nosaukums" placeholder="Organizatora nosaukums" maxLength={160} autoComplete="organization" value={newOrgName} onChange={e=>{setNewOrgName(e.target.value);setError('');}} {...invalid('organization')}/></label>
   :orgs.length===1?<span className="ev-chip ev-chip-static"><span className="ev-avatar" aria-hidden="true">{(activeOrg?.name||'?').slice(0,1)}</span><span className="ev-chip-text">{activeOrg?.name}</span></span>
-  :<label className="ev-chip"><span className="ev-avatar" aria-hidden="true">{(activeOrg?.name||'?').slice(0,1)}</span>
-    <select aria-label="Organizators" value={orgId} onChange={e=>switchOrg(e.target.value)}><option value="">Izvēlies organizatoru</option>{orgs.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select><Icon name="chevron"/></label>;
+  :<label className={'ev-chip'+(bad('organization')?' has-error':'')}><span className="ev-avatar" aria-hidden="true">{(activeOrg?.name||'?').slice(0,1)}</span>
+    <select aria-label="Organizators" {...invalid('organization')} value={orgId} onChange={e=>switchOrg(e.target.value)}><option value="">Izvēlies organizatoru</option>{orgs.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select><Icon name="chevron"/></label>;
 
  const editor=<section className="meets-organizer-page unified-event-editor ev-page">
   <header className="ev-head">
@@ -399,10 +461,9 @@ function SimpleEventFlow(){
    {stage==='edit'&&<span className="ev-save-state" role="status">{busy?'Saglabā…':lastSaved?'Saglabāts ierīcē '+lastSaved:''}</span>}
   </header>
 
-  {account&&orgs.length===0&&stage==='edit'&&<div className="ev-banner"><strong>Lai izveidotu pasākumu, aktivizē organizēšanu.</strong><span>Ievadītais saglabāsies un atjaunosies pēc organizatora izveides.</span><button className="button primary" type="button" onClick={organizerSetup}>Sākt organizēt →</button></div>}
   {account&&orgId&&viewer&&<p className="meets-inline-error">Tev ir skatītāja loma. Pasākumu vari apskatīt, bet ne saglabāt.</p>}
   {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
-  {error&&<>
+  {error&&!issue&&<>
    <p className="meets-inline-error event-inline-validation">{error}</p>
    <div className="event-editor-error-toast" role="alert" aria-atomic="true">
     <span className="event-editor-error-icon" aria-hidden="true">!</span>
@@ -412,6 +473,10 @@ function SimpleEventFlow(){
   </>}
 
   {stage==='edit'&&<form className="ev-form" noValidate onSubmit={submit}>
+   <label className={'ev-title'+(bad('title')?' has-error':'')} data-field="title"><span className="ev-label">Pasākuma nosaukums</span>
+    <input required minLength={3} maxLength={200} autoComplete="off" enterKeyHint="next" value={form.title} placeholder="Piem., Rudens koncerts" onChange={e=>update('title',e.target.value)} {...invalid('title')}/>
+    {errorFor('title')}
+   </label>
    <label className={'ev-cover'+(imagePreview?' has-image':'')+(dragging?' dragging':'')}
     onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)}
     onDrop={e=>{e.preventDefault();setDragging(false);pickImage(e.dataTransfer.files?.[0]);}}>
@@ -423,7 +488,7 @@ function SimpleEventFlow(){
    </label>
    {imagePreview&&<button className="text-button ev-cover-remove" type="button" onClick={removeImage}>Noņemt attēlu</button>}
 
-   <div className="ev-chips">
+   <div className="ev-chips" data-field="organization">
     {orgChip}
     <label className={'ev-chip ev-chip-visibility'+(privateEvent?' is-private':'')}>
      <Icon name={privateEvent?'lock':'globe'}/>
@@ -432,25 +497,24 @@ function SimpleEventFlow(){
      </select><Icon name="chevron"/>
     </label>
    </div>
+   {errorFor('organization')}
+   {orgPending&&<p className="ev-hint ev-org-hint">Ieraksti, kas rīko pasākumu (piem., “Balvu sporta zāle”). Organizatora profils izveidosies kopā ar pasākumu — pārējo papildināsi vēlāk.</p>}
    <p className="ev-hint">{publishedEdit?'Publicēts pasākums paliek publisks.':VISIBILITY_HINTS[form.visibility]+(privateEvent?', bez MEETS pārbaudes.':'.')}</p>
 
-   <label className="ev-title"><span className="sr-only">Pasākuma nosaukums</span>
-    <input required minLength={3} maxLength={200} autoComplete="off" value={form.title} placeholder="Pasākuma nosaukums" onChange={e=>update('title',e.target.value)}/>
-   </label>
 
-   <section className="ev-card ev-when" aria-label="Kad notiks">
+   <section className={'ev-card ev-when'+(['date_from','date_to','time_from','time_to','schedule'].some(bad)?' has-error':'')} aria-label="Kad notiks" data-field="date_from date_to time_from time_to schedule">
     <div className="ev-when-rows">
      <div className="ev-when-row">
       <span className="ev-when-dot" aria-hidden="true"/>
       <span className="ev-when-label">{recurring?'No':'Sākums'}</span>
-      <input className="ev-pill" type="date" aria-label={recurring?'Grafika sākuma datums':'Sākuma datums'} required min={savedId?undefined:rigaDate()} value={form.date_from||''} onChange={e=>setStartDate(e.target.value)}/>
-      {!recurring&&!perDay&&<input className="ev-pill ev-pill-time" type="time" aria-label="Sākuma laiks" value={form.time_from||''} onChange={e=>update('time_from',e.target.value)}/>}
+      <input className="ev-pill" type="date" aria-label={recurring?'Grafika sākuma datums':'Sākuma datums'} {...invalid('date_from')} required min={savedId?undefined:rigaDate()} value={form.date_from||''} onChange={e=>setStartDate(e.target.value)}/>
+      {!recurring&&!perDay&&<input className="ev-pill ev-pill-time" type="time" aria-label="Sākuma laiks" {...invalid('time_from')} value={form.time_from||''} onChange={e=>update('time_from',e.target.value)}/>}
      </div>
      <div className="ev-when-row">
       <span className="ev-when-dot hollow" aria-hidden="true"/>
       <span className="ev-when-label">{recurring?'Līdz':'Beigas'}</span>
-      <input className="ev-pill" type="date" aria-label={recurring?'Grafika beigu datums':'Beigu datums'} required={recurring} min={form.date_from||undefined} value={recurring?form.date_to||'':form.date_to||form.date_from||''} onChange={e=>setEndDate(e.target.value)}/>
-      {!recurring&&!perDay&&<input className="ev-pill ev-pill-time" type="time" aria-label="Beigu laiks" value={form.time_to||''} onChange={e=>update('time_to',e.target.value)}/>}
+      <input className="ev-pill" type="date" aria-label={recurring?'Grafika beigu datums':'Beigu datums'} {...invalid('date_to')} required={recurring} min={form.date_from||undefined} value={recurring?form.date_to||'':form.date_to||form.date_from||''} onChange={e=>setEndDate(e.target.value)}/>
+      {!recurring&&!perDay&&<input className="ev-pill ev-pill-time" type="time" aria-label="Beigu laiks" {...invalid('time_to')} value={form.time_to||''} onChange={e=>update('time_to',e.target.value)}/>}
      </div>
     </div>
     {multiDay&&!recurring&&<label className="ev-when-toggle"><input type="checkbox" checked={perDay} onChange={e=>chooseDayTimes(e.target.checked)}/>Katrai dienai savs laiks</label>}
@@ -465,35 +529,37 @@ function SimpleEventFlow(){
      {savedId&&recurrenceEditScope(form)==='series'&&<p className="ev-hint">Izmaiņas attiecas uz visu sēriju; vienu norisi atsevišķi šeit nemaina.</p>}
      <WeeklySchedule slots={form.recurrence_slots||[]} onChange={v=>update('recurrence_slots',v)} dateFrom={form.date_from} dateTo={form.date_to}/>
     </div>}
+    {errorFor('date_from','date_to','time_from','time_to','schedule')}
     <div className="ev-when-foot"><Icon name="globe"/><strong>{rigaOffsetLabel(form.date_from)}</strong><span>Rīga</span></div>
    </section>
 
-   <section ref={locationRef} className={'ev-card ev-where'+(whereOpen?' open':'')}>
+   <section ref={locationRef} className={'ev-card ev-where'+(whereOpen?' open':'')+(bad('venue')||bad('online_url')?' has-error':'')} data-field="venue online_url">
     <button type="button" className="ev-row-button" aria-expanded={whereOpen} aria-controls="ev-where-panel" onClick={()=>setWhereOpen(v=>!v)}>
      <Icon name="pin"/>
      <span className="ev-row-text"><strong>{whereTitle}</strong><small>{whereText}</small></span>
      <span className="ev-row-chevron"><Icon name="chevron"/></span>
     </button>
+    {errorFor('venue','online_url')}
     {whereOpen&&<div className="ev-panel" id="ev-where-panel">
      <fieldset className="ev-segmented"><legend>Kā notiks?</legend>
       {Object.entries(ATTENDANCE_LABELS).map(([value,label])=><label key={value} className={(form.attendance_mode||'in_person')===value?'active':''}>
        <input type="radio" name="attendance_mode" value={value} checked={(form.attendance_mode||'in_person')===value} onChange={()=>update('attendance_mode',value)}/>{label==='Klātienē un tiešsaistē'?'Abi':label}</label>)}
      </fieldset>
      {form.attendance_mode!=='in_person'&&<label className="ev-field">Saite uz zvanu (Zoom, Teams, Google Meet…)
-      <input type="url" inputMode="url" placeholder="https://…" maxLength={500} value={form.online_url||''} onChange={e=>update('online_url',e.target.value)}/>
+      <input type="url" inputMode="url" placeholder="https://…" maxLength={500} {...invalid('online_url')} value={form.online_url||''} onChange={e=>update('online_url',e.target.value)}/>
      </label>}
      {needsVenue||form.attendance_mode!=='online'?<>
       {!account?<div className="ev-signin"><p>Norises vietas glabājas organizatora kontā. Pieslēdzies — ievadītais saglabāsies.</p><button type="button" className="button primary" onClick={startAuth}>Pieslēgties un izvēlēties vietu →</button></div>
       :<div className="ev-venue">
        <label className="ev-field">{form.attendance_mode==='online'?'Vieta, no kuras pasākums notiek':'Norises vieta'}
-        <select aria-label="Pasākuma norises adrese" value={form.venue_id||''} onChange={e=>selectAddress(e.target.value)}>
+        <select aria-label="Pasākuma norises adrese" {...invalid('venue')} value={form.venue_id||''} onChange={e=>selectAddress(e.target.value)}>
          <option value="">Izvēlies vietu</option>
          {addressOptions.mine.length>0&&<optgroup label="Manas vietas">{addressOptions.mine.map(v=><option key={v.id} value={v.id}>{v.name} — {v.address}</option>)}</optgroup>}
          {addressOptions.shared.length>0&&<optgroup label="Pievienotās publiskās vietas">{addressOptions.shared.map(v=><option key={v.id} value={v.id}>{v.name} — {v.address}</option>)}</optgroup>}
          {form.venue_id&&!selectedVenue&&<option value={form.venue_id}>Iepriekš izvēlētā vieta (nav pieejama)</option>}
         </select>
        </label>
-       <button className="button ev-add-venue" type="button" disabled={!orgId||!canEdit||busy} onClick={()=>setAddressOpen(true)}>+ Jauna vieta</button>
+       <button className="button ev-add-venue" type="button" disabled={(orgId?!canEdit:!orgPending)||busy} onClick={()=>setAddressOpen(true)}>+ Jauna vieta</button>
        {!addressOptions.mine.length&&!selectedVenue&&<p className="ev-hint">Šim organizatoram vēl nav saglabātu vietu. Pievieno pirmo — tā saglabāsies nākamajiem pasākumiem.</p>}
       </div>}
      </>:<p className="ev-hint">Privātam tiešsaistes pasākumam vieta nav vajadzīga.</p>}
@@ -509,17 +575,18 @@ function SimpleEventFlow(){
    </section>
 
    <h2 className="ev-section-title">Pasākuma iestatījumi</h2>
-   <section className="ev-card ev-options">
+   <section className={'ev-card ev-options'+(['category','price_status','price'].some(bad)?' has-error':'')} data-field="category price_status price">
     <label className="ev-option"><Icon name="tag"/><span>Kategorija</span>
-     <select value={form.category} onChange={e=>update('category',e.target.value)}>{EVENT_CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></label>
+     <select value={form.category} {...invalid('category')} onChange={e=>update('category',e.target.value)}>{EVENT_CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></label>
     <label className="ev-option"><Icon name="ticket"/><span>Dalības maksa</span>
-     <select value={form.price_status} onChange={e=>update('price_status',e.target.value)}>{Object.entries(PRICE_LABELS).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+     <select value={form.price_status} {...invalid('price_status')} onChange={e=>update('price_status',e.target.value)}>{Object.entries(PRICE_LABELS).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
     {['paid','mixed'].includes(form.price_status)&&<div className="ev-option ev-price">
-     <label>No, EUR<input required type="number" min="0" step="0.01" inputMode="decimal" value={form.price_min??''} onChange={e=>update('price_min',e.target.value)}/></label>
+     <label>No, EUR<input required {...invalid('price')} type="number" min="0" step="0.01" inputMode="decimal" value={form.price_min??''} onChange={e=>update('price_min',e.target.value)}/></label>
      <label>Līdz, EUR<input required type="number" min="0" step="0.01" inputMode="decimal" value={form.price_max??''} onChange={e=>update('price_max',e.target.value)}/></label>
     </div>}
     <label className="ev-option"><Icon name="repeat"/><span>Atkārtojas</span>
      <select value={recurring?'weekly':'no'} onChange={e=>chooseRepeat(e.target.value==='weekly')}><option value="no">Nē</option><option value="weekly">Katru nedēļu</option></select></label>
+    {errorFor('category','price_status','price')}
    </section>
 
    <div className="ev-submit">

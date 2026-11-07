@@ -40,11 +40,29 @@
 .ev-chip-visibility.is-private{border-color:#ecd3d6;background:var(--karmins-soft,#f6e8ea);color:var(--karmins-dark,#7a2029)}
 .ev-chip:focus-within{outline:2px solid var(--karmins,#9e3039);outline-offset:2px}
 
-/* Name */
-.ev-title input{width:100%;padding:6px 0;border:0;border-radius:0;background:transparent;font-family:var(--font-display);
- font-size:clamp(26px,7vw,36px);font-weight:700;letter-spacing:-.03em;color:var(--tinte,#1b2430);outline:none}
-.ev-title input::placeholder{color:#a3acb9}
-.ev-title:focus-within{box-shadow:0 2px 0 var(--karmins,#9e3039)}
+/* Name: a clear field with its label, so it is seen on every phone. */
+.ev-title{display:grid;gap:6px;padding:12px 14px 14px;border:1.5px solid var(--migla,#d8dee6);border-radius:18px;background:#fff;cursor:text}
+.ev-label{font-size:12px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--teksts-2,#4a5565)}
+.ev-title input{width:100%;min-height:44px;padding:0;border:0;border-radius:0;background:transparent;font-family:var(--font-display);
+ font-size:clamp(22px,6vw,30px);font-weight:700;letter-spacing:-.02em;color:var(--tinte,#1b2430);outline:none;-webkit-appearance:none;appearance:none}
+.ev-title input::placeholder{color:#a3acb9;font-weight:600}
+/* The card around the field shows focus and errors; the field itself stays plain. */
+.ev-title input:focus,.ev-title input:focus-visible,.ev-chip-input input:focus,.ev-chip-input input:focus-visible{border:0;box-shadow:none;outline:none}
+.ev-title:focus-within{border-color:var(--karmins,#9e3039);box-shadow:0 0 0 3px var(--karmins-soft,#f6e8ea)}
+
+/* A field to fix: red edge, the message right under it. */
+.ev-field-error{display:flex;align-items:flex-start;gap:7px;margin:0;font-size:13.5px;font-weight:700;line-height:1.4;color:#a3172f}
+.ev-field-error::before{content:'!';display:grid;place-items:center;flex:none;width:18px;height:18px;margin-top:1px;border-radius:50%;background:#be304b;color:#fff;font-size:12px;font-weight:800}
+.ev-title.has-error,.ev-card.has-error{border-color:#be304b;box-shadow:0 0 0 3px #fbe3e7}
+.ev-card>.ev-field-error{padding:0 16px 12px}
+.ev-where>.ev-field-error{padding:0 16px 14px 48px}
+.ev-chips+.ev-field-error{margin-top:-4px}
+[aria-invalid="true"].ev-pill,.ev-panel [aria-invalid="true"],.ev-price [aria-invalid="true"]{border-color:#be304b!important;background:#fff5f6}
+.ev-chip.has-error{border-color:#be304b;box-shadow:0 0 0 3px #fbe3e7}
+.ev-chip-input{flex:1 1 220px;cursor:text}
+.ev-chip-input input{flex:1;min-width:0;min-height:42px;border:0;background:transparent;font:inherit;color:inherit;outline:none}
+.ev-chip-input input::placeholder{color:#8a94a3;font-weight:600}
+.ev-org-hint{margin-top:-4px}
 
 /* Cards */
 .ev-card{overflow:hidden;border:1px solid var(--migla,#d8dee6);border-radius:18px;background:#fff}

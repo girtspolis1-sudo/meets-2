@@ -53,3 +53,16 @@ test('online events: how it takes place and the call link',async()=>{
  assert.match(validate({...base,attendance_mode:'radio'}),/kā pasākums notiks/);
  assert.match(validate({...base,attendance_mode:'online',online_url:'ftp://x'}),/https/);
 });
+
+test('form problems name the field to mark',async()=>{
+ const {quickEventIssue}=await import('../lib/event-entry.js');
+ assert.equal(quickEventIssue(base),null);
+ assert.deepEqual(quickEventIssue({...base,title:''}),{field:'title',message:'Ieraksti pasākuma nosaukumu.'});
+ assert.equal(quickEventIssue({...base,title:' ab '}).field,'title');
+ assert.equal(quickEventIssue({...base,date_from:''}).field,'date_from');
+ assert.equal(quickEventIssue({...base,date_to:'2026-11-12'}).field,'date_to');
+ assert.equal(quickEventIssue({...base,time_to:'09:00'}).field,'time_to');
+ assert.equal(quickEventIssue({...base,online_url:'zoom.us'}).field,'online_url');
+ assert.equal(quickEventIssue({...base,venue_name:''}).field,'venue');
+ assert.equal(quickEventIssue({...base,venue_name:''},{requireVenue:false}),null);
+});

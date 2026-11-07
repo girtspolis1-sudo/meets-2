@@ -32,3 +32,11 @@ test('organizer to-do groups returned, draft and in-review submissions',()=>{
  const todo=organizerTodo([{status:'rejected'},{status:'draft'},{status:'draft'},{status:'published'},{status:'pending_review'}]);
  assert.equal(todo.rejected.length,1);assert.equal(todo.drafts.length,2);assert.equal(todo.review.length,1);
 });
+
+test('an event started in the organizer area opens the editor with its name and date',async()=>{
+ const {quickEventHref}=await import('../lib/organizer-workspace.js');
+ assert.equal(quickEventHref(),'/registre-pasakumu/vienkarsi');
+ assert.equal(quickEventHref({orgId:'o1',title:'  Rudens koncerts ',date:'2026-11-20',visibility:'private'}),
+  '/registre-pasakumu/vienkarsi?org=o1&title=Rudens+koncerts&start=2026-11-20&private=1');
+ assert.equal(quickEventHref({title:'',date:'20.11.2026'}),'/registre-pasakumu/vienkarsi');
+});

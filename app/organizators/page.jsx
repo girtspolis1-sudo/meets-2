@@ -14,6 +14,7 @@ import {eventTerm} from '../../lib/event-term.js';
 import {SOCIAL_NETWORKS,cleanSocialLinks,socialLabel} from '../../lib/social-links.js';
 import {organizerPath} from '../../lib/organizer-path.js';
 import {flyerPath,sharePath} from '../../lib/shared-event.js';
+import QuickEvent from './quick-event.jsx';
 
 const SESSION='meets_user_session_v1';
 const PANELS=new Set(['overview','events','venues','team','profile']);
@@ -439,7 +440,10 @@ function OrganizerPageInner(){
     <p>{org.description||'Apraksts vēl nav pievienots.'}</p>
     <div className="org-card-counts"><span><strong>{venues.length}</strong> vietas</span><span><strong>{events.length}</strong> pasākumi</span><span><strong>{published.length}</strong> publicēti</span></div>
    </div>
-   <button className="button primary" type="button" onClick={()=>chooseOrganization(org.id)}>Izvēlēties organizatoru →</button>
+   <div className="org-card-actions">
+    <button className="button primary" type="button" onClick={()=>chooseOrganization(org.id)}>Atvērt pārskatu →</button>
+    {org.role!=='viewer'&&<Link className="button" href={EDITOR+'?org='+org.id}>+ Pasākums</Link>}
+   </div>
   </article>;
  }
 
@@ -456,8 +460,8 @@ function OrganizerPageInner(){
  if(!orgId||creating){
   return <ProfileShell session={session}><SavingOverlay steps={saving.steps} current={saving.current}/><section className="org-workspace">
    <header className="org-page-head"><div><p className="eyebrow">Organizēšana</p><h1>{creating?'Jauns organizators':'Tavi organizatori'}</h1>
-    <p>Izveido organizatora profilu un pievieno tam norises vietas un pasākumus.</p></div>
-    {!creating&&<button className="button primary" type="button" onClick={()=>setCreating(true)}>+ Jauns organizators</button>}</header>
+    <p>{creating?'Izveido organizatora profilu un pievieno tam norises vietas un pasākumus.':'Izveido pasākumu uzreiz vai atver organizatora pārskatu.'}</p></div>
+    {!creating&&<button className="button" type="button" onClick={()=>setCreating(true)}>+ Jauns organizators</button>}</header>
    {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
    {creating?<form className="org-form-card" onSubmit={createOrganization}>
     <h2>Organizatora profils</h2><p className="meets-muted">Pietiek ar nosaukumu. Pārējo vari papildināt jebkurā laikā organizatora profilā.</p>
@@ -473,10 +477,10 @@ function OrganizerPageInner(){
      <SocialFields value={newOrg.social_links||[]} onChange={social_links=>setNewOrg(v=>({...v,social_links}))}/>
     </details>
     <div className="org-actions"><button className="button" type="button" onClick={()=>setCreating(false)}>Atcelt</button><button className="button primary" disabled={busy}>Izveidot organizatoru →</button></div>
-   </form>:organizations.length?<div className="org-card-grid">{organizations.map(orgCard)}</div>:<div className="org-empty-state">
-    <h2>Sāc organizēt</h2><p>Izveido organizatora profilu tikai tad, kad vēlies publicēt savus pasākumus. Otrs lietotāja konts nav vajadzīgs.</p>
-    <button className="button primary" type="button" onClick={()=>setCreating(true)}>Sākt organizēt →</button>
-   </div>}
+   </form>:<>
+    <QuickEvent organizations={organizations} heading={organizations.length?'Jauns pasākums':'Izveido pirmo pasākumu'}/>
+    {organizations.length?<div className="org-card-grid">{organizations.map(orgCard)}</div>:<p className="org-empty org-first-note">Organizatora profils izveidosies kopā ar pirmo pasākumu — pietiek ierakstīt tā nosaukumu redaktorā. Vai arī <button type="button" className="text-button" onClick={()=>setCreating(true)}>izveido organizatoru atsevišķi</button>.</p>}
+   </>}
   </section></ProfileShell>;
  }
 
@@ -498,6 +502,7 @@ function OrganizerPageInner(){
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
 
   {panel==='overview'&&<div className="org-stack">
+   {canEdit&&<QuickEvent organizations={organizations} orgId={orgId}/>}
    {onboarding&&<section className="org-panel org-onboarding" aria-labelledby="org-onboarding-title">
     <h2 id="org-onboarding-title">Pirmie soļi</h2>
     <ol className="org-steps">
