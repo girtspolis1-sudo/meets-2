@@ -13,6 +13,7 @@ Next.js 16 App Router + React 19 (plain JavaScript), Supabase (project `MEETS 2`
 
 - Browser code reads events through `/api/events` (light list form, `lib/catalog-wire.js`) and `/api/events/[id]` (full record). Never call `meets_public_catalog` from the browser.
 - New public event fields must be added to `PUBLIC_FIELDS` (lib/catalog.js) and, if the list needs them, to `LIST_FIELDS` (lib/catalog-wire.js).
+- Organizer events are also shared by link: `/ielugums/[token]` (page) and `/sludinajums/[token]` (printable A4 flyer) read one event through `meets_shared_event(p_token)` (lib/shared-event-server.js). Private events (`visibility='private'`, status `private`) are never reviewed and never in the catalogue or on the map.
 
 ## Sessions and admin
 

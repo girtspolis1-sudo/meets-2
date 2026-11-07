@@ -283,7 +283,7 @@ for(const width of [360,390]){
   await page.goto(base+'/registre-pasakumu/vienkarsi?org='+orgId,{waitUntil:'domcontentloaded',timeout:45000});
   const editor=page.locator('.unified-event-editor');
   await editor.waitFor({timeout:15000});
-  await editor.getByPlaceholder('Piemēram, Ģimenes sporta diena').fill('MEETS testa koncerts');
+  await editor.getByLabel('Pasākuma nosaukums').fill('MEETS testa koncerts');
   await editor.getByText('MEETS Testa organizācija',{exact:false}).first().waitFor();
   await assertLayout(page,'event-editor',width);
   await page.screenshot({path:'ux-screenshots/'+width+'-event-editor.png',fullPage:true});
@@ -294,7 +294,8 @@ for(const width of [360,390]){
  await page.close();
 }
 
-// Organizer quick entry: a saved address is required, then preview and moderation.
+// Organizer quick entry: a saved place is required for public events, which go to
+// moderation; a private online event needs no place and gets a link and a flyer.
 for(const width of [360,390]){
  const p=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Riga'}).format(new Date(Date.now()+86400000));
@@ -315,7 +316,7 @@ for(const width of [360,390]){
    publicVenues:[],venueLinks:[{organization_id:orgId,venue_id:venueId,relation_type:'managed'}],submissions:[]})});
   if(body.action==='saveEvent'){
    submitted=body;
-   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({item:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb59',status:body.status}})});
+   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({item:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb59',status:body.status,visibility:body.visibility,share_token:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb60'}})});
   }
   return route.fulfill({status:200,contentType:'application/json',body:'{"item":{}}'});
  });
@@ -325,41 +326,56 @@ for(const width of [360,390]){
    fails++;console.error('Entry choice missing on phone',width);
   }
   await p.getByRole('link',{name:/Pievienot pasākumu/}).first().click();
-  const form=p.locator('.quick-flow-card');
-  await form.getByPlaceholder('Piemēram, Ģimenes sporta diena').fill('MEETS mobilais pasākums');
-  await form.locator('input[type=date]').first().fill(day);
+  const form=p.locator('.ev-form');
+  await form.getByLabel('Pasākuma nosaukums').fill('MEETS mobilais pasākums');
+  await form.getByLabel('Sākuma datums').fill(day);
+  await form.getByRole('button',{name:/Pievienot norises vietu/}).click();
   await form.getByLabel('Pasākuma norises adrese').selectOption(venueId);
-  await form.getByRole('button',{name:/Priekšskatīt/}).click();
-  await p.getByText('MEETS mobilais pasākums').first().waitFor({timeout:10000});
   await assertLayout(p,'quick-event',width);
   await p.screenshot({path:'ux-screenshots/'+width+'-quick-event.png',fullPage:true});
-  await p.getByRole('button',{name:/Iesniegt izvērtēšanai/}).click();
+  await form.getByRole('button',{name:/Iesniegt izvērtēšanai/}).click();
   await p.getByRole('heading',{name:'Pasākums iesniegts izvērtēšanai'}).waitFor({timeout:12000});
-  if(submitted?.venue_id!==venueId||submitted?.status!=='pending_review'||submitted?.date_from!==day){
+  if(submitted?.venue_id!==venueId||submitted?.status!=='pending_review'||submitted?.visibility!=='public'||submitted?.date_from!==day){
    fails++;console.error('Event submission lost data',width,submitted);
   }
   if(width===390){
-   // Recurrence + per-day time + EUR price should persist as one series to moderation.
-   await p.getByRole('button',{name:/Pievienot nākamo pasākumu/}).click();
-   const next=p.locator('.quick-flow-card');
-   await next.getByPlaceholder('Piemēram, Ģimenes sporta diena').fill('Regulārās sporta nodarbības');
-   await next.getByLabel('Norises veids').selectOption('recurring');
+   // Weekly schedule + EUR price should persist as one series to moderation.
+   await p.getByRole('button',{name:/Vēl viens pasākums/}).click();
+   const next=p.locator('.ev-form');
+   await next.getByLabel('Pasākuma nosaukums').fill('Regulārās sporta nodarbības');
+   await next.getByLabel('Atkārtojas').selectOption('weekly');
    const end=new Date(day+'T12:00:00Z');end.setUTCDate(end.getUTCDate()+15);
-   await next.locator('input[type=date]').nth(0).fill(day);
-   await next.locator('input[type=date]').nth(1).fill(end.toISOString().slice(0,10));
+   await next.getByLabel('Grafika sākuma datums').fill(day);
+   await next.getByLabel('Grafika beigu datums').fill(end.toISOString().slice(0,10));
    await next.getByRole('button',{name:'+ Laiks'}).first().click();
    await next.getByLabel('Dalības maksa').selectOption('paid');
-   await next.locator('input[type=number]').nth(0).fill('9.50');
-   await next.locator('input[type=number]').nth(1).fill('15.00');
+   await next.locator('.ev-price input').nth(0).fill('9.50');
+   await next.locator('.ev-price input').nth(1).fill('15.00');
+   await next.getByRole('button',{name:/Pievienot norises vietu/}).click();
    await next.getByLabel('Pasākuma norises adrese').selectOption(venueId);
-   await next.getByRole('button',{name:/Priekšskatīt/}).click();
-   await p.getByText('Norises reizes',{exact:true}).waitFor({timeout:10000});
-   await p.getByRole('button',{name:/Iesniegt izvērtēšanai/}).click();
+   await next.getByRole('button',{name:/Iesniegt izvērtēšanai/}).click();
    await p.getByRole('heading',{name:'Pasākums iesniegts izvērtēšanai'}).waitFor({timeout:10000});
    if(submitted?.schedule_kind!=='recurring'||submitted?.price_min!=='9.50'||
      submitted?.price_max!=='15.00'||submitted?.recurrence_slots?.length!==1){
      fails++;console.error('Recurring paid event payload is invalid',submitted);
    }
+   // A private online event: no place, no review, a link and a flyer at once.
+   await p.getByRole('button',{name:/Vēl viens pasākums/}).click();
+   const own=p.locator('.ev-form');
+   await own.getByLabel('Redzamība').selectOption('private');
+   await own.getByLabel('Pasākuma nosaukums').fill('Privāta tikšanās');
+   await own.getByLabel('Sākuma datums').fill(day);
+   await own.getByRole('button',{name:/Pievienot norises vietu/}).click();
+   await own.getByText('Tiešsaistē',{exact:true}).click();
+   await own.getByLabel(/Saite uz zvanu/).fill('https://meet.example.com/abc');
+   await own.getByRole('button',{name:/Izveidot privātu pasākumu/}).click();
+   await p.getByRole('heading',{name:'Privāts pasākums izveidots'}).waitFor({timeout:10000});
+   const flyer=await p.locator('a.ev-flyer').getAttribute('href');
+   if(submitted?.status!=='private'||submitted?.visibility!=='private'||submitted?.venue_id!==null||!flyer?.startsWith('/sludinajums/')){
+    fails++;console.error('Private event payload or result is invalid',submitted,flyer);
+   }
+   await assertLayout(p,'private-event-done',width);
+   await p.screenshot({path:'ux-screenshots/'+width+'-private-event-done.png',fullPage:true});
   }
   await p.goto(base+'/registre-vietu',{waitUntil:'domcontentloaded'});
   await p.locator('.meets-location-picker').waitFor({timeout:12000});

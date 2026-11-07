@@ -1,4 +1,4 @@
-import {ATTENDANCE_MODES,cleanOnlineUrl,validateQuickEvent} from '../../../lib/event-entry.js';
+import {ATTENDANCE_MODES,cleanOnlineUrl,validateQuickEvent,venueRequired} from '../../../lib/event-entry.js';
 import {cleanSocialLinks} from '../../../lib/social-links.js';
 import {cleanSlots,countOccurrences,cleanPrice,cleanDatedSlots} from '../../../lib/event-schedule.js';
 import {rigaDate} from '../../../lib/meets-personal.js';
@@ -93,7 +93,7 @@ export async function POST(request){
     api(TABLES.organizations,token,'GET',null,'?select=id,name,kind,owner_id,description,image_url,public_email,public_phone,public_url,social_links,is_public,slug,created_at,updated_at&order=created_at.desc'),
     api(TABLES.members,token,'GET',null,'?select=organization_id,role&user_id=eq.'+user.id),
     api(TABLES.venues,token,'GET',null,'?select=id,organization_id,name,address,latitude,longitude,directions,description,is_public,created_at&order=created_at.desc'),
-    api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,venue_name,address,category,description,price_status,price_min,price_max,attendance_mode,online_url,cover_image_path,recurrence_slots,admin_note,review_reason,reviewed_at,latitude,longitude,schedule_kind,recurrence_note,event_id,created_at,updated_at&order=created_at.desc'),
+    api(TABLES.submissions,token,'GET',null,'?select=id,organization_id,venue_id,title,date_from,date_to,time_from,time_to,status,visibility,share_token,venue_name,address,category,description,price_status,price_min,price_max,attendance_mode,online_url,cover_image_path,recurrence_slots,admin_note,review_reason,reviewed_at,latitude,longitude,schedule_kind,recurrence_note,event_id,created_at,updated_at&order=created_at.desc'),
     api(TABLES.venueLinks,token,'GET',null,'?select=organization_id,venue_id,relation_type,created_at'),
     api(TABLES.contacts,token,'GET',null,'?select=organization_id,address,address_latitude,address_longitude,address_public,contacts,contacts_public,legal_name,reg_number,vat_number,bank_name,bank_account,requisites_public')
    ]);
@@ -227,7 +227,11 @@ export async function POST(request){
 
   if(action==='saveEvent'){
    const isDraft=data.status==='draft';
-   if(!['draft','pending_review'].includes(data.status))return NextResponse.json({error:'Nepareizs pasākuma statuss.'},{status:400});
+   if(!['draft','pending_review','private'].includes(data.status))return NextResponse.json({error:'Nepareizs pasākuma statuss.'},{status:400});
+   // Public events go to MEETS review; private ones are live at once, only through their link.
+   const visibility=data.visibility==='private'?'private':'public';
+   if(data.status==='private'&&visibility!=='private'||data.status==='pending_review'&&visibility!=='public')
+    return NextResponse.json({error:'Privātu pasākumu neiesniedz pārbaudei; publisku nevar saglabāt kā privātu.'},{status:400});
 
    const title=String(data.title||'').trim();
    const date_from=String(data.date_from||'');
@@ -289,11 +293,12 @@ export async function POST(request){
     attendance_mode,
     online_url,
     recurrence_slots:slots,
+    visibility,
     status:data.status
    };
 
    if(!isDraft){
-    const problem=validateQuickEvent(recurring||dated?{...payload,time_from:'',time_to:''}:payload);
+    const problem=validateQuickEvent(recurring||dated?{...payload,time_from:'',time_to:''}:payload,{requireVenue:venueRequired(payload)});
     if(problem)return NextResponse.json({error:problem},{status:400});
     if(String(payload.date_to||payload.date_from)<rigaDate())return NextResponse.json({error:'Pasākuma beigu datums jau ir pagājis.'},{status:400});
    }
@@ -330,7 +335,8 @@ export async function POST(request){
     // A published event is changed through review: the public version stays until MEETS approves.
     if(current?.event_id){
      if(isDraft)return NextResponse.json({error:'Publicētam pasākumam izmaiņas iesniedz pārbaudei — melnraksts nav pieejams.'},{status:400});
-     const {organization_id,author_id,status,...values}=payload;
+     if(visibility==='private')return NextResponse.json({error:'Publicētu pasākumu nevar padarīt privātu. Atcel to un izveido privātu kopiju.'},{status:400});
+     const {organization_id,author_id,status,visibility:_visibility,...values}=payload;
      const item=await rpcCall('meets_org_update_published_submission',token,{p_id:data.id,p_values:values});
      return NextResponse.json({item,changed_published:true});
     }
