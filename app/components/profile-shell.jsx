@@ -86,7 +86,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
 
    <div className="meets-profile-mode-switch meets-org-mode-switch" role="group" aria-label="Profila režīms">
     <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}><ProfileIcon name="heart" size={15}/> <span>Mans MEETS</span></Link>
-    <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={15}/> <span>Organizēšana</span></Link>
+    <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={15}/> <span>Organizators</span></Link>
    </div>
 
    {!organizerMode?<nav className="meets-profile-nav" aria-label="Mans MEETS">
@@ -120,8 +120,8 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
    {/* On a phone the sidebar is hidden: its main actions live here, as on the desktop. */}
    <div className="meets-profile-mobile-actions">
     <div className="meets-profile-mobile-mode" role="group" aria-label="Profila režīms">
-     <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}>Mans MEETS</Link>
-     <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}>Organizēšana</Link>
+     <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}><ProfileIcon name="heart" size={16}/>Mans MEETS</Link>
+     <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={16}/>Organizators</Link>
     </div>
     {/* The organizer pages start events in their own card. */}
     {organizerMode&&!pathname.startsWith('/registre-pasakumu')&&pathname!=='/organizators'&&<Link className="meets-profile-mobile-new" href={eventHref}>+ Jauns pasākums</Link>}

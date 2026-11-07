@@ -562,3 +562,18 @@
  background:var(--tinte);color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
 .meets-org-mode-band svg{flex:none;opacity:.8}
 .meets-org-mode-band strong{margin-left:auto;overflow:hidden;font-size:13px;letter-spacing:0;text-transform:none;text-overflow:ellipsis;white-space:nowrap}
+
+/* Where an event stands: green ready, yellow on its way, red needs the organizer. */
+.org-mark{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:4px 9px 4px 4px;border-radius:999px;font-size:12px;font-weight:800;line-height:1.2;white-space:nowrap}
+.org-mark-icon{display:grid;place-items:center;flex:none;width:20px;height:20px;border-radius:50%;color:#fff}
+.org-mark-vis{padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.75);font-size:10.5px;font-weight:800;letter-spacing:.02em}
+.org-mark-green{background:var(--sodien-soft);color:var(--sodien-text)}.org-mark-green .org-mark-icon{background:var(--sodien)}
+.org-mark-yellow{background:var(--rit-soft);color:var(--rit-text)}.org-mark-yellow .org-mark-icon{background:var(--rit);color:var(--tinte)}
+.org-mark-red{background:var(--karmins-soft);color:var(--karmins-dark)}.org-mark-red .org-mark-icon{background:var(--karmins)}
+.org-mark-gray{background:#eef1f4;color:#5b6675}.org-mark-gray .org-mark-icon{background:#9aa3ad}
+.org-status-note-red{color:var(--karmins-dark)}
+.org-row>.org-mark{flex:none}
+/* Status cards use the same colours. */
+.org-status-card-draft,.org-status-card-pending-review{border-top-color:var(--rit)}
+.org-status-card-published,.org-status-card-private{border-top-color:var(--sodien)}
+.org-status-card-rejected{border-top-color:var(--karmins)}

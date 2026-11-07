@@ -6,7 +6,7 @@ import ProfileShell from '../components/profile-shell.jsx';
 import VenueLocationPicker from './venue-location-picker.jsx';
 import ShareButton from '../components/share-button.jsx';
 import {rigaDate} from '../../lib/meets-personal.js';
-import {resolveOrganizationId,canWriteOrganization,submissionDateLabel,organizerTodo} from '../../lib/organizer-workspace.js';
+import {resolveOrganizationId,canWriteOrganization,submissionDateLabel,organizerTodo,eventStatusMark} from '../../lib/organizer-workspace.js';
 import {refreshSession as renewToken} from '../../lib/auth-client.js';
 import {reasonLabel} from '../../lib/submission-review.js';
 import {whenLabel} from '../../lib/map-nearby.js';
@@ -19,7 +19,6 @@ import QuickEvent from './quick-event.jsx';
 const SESSION='meets_user_session_v1';
 const PANELS=new Set(['overview','events','venues','team','profile']);
 function organizationsFrom(items,id){return id&&Array.isArray(items)&&items.some(o=>o.id===id)?id:'';}
-const STATUS_LABELS={draft:'Melnraksts',private:'Privāts',pending_review:'Pārbaudē',rejected:'Jālabo',declined:'Netika publicēts',published:'Publicēts',closed:'Slēgts',archived:'Arhivēts',cancelled:'Atcelts'};
 const EDITOR='/registre-pasakumu/vienkarsi';
 const ROLE_LABELS={owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'};
 
@@ -41,7 +40,22 @@ async function refreshSession(session){
 }
 // MEETS feedback: the reason picked by the reviewer and the comment.
 function reviewFeedback(item){return [reasonLabel(item.review_reason),item.admin_note].filter(Boolean).join(' — ');}
-function statusClass(status){return 'org-status org-status-'+String(status||'draft').replaceAll('_','-');}
+// Colour, icon and words for where an event stands (lib/organizer-workspace.js).
+const MARK_ICONS={
+ green:<path d="M20 6 9 17l-5-5"/>,
+ yellow:<><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></>,
+ red:<><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4.5M12 17.5h.01"/></>,
+ gray:<path d="M6 6l12 12M18 6 6 18"/>
+};
+function StatusMark({item,archived=false}){
+ const mark=eventStatusMark(item,{archived});
+ return <span className={'org-mark org-mark-'+mark.tone} title={mark.hint||undefined}>
+  <span className="org-mark-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">{MARK_ICONS[mark.tone]}</svg></span>
+  <span className="org-mark-label">{mark.label}</span>
+  <span className="org-mark-vis">{mark.visibility}</span>
+  {mark.tone==='red'&&mark.hint&&<span className="sr-only">: {mark.hint}</span>}
+ </span>;
+}
 function eventDate(item){return submissionDateLabel(item);}
 // The same wording and term colour as the public site: "Pēc 3 dienām", green today, yellow tomorrow.
 function When({item}){
@@ -514,8 +528,8 @@ function OrganizerPageInner(){
    {(todo.rejected.length>0||todo.drafts.length>0)&&<section className="org-panel org-todo" aria-labelledby="org-todo-title">
     <div className="org-panel-head"><h2 id="org-todo-title">Jāpabeidz</h2></div>
     <div className="org-list">
-     {todo.rejected.map(item=><div className="org-row org-row-attention" key={item.id}><div><strong>{item.title||'Bez nosaukuma'}</strong><small><When item={item}/> · MEETS lūdz precizēt</small>{reviewFeedback(item)&&<em>{reviewFeedback(item)}</em>}</div>{canEdit&&<Link className="button primary" href={EDITOR+'?org='+orgId+'&edit='+item.id}>Labot un iesniegt</Link>}</div>)}
-     {todo.drafts.map(item=><div className="org-row" key={item.id}><div><strong>{item.title||'Melnraksts bez nosaukuma'}</strong><small><When item={item}/> · Melnraksts, vēl nav iesniegts</small></div>{canEdit&&<Link className="button compact" href={EDITOR+'?org='+orgId+'&edit='+item.id}>Turpināt</Link>}</div>)}
+     {todo.rejected.map(item=><div className="org-row org-row-attention" key={item.id}><div><strong>{item.title||'Bez nosaukuma'}</strong><small><When item={item}/> · MEETS lūdz precizēt</small>{reviewFeedback(item)&&<em>{reviewFeedback(item)}</em>}</div><StatusMark item={item}/>{canEdit&&<Link className="button primary" href={EDITOR+'?org='+orgId+'&edit='+item.id}>Labot un iesniegt</Link>}</div>)}
+     {todo.drafts.map(item=><div className="org-row" key={item.id}><div><strong>{item.title||'Melnraksts bez nosaukuma'}</strong><small><When item={item}/> · {eventStatusMark(item).tone==='red'?eventStatusMark(item).hint:'Melnraksts, vēl nav iesniegts'}</small></div><StatusMark item={item}/>{canEdit&&<Link className="button compact" href={EDITOR+'?org='+orgId+'&edit='+item.id}>Turpināt</Link>}</div>)}
     </div>
    </section>}
    {todo.review.length>0&&<p className="org-review-note" role="status">{todo.review.length===1?'1 pasākums':todo.review.length+' pasākumi'} gaida MEETS pārbaudi. Statusa maiņu redzēsi šeit.</p>}
@@ -527,7 +541,7 @@ function OrganizerPageInner(){
    <section className="org-panel"><div className="org-panel-head"><h2>Tuvākie pasākumi</h2><button className="text-button org-head-link" type="button" onClick={()=>choosePanel('events')}>Visi pasākumi →</button></div>
     <div className="org-list">{orgSubmissions.filter(x=>future(x)&&!['rejected','draft','declined','cancelled'].includes(x.status)).sort((a,b)=>(a.date_from||'9999').localeCompare(b.date_from||'9999')).slice(0,6).map(item=><div className="org-row" key={item.id}>
      <div><strong>{item.title||'Bez nosaukuma'}</strong><small><When item={item}/> · {item.venue_name||'Vieta nav norādīta'}</small></div>
-     <span className={statusClass(item.status)}>{STATUS_LABELS[item.status]||item.status}</span>
+     <StatusMark item={item}/>
      {renderActions(item)}
     </div>)}
     {!orgSubmissions.filter(x=>future(x)&&!['rejected','draft','declined','cancelled'].includes(x.status)).length&&<p className="org-empty">Nav gaidāmu iesniegtu pasākumu. {canEdit&&<Link href={EDITOR+'?org='+orgId}>Iesniedz jaunu →</Link>}</p>}</div>
@@ -549,7 +563,7 @@ function OrganizerPageInner(){
     {filteredEvents.map(item=><div className={'org-table-row lifecycle-'+lifecycle(item)} role="row" key={item.id}>
      <div data-label="Nosaukums"><strong>{item.title||'Bez nosaukuma'}</strong>{['rejected','declined'].includes(item.status)&&reviewFeedback(item)&&<small className="org-rejection">{item.status==='declined'?'Iemesls':'Jālabo'}: {reviewFeedback(item)}</small>}</div>
      <span data-label="Datums"><When item={item}/></span><span data-label="Vieta">{item.venue_name||'Nav norādīta'}</span>
-     <span data-label="Statuss"><em className={statusClass(item.status)}>{lifecycle(item)==='archived'?'Arhivēts':STATUS_LABELS[item.status]||item.status}</em>{item.status==='pending_review'&&item.event_id&&<small className="org-status-note">Izmaiņas gaida pārbaudi</small>}{lifecycle(item)==='ended'&&<small className="org-status-note">Beidzies — vari atjaunot vēl {EDIT_DAYS-daysSinceEnd(item)+1} d.</small>}</span>
+     <span data-label="Statuss"><StatusMark item={item} archived={lifecycle(item)==='archived'}/>{item.status==='draft'&&eventStatusMark(item).tone==='red'&&<small className="org-status-note org-status-note-red">{eventStatusMark(item).hint}</small>}{lifecycle(item)==='ended'&&<small className="org-status-note">Beidzies — vari atjaunot vēl {EDIT_DAYS-daysSinceEnd(item)+1} d.</small>}</span>
      <div data-label="Darbības">{renderActions(item)}</div>
     </div>)}
    </div>
