@@ -40,3 +40,22 @@ test('an event started in the organizer area opens the editor with its name and 
   '/registre-pasakumu/vienkarsi?org=o1&title=Rudens+koncerts&start=2026-11-20&private=1');
  assert.equal(quickEventHref({title:'',date:'20.11.2026'}),'/registre-pasakumu/vienkarsi');
 });
+
+test('event marks: green ready, yellow on its way, red needs the organizer',async()=>{
+ const {eventStatusMark}=await import('../lib/organizer-workspace.js');
+ const base={title:'Koncerts',date_from:'2099-01-01',category:'Cits',price_status:'free',venue_name:'Zāle',address:'Iela 1',attendance_mode:'in_person',visibility:'public'};
+ const tone=item=>eventStatusMark(item).tone;
+ assert.equal(tone({...base,status:'published'}),'green');
+ assert.deepEqual([eventStatusMark({...base,status:'private',visibility:'private'}).tone,eventStatusMark({...base,status:'private',visibility:'private'}).visibility],['green','Priv.']);
+ assert.equal(eventStatusMark({...base,status:'published'}).visibility,'Publ.');
+ assert.equal(tone({...base,status:'pending_review'}),'yellow');
+ assert.equal(tone({...base,status:'draft'}),'yellow');
+ assert.equal(tone({...base,status:'draft',venue_name:''}),'red');
+ assert.equal(eventStatusMark({...base,status:'draft',title:''}).label,'Jāpapildina');
+ // A private online draft needs no place.
+ assert.equal(tone({...base,status:'draft',visibility:'private',attendance_mode:'online',venue_name:'',address:''}),'yellow');
+ assert.equal(tone({...base,status:'rejected'}),'red');
+ assert.equal(tone({...base,status:'declined'}),'red');
+ assert.equal(tone({...base,status:'cancelled'}),'gray');
+ assert.equal(eventStatusMark({...base,status:'published'},{archived:true}).label,'Arhivēts');
+});

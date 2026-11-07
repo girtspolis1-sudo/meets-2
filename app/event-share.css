@@ -4,6 +4,31 @@
 .meets-shared-event .shared-event-note{display:flex;align-items:center;gap:8px;margin:0;padding:12px 25px;
  background:var(--dzintars-soft,#fdf6e6);color:#6e4c00;font-size:13px;font-weight:700;border-bottom:1px solid #f3e2b8}
 .meets-shared-event .shared-event-note.is-private{background:var(--karmins-soft,#f6e8ea);color:var(--karmins-dark,#7a2029);border-color:#ecd3d6}
+.meets-shared-event .shared-event-note.is-public{background:#e9f4ee;color:#1d5a37;border-color:#cfe5d8}
+.meets-shared-event .shared-event-note svg{flex:none}
+
+/* Top bar of a shared page: back, whose view this is, where to go next.
+   Dark for the organizer's own event, light for everyone else. */
+.shared-nav{display:flex;align-items:center;gap:10px;min-height:60px;padding:8px 14px;
+ background:rgba(255,255,255,.94);border-bottom:1px solid var(--migla,#d8dee6)}
+.shared-nav-back{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--migla,#d8dee6);
+ background:#fff;color:var(--tinte,#1b2430);text-decoration:none}
+.shared-nav-back:hover{border-color:var(--karmins,#9e3039);color:var(--karmins,#9e3039)}
+.shared-nav-owner,.shared-nav-public{display:grid;gap:1px;flex:1;min-width:0}
+.shared-nav small{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--teksts-2,#4a5565)}
+.shared-nav strong{overflow:hidden;font-size:15px;text-overflow:ellipsis;white-space:nowrap}
+.shared-nav-links{display:flex;flex:none;gap:6px}
+.shared-nav-link{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--migla,#d8dee6);
+ background:#fff;color:var(--tinte,#1b2430);font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap}
+.shared-nav.is-owner{background:var(--tinte,#1b2430);border-color:var(--tinte,#1b2430);color:#fff}
+.shared-nav.is-owner small{color:rgba(255,255,255,.75)}
+.shared-nav.is-owner .shared-nav-back{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3);color:#fff}
+.shared-nav.is-owner .shared-nav-link{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3);color:#fff}
+.shared-nav.is-owner .shared-nav-link:first-child{background:#fff;color:var(--tinte,#1b2430);border-color:#fff}
+.shared-owner-note{margin:0;padding:10px 16px;background:#eef1f5;color:var(--tinte,#1b2430);font-size:13px;line-height:1.45;border-bottom:1px solid var(--migla,#d8dee6)}
+.shared-owner-note a{color:var(--karmins,#9e3039);font-weight:700}
+/* On a phone the back arrow already leads to the organizer's events or the public list. */
+@media(max-width:420px){.shared-nav-links .shared-nav-link:nth-child(2){display:none}}
 .meets-shared-event .meets-detail-hero{margin-top:0}
 .shared-event-cover-fallback{display:grid;place-items:center;height:200px;
  background:linear-gradient(135deg,var(--karmins,#9e3039),var(--karmins-dark,#7a2029));color:#fff}
@@ -21,25 +46,25 @@
 
 /* Flyer: sizes are in container units, so the same sheet scales on screen and
    prints as one A4 page (210 × 297 mm). */
-.flyer-screen{display:grid;justify-items:center;gap:14px;padding:14px 0 40px}
+.flyer-screen{container-type:inline-size;display:grid;justify-items:center;gap:14px;padding:14px 0 40px}
 .flyer-toolbar{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:min(100%,794px)}
 .flyer-toolbar small{flex-basis:100%;text-align:center;font-size:12px;color:var(--teksts-2,#4a5565)}
-.flyer-sheet{container-type:inline-size;position:relative;display:flex;flex-direction:column;width:min(100%,794px);aspect-ratio:210/297;
+/* A4 with its height set from the width, and fixed rows, so every browser
+   keeps the footer and the MEETS strip at the bottom edge. */
+.flyer-sheet{container-type:inline-size;position:relative;display:grid;grid-template-rows:44cqw minmax(0,1fr) auto 7cqw;
+ width:min(100cqw,794px);height:calc(min(100cqw,794px)*297/210);
  overflow:hidden;border-radius:6px;background:#fff;color:var(--tinte,#1b2430);font-family:var(--font-body);
  box-shadow:0 12px 40px rgba(27,36,48,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.flyer-top{position:relative;flex:none;height:44cqw;background:linear-gradient(135deg,var(--karmins,#9e3039),var(--karmins-dark,#7a2029))}
+.flyer-top{position:relative;min-height:0;background:linear-gradient(135deg,var(--karmins,#9e3039),var(--karmins-dark,#7a2029))}
 .flyer-top img{display:block;width:100%;height:100%;object-fit:cover}
 .flyer-mark{position:absolute;right:-4cqw;top:2cqw;width:50cqw;height:50cqw;color:#fff;opacity:.14}
-.flyer-brand{position:absolute;left:7cqw;top:5cqw;padding:1cqw 2.2cqw;border-radius:99px;background:rgba(27,36,48,.55);
- font-family:var(--font-display);font-size:2.6cqw;font-weight:700;letter-spacing:-.03em;color:#fff}
-.flyer-sheet:not(.has-image) .flyer-brand{background:transparent;padding:0;font-size:3.4cqw}
 .flyer-date{position:absolute;left:7cqw;bottom:-7cqw;z-index:1;display:grid;justify-items:center;width:16cqw;padding:2cqw 0 1.6cqw;
  border-radius:3cqw;background:#fff;box-shadow:0 1cqw 3cqw rgba(27,36,48,.18)}
 .flyer-date strong{font-family:var(--font-display);font-size:7cqw;line-height:1;color:var(--tinte,#1b2430)}
 .flyer-date small{margin-top:.8cqw;font-size:2.4cqw;font-weight:800;letter-spacing:.12em;color:var(--karmins,#9e3039)}
 /* Body height and block sizes match flyerTextLines() in lib/shared-event.js:
    only the description gives way, by whole lines. */
-.flyer-body{display:flex;flex-direction:column;flex:1;gap:2cqw;min-height:0;padding:9.5cqw 7cqw 4cqw}
+.flyer-body{display:flex;flex-direction:column;gap:2cqw;overflow:hidden;min-height:0;padding:9.5cqw 7cqw 4cqw}
 .flyer-body>*{flex-shrink:0}
 .flyer-category{margin:0;font-size:2.3cqw;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--karmins,#9e3039)}
 .flyer-title{margin:0;font-family:var(--font-display);font-size:6.2cqw;font-weight:700;line-height:1.08;letter-spacing:-.03em;
@@ -53,15 +78,16 @@
  color:var(--karmins-dark,#7a2029);font-size:2.6cqw;font-weight:800}
 .flyer-text{margin:0;font-size:2.45cqw;line-height:1.5;color:#3d4757;display:-webkit-box;-webkit-line-clamp:var(--flyer-text-lines,4);
  -webkit-box-orient:vertical;overflow:hidden}
-.flyer-foot{flex:none;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:4cqw;padding:3.8cqw 7cqw;
+.flyer-foot{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4cqw;padding:3.2cqw 7cqw;
  border-top:.3cqw solid var(--migla,#d8dee6);background:var(--sniegs,#fafbfc)}
-.flyer-qr{display:block;width:18cqw;height:18cqw}
+.flyer-qr{display:block;width:17cqw;height:17cqw}
 .flyer-foot-text{display:grid;gap:.9cqw;min-width:0}
 .flyer-foot-text strong{font-size:3.1cqw}
 .flyer-foot-text span{font-size:2.3cqw;font-weight:600}
 .flyer-foot-text .flyer-link{font-size:1.8cqw;font-weight:500;color:var(--teksts-2,#4a5565);overflow-wrap:anywhere}
-.flyer-foot-brand{font-family:var(--font-display);font-size:4.6cqw;font-weight:700;letter-spacing:-.04em}
-.flyer-foot-brand span{color:var(--karmins,#9e3039)}
+.flyer-bottom{display:flex;align-items:center;justify-content:center;background:var(--tinte,#1b2430);color:#fff}
+.flyer-foot-brand{font-family:var(--font-display);font-size:3.8cqw;font-weight:700;line-height:1;letter-spacing:-.04em}
+.flyer-foot-brand span{color:#e0636d}
 
 @media print{
  @page{size:A4;margin:0}
@@ -70,5 +96,5 @@
  body:has(.flyer-sheet) main#saturs{margin:0!important;padding:0!important;max-width:none!important}
  .flyer-toolbar{display:none!important}
  .flyer-screen{display:block;padding:0}
- .flyer-sheet{width:210mm;height:296.5mm;aspect-ratio:auto;border-radius:0;box-shadow:none}
+ .flyer-sheet{width:210mm;height:296.5mm;border-radius:0;box-shadow:none}
 }
