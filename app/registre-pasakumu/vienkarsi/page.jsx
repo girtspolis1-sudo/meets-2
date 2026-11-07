@@ -75,6 +75,8 @@ function SimpleEventFlow(){
  const [issue,setIssue]=useState(null);
  // Signed in without an organizer profile: it is made from this name on saving.
  const [newOrgName,setNewOrgName]=useState('');
+ // Asks once more before the event is created or sent: private or public.
+ const [confirming,setConfirming]=useState(false);
  const locationRef=useRef(null);
  const initialized=useRef(false);
  const activeOrg=orgs.find(o=>o.id===orgId)||null;
@@ -409,8 +411,19 @@ function SimpleEventFlow(){
  function submit(event){
   event.preventDefault();
   if(!account){if(validateForSubmit({guest:true}))startAuth();return;}
+  if(orgId&&!canEdit){setError('Šim organizatoram tev ir tikai skatīšanas tiesības.');return;}
+  if(validateForSubmit())setConfirming(true);
+ }
+ function confirmSubmit(){
+  setConfirming(false);
   save(publishedEdit||!privateEvent?'pending_review':'private');
  }
+ useEffect(()=>{
+  if(!confirming)return;
+  const close=e=>{if(e.key==='Escape')setConfirming(false);};
+  window.addEventListener('keydown',close);
+  return()=>window.removeEventListener('keydown',close);
+ },[confirming]);
  function pickImage(file){
   if(!file){setImageFile(null);setImagePreview('');return;}
   if(file.size>4*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){setError('Atļauti JPG, PNG un WebP attēli līdz 4 MB.');return;}
@@ -444,6 +457,22 @@ function SimpleEventFlow(){
   :trusted?'Pasākums kartē parādīsies pēc dažām sekundēm. Ja automātiskā pārbaude atradīs neskaidrību, MEETS to izvērtēs un tu saņemsi e-pastu.'
   :'Kad pasākums būs publicēts vai būs jāprecizē, saņemsi e-pastu. Saite uz pasākumu darbojas jau tagad.';
 
+ const asPrivate=privateEvent&&!publishedEdit;
+ const confirmText=publishedEdit?{
+  title:trusted?'Publicēt izmaiņas?':'Iesniegt izmaiņas pārbaudei?',
+  points:trusted?['Izmaiņas apmeklētāji redzēs uzreiz.','Pasākums paliek publisks MEETS kartē un sarakstā.']
+   :['MEETS pārbaudīs izmaiņas, parasti 1–2 darba dienās.','Līdz tam apmeklētāji redz pašreizējo publicēto versiju.'],
+  yes:trusted?'Jā, publicēt izmaiņas':'Jā, iesniegt izmaiņas'}
+  :asPrivate?{title:'Izveidot privātu pasākumu?',
+  points:['Redzēs tikai tie, kam nosūtīsi saiti.','Pasākums nebūs MEETS kartē un sarakstā, un MEETS to nepārbauda.','Vēlāk to vari padarīt publisku.'],
+  yes:'Jā, izveidot privātu'}
+  :trusted?{title:'Publicēt pasākumu visiem?',
+  points:['Pasākums uzreiz būs redzams visiem MEETS kartē un sarakstā.','Saiti un sludinājumu drukai saņemsi uzreiz.'],
+  yes:'Jā, publicēt'}
+  :{title:'Iesniegt publisku pasākumu?',
+  points:['MEETS pārbaudīs pasākumu, parasti 1–2 darba dienās.','Pēc apstiprināšanas to redzēs visi MEETS kartē un sarakstā.','Saiti un sludinājumu drukai saņemsi uzreiz.'],
+  yes:'Jā, iesniegt pārbaudei'};
+ const confirmPlace=[selectedVenue?.name,form.attendance_mode!=='in_person'?'Tiešsaistē':''].filter(Boolean).join(' · ');
  const bad=name=>issue?.field===name;
  const invalid=name=>bad(name)?{'aria-invalid':true,'aria-describedby':'ev-err-'+name}:{};
  const errorFor=(...names)=>{const name=names.find(bad);return name?<span className="ev-field-error" id={'ev-err-'+name} role="alert">{issue.message}</span>:null;};
@@ -596,6 +625,21 @@ function SimpleEventFlow(){
     {!publishedEdit&&<button type="button" className="text-button ev-reset" onClick={()=>{if(window.confirm('Notīrīt aizpildīto formu? Ievadītais tiks dzēsts no šīs ierīces.')){clearLocal();setForm({...DEFAULT});setSaveVenue(false);setSavedId('');removeImage();setNotice('Forma notīrīta.');}}}>Notīrīt formu</button>}
    </div>
   </form>}
+
+  {confirming&&stage==='edit'&&<div className="ev-confirm-backdrop" onClick={e=>{if(e.target===e.currentTarget)setConfirming(false);}}>
+   <div className="ev-confirm" role="dialog" aria-modal="true" aria-labelledby="ev-confirm-title">
+    <span className={'ev-confirm-badge '+(asPrivate?'is-private':'is-public')}><Icon name={asPrivate?'lock':'globe'}/>{asPrivate?'Privāts pasākums':'Publisks pasākums'}</span>
+    <h2 id="ev-confirm-title">{confirmText.title}</h2>
+    <p className="ev-confirm-event"><strong>{form.title}</strong><span>{scheduleLines(form)[0]}</span>{confirmPlace&&<span>{confirmPlace}</span>}</p>
+    <ul className="ev-confirm-points">{confirmText.points.map(point=><li key={point}>{point}</li>)}</ul>
+    <div className="ev-confirm-actions">
+     <button type="button" className="ev-primary" autoFocus onClick={confirmSubmit}>{confirmText.yes}</button>
+     <button type="button" className="ev-secondary" onClick={()=>setConfirming(false)}>Atpakaļ labot</button>
+    </div>
+    {!publishedEdit&&<button type="button" className="text-button ev-confirm-switch" onClick={()=>update('visibility',asPrivate?'public':'private')}>
+     {asPrivate?'Padarīt publisku (MEETS pārbaude, karte un saraksts)':'Padarīt privātu (tikai ar saiti)'}</button>}
+   </div>
+  </div>}
 
   <EventVenueDialog open={addressOpen&&stage==='edit'} onClose={()=>setAddressOpen(false)} onSave={addOrChooseVenue}
     busy={addressBusy} existingVenues={addressOptions.mine} publicVenues={publicVenues}/>

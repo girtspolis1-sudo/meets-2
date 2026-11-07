@@ -334,6 +334,12 @@ for(const width of [360,390]){
   await assertLayout(p,'quick-event',width);
   await p.screenshot({path:'ux-screenshots/'+width+'-quick-event.png',fullPage:true});
   await form.getByRole('button',{name:/Iesniegt izvērtēšanai/}).click();
+  // Public or private is confirmed once more before anything is sent.
+  const confirm=p.getByRole('dialog',{name:'Iesniegt publisku pasākumu?'});
+  await confirm.waitFor({timeout:5000});
+  if(submitted){fails++;console.error('Event sent before confirmation',width);}
+  await assertLayout(p,'event-confirm',width);
+  await confirm.getByRole('button',{name:'Jā, iesniegt pārbaudei'}).click();
   await p.getByRole('heading',{name:'Pasākums iesniegts izvērtēšanai'}).waitFor({timeout:12000});
   if(submitted?.venue_id!==venueId||submitted?.status!=='pending_review'||submitted?.visibility!=='public'||submitted?.date_from!==day){
    fails++;console.error('Event submission lost data',width,submitted);
@@ -354,6 +360,7 @@ for(const width of [360,390]){
    await next.getByRole('button',{name:/Pievienot norises vietu/}).click();
    await next.getByLabel('Pasākuma norises adrese').selectOption(venueId);
    await next.getByRole('button',{name:/Iesniegt izvērtēšanai/}).click();
+   await p.getByRole('button',{name:'Jā, iesniegt pārbaudei'}).click();
    await p.getByRole('heading',{name:'Pasākums iesniegts izvērtēšanai'}).waitFor({timeout:10000});
    if(submitted?.schedule_kind!=='recurring'||submitted?.price_min!=='9.50'||
      submitted?.price_max!=='15.00'||submitted?.recurrence_slots?.length!==1){
@@ -369,6 +376,7 @@ for(const width of [360,390]){
    await own.getByText('Tiešsaistē',{exact:true}).click();
    await own.getByLabel(/Saite uz zvanu/).fill('https://meet.example.com/abc');
    await own.getByRole('button',{name:/Izveidot privātu pasākumu/}).click();
+   await p.getByRole('dialog',{name:'Izveidot privātu pasākumu?'}).getByRole('button',{name:'Jā, izveidot privātu'}).click();
    await p.getByRole('heading',{name:'Privāts pasākums izveidots'}).waitFor({timeout:10000});
    const flyer=await p.locator('a.ev-flyer').getAttribute('href');
    if(submitted?.status!=='private'||submitted?.visibility!=='private'||submitted?.venue_id!==null||!flyer?.startsWith('/sludinajums/')){

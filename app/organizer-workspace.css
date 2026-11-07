@@ -556,3 +556,9 @@
 .org-card-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .org-first-note{margin:14px 2px 0;font-size:14px;line-height:1.5}
 @media(max-width:720px){.org-card>.org-card-actions{grid-column:1/-1}.org-card-actions .button{flex:1;text-align:center}}
+
+/* The organizer side of the account is marked on every organizer page. */
+.meets-org-mode-band{display:flex;align-items:center;gap:8px;min-width:0;margin:6px 0 4px;padding:8px 12px;border-radius:12px;
+ background:var(--tinte);color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.meets-org-mode-band svg{flex:none;opacity:.8}
+.meets-org-mode-band strong{margin-left:auto;overflow:hidden;font-size:13px;letter-spacing:0;text-transform:none;text-overflow:ellipsis;white-space:nowrap}

@@ -130,6 +130,8 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
     {!organizerMode?personalLinks.map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.short}</Link>):
      <><Link href="/organizators" className={!orgId?'active':''}>Organizatori</Link>{orgId&&organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined} className={activeOrganizer(item)?'active':''}>{item.label}</Link>)}</>}
    </nav>
+   {/* Always clear which account this is: the organizer side is marked. */}
+   {organizerMode&&<div className="meets-org-mode-band" role="note"><ProfileIcon name="building" size={16}/><span>Organizatora konts</span>{activeOrganization?.name&&<strong>{activeOrganization.name}</strong>}</div>}
    <div className="meets-profile-slot">{children}</div>
   </div>
  </div>;

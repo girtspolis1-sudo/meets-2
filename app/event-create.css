@@ -170,3 +170,22 @@
  .ev-page{padding-top:28px}
  .ev-cover{aspect-ratio:2/1}
 }
+
+/* Last question before creating: private or public, in plain words. */
+.ev-confirm-backdrop{position:fixed;inset:0;z-index:1300;display:grid;align-items:end;justify-items:center;padding:12px;
+ background:rgba(27,36,48,.5)}
+.ev-confirm{display:grid;gap:12px;width:min(100%,480px);max-height:calc(100dvh - 24px);overflow:auto;padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));
+ border-radius:24px;background:#fff;box-shadow:0 20px 50px rgba(27,36,48,.3)}
+@media(min-width:600px){.ev-confirm-backdrop{align-items:center}.ev-confirm{padding:24px}}
+.ev-confirm h2{margin:0;font-family:var(--font-display);font-size:clamp(21px,5.4vw,25px);letter-spacing:-.02em;color:var(--tinte,#1b2430)}
+.ev-confirm-badge{justify-self:start;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:800}
+.ev-confirm-badge svg{width:16px;height:16px}
+.ev-confirm-badge.is-private{background:var(--karmins-soft,#f6e8ea);color:var(--karmins-dark,#7a2029)}
+.ev-confirm-badge.is-public{background:#e9f4ee;color:#1d5a37}
+.ev-confirm-event{display:grid;gap:2px;margin:0;padding:12px 14px;border:1px solid var(--migla,#d8dee6);border-radius:14px;background:var(--sniegs,#fafbfc);font-size:14px;color:var(--teksts-2,#4a5565)}
+.ev-confirm-event strong{font-size:16px;color:var(--tinte,#1b2430)}
+.ev-confirm-points{display:grid;gap:7px;margin:0;padding:0;list-style:none;font-size:14.5px;line-height:1.45;color:var(--tinte,#1b2430)}
+.ev-confirm-points li{position:relative;padding-left:24px}
+.ev-confirm-points li::before{content:'✓';position:absolute;left:0;top:0;font-weight:800;color:var(--karmins,#9e3039)}
+.ev-confirm-actions{display:grid;gap:8px}
+.ev-confirm-switch{justify-self:center;font-size:13px;color:var(--teksts-2,#4a5565)}

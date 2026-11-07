@@ -4,6 +4,31 @@
 .meets-shared-event .shared-event-note{display:flex;align-items:center;gap:8px;margin:0;padding:12px 25px;
  background:var(--dzintars-soft,#fdf6e6);color:#6e4c00;font-size:13px;font-weight:700;border-bottom:1px solid #f3e2b8}
 .meets-shared-event .shared-event-note.is-private{background:var(--karmins-soft,#f6e8ea);color:var(--karmins-dark,#7a2029);border-color:#ecd3d6}
+.meets-shared-event .shared-event-note.is-public{background:#e9f4ee;color:#1d5a37;border-color:#cfe5d8}
+.meets-shared-event .shared-event-note svg{flex:none}
+
+/* Top bar of a shared page: back, whose view this is, where to go next.
+   Dark for the organizer's own event, light for everyone else. */
+.shared-nav{display:flex;align-items:center;gap:10px;min-height:60px;padding:8px 14px;
+ background:rgba(255,255,255,.94);border-bottom:1px solid var(--migla,#d8dee6)}
+.shared-nav-back{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--migla,#d8dee6);
+ background:#fff;color:var(--tinte,#1b2430);text-decoration:none}
+.shared-nav-back:hover{border-color:var(--karmins,#9e3039);color:var(--karmins,#9e3039)}
+.shared-nav-owner,.shared-nav-public{display:grid;gap:1px;flex:1;min-width:0}
+.shared-nav small{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--teksts-2,#4a5565)}
+.shared-nav strong{overflow:hidden;font-size:15px;text-overflow:ellipsis;white-space:nowrap}
+.shared-nav-links{display:flex;flex:none;gap:6px}
+.shared-nav-link{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--migla,#d8dee6);
+ background:#fff;color:var(--tinte,#1b2430);font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap}
+.shared-nav.is-owner{background:var(--tinte,#1b2430);border-color:var(--tinte,#1b2430);color:#fff}
+.shared-nav.is-owner small{color:rgba(255,255,255,.75)}
+.shared-nav.is-owner .shared-nav-back{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3);color:#fff}
+.shared-nav.is-owner .shared-nav-link{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3);color:#fff}
+.shared-nav.is-owner .shared-nav-link:first-child{background:#fff;color:var(--tinte,#1b2430);border-color:#fff}
+.shared-owner-note{margin:0;padding:10px 16px;background:#eef1f5;color:var(--tinte,#1b2430);font-size:13px;line-height:1.45;border-bottom:1px solid var(--migla,#d8dee6)}
+.shared-owner-note a{color:var(--karmins,#9e3039);font-weight:700}
+/* On a phone the back arrow already leads to the organizer's events or the public list. */
+@media(max-width:420px){.shared-nav-links .shared-nav-link:nth-child(2){display:none}}
 .meets-shared-event .meets-detail-hero{margin-top:0}
 .shared-event-cover-fallback{display:grid;place-items:center;height:200px;
  background:linear-gradient(135deg,var(--karmins,#9e3039),var(--karmins-dark,#7a2029));color:#fff}
