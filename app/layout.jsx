@@ -61,7 +61,7 @@ export default function RootLayout({ children }) {
         <Link href="/karte">Karte</Link>
         <Link href="/pasakumi">Pasākumi</Link>
         <Link href="/registre-pasakumu">Pievienot pasākumu</Link>
-        <Link href="/organizators">Organizatoriem</Link>
+        <Link href="/organizators">Rīkotājiem</Link>
       </nav>
       <div className="footer-side">
         <span>Latvija</span>

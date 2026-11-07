@@ -42,7 +42,7 @@ export default function SharedEventNav({token,status}){
   <nav className={'shared-nav'+(owner?' is-owner':'')} aria-label="Pasākuma lapas navigācija">
    <a className="shared-nav-back" href={fallback} onClick={back} aria-label={backLabel} title={backLabel}><Arrow/></a>
    {owner?<div className="shared-nav-owner">
-    <small><Building/> Organizatora skats</small>
+    <small><Building/> Rīkotāja skats</small>
     <strong>{owner.orgName||'Tavs pasākums'}</strong>
    </div>:<div className="shared-nav-public">
     <small>MEETS pasākums</small>

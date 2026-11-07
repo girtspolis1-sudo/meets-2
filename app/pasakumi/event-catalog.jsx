@@ -497,7 +497,7 @@ function EventDetails({event:listed,close}){
    <div className="meets-detail-primary-actions">
     <a className="button primary" href={'/karte?event='+encodeURIComponent(event.id)}>Atvērt kartē →</a>
     {event.sources?.filter(source=>source.url).slice(0,1).map((source,index)=>
-     <a key={index} className="button" href={source.url} target="_blank" rel="noopener noreferrer">Organizatora saite ↗</a>)}
+     <a key={index} className="button" href={source.url} target="_blank" rel="noopener noreferrer">Rīkotāja saite ↗</a>)}
    </div>
    <details className="meets-detail-more">
     <summary>Visa pasākuma informācija</summary>

@@ -78,7 +78,7 @@ export async function POST(request){
    const raw=await res.text();
    if(!res.ok){
     let message='';try{message=JSON.parse(raw).message||'';}catch{}
-    return NextResponse.json({error:/organizator/i.test(message)?'Vispirms izdzēs savus organizatorus (Organizēšana → Profils → Dzēst).':'Kontu neizdevās izdzēst.'},{status:res.status===401?401:400});
+    return NextResponse.json({error:/organizator/i.test(message)?'Vispirms izdzēs savus rīkotājus (Pasākumu rīkošana → Profils → Dzēst).':'Kontu neizdevās izdzēst.'},{status:res.status===401?401:400});
    }
    return NextResponse.json({ok:true});
   }
@@ -204,7 +204,7 @@ export async function POST(request){
     enabled?'':own+'&target_kind=eq.'+targetKind+'&target_id=eq.'+targetId,
     enabled?{user_id:user.id,target_kind:targetKind,target_id:targetId}:null);
     return NextResponse.json({ok:true});}
-   catch{return NextResponse.json({error:'Šim organizatoram vai vietai sekošana nav pieejama.'},{status:400});}
+   catch{return NextResponse.json({error:'Šim rīkotājam vai vietai sekošana nav pieejama.'},{status:400});}
   }
   if(action==='share'||action==='unshare'){
    try{

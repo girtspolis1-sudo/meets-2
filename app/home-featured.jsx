@@ -58,7 +58,7 @@ export default function HomeFeatured(){
      </Link>)}</div>:<p className="meets-muted">Saglabā iepatikušos pasākumus ar <span aria-label="sirds">♡</span> ikonu, lai tos ātri atrastu šeit.</p>}
     </div>
     <div className="meets-home-side-card">
-     <div className="meets-home-side-head"><h3>Seko organizatoriem</h3><Link href="/sekosana">Atvērt →</Link></div>
+     <div className="meets-home-side-head"><h3>Seko rīkotājiem</h3><Link href="/sekosana">Atvērt →</Link></div>
      <p className="meets-muted">Seko iemīļotām norises vietām un rīkotājiem — visi viņu aktuālie publicētie pasākumi vienuviet.</p>
      <Link className="meets-side-inline-action" href="/sekosana">Mana sekošana →</Link>
     </div>

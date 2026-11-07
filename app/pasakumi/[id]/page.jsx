@@ -103,7 +103,7 @@ export default async function EventPage({params}){
    <div className="meets-detail-follow"><EventQuickActions event={event} listOnly/></div>
    <div className="meets-detail-primary-actions">
     {event.latitude!=null&&event.longitude!=null&&<Link className="button primary" href={'/karte?event='+encodeURIComponent(event.id)}>Atvērt kartē →</Link>}
-    {official&&<a className="button" href={official} target="_blank" rel="noopener noreferrer">Organizatora saite ↗</a>}
+    {official&&<a className="button" href={official} target="_blank" rel="noopener noreferrer">Rīkotāja saite ↗</a>}
    </div>
    <div className="meets-detail-quick"><h2>Ātrās darbības</h2><EventQuickActions event={event}/></div>
   </div>

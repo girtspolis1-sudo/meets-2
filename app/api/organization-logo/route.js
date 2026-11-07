@@ -28,7 +28,7 @@ export async function POST(request){
    const reason=String(detail.message||detail.error||'').slice(0,240);
    console.error('Organization logo upload failed:',{status:uploaded.status,code:detail.statusCode||detail.code||'unknown',message:reason});
    const message=uploaded.status===413?'Logo pārsniedz atļauto izmēru.':
-    uploaded.status===403||/row-level security|permission|unauthorized/i.test(reason)?'Nav atļaujas augšupielādēt logo. Pārbaudi organizatora rediģēšanas tiesības.':
+    uploaded.status===403||/row-level security|permission|unauthorized/i.test(reason)?'Nav atļaujas augšupielādēt logo. Pārbaudi rīkotāja rediģēšanas tiesības.':
     'Logo neizdevās augšupielādēt. Mēģini vēlreiz vai izvēlies citu attēlu.';
    return NextResponse.json({error:message},{status:uploaded.status===403?403:502});
   }

@@ -68,7 +68,7 @@ function submissionRow(item,today){
  const wrongLocation=!String(item.address||item.venue_name||'').trim()?'Nav norises vietas / adreses':
   !hasCoordinates(item)?'Nepieciešama precīzas vietas pārbaude':'';
  let reason='',reasonCode='waiting',reasonTone='warn';
- if(item.status==='rejected'){reason='Lūgts precizēt: '+([reasonLabel(item.review_reason),item.admin_note].filter(Boolean).join(' — ')||'gaida organizatoru');reasonCode='rejected';reasonTone='bad';}
+ if(item.status==='rejected'){reason='Lūgts precizēt: '+([reasonLabel(item.review_reason),item.admin_note].filter(Boolean).join(' — ')||'gaida rīkotāju');reasonCode='rejected';reasonTone='bad';}
  else if(item.status==='declined'){reason='Noraidīts: '+([reasonLabel(item.review_reason),item.admin_note].filter(Boolean).join(' — ')||'bez iemesla');reasonCode='declined';reasonTone='muted';}
  else if(expired){reason='Norises datums jau beidzies';reasonCode='ended';reasonTone='muted';}
  else if(wrongLocation){reason=wrongLocation;reasonCode='location';reasonTone='bad';}

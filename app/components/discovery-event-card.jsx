@@ -59,7 +59,7 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
    <div className="meets-card-footer">
     <div className="meets-card-follows">
      <EventVenueFavorite event={event} compact fullLabel/>
-     {orgId&&<FollowButton targetKind="organization" targetId={orgId} className="meets-card-follow-org" label="Sekot organizatoram" followingLabel="Sekoju organizatoram"/>}
+     {orgId&&<FollowButton targetKind="organization" targetId={orgId} className="meets-card-follow-org" label="Sekot rīkotājam" followingLabel="Sekoju rīkotājam"/>}
     </div>
     {actions&&<EventQuickActions event={event} quiet compact noFavorite/>}
    </div>

@@ -246,12 +246,12 @@ function SimpleEventFlow(){
   setSaveVenue(false);setError('');
  }
  async function addOrChooseVenue(next){
-  if(!account?.access_token||(orgId&&!canEdit))throw Error('Pieslēdzies organizatora kontam ar rediģēšanas tiesībām.');
-  if(!orgId&&(orgs.length||newOrgName.trim().length<2))throw Error(orgs.length?'Vispirms izvēlies organizatoru pasākuma augšā.':'Vispirms ieraksti organizatora nosaukumu pasākuma augšā.');
+  if(!account?.access_token||(orgId&&!canEdit))throw Error('Pieslēdzies rīkotāja kontam ar rediģēšanas tiesībām.');
+  if(!orgId&&(orgs.length||newOrgName.trim().length<2))throw Error(orgs.length?'Vispirms izvēlies rīkotāju pasākuma augšā.':'Vispirms ieraksti rīkotāja nosaukumu pasākuma augšā.');
   setAddressBusy(true);
   try{
    const org=orgId||await ensureOrg();
-   if(!org)throw Error('Vispirms norādi organizatoru.');
+   if(!org)throw Error('Vispirms norādi rīkotāju.');
    const known=[...venues,...publicVenues].find(v=>v.id===next.venue_id);
    let item=known;
    if(known&&known.organization_id!==org){
@@ -283,7 +283,7 @@ function SimpleEventFlow(){
  function switchOrg(value){
   persistLocal(form,orgId,account);
   const stored=restoreLocal(account?.user?.id,value);
-  setOrgId(value);setSavedId(stored?.saved_id||'');setSaveVenue(stored?.save_venue===true);setForm(stored?cleanDraft(stored):{...DEFAULT});setMode(stored?scheduleModeOf(stored):'single');setNotice(stored?'Atjaunots šī organizatora melnraksts.':'');setError('');
+  setOrgId(value);setSavedId(stored?.saved_id||'');setSaveVenue(stored?.save_venue===true);setForm(stored?cleanDraft(stored):{...DEFAULT});setMode(stored?scheduleModeOf(stored):'single');setNotice(stored?'Atjaunots šī rīkotāja melnraksts.':'');setError('');
   const u=new URL(window.location.href);u.searchParams.set('org',value);u.searchParams.delete('edit');u.searchParams.delete('copy');u.searchParams.delete('venue');window.history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString());
  }
 
@@ -384,8 +384,8 @@ function SimpleEventFlow(){
   const first=quickEventIssue(values,{requireVenue:false});
   if(first){fail(first.field,first.message);return false;}
   if(!guest&&!orgId){
-   if(orgs.length){fail('organization','Izvēlies, kurš organizators rīko pasākumu.');return false;}
-   if(newOrgName.trim().length<2){fail('organization','Ieraksti organizatora nosaukumu — vismaz 2 rakstzīmes.');return false;}
+   if(orgs.length){fail('organization','Izvēlies, kurš rīkotājs rīko pasākumu.');return false;}
+   if(newOrgName.trim().length<2){fail('organization','Ieraksti rīkotāja nosaukumu — vismaz 2 rakstzīmes.');return false;}
   }
   try{cleanPrice(form.price_status,form.price_min,form.price_max);}
   catch(e){fail('price',e.message);return false;}
@@ -411,21 +411,21 @@ function SimpleEventFlow(){
  // The organizer of the event; made from the typed name when there is none yet.
  async function ensureOrg(){
   if(orgId)return orgId;
-  if(orgs.length){fail('organization','Izvēlies, kurš organizators rīko pasākumu.');return '';}
+  if(orgs.length){fail('organization','Izvēlies, kurš rīkotājs rīko pasākumu.');return '';}
   const name=newOrgName.trim();
-  if(name.length<2){fail('organization','Ieraksti organizatora nosaukumu — vismaz 2 rakstzīmes.');return '';}
+  if(name.length<2){fail('organization','Ieraksti rīkotāja nosaukumu — vismaz 2 rakstzīmes.');return '';}
   const result=await call('createOrganization',{name,kind:'organizer'});
   const item=result.item;
-  if(!item?.id)throw Error('Organizatoru neizdevās izveidot.');
+  if(!item?.id)throw Error('Rīkotāju neizdevās izveidot.');
   setOrgs([item]);setOrgId(item.id);clearLocal(account?.user?.id,'');
   const u=new URL(window.location.href);u.searchParams.set('org',item.id);window.history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString());
-  setNotice('Organizators “'+item.name+'” izveidots. Profilu vari papildināt vēlāk.');
+  setNotice('Rīkotājs “'+item.name+'” izveidots. Profilu vari papildināt vēlāk.');
   return item.id;
  }
  function startAuth(){persistLocal();setStage('auth');window.scrollTo({top:0,behavior:'smooth'});}
  async function save(status='draft'){
   if(!account){persistLocal();if(status==='draft')setNotice('Melnraksts saglabāts šajā ierīcē. Pieslēdzies, lai saglabātu to kontā.');else startAuth();return;}
-  if(orgId&&!canEdit){setError('Šim organizatoram tev ir tikai skatīšanas tiesības.');return;}
+  if(orgId&&!canEdit){setError('Šim rīkotājam tev ir tikai skatīšanas tiesības.');return;}
   if(status!=='draft'&&!validateForSubmit())return;
   if(status==='draft'&&publishedEdit){setError('Publicētam pasākumam izmaiņas iesniedz pārbaudei — melnraksts nav pieejams.');return;}
   // The table keeps no event without a name, not even a draft.
@@ -467,7 +467,7 @@ function SimpleEventFlow(){
  function submit(event){
   event.preventDefault();
   if(!account){if(validateForSubmit({guest:true}))startAuth();return;}
-  if(orgId&&!canEdit){setError('Šim organizatoram tev ir tikai skatīšanas tiesības.');return;}
+  if(orgId&&!canEdit){setError('Šim rīkotājam tev ir tikai skatīšanas tiesības.');return;}
   if(validateForSubmit())setConfirming(true);
  }
  function confirmSubmit(){
@@ -504,7 +504,7 @@ function SimpleEventFlow(){
   :privateEvent?'Izveidot privātu pasākumu':trusted?'Publicēt':'Iesniegt izvērtēšanai';
  const submitNote=publishedEdit?'Līdz apstiprināšanai apmeklētāji redz pašreizējo publicēto versiju.'
   :privateEvent?'Pasākums nebūs kartē un sarakstā. Pēc izveides saņemsi saiti un sludinājumu drukai.'
-  :trusted?'Tavs organizators ir MEETS uzticamo sarakstā — pasākums kartē parādīsies uzreiz. Pārbaudi datumu, laiku un vietu.'
+  :trusted?'Tavs rīkotājs ir MEETS uzticamo sarakstā — pasākums kartē parādīsies uzreiz. Pārbaudi datumu, laiku un vietu.'
   :'MEETS pārbaudīs pasākumu (parasti 1–2 darba dienās). Saiti un sludinājumu saņemsi uzreiz.';
  const doneTitle=privateEvent&&!publishedEdit?'Privāts pasākums izveidots'
   :publishedEdit?(trusted?'Izmaiņas publicētas':'Izmaiņas iesniegtas izvērtēšanai')
@@ -534,10 +534,10 @@ function SimpleEventFlow(){
  const errorFor=(...names)=>{const name=names.find(bad);return name?<span className="ev-field-error" id={'ev-err-'+name} role="alert">{issue.message}</span>:null;};
  const orgChip=!account?<button type="button" className="ev-chip" onClick={startAuth}>Pieslēgties</button>
   :!orgs.length?<label className={'ev-chip ev-chip-input'+(bad('organization')?' has-error':'')}><span className="ev-avatar" aria-hidden="true">{(newOrgName.trim()||'+').slice(0,1)}</span>
-    <input aria-label="Organizatora nosaukums" placeholder="Organizatora nosaukums" maxLength={160} autoComplete="organization" value={newOrgName} onChange={e=>{setNewOrgName(e.target.value);setError('');}} {...invalid('organization')}/></label>
+    <input aria-label="Rīkotāja nosaukums" placeholder="Rīkotāja nosaukums" maxLength={160} autoComplete="organization" value={newOrgName} onChange={e=>{setNewOrgName(e.target.value);setError('');}} {...invalid('organization')}/></label>
   :orgs.length===1?<span className="ev-chip ev-chip-static"><span className="ev-avatar" aria-hidden="true">{(activeOrg?.name||'?').slice(0,1)}</span><span className="ev-chip-text">{activeOrg?.name}</span></span>
   :<label className={'ev-chip'+(bad('organization')?' has-error':'')}><span className="ev-avatar" aria-hidden="true">{(activeOrg?.name||'?').slice(0,1)}</span>
-    <select aria-label="Organizators" {...invalid('organization')} value={orgId} onChange={e=>switchOrg(e.target.value)}><option value="">Izvēlies organizatoru</option>{orgs.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select><Icon name="chevron"/></label>;
+    <select aria-label="Rīkotājs" {...invalid('organization')} value={orgId} onChange={e=>switchOrg(e.target.value)}><option value="">Izvēlies rīkotāju</option>{orgs.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select><Icon name="chevron"/></label>;
 
  const editor=<section className="meets-organizer-page unified-event-editor ev-page">
   <header className="ev-head">
@@ -583,7 +583,7 @@ function SimpleEventFlow(){
     </label>
    </div>
    {errorFor('organization')}
-   {orgPending&&<p className="ev-hint ev-org-hint">Ieraksti, kas rīko pasākumu (piem., “Balvu sporta zāle”). Organizatora profils izveidosies kopā ar pasākumu — pārējo papildināsi vēlāk.</p>}
+   {orgPending&&<p className="ev-hint ev-org-hint">Ieraksti, kas rīko pasākumu (piem., “Balvu sporta zāle”). Rīkotāja profils izveidosies kopā ar pasākumu — pārējo papildināsi vēlāk.</p>}
    <p className="ev-hint">{publishedEdit?'Publicēts pasākums paliek publisks.':VISIBILITY_HINTS[form.visibility]+(privateEvent?', bez MEETS pārbaudes.':'.')}</p>
 
 
@@ -650,7 +650,7 @@ function SimpleEventFlow(){
       <input type="url" inputMode="url" placeholder="https://…" maxLength={500} {...invalid('online_url')} value={form.online_url||''} onChange={e=>update('online_url',e.target.value)}/>
      </label>}
      {needsVenue||form.attendance_mode!=='online'?<>
-      {!account?<div className="ev-signin"><p>Norises vietas glabājas organizatora kontā. Pieslēdzies — ievadītais saglabāsies.</p><button type="button" className="button primary" onClick={startAuth}>Pieslēgties un izvēlēties vietu →</button></div>
+      {!account?<div className="ev-signin"><p>Norises vietas glabājas rīkotāja kontā. Pieslēdzies — ievadītais saglabāsies.</p><button type="button" className="button primary" onClick={startAuth}>Pieslēgties un izvēlēties vietu →</button></div>
       :<div className="ev-venue">
        <label className="ev-field">{form.attendance_mode==='online'?'Vieta, no kuras pasākums notiek':'Norises vieta'}
         <select aria-label="Pasākuma norises adrese" {...invalid('venue')} value={form.venue_id||''} onChange={e=>selectAddress(e.target.value)}>
@@ -661,7 +661,7 @@ function SimpleEventFlow(){
         </select>
        </label>
        <button className="button ev-add-venue" type="button" disabled={(orgId?!canEdit:!orgPending)||busy} onClick={()=>setAddressOpen(true)}>+ Jauna vieta</button>
-       {!addressOptions.mine.length&&!selectedVenue&&<p className="ev-hint">Šim organizatoram vēl nav saglabātu vietu. Pievieno pirmo — tā saglabāsies nākamajiem pasākumiem.</p>}
+       {!addressOptions.mine.length&&!selectedVenue&&<p className="ev-hint">Šim rīkotājam vēl nav saglabātu vietu. Pievieno pirmo — tā saglabāsies nākamajiem pasākumiem.</p>}
       </div>}
      </>:<p className="ev-hint">Privātam tiešsaistes pasākumam vieta nav vajadzīga.</p>}
     </div>}
