@@ -19,3 +19,22 @@ test('free and paid prices',()=>{
  assert.deepEqual(cleanPrice('paid','10.00','19.50'),{price_min:10,price_max:19.5});
  assert.throws(()=>cleanPrice('paid',12,10));
 });
+
+test('empty time fields open at 16:00, the end two hours later',async()=>{
+ const {defaultEndTime,DEFAULT_START}=await import('../lib/event-schedule.js');
+ assert.equal(DEFAULT_START,'16:00');
+ assert.equal(defaultEndTime('16:00'),'18:00');
+ assert.equal(defaultEndTime('09:30'),'11:30');
+ assert.equal(defaultEndTime('23:00'),'23:59');
+});
+
+test('how an event takes place is read back from what was saved',async()=>{
+ const {scheduleModeOf,nextDateAfter}=await import('../lib/event-schedule.js');
+ assert.equal(scheduleModeOf({schedule_kind:'once',date_from:'2026-11-08'}),'single');
+ assert.equal(scheduleModeOf({schedule_kind:'ongoing',date_from:'2026-11-08',date_to:'2026-11-10'}),'range');
+ assert.equal(scheduleModeOf({schedule_kind:'recurring'}),'weekly');
+ const run=['2026-11-08','2026-11-09','2026-11-10'].map(date=>({date,start:'16:00',end:'18:00'}));
+ assert.equal(scheduleModeOf({schedule_kind:'dated',date_from:'2026-11-08',date_to:'2026-11-10',recurrence_slots:run}),'range');
+ assert.equal(scheduleModeOf({schedule_kind:'dated',date_from:'2026-11-08',date_to:'2026-11-22',recurrence_slots:[run[0],{date:'2026-11-22',start:'16:00',end:'18:00'}]}),'dates');
+ assert.equal(nextDateAfter([{date:'2026-11-08'},{date:'2026-11-12'}]),'2026-11-19');
+});

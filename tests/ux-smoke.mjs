@@ -349,7 +349,7 @@ for(const width of [360,390]){
    await p.getByRole('button',{name:/Vēl viens pasākums/}).click();
    const next=p.locator('.ev-form');
    await next.getByLabel('Pasākuma nosaukums').fill('Regulārās sporta nodarbības');
-   await next.getByLabel('Atkārtojas').selectOption('weekly');
+   await next.getByText('Katru nedēļu',{exact:true}).click();
    const end=new Date(day+'T12:00:00Z');end.setUTCDate(end.getUTCDate()+15);
    await next.getByLabel('Grafika sākuma datums').fill(day);
    await next.getByLabel('Grafika beigu datums').fill(end.toISOString().slice(0,10));

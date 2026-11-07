@@ -4,7 +4,7 @@ import {cache} from 'react';
 import FlyerToolbar from './flyer-toolbar.jsx';
 import MeetsSunMark from '../../components/meets-sun-mark.jsx';
 import {readSharedEvent,requestOrigin} from '../../../lib/shared-event-server.js';
-import {coverImageUrl,excerpt,flyerTextLines,placeLines,priceLine,scheduleLines,sharePath} from '../../../lib/shared-event.js';
+import {coverImageUrl,excerpt,flyerDateBadge,flyerTextLines,placeLines,priceLine,scheduleLines,sharePath} from '../../../lib/shared-event.js';
 import {qrPath} from '../../../lib/qr-path.js';
 
 export const dynamic='force-dynamic';
@@ -17,13 +17,6 @@ export async function generateMetadata({params}){
  return {title:event?'Sludinājums: '+event.title:'Sludinājums nav pieejams',robots:{index:false,follow:false}};
 }
 
-const MONTH=new Intl.DateTimeFormat('lv-LV',{month:'short',timeZone:'UTC'});
-function dateBadge(iso){
- if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso||'')))return null;
- const date=new Date(iso+'T12:00:00Z');
- return {day:date.getUTCDate(),month:MONTH.format(date).replace('.','').toLocaleUpperCase('lv')};
-}
-
 export default async function FlyerPage({params}){
  const {token}=await params;
  const event=await findEvent(token);
@@ -31,7 +24,7 @@ export default async function FlyerPage({params}){
  const link=requestOrigin(await headers())+sharePath(token);
  const qr=qrPath(link);
  const image=coverImageUrl(process.env.SUPABASE_URL,event.cover_image_path);
- const badge=dateBadge(event.date_from);
+ const badge=flyerDateBadge(event);
  const when=scheduleLines(event,{maxDays:4});
  const where=placeLines(event);
  const price=priceLine(event);
@@ -44,7 +37,7 @@ export default async function FlyerPage({params}){
   <article className={'flyer-sheet'+(image?' has-image':'')} aria-label={'Sludinājums: '+event.title}>
    <div className="flyer-top">
     {image?<img src={image} alt=""/>:<MeetsSunMark className="flyer-mark"/>}
-    {badge&&<span className="flyer-date"><strong>{badge.day}</strong><small>{badge.month}</small></span>}
+    {badge&&<span className={'flyer-date flyer-date-'+badge.kind}><strong>{badge.main}</strong><small>{badge.sub}</small></span>}
    </div>
    <div className="flyer-body">
     <p className="flyer-category">{event.category||'Pasākums'}</p>
