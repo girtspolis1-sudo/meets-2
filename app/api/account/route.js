@@ -78,7 +78,7 @@ export async function POST(request){
    const raw=await res.text();
    if(!res.ok){
     let message='';try{message=JSON.parse(raw).message||'';}catch{}
-    return NextResponse.json({error:/organizator/i.test(message)?'Vispirms izdzēs savus rīkotājus (Pasākumu rīkošana → Profils → Dzēst).':'Kontu neizdevās izdzēst.'},{status:res.status===401?401:400});
+    return NextResponse.json({error:/organizator|rīkotāj/i.test(message)?'Vispirms izdzēs savus rīkotājus (Pasākumu rīkošana → Profils → Dzēst).':'Kontu neizdevās izdzēst.'},{status:res.status===401?401:400});
    }
    return NextResponse.json({ok:true});
   }
