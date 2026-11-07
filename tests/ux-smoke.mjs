@@ -136,8 +136,16 @@ for(const width of cases){
   await page.screenshot({path:'ux-screenshots/'+width+'-map.png',fullPage:true});
   await page.goto(base+'/pasakumi',{waitUntil:'domcontentloaded',timeout:45000});
   await page.locator('.catalog-search').waitFor({timeout:30000});
-  if(!(await page.getByRole('button',{name:'Tabula un Excel'}).count())){fails++;console.error('Card view is not active by default');}
+  if(await page.locator('.catalog-view-switch button[aria-pressed="true"]').innerText()!=='Saraksts'){fails++;console.error('Card view is not active by default');}
   if(!(await page.getByRole('button',{name:/Šodien/}).count())){fails++;console.error('Catalog time chips missing',width);}
+  // Calendar view: topics × days, a cell filters the list under it.
+  await page.getByRole('button',{name:'Kalendārs',exact:true}).click();
+  await page.locator('.event-calendar-grid').waitFor({timeout:10000});
+  const calendarDays=await page.locator('.event-calendar-day').count();
+  if(calendarDays!==(width>=900?14:7)){fails++;console.error('Calendar shows wrong number of days',width,calendarDays);}
+  await assertLayout(page,'events-calendar',width);
+  await page.screenshot({path:'ux-screenshots/'+width+'-events-calendar.png',fullPage:true});
+  await page.getByRole('button',{name:'Saraksts',exact:true}).click();
   // Card actions are always visible: calendar, route, original, share (the heart sits at the top).
   const catalogCircles=page.locator('.catalog-event-card .meets-circle-actions').first();
   await catalogCircles.waitFor();
