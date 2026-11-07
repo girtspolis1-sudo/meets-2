@@ -123,7 +123,8 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
      <Link href="/profils" aria-current={!organizerMode?'page':undefined} className={!organizerMode?'active':''}>Mans MEETS</Link>
      <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}>Organizēšana</Link>
     </div>
-    {organizerMode&&!pathname.startsWith('/registre-pasakumu')&&<Link className="meets-profile-mobile-new" href={eventHref}>+ Jauns pasākums</Link>}
+    {/* The organizer pages start events in their own card. */}
+    {organizerMode&&!pathname.startsWith('/registre-pasakumu')&&pathname!=='/organizators'&&<Link className="meets-profile-mobile-new" href={eventHref}>+ Jauns pasākums</Link>}
    </div>
    <nav ref={tabsRef} className="meets-profile-mobile-tabs" aria-label={organizerMode?'Organizēšanas sadaļas':'Mans MEETS sadaļas'}>
     {!organizerMode?personalLinks.map(item=><Link key={item.href} href={item.href} aria-current={activePersonal(item.href)?'page':undefined} className={activePersonal(item.href)?'active':''}>{item.short}</Link>):

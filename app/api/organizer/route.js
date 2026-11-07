@@ -1,4 +1,4 @@
-import {ATTENDANCE_MODES,cleanOnlineUrl,validateQuickEvent,venueRequired} from '../../../lib/event-entry.js';
+import {ATTENDANCE_MODES,cleanOnlineUrl,quickEventIssue,venueRequired} from '../../../lib/event-entry.js';
 import {cleanSocialLinks} from '../../../lib/social-links.js';
 import {cleanSlots,countOccurrences,cleanPrice,cleanDatedSlots} from '../../../lib/event-schedule.js';
 import {rigaDate} from '../../../lib/meets-personal.js';
@@ -36,6 +36,15 @@ function duplicatesVenue(a,b){
   Math.abs(aLat-bLat)<=0.0006&&Math.abs(aLon-bLon)<=0.001;
  return sameAddress||close;
 }
+// Table checks the form missed, in words the organizer can act on.
+const CONSTRAINT_ERRORS={
+ meets_submissions_title_check:'Ieraksti pasākuma nosaukumu (3–200 rakstzīmes).',
+ meets_submissions_date_required_when_submitted:'Norādi pasākuma sākuma datumu.',
+ meets_submission_dates:'Beigu datums nevar būt pirms sākuma datuma.',
+ meets_submissions_online_url_https:'Saitei uz zvanu jāsākas ar https://.',
+ meets_submission_price_values:'Pārbaudi cenu: “Līdz” nevar būt mazāka par “No”.',
+ meets_submissions_visibility_status:'Privātu pasākumu neiesniedz pārbaudei; publisku nevar saglabāt kā privātu.'
+};
 async function api(table,token,method='GET',body=null,query=''){
  const prefer=query.includes('on_conflict=')?'resolution=merge-duplicates,return=representation':'return=representation';
  const headers={apikey:KEY(),Authorization:'Bearer '+token,'Content-Type':'application/json',Prefer:prefer};
@@ -43,7 +52,8 @@ async function api(table,token,method='GET',body=null,query=''){
  if(!res.ok){
   const details=await res.text().catch(()=>'');
   console.error('organizer_rest_failed',{table,method,status:res.status,details:details.slice(0,240)});
-  throw Error('Darbība neizdevās. Pārbaudi ievadītos datus un piekļuves tiesības.');
+  const known=Object.entries(CONSTRAINT_ERRORS).find(([name])=>details.includes(name));
+  throw Error(known?known[1]:'Darbība neizdevās. Pārbaudi ievadītos datus un piekļuves tiesības.');
  }
  if(res.status===204)return [];
  const raw=await res.text();
@@ -236,7 +246,9 @@ export async function POST(request){
    const title=String(data.title||'').trim();
    const date_from=String(data.date_from||'');
    if(title.length>200)return NextResponse.json({error:'Pasākuma nosaukums nedrīkst pārsniegt 200 rakstzīmes.'},{status:400});
-   if(!isDraft&&(title.length<3||!DATE.test(date_from)))return NextResponse.json({error:'Norādi pasākuma nosaukumu un datumu.'},{status:400});
+   // The table requires 3–200 characters even for a draft.
+   if(title.length<3)return NextResponse.json({error:title?'Nosaukumam vajag vismaz 3 rakstzīmes.':'Ieraksti pasākuma nosaukumu.',field:'title'},{status:400});
+   if(!isDraft&&!DATE.test(date_from))return NextResponse.json({error:'Norādi pasākuma sākuma datumu.',field:'date_from'},{status:400});
    if(isDraft&&date_from&&!DATE.test(date_from))return NextResponse.json({error:'Norādi derīgu pasākuma datumu.'},{status:400});
    if(data.date_to&&(!DATE.test(String(data.date_to))||date_from&&data.date_to<date_from))return NextResponse.json({error:'Beigu datums nevar būt pirms sākuma datuma.'},{status:400});
 
@@ -298,8 +310,8 @@ export async function POST(request){
    };
 
    if(!isDraft){
-    const problem=validateQuickEvent(recurring||dated?{...payload,time_from:'',time_to:''}:payload,{requireVenue:venueRequired(payload)});
-    if(problem)return NextResponse.json({error:problem},{status:400});
+    const problem=quickEventIssue(recurring||dated?{...payload,time_from:'',time_to:''}:payload,{requireVenue:venueRequired(payload)});
+    if(problem)return NextResponse.json({error:problem.message,field:problem.field},{status:400});
     if(String(payload.date_to||payload.date_from)<rigaDate())return NextResponse.json({error:'Pasākuma beigu datums jau ir pagājis.'},{status:400});
    }
 
