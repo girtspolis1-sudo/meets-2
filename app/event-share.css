@@ -62,6 +62,11 @@
  border-radius:3cqw;background:#fff;box-shadow:0 1cqw 3cqw rgba(27,36,48,.18)}
 .flyer-date strong{font-family:var(--font-display);font-size:7cqw;line-height:1;color:var(--tinte,#1b2430)}
 .flyer-date small{margin-top:.8cqw;font-size:2.4cqw;font-weight:800;letter-spacing:.12em;color:var(--karmins,#9e3039)}
+/* Several days: the mark widens; weekdays and chosen dates in a smaller size. */
+.flyer-date{width:auto;min-width:16cqw;padding-inline:3cqw;white-space:nowrap}
+.flyer-date-range strong{font-size:6cqw}
+.flyer-date-weekly strong,.flyer-date-dates strong{font-size:4.6cqw;letter-spacing:-.01em}
+.flyer-date-weekly small,.flyer-date-dates small{letter-spacing:.08em}
 /* Body height and block sizes match flyerTextLines() in lib/shared-event.js:
    only the description gives way, by whole lines. */
 .flyer-body{display:flex;flex-direction:column;gap:2cqw;overflow:hidden;min-height:0;padding:9.5cqw 7cqw 4cqw}

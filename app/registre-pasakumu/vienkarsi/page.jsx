@@ -7,7 +7,7 @@ import Authentication from '../../components/account-auth-flow.jsx';
 import ProfileShell from '../../components/profile-shell.jsx';
 import WeeklySchedule from '../../components/weekly-schedule.jsx';
 import {rigaDate} from '../../../lib/meets-personal.js';
-import {countOccurrences,cleanPrice,cleanDatedSlots,datesBetween} from '../../../lib/event-schedule.js';
+import {countOccurrences,cleanPrice,cleanDatedSlots,datesBetween,DEFAULT_START,defaultEndTime,SCHEDULE_MODES,scheduleModeOf,nextDateAfter} from '../../../lib/event-schedule.js';
 import {ATTENDANCE_LABELS,EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,quickEventIssue,normalizeEventTime,copyEventDraft,venueRequired} from '../../../lib/event-entry.js';
 import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
 import {refreshSession} from '../../../lib/auth-client.js';
@@ -77,6 +77,8 @@ function SimpleEventFlow(){
  const [newOrgName,setNewOrgName]=useState('');
  // Asks once more before the event is created or sent: private or public.
  const [confirming,setConfirming]=useState(false);
+ // How the event takes place: single, range, weekly or dates (lib/event-schedule.js).
+ const [mode,setMode]=useState('single');
  const locationRef=useRef(null);
  const initialized=useRef(false);
  const activeOrg=orgs.find(o=>o.id===orgId)||null;
@@ -94,9 +96,10 @@ function SimpleEventFlow(){
  const privateEvent=form.visibility==='private';
  // Trusted organizers are published without MEETS review.
  const trusted=activeOrg?.trusted===true;
- const recurring=form.schedule_kind==='recurring';
- const perDay=form.schedule_kind==='dated';
- const multiDay=Boolean(form.date_to&&form.date_to!==form.date_from);
+ const recurring=mode==='weekly';
+ const chosenDays=mode==='dates';
+ const perDay=mode==='range'&&form.schedule_kind==='dated';
+ const multiDay=mode==='range'&&Boolean(form.date_to&&form.date_to!==form.date_from);
  const needsVenue=venueRequired(form);
 
  async function call(action,payload={},token=account?.access_token){
@@ -198,7 +201,7 @@ function SimpleEventFlow(){
     const stored=restoreLocal(session?.user?.id,chosen);
     if(stored){next=cleanDraft(stored);setSaveVenue(stored.save_venue===true);setSavedId(stored.saved_id||'');setNotice('Atjaunots iepriekš saglabātais melnraksts.');}
    }
-   if(next){setForm(next);if(next.description)setDescOpen(true);}
+   if(next){setForm(next);setMode(scheduleModeOf(next));if(next.description)setDescOpen(true);}
    setLoaded(true);
   })();
   return()=>{alive=false;};
@@ -280,7 +283,7 @@ function SimpleEventFlow(){
  function switchOrg(value){
   persistLocal(form,orgId,account);
   const stored=restoreLocal(account?.user?.id,value);
-  setOrgId(value);setSavedId(stored?.saved_id||'');setSaveVenue(stored?.save_venue===true);setForm(stored?cleanDraft(stored):{...DEFAULT});setNotice(stored?'Atjaunots šī organizatora melnraksts.':'');setError('');
+  setOrgId(value);setSavedId(stored?.saved_id||'');setSaveVenue(stored?.save_venue===true);setForm(stored?cleanDraft(stored):{...DEFAULT});setMode(stored?scheduleModeOf(stored):'single');setNotice(stored?'Atjaunots šī organizatora melnraksts.':'');setError('');
   const u=new URL(window.location.href);u.searchParams.set('org',value);u.searchParams.delete('edit');u.searchParams.delete('copy');u.searchParams.delete('venue');window.history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString());
  }
 
@@ -309,30 +312,75 @@ function SimpleEventFlow(){
  const dayList=perDay?datesBetween(form.date_from,form.date_to):[];
  const WD=['Sv','Pr','Ot','Tr','Ce','Pk','Se'];
  function dayLabel(day){const d=new Date(day+'T12:00:00Z');return WD[d.getUTCDay()]+' '+day.slice(8,10)+'.'+day.slice(5,7)+'.';}
- function daySlot(day){return (form.recurrence_slots||[]).find(x=>x.date===day)||{date:day,start:form.time_from||'09:00',end:form.time_to||'17:00'};}
+ function daySlot(day){return (form.recurrence_slots||[]).find(x=>x.date===day)||{date:day,start:form.time_from||DEFAULT_START,end:form.time_to||defaultEndTime(form.time_from||DEFAULT_START)};}
  function setDayTime(day,key,value){
   const slots=datesBetween(form.date_from,form.date_to).map(d=>{const s=daySlot(d);return d===day?{...s,[key]:value}:s;});
   update('recurrence_slots',slots);
  }
- function chooseRepeat(weekly){
+ function chooseDayTimes(on){
   setForm(before=>{
-   if(weekly)return {...before,schedule_kind:'recurring',recurrence_slots:before.schedule_kind==='recurring'?before.recurrence_slots:[]};
+   if(!on)return {...before,schedule_kind:'once',recurrence_slots:[]};
+   const start=before.time_from||DEFAULT_START,end=before.time_to||defaultEndTime(start);
+   return {...before,schedule_kind:'dated',recurrence_slots:datesBetween(before.date_from,before.date_to).map(date=>({date,start,end}))};
+  });
+ }
+ // Switching how the event takes place keeps the start date and time.
+ function chooseMode(next){
+  setMode(next);
+  setForm(before=>{
+   const start=before.time_from||'',end=before.time_to||'';
+   if(next==='weekly')return {...before,schedule_kind:'recurring',recurrence_slots:before.schedule_kind==='recurring'?before.recurrence_slots:[]};
+   if(next==='dates'){
+    const kept=before.schedule_kind==='dated'?before.recurrence_slots:[];
+    const slots=kept.length?kept:[{date:before.date_from||'',start:start||DEFAULT_START,end:end||defaultEndTime(start||DEFAULT_START)}];
+    return withSlotDates({...before,schedule_kind:'dated',recurrence_slots:slots});
+   }
+   if(next==='single')return {...before,schedule_kind:'once',date_to:'',recurrence_slots:[]};
    return {...before,schedule_kind:'once',recurrence_slots:[]};
   });
   setError('');
  }
- function chooseDayTimes(on){
+ // Chosen days: the first and last day make the event's date range.
+ function withSlotDates(next){
+  const days=(next.recurrence_slots||[]).map(s=>s.date).filter(Boolean).sort();
+  return {...next,date_from:days[0]||'',date_to:days.length>1?days[days.length-1]:''};
+ }
+ function setChosenDay(index,key,value){
   setForm(before=>{
-   if(!on)return {...before,schedule_kind:'once',recurrence_slots:[]};
-   const start=before.time_from||'09:00',end=before.time_to||'17:00';
-   return {...before,schedule_kind:'dated',recurrence_slots:datesBetween(before.date_from,before.date_to).map(date=>({date,start,end}))};
+   const slots=(before.recurrence_slots||[]).map((slot,i)=>{
+    if(i!==index)return slot;
+    const changed={...slot,[key]:value};
+    if(key==='start'&&value&&(!slot.end||slot.end<=value))changed.end=defaultEndTime(value);
+    return changed;
+   });
+   return withSlotDates({...before,recurrence_slots:slots});
   });
+  setError('');
+ }
+ function addChosenDay(){
+  setForm(before=>{
+   const slots=before.recurrence_slots||[];
+   const last=slots[slots.length-1]||{};
+   return withSlotDates({...before,recurrence_slots:[...slots,{date:nextDateAfter(slots,before.date_from),start:last.start||DEFAULT_START,end:last.end||defaultEndTime(last.start||DEFAULT_START)}]});
+  });
+ }
+ function removeChosenDay(index){setForm(before=>withSlotDates({...before,recurrence_slots:(before.recurrence_slots||[]).filter((_,i)=>i!==index)}));}
+ // An empty time field opens at 16:00, and the end two hours after the start.
+ function suggestTime(event,value,apply){
+  if(event.currentTarget.value||!value)return;
+  event.currentTarget.value=value;
+  apply(value);
+ }
+ function setStartTime(value){
+  setForm(before=>({...before,time_from:value,
+   ...(value&&(!before.time_to||before.time_to<=value)&&(!before.date_to||before.date_to===before.date_from)?{time_to:defaultEndTime(value)}:{})}));
+  setError('');
  }
  function openLocation(){setWhereOpen(true);locationRef.current?.scrollIntoView({behavior:'smooth',block:'center'});}
  // Checks the form top to bottom and marks the first field to fix. Before
  // signing in only what needs no account is checked; the place comes after.
  function validateForSubmit({guest=false}={}){
-  const values=perDay||recurring?{...form,time_from:'',time_to:''}:form;
+  const values=perDay||recurring||chosenDays?{...form,time_from:'',time_to:''}:form;
   const first=quickEventIssue(values,{requireVenue:false});
   if(first){fail(first.field,first.message);return false;}
   if(!guest&&!orgId){
@@ -343,8 +391,14 @@ function SimpleEventFlow(){
   catch(e){fail('price',e.message);return false;}
   try{
    if(recurring)countOccurrences(form.date_from,form.date_to,form.recurrence_slots);
+   if(mode==='range'&&(!form.date_to||form.date_to<=form.date_from))throw Error('Norādi beigu datumu, kas ir pēc sākuma datuma.');
+   if(chosenDays){
+    const slots=form.recurrence_slots||[];
+    if(slots.some(s=>!s.date))throw Error('Katrai norisei izvēlies datumu.');
+    if(!savedId&&slots.some(s=>s.date<rigaDate()))throw Error('Norises dienas nevar būt pagātnē.');
+    cleanDatedSlots(slots,form.date_from,form.date_to||form.date_from);
+   }
    if(perDay){
-    if(!form.date_to||form.date_to<=form.date_from)throw Error('Vairāku dienu pasākumam norādi arī beigu datumu.');
     cleanDatedSlots(datesBetween(form.date_from,form.date_to).map(daySlot),form.date_from,form.date_to);
    }
   }catch(e){fail('schedule',e.message);return false;}
@@ -388,7 +442,9 @@ function SimpleEventFlow(){
     ...(placeless?{venue_name:'',address:'',latitude:'',longitude:''}:{}),
     save_venue:false,
     ...(perDay?{recurrence_slots:datesBetween(form.date_from,form.date_to).map(daySlot),time_from:'',time_to:''}:{}),
-    schedule_kind:recurring?'recurring':perDay?'dated':multiDay?'ongoing':'once'};
+    ...(chosenDays?{recurrence_slots:[...(form.recurrence_slots||[])].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start)),time_from:'',time_to:''}:{}),
+    ...(mode==='single'?{date_to:''}:{}),
+    schedule_kind:recurring?'recurring':perDay||chosenDays?'dated':multiDay?'ongoing':'once'};
    let id=savedId;
    if(imageFile){
     const draft=await call('saveEvent',{...fields,...(id?{id}:{}),status:'draft'});
@@ -430,7 +486,7 @@ function SimpleEventFlow(){
   if(imagePreview)URL.revokeObjectURL(imagePreview);setImageFile(file);setImagePreview(URL.createObjectURL(file));setError('');
  }
  function removeImage(){if(imagePreview)URL.revokeObjectURL(imagePreview);setImageFile(null);setImagePreview('');}
- function restart(){clearLocal();setPublishedEdit(false);setForm({...DEFAULT});setSubmitted(null);setSaveVenue(false);removeImage();setExistingCover(false);setSavedId('');setStage('edit');setError('');setNotice('');setCopied(false);setWhereOpen(false);setDescOpen(false);}
+ function restart(){clearLocal();setPublishedEdit(false);setForm({...DEFAULT});setMode('single');setSubmitted(null);setSaveVenue(false);removeImage();setExistingCover(false);setSavedId('');setStage('edit');setError('');setNotice('');setCopied(false);setWhereOpen(false);setDescOpen(false);}
  const shareToken=submitted?.share_token||'';
  const shareUrl=shareToken&&typeof window!=='undefined'?window.location.origin+sharePath(shareToken):'';
  async function copyLink(){
@@ -532,27 +588,43 @@ function SimpleEventFlow(){
 
 
    <section className={'ev-card ev-when'+(['date_from','date_to','time_from','time_to','schedule'].some(bad)?' has-error':'')} aria-label="Kad notiks" data-field="date_from date_to time_from time_to schedule">
-    <div className="ev-when-rows">
+    <fieldset className="ev-when-mode"><legend>Kā notiek</legend><div className="ev-when-mode-grid">
+     {SCHEDULE_MODES.map(([value,label])=><label key={value} className={mode===value?'active':''}>
+      <input type="radio" name="schedule-mode" value={value} checked={mode===value} disabled={publishedEdit&&value!==mode&&(value==='weekly'||mode==='weekly')} onChange={()=>chooseMode(value)}/>{label}</label>)}
+    </div></fieldset>
+    {!chosenDays&&<div className="ev-when-rows">
      <div className="ev-when-row">
       <span className="ev-when-dot" aria-hidden="true"/>
-      <span className="ev-when-label">{recurring?'No':'Sākums'}</span>
+      <span className="ev-when-label">{recurring?'No':mode==='single'?'Datums':'Sākums'}</span>
       <input className="ev-pill" type="date" aria-label={recurring?'Grafika sākuma datums':'Sākuma datums'} {...invalid('date_from')} required min={savedId?undefined:rigaDate()} value={form.date_from||''} onChange={e=>setStartDate(e.target.value)}/>
-      {!recurring&&!perDay&&<input className="ev-pill ev-pill-time" type="time" aria-label="Sākuma laiks" {...invalid('time_from')} value={form.time_from||''} onChange={e=>update('time_from',e.target.value)}/>}
+      {!recurring&&!perDay&&<input className="ev-pill ev-pill-time" type="time" aria-label="Sākuma laiks" {...invalid('time_from')} value={form.time_from||''}
+       onPointerDown={e=>suggestTime(e,DEFAULT_START,setStartTime)} onFocus={e=>suggestTime(e,DEFAULT_START,setStartTime)} onChange={e=>setStartTime(e.target.value)}/>}
      </div>
-     <div className="ev-when-row">
+     {(mode!=='single'||!perDay)&&<div className="ev-when-row">
       <span className="ev-when-dot hollow" aria-hidden="true"/>
-      <span className="ev-when-label">{recurring?'Līdz':'Beigas'}</span>
-      <input className="ev-pill" type="date" aria-label={recurring?'Grafika beigu datums':'Beigu datums'} {...invalid('date_to')} required={recurring} min={form.date_from||undefined} value={recurring?form.date_to||'':form.date_to||form.date_from||''} onChange={e=>setEndDate(e.target.value)}/>
-      {!recurring&&!perDay&&<input className="ev-pill ev-pill-time" type="time" aria-label="Beigu laiks" {...invalid('time_to')} value={form.time_to||''} onChange={e=>update('time_to',e.target.value)}/>}
-     </div>
-    </div>
-    {multiDay&&!recurring&&<label className="ev-when-toggle"><input type="checkbox" checked={perDay} onChange={e=>chooseDayTimes(e.target.checked)}/>Katrai dienai savs laiks</label>}
+      <span className="ev-when-label">{recurring?'Līdz':mode==='single'?'Beidzas':'Beigas'}</span>
+      {mode!=='single'&&<input className="ev-pill" type="date" aria-label={recurring?'Grafika beigu datums':'Beigu datums'} {...invalid('date_to')} required min={form.date_from||undefined} value={form.date_to||''} onChange={e=>setEndDate(e.target.value)}/>}
+      {!recurring&&!perDay&&<input className="ev-pill ev-pill-time" type="time" aria-label="Beigu laiks" {...invalid('time_to')} value={form.time_to||''}
+       onPointerDown={e=>suggestTime(e,defaultEndTime(form.time_from||DEFAULT_START),v=>update('time_to',v))} onFocus={e=>suggestTime(e,defaultEndTime(form.time_from||DEFAULT_START),v=>update('time_to',v))} onChange={e=>update('time_to',e.target.value)}/>}
+     </div>}
+    </div>}
+    {mode==='range'&&multiDay&&<label className="ev-when-toggle"><input type="checkbox" checked={perDay} onChange={e=>chooseDayTimes(e.target.checked)}/>Katrai dienai savs laiks</label>}
     {perDay&&<div className="event-day-times ev-day-times" role="group" aria-label="Katras dienas laiks">
      {dayList.map(day=>{const slot=daySlot(day);return <div className="event-day-time" key={day}>
       <strong>{dayLabel(day)}</strong>
       <label>No<input type="time" value={slot.start} onChange={e=>setDayTime(day,'start',e.target.value)}/></label>
       <label>Līdz<input type="time" value={slot.end} onChange={e=>setDayTime(day,'end',e.target.value)}/></label>
      </div>;})}
+    </div>}
+    {chosenDays&&<div className="ev-dates" role="group" aria-label="Norises dienas">
+     {(form.recurrence_slots||[]).map((slot,index)=><div className="ev-date-row" key={index}>
+      <input className="ev-pill" type="date" aria-label={'Norises diena '+(index+1)} min={savedId?undefined:rigaDate()} value={slot.date||''} onChange={e=>setChosenDay(index,'date',e.target.value)}/>
+      <input className="ev-pill ev-pill-time" type="time" aria-label={'Sākuma laiks, '+(index+1)+'. diena'} value={slot.start||''} onChange={e=>setChosenDay(index,'start',e.target.value)}/>
+      <input className="ev-pill ev-pill-time" type="time" aria-label={'Beigu laiks, '+(index+1)+'. diena'} value={slot.end||''} onChange={e=>setChosenDay(index,'end',e.target.value)}/>
+      <button type="button" className="ev-date-remove" aria-label={'Noņemt '+(index+1)+'. dienu'} disabled={(form.recurrence_slots||[]).length<2} onClick={()=>removeChosenDay(index)}>✕</button>
+     </div>)}
+     <button type="button" className="ev-date-add" disabled={(form.recurrence_slots||[]).length>=62} onClick={addChosenDay}>+ Pievienot dienu</button>
+     <p className="ev-hint">Piemēram, treniņi vai nodarbības dažādās dienās. Katrai dienai var būt savs laiks.</p>
     </div>}
     {recurring&&<div className="ev-weekly">
      {savedId&&recurrenceEditScope(form)==='series'&&<p className="ev-hint">Izmaiņas attiecas uz visu sēriju; vienu norisi atsevišķi šeit nemaina.</p>}
@@ -613,8 +685,6 @@ function SimpleEventFlow(){
      <label>No, EUR<input required {...invalid('price')} type="number" min="0" step="0.01" inputMode="decimal" value={form.price_min??''} onChange={e=>update('price_min',e.target.value)}/></label>
      <label>Līdz, EUR<input required type="number" min="0" step="0.01" inputMode="decimal" value={form.price_max??''} onChange={e=>update('price_max',e.target.value)}/></label>
     </div>}
-    <label className="ev-option"><Icon name="repeat"/><span>Atkārtojas</span>
-     <select value={recurring?'weekly':'no'} onChange={e=>chooseRepeat(e.target.value==='weekly')}><option value="no">Nē</option><option value="weekly">Katru nedēļu</option></select></label>
     {errorFor('category','price_status','price')}
    </section>
 
@@ -622,7 +692,7 @@ function SimpleEventFlow(){
     <p className="ev-hint">{submitNote}</p>
     <button className="ev-primary" type="submit" disabled={busy||viewer}>{busy?'Saglabā…':primaryLabel}</button>
     {!publishedEdit&&<button type="button" className="ev-secondary" disabled={busy||viewer} onClick={()=>save('draft')}>{account&&orgId?'Saglabāt melnrakstu':'Saglabāt ierīcē'}</button>}
-    {!publishedEdit&&<button type="button" className="text-button ev-reset" onClick={()=>{if(window.confirm('Notīrīt aizpildīto formu? Ievadītais tiks dzēsts no šīs ierīces.')){clearLocal();setForm({...DEFAULT});setSaveVenue(false);setSavedId('');removeImage();setNotice('Forma notīrīta.');}}}>Notīrīt formu</button>}
+    {!publishedEdit&&<button type="button" className="text-button ev-reset" onClick={()=>{if(window.confirm('Notīrīt aizpildīto formu? Ievadītais tiks dzēsts no šīs ierīces.')){clearLocal();setForm({...DEFAULT});setMode('single');setSaveVenue(false);setSavedId('');removeImage();setNotice('Forma notīrīta.');}}}>Notīrīt formu</button>}
    </div>
   </form>}
 

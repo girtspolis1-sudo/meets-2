@@ -2,7 +2,7 @@
 import {countOccurrences} from '../../lib/event-schedule.js';
 const WEEK=['Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena','Svētdiena'];
 export default function WeeklySchedule({slots=[],onChange,dateFrom,dateTo}){
- function add(day){if(slots.length>=14)return;onChange([...slots,{weekday:day,start:'17:00',end:'18:00'}]);}
+ function add(day){if(slots.length>=14)return;onChange([...slots,{weekday:day,start:'16:00',end:'18:00'}]);}
  function change(index,key,value){onChange(slots.map((s,i)=>i===index?{...s,[key]:value}:s));}
  function del(index){onChange(slots.filter((_,i)=>i!==index));}
  let count=null;

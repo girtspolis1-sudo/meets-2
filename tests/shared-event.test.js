@@ -42,11 +42,13 @@ test('weekly schedule lists weekdays and the period',()=>{
 });
 
 test('per-day times are listed and long lists are shortened',()=>{
- const slots=Array.from({length:9},(_,i)=>({date:'2026-11-'+String(10+i),start:'10:00',end:'12:00'}));
+ const slots=Array.from({length:9},(_,i)=>({date:'2026-11-'+String(10+i),start:i?'11:00':'10:00',end:'12:00'}));
  const lines=scheduleLines({schedule_kind:'dated',date_from:'2026-11-10',date_to:'2026-11-18',recurrence_slots:slots});
  assert.equal(lines.length,6);
  assert.equal(lines[0],'Ot, 10. nov. 10:00–12:00');
  assert.equal(lines.at(-1),'un vēl 4 dienas');
+ const same=slots.map(slot=>({...slot,start:'10:00'}));
+ assert.deepEqual(scheduleLines({schedule_kind:'dated',date_from:'2026-11-10',date_to:'2026-11-18',recurrence_slots:same}),['10.–18. novembris','Katru dienu 10:00–12:00']);
 });
 
 test('place lines for in-person, online and hybrid events',()=>{
@@ -80,4 +82,14 @@ test('status note explains private and waiting events',()=>{
  assert.match(sharedStatusNote({visibility:'private',status:'private'}),/Privāts/);
  assert.match(sharedStatusNote({visibility:'public',status:'pending_review'}),/gaida MEETS pārbaudi/);
  assert.match(sharedStatusNote({visibility:'public',status:'published',event_id:TOKEN}),/^Publisks pasākums — redzams MEETS kartē/);
+});
+
+test('flyer date mark shows weekdays, chosen days or a run of days',async()=>{
+ const {flyerDateBadge,scheduleLines}=await import('../lib/shared-event.js');
+ assert.deepEqual(flyerDateBadge({date_from:'2026-11-08'}),{kind:'day',main:'8',sub:'NOV'});
+ assert.deepEqual(flyerDateBadge({date_from:'2026-11-08',date_to:'2026-11-10'}),{kind:'range',main:'8–10',sub:'NOV'});
+ assert.deepEqual(flyerDateBadge({date_from:'2026-11-08',date_to:'2026-11-30',schedule_kind:'recurring',recurrence_slots:[{weekday:6},{weekday:3}]}),{kind:'weekly',main:'TR · SE',sub:'8.–30. NOV'});
+ const dated={date_from:'2026-11-08',date_to:'2026-12-02',schedule_kind:'dated',recurrence_slots:['2026-11-08','2026-11-15','2026-12-02'].map(date=>({date,start:'17:00',end:'18:30'}))};
+ assert.deepEqual(flyerDateBadge(dated),{kind:'dates',main:'8 · 15 · 2',sub:'NOV – DEC'});
+ assert.deepEqual(scheduleLines(dated),['8., 15. nov.; 2. dec.','17:00–18:30']);
 });
