@@ -12,6 +12,8 @@ import {rigaTodayIso,rigaClockMinutes,addIsoDays} from '../../lib/event-date.js'
 import {eventGroup,matchesAudience,sourceType} from '../../lib/home-category-filters.js';
 import {countLabel,dayHeading,periodRange} from '../../lib/map-nearby.js';
 import {isOver,listDay,splitForList} from '../../lib/catalog-list.js';
+import {NEAR_PLACES,RADIUS_CHOICES,distanceKm,nearPlace,withinRadius} from '../../lib/event-calendar.js';
+import EventCalendar from './event-calendar.jsx';
 
 // The same time windows as the map.
 const PERIOD_CHIPS=[['all','Visi'],['today','Šodien'],['tomorrow','Rīt'],['weekend','Nedēļas nogalē'],['7days','7 dienas'],['30days','30 dienas']];
@@ -19,6 +21,8 @@ const PERIODS=new Set(PERIOD_CHIPS.map(([key])=>key));
 // Older shared links used other names.
 const LEGACY_PERIODS={'3days':'7days',week:'7days',month:'30days'};
 const CARD_PAGE=40;
+const VIEWS=[['cards','Saraksts'],['calendar','Kalendārs'],['table','Tabula']];
+const LOCATION_CHOICE_KEY='meets_location_choice_v1';
 
 const pageSize=50;
 const mobileFilterKeys=new Set(['date_from','title','municipality','event_type','primary_category','price_status']);
@@ -59,12 +63,14 @@ export default function EventCatalog(){
  const [shown,setShown]=useState(CARD_PAGE);
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [showLong,setShowLong]=useState(false);
+ const [nearMessage,setNearMessage]=useState('');
  // Minutes in Riga, so today's events drop off the list once they are over.
  const [clock,setClock]=useState(()=>rigaClockMinutes());
  useEffect(()=>{const t=setInterval(()=>setClock(rigaClockMinutes()),60000);return()=>clearInterval(t);},[]);
  useEffect(()=>{
   const p=new URLSearchParams(window.location.search);
   setPlaceFilter(p.get('place')||'');
+  if(['calendar','table'].includes(p.get('view')))setViewMode(p.get('view'));
   const filters={};
   for(const [from,to] of [['q','title'],['price','price_status'],['municipality','municipality'],['country','country_code'],['subcategory','primary_category'],['type','event_type']]){
    if(p.get(from))filters[to]=p.get(from);
@@ -101,8 +107,14 @@ export default function EventCatalog(){
   const set=(key,value)=>value?url.searchParams.set(key,value):url.searchParams.delete(key);
   set('q',columnFilters.title);set('municipality',columnFilters.municipality);set('type',columnFilters.event_type);
   set('price',columnFilters.price_status);set('period',period==='all'?'':period);set('place',placeFilter);
+  set('view',viewMode==='cards'?'':viewMode);
+  // A town and radius go in the address; the browser's own position does not.
+  const near=shared.radius>0&&sharedOrigin;
+  set('radius',near?String(shared.radius):'');
+  set('lat',near&&sharedOrigin.source!=='browser'?String(Number(sharedOrigin.lat.toFixed(4))):'');
+  set('lon',near&&sharedOrigin.source!=='browser'?String(Number(sharedOrigin.lon.toFixed(4))):'');
   window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
- },[columnFilters,period,placeFilter]);
+ },[columnFilters,period,placeFilter,viewMode,shared.radius,sharedOrigin]);
 
  const rows=data?.events||[];
  const availablePlaces=useMemo(()=>placesFromEvents(rows),[rows]);
@@ -115,7 +127,8 @@ export default function EventCatalog(){
   mapStatuses:[...new Set(rows.map(event=>display(event,'map_status')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv'))
  }),[rows]);
 
- const filtered=useMemo(()=>{
+ // Every filter except the time window: the calendar picks its own days.
+ const matching=useMemo(()=>{
  const query=String(columnFilters.title||'').trim().toLocaleLowerCase('lv');
  const otherFilters={...columnFilters};
  delete otherFilters.title;
@@ -129,14 +142,12 @@ export default function EventCatalog(){
   if(shared.competition&&event.competition_key!==shared.competition)return false;
   if(shared.from&&String(event.date_to||event.date_from||'')<shared.from)return false;
   if(shared.to&&String(event.date_from||'')>shared.to)return false;
-  if(shared.radius>0){
-   const center=sharedOrigin||{lat:56.9496,lon:24.1052};
-   const lat=Number(event.latitude),lon=Number(event.longitude);
-   if(!Number.isFinite(lat)||!Number.isFinite(lon))return false;
-   const deg=Math.PI/180,dLat=(lat-center.lat)*deg,dLon=(lon-center.lon)*deg;
-   const a=Math.sin(dLat/2)**2+Math.cos(center.lat*deg)*Math.cos(lat*deg)*Math.sin(dLon/2)**2;
-   if(6371*2*Math.asin(Math.min(1,Math.sqrt(a)))>shared.radius)return false;
-  }
+  if(shared.radius>0&&!withinRadius(event,sharedOrigin||nearPlace('riga'),shared.radius))return false;
+  return true;
+ });
+ },[rows,columnFilters,shared,sharedOrigin,placeFilter]);
+ const filtered=useMemo(()=>{
+ return matching.filter(event=>{
   if(period==='all')return true;
   const today=rigaTodayIso(),range=periodRange(period,today);
   return String(event.date_from||'')<=range.to&&String(event.date_to||event.date_from||'')>=range.from;
@@ -147,7 +158,7 @@ export default function EventCatalog(){
   if(!bv)return -1;
   return String(av).localeCompare(String(bv),'lv',{numeric:true})*direction||a.id.localeCompare(b.id);
  });
- },[rows,columnFilters,sort,direction,period,shared,sharedOrigin,placeFilter]);
+ },[matching,sort,direction,period]);
 
  const today=rigaTodayIso();
  // Cards: what is still ahead, today's events by start time; long exhibitions apart.
@@ -156,6 +167,8 @@ export default function EventCatalog(){
   if(sort!=='date_from')split.current=filtered.filter(event=>split.current.includes(event));
   return split;
  },[filtered,today,clock,sort]);
+ // The calendar counts what is still ahead, whatever the time chips say.
+ const calendarSplit=useMemo(()=>splitForList(matching,today,clock),[matching,today,clock]);
  const tableRows=useMemo(()=>filtered.filter(event=>!isOver(event,today,clock)),[filtered,today,clock]);
  const dayCounts=useMemo(()=>{const counts=new Map();for(const event of listed.current){const day=listDay(event,today);counts.set(day,(counts.get(day)||0)+1);}return counts;},[listed,today]);
  const pages=Math.max(1,Math.ceil(tableRows.length/pageSize));
@@ -261,6 +274,30 @@ export default function EventCatalog(){
   }
  }
 
+ // "Kur": all of Latvia, the browser's position or a town, with a radius.
+ const nearKey=!(shared.radius>0)||!sharedOrigin?'':sharedOrigin.source==='browser'?'me'
+  :NEAR_PLACES.find(place=>distanceKm(place,sharedOrigin)<1)?.key||'custom';
+ const nearLabel=nearKey&&nearKey!=='custom'&&nearKey!=='me'?nearPlace(nearKey).label:sharedOrigin?.label||'Izvēlētā vieta';
+ function chooseNear(origin,radius){
+  setSharedOrigin(origin);
+  setShared(current=>({...current,radius:origin?(radius||current.radius||25):0}));
+  setShown(CARD_PAGE);setPage(0);setNearMessage('');
+  if(origin)try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(origin));}catch{}
+ }
+ function changeNear(value){
+  if(!value){chooseNear(null);return;}
+  if(value==='me'){
+   if(!navigator.geolocation){setNearMessage('Pārlūks nevar noteikt atrašanās vietu. Izvēlies pilsētu.');return;}
+   setNearMessage('Nosaka atrašanās vietu…');
+   navigator.geolocation.getCurrentPosition(
+    position=>chooseNear({lat:position.coords.latitude,lon:position.coords.longitude,label:'Mana atrašanās vieta',source:'browser'}),
+    ()=>setNearMessage('Atrašanās vietu neizdevās noteikt. Izvēlies pilsētu.'),
+    {enableHighAccuracy:false,timeout:10000,maximumAge:600000});
+   return;
+  }
+  const place=nearPlace(value);
+  if(place)chooseNear({lat:place.lat,lon:place.lon,label:place.label,source:'place'});
+ }
  const filterCount=activeFilterCount-(columnFilters.title?1:0)+(placeFilter?1:0);
  const resetAll=()=>{setColumnFilters({});setPeriod('all');setPlaceFilter('');setShared({});setSharedOrigin(null);setPage(0);setShown(CARD_PAGE);};
  // Chips for each active choice, so one can be removed without opening the filters.
@@ -270,9 +307,10 @@ export default function EventCatalog(){
   columnFilters.price_status&&{label:prices[columnFilters.price_status]||columnFilters.price_status,clear:()=>changeColumn('price_status','')},
   columnFilters.primary_category&&{label:columnFilters.primary_category,clear:()=>changeColumn('primary_category','')},
   placeFilter&&{label:availablePlaces.find(place=>place.key===placeFilter)?.name||'Norises vieta',clear:()=>{setPlaceFilter('');setShown(CARD_PAGE);}},
-  sharedFilterCount-(placeFilter?1:0)>0&&{label:'Atlase no kartes',clear:()=>{setShared({});setSharedOrigin(null);setShown(CARD_PAGE);}}
+  shared.radius>0&&{label:(nearKey==='me'?'Mana vieta':nearLabel)+' · līdz '+shared.radius+' km',clear:()=>chooseNear(null)},
+  sharedFilterCount-(placeFilter?1:0)-(shared.radius>0?1:0)>0&&{label:'Atlase no kartes',clear:()=>{setShared(current=>({radius:current.radius}));setShown(CARD_PAGE);}}
  ].filter(Boolean);
- const resultCount=viewMode==='cards'?listed.current.length:tableRows.length;
+ const resultCount=viewMode==='cards'?listed.current.length:viewMode==='calendar'?calendarSplit.current.length:tableRows.length;
 
  return <>
   {error&&<div className="error-message" role="alert">{error} {data&&'Zemāk saglabāti pēdējie veiksmīgi ielādētie dati.'}</div>}
@@ -288,9 +326,26 @@ export default function EventCatalog(){
     aria-controls="catalog-filters" onClick={()=>setFiltersOpen(open=>!open)}>Filtri{filterCount?<span>{filterCount}</span>:null}</button>
   </div>
 
-  <div className="map-chip-row catalog-period-chips" role="group" aria-label="Kad">
+  {viewMode!=='calendar'&&<div className="map-chip-row catalog-period-chips" role="group" aria-label="Kad">
    {PERIOD_CHIPS.map(([value,label])=><button key={value} type="button" aria-pressed={period===value} className={period===value?'active':''}
     onClick={()=>{setPeriod(value);setPage(0);setShown(CARD_PAGE);}}>{label}</button>)}
+  </div>}
+
+  <div className="catalog-near" role="group" aria-label="Kur">
+   <label className="catalog-near-place"><span>Kur</span>
+    <select value={nearKey} onChange={e=>changeNear(e.target.value)}>
+     <option value="">Visa Latvija</option>
+     <option value="me">Mana atrašanās vieta</option>
+     {nearKey==='custom'&&<option value="custom">{sharedOrigin?.label||'Izvēlētā vieta'}</option>}
+     <optgroup label="Pilsētas">{NEAR_PLACES.map(place=><option key={place.key} value={place.key}>{place.label}</option>)}</optgroup>
+    </select>
+   </label>
+   {shared.radius>0&&<label className="catalog-near-radius"><span>Rādiuss</span>
+    <select value={shared.radius} onChange={e=>{setShared(current=>({...current,radius:Number(e.target.value)}));setShown(CARD_PAGE);setPage(0);}}>
+     {[...new Set([...RADIUS_CHOICES,shared.radius])].sort((a,b)=>a-b).map(km=><option key={km} value={km}>{km} km</option>)}
+    </select>
+   </label>}
+   {nearMessage&&<small role="status">{nearMessage}</small>}
   </div>
 
   {filtersOpen&&<div id="catalog-filters" className="catalog-card-filters" aria-label="Filtri">
@@ -307,10 +362,12 @@ export default function EventCatalog(){
   </div>}
 
   <div className="catalog-result-line">
-   <p aria-live="polite">{data?<><strong>{countLabel(resultCount)}</strong>{period!=='all'?' '+PERIOD_CHIPS.find(([key])=>key===period)?.[1].toLocaleLowerCase('lv'):''}</>:'Ielādē pasākumus…'}</p>
+   <p aria-live="polite">{data?<><strong>{countLabel(resultCount)}</strong>{period!=='all'&&viewMode!=='calendar'?' '+PERIOD_CHIPS.find(([key])=>key===period)?.[1].toLocaleLowerCase('lv'):''}</>:'Ielādē pasākumus…'}</p>
    <div className="catalog-result-links">
     <a href={mapHref}>Skatīt kartē</a>
-    <button type="button" className="text-button" onClick={()=>setViewMode(mode=>mode==='cards'?'table':'cards')}>{viewMode==='cards'?'Tabula un Excel':'Kartītes'}</button>
+    <div className="catalog-view-switch" role="group" aria-label="Skats">
+     {VIEWS.map(([value,label])=><button key={value} type="button" aria-pressed={viewMode===value} onClick={()=>{setViewMode(value);setShown(CARD_PAGE);}}>{label}</button>)}
+    </div>
    </div>
   </div>
 
@@ -348,6 +405,8 @@ export default function EventCatalog(){
      </div>}
     </div>
    :<>
+    {viewMode==='calendar'&&<EventCalendar events={calendarSplit.current} longCount={calendarSplit.longRunning.length} today={today}
+     onOpen={setSelected} onShowLong={()=>{setViewMode('cards');setPeriod('all');setShowLong(true);}}/>}
     {/* Day headings with how many events each day has: Šodien · 12, Rīt · 8, Sestdiena, 7. novembris · 5 */}
     {viewMode==='cards'&&<div className="catalog-card-grid meets-catalog-image-grid">{cards.map((event,index)=>{
      const day=sort==='date_from'?listDay(event,today):'';
