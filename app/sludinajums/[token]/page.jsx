@@ -42,11 +42,10 @@ export default async function FlyerPage({params}){
  return <div className="flyer-screen">
   <FlyerToolbar backHref={sharePath(token)}/>
   <article className={'flyer-sheet'+(image?' has-image':'')} aria-label={'Sludinājums: '+event.title}>
-   <header className="flyer-top">
+   <div className="flyer-top">
     {image?<img src={image} alt=""/>:<MeetsSunMark className="flyer-mark"/>}
-    <span className="flyer-brand">meets.lv</span>
     {badge&&<span className="flyer-date"><strong>{badge.day}</strong><small>{badge.month}</small></span>}
-   </header>
+   </div>
    <div className="flyer-body">
     <p className="flyer-category">{event.category||'Pasākums'}</p>
     <h1 className="flyer-title">{event.title}</h1>
@@ -55,7 +54,7 @@ export default async function FlyerPage({params}){
     {price&&<p className="flyer-price">{price}</p>}
     {text&&<p className="flyer-text" style={{'--flyer-text-lines':textLines}}>{text}</p>}
    </div>
-   <footer className="flyer-foot">
+   <div className="flyer-foot">
     <svg className="flyer-qr" viewBox={`-4 -4 ${qr.size+8} ${qr.size+8}`} role="img" aria-label="QR kods uz pasākuma lapu" shapeRendering="crispEdges">
      <rect x="-4" y="-4" width={qr.size+8} height={qr.size+8} fill="#fff"/>
      <path d={qr.d} fill="#1b2430"/>
@@ -65,8 +64,9 @@ export default async function FlyerPage({params}){
      {org&&<span>Organizē: {org}</span>}
      <span className="flyer-link">{link.replace(/^https?:\/\//,'')}</span>
     </div>
-    <span className="flyer-foot-brand">meets<span>.</span>lv</span>
-   </footer>
+   </div>
+   {/* The one MEETS mark, along the bottom edge of the sheet. */}
+   <div className="flyer-bottom"><span className="flyer-foot-brand">meets<span>.</span>lv</span></div>
   </article>
  </div>;
 }

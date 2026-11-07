@@ -21,25 +21,25 @@
 
 /* Flyer: sizes are in container units, so the same sheet scales on screen and
    prints as one A4 page (210 × 297 mm). */
-.flyer-screen{display:grid;justify-items:center;gap:14px;padding:14px 0 40px}
+.flyer-screen{container-type:inline-size;display:grid;justify-items:center;gap:14px;padding:14px 0 40px}
 .flyer-toolbar{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:min(100%,794px)}
 .flyer-toolbar small{flex-basis:100%;text-align:center;font-size:12px;color:var(--teksts-2,#4a5565)}
-.flyer-sheet{container-type:inline-size;position:relative;display:flex;flex-direction:column;width:min(100%,794px);aspect-ratio:210/297;
+/* A4 with its height set from the width, and fixed rows, so every browser
+   keeps the footer and the MEETS strip at the bottom edge. */
+.flyer-sheet{container-type:inline-size;position:relative;display:grid;grid-template-rows:44cqw minmax(0,1fr) auto 7cqw;
+ width:min(100cqw,794px);height:calc(min(100cqw,794px)*297/210);
  overflow:hidden;border-radius:6px;background:#fff;color:var(--tinte,#1b2430);font-family:var(--font-body);
  box-shadow:0 12px 40px rgba(27,36,48,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.flyer-top{position:relative;flex:none;height:44cqw;background:linear-gradient(135deg,var(--karmins,#9e3039),var(--karmins-dark,#7a2029))}
+.flyer-top{position:relative;min-height:0;background:linear-gradient(135deg,var(--karmins,#9e3039),var(--karmins-dark,#7a2029))}
 .flyer-top img{display:block;width:100%;height:100%;object-fit:cover}
 .flyer-mark{position:absolute;right:-4cqw;top:2cqw;width:50cqw;height:50cqw;color:#fff;opacity:.14}
-.flyer-brand{position:absolute;left:7cqw;top:5cqw;padding:1cqw 2.2cqw;border-radius:99px;background:rgba(27,36,48,.55);
- font-family:var(--font-display);font-size:2.6cqw;font-weight:700;letter-spacing:-.03em;color:#fff}
-.flyer-sheet:not(.has-image) .flyer-brand{background:transparent;padding:0;font-size:3.4cqw}
 .flyer-date{position:absolute;left:7cqw;bottom:-7cqw;z-index:1;display:grid;justify-items:center;width:16cqw;padding:2cqw 0 1.6cqw;
  border-radius:3cqw;background:#fff;box-shadow:0 1cqw 3cqw rgba(27,36,48,.18)}
 .flyer-date strong{font-family:var(--font-display);font-size:7cqw;line-height:1;color:var(--tinte,#1b2430)}
 .flyer-date small{margin-top:.8cqw;font-size:2.4cqw;font-weight:800;letter-spacing:.12em;color:var(--karmins,#9e3039)}
 /* Body height and block sizes match flyerTextLines() in lib/shared-event.js:
    only the description gives way, by whole lines. */
-.flyer-body{display:flex;flex-direction:column;flex:1;gap:2cqw;min-height:0;padding:9.5cqw 7cqw 4cqw}
+.flyer-body{display:flex;flex-direction:column;gap:2cqw;overflow:hidden;min-height:0;padding:9.5cqw 7cqw 4cqw}
 .flyer-body>*{flex-shrink:0}
 .flyer-category{margin:0;font-size:2.3cqw;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--karmins,#9e3039)}
 .flyer-title{margin:0;font-family:var(--font-display);font-size:6.2cqw;font-weight:700;line-height:1.08;letter-spacing:-.03em;
@@ -53,15 +53,16 @@
  color:var(--karmins-dark,#7a2029);font-size:2.6cqw;font-weight:800}
 .flyer-text{margin:0;font-size:2.45cqw;line-height:1.5;color:#3d4757;display:-webkit-box;-webkit-line-clamp:var(--flyer-text-lines,4);
  -webkit-box-orient:vertical;overflow:hidden}
-.flyer-foot{flex:none;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:4cqw;padding:3.8cqw 7cqw;
+.flyer-foot{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4cqw;padding:3.2cqw 7cqw;
  border-top:.3cqw solid var(--migla,#d8dee6);background:var(--sniegs,#fafbfc)}
-.flyer-qr{display:block;width:18cqw;height:18cqw}
+.flyer-qr{display:block;width:17cqw;height:17cqw}
 .flyer-foot-text{display:grid;gap:.9cqw;min-width:0}
 .flyer-foot-text strong{font-size:3.1cqw}
 .flyer-foot-text span{font-size:2.3cqw;font-weight:600}
 .flyer-foot-text .flyer-link{font-size:1.8cqw;font-weight:500;color:var(--teksts-2,#4a5565);overflow-wrap:anywhere}
-.flyer-foot-brand{font-family:var(--font-display);font-size:4.6cqw;font-weight:700;letter-spacing:-.04em}
-.flyer-foot-brand span{color:var(--karmins,#9e3039)}
+.flyer-bottom{display:flex;align-items:center;justify-content:center;background:var(--tinte,#1b2430);color:#fff}
+.flyer-foot-brand{font-family:var(--font-display);font-size:3.8cqw;font-weight:700;line-height:1;letter-spacing:-.04em}
+.flyer-foot-brand span{color:#e0636d}
 
 @media print{
  @page{size:A4;margin:0}
@@ -70,5 +71,5 @@
  body:has(.flyer-sheet) main#saturs{margin:0!important;padding:0!important;max-width:none!important}
  .flyer-toolbar{display:none!important}
  .flyer-screen{display:block;padding:0}
- .flyer-sheet{width:210mm;height:296.5mm;aspect-ratio:auto;border-radius:0;box-shadow:none}
+ .flyer-sheet{width:210mm;height:296.5mm;border-radius:0;box-shadow:none}
 }
