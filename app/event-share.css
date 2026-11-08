@@ -30,9 +30,8 @@
 /* On a phone the back arrow already leads to the organizer's events or the public list. */
 @media(max-width:420px){.shared-nav-links .shared-nav-link:nth-child(2){display:none}}
 .meets-shared-event .meets-detail-hero{margin-top:0}
-.shared-event-cover-fallback{display:grid;place-items:center;height:200px;
- background:linear-gradient(135deg,var(--karmins,#9e3039),var(--karmins-dark,#7a2029));color:#fff}
-.shared-event-cover-fallback svg{width:120px;height:120px;opacity:.3}
+.shared-event-cover-fallback{display:grid;place-items:center;height:200px;background:#eef1f5;color:var(--tinte,#1b2430)}
+.shared-event-cover-fallback svg{width:120px;height:120px;opacity:.16}
 .shared-event-organizer{margin:6px 0 0;color:var(--teksts-2,#4a5565);font-size:14px}
 .shared-event-organizer a{color:var(--karmins,#9e3039);font-weight:700}
 .shared-event-facts{display:grid;gap:8px;margin:0}
@@ -55,9 +54,9 @@
  width:min(100cqw,794px);height:calc(min(100cqw,794px)*297/210);
  overflow:hidden;border-radius:6px;background:#fff;color:var(--tinte,#1b2430);font-family:var(--font-body);
  box-shadow:0 12px 40px rgba(27,36,48,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.flyer-top{position:relative;min-height:0;background:linear-gradient(135deg,var(--karmins,#9e3039),var(--karmins-dark,#7a2029))}
+.flyer-top{position:relative;min-height:0;background:#eef1f5}
 .flyer-top img{display:block;width:100%;height:100%;object-fit:cover}
-.flyer-mark{position:absolute;right:-4cqw;top:2cqw;width:50cqw;height:50cqw;color:#fff;opacity:.14}
+.flyer-mark{position:absolute;right:-4cqw;top:2cqw;width:50cqw;height:50cqw;color:var(--tinte,#1b2430);opacity:.1}
 .flyer-date{position:absolute;left:7cqw;bottom:-7cqw;z-index:1;display:grid;justify-items:center;width:16cqw;padding:2cqw 0 1.6cqw;
  border-radius:3cqw;background:#fff;box-shadow:0 1cqw 3cqw rgba(27,36,48,.18)}
 .flyer-date strong{font-family:var(--font-display);font-size:7cqw;line-height:1;color:var(--tinte,#1b2430)}
