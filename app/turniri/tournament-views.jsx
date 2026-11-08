@@ -1,12 +1,13 @@
 // Read-only views of a tournament, shared by the public page, the court
 // secretary page, the organizer wizard and the print sheets.
-import {FORMATS,finalPlaces,groupsOf,hasScore,sideName,sportOf,standings,toMin,winnerSide} from '../../lib/tournament.js';
+import {FORMATS,finalGroupStandings,finalPlaces,groupsOf,hasScore,sideName,sportOf,standings,toMin,winnerSide} from '../../lib/tournament.js';
 
 export function contextOf(data){
  return {teams:data?.teams||[],games:data?.games||[],sport:data?.sport||'other',places:data?.settings?.places||[]};
 }
 export function stageLabel(game){
  if(game.stage==='group')return game.group?game.group+' grupa':'Grupa';
+ if(game.stage==='final')return 'Finālgrupa';
  return game.label||(game.place?'Par '+game.place+'. vietu':'Izslēgšanas spēle');
 }
 const DATE=new Intl.DateTimeFormat('lv-LV',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
@@ -71,16 +72,23 @@ export function Schedule({data,games,showScores=true,moments={},focusTeam='',sho
 
 // One group table with the columns the sport ranks by.
 export function GroupTable({data,group,focusTeam=''}){
+ return <TableView data={data} id={'tn-group-'+group} title={group+' grupa'} table={standings(group,data.teams||[],data.games||[],data.sport)} focusTeam={focusTeam}/>;
+}
+// The final group: the best of every group, shown by name once the groups are over.
+export function FinalGroupTable({data,focusTeam=''}){
+ return <TableView data={data} id="tn-group-final" title="Finālgrupa" table={finalGroupStandings(contextOf(data))} focusTeam={focusTeam}/>;
+}
+function TableView({data,id,title,table,focusTeam}){
  const sport=sportOf(data.sport);
- const {rows,complete}=standings(group,data.teams||[],data.games||[],data.sport);
+ const {rows,complete}=table;
  const sets=sport.rank==='sets';
  const draws=sport.draw;
  const primary=sport.rank==='wins'?'U':'P';
- return <section className="tn-table" aria-labelledby={'tn-group-'+group}>
-  <h3 id={'tn-group-'+group}>{group} grupa{complete&&<small>Noslēgta</small>}</h3>
+ return <section className="tn-table" aria-labelledby={id}>
+  <h3 id={id}>{title}{complete&&<small>Noslēgta</small>}</h3>
   <table>
    <thead><tr><th scope="col" className="tn-pos">#</th><th scope="col" className="tn-team">Komanda</th><th scope="col" title="Spēles">S</th><th scope="col" title="Uzvaras">U</th>{draws&&<th scope="col" title="Neizšķirti">N</th>}<th scope="col" title="Zaudējumi">Z</th><th scope="col" title={sets?'Seti':'Gūti un zaudēti'}>{sets?'Seti':'G:Z'}</th>{sport.rank!=='wins'&&<th scope="col" title="Punkti" className="tn-points">P</th>}</tr></thead>
-   <tbody>{rows.map((r,i)=><tr key={r.key} className={focusTeam===r.key?'is-mine':''}>
+   <tbody>{rows.map((r,i)=><tr key={r.ref} className={r.key&&focusTeam===r.key?'is-mine':''}>
     <td className="tn-pos">{i+1}</td><th scope="row" className="tn-team">{r.name}</th><td>{r.gp}</td><td className={primary==='U'?'tn-points':''}>{r.w}</td>{draws&&<td>{r.d}</td>}<td>{r.l}</td><td className="tn-ratio">{r.f}:{r.a}</td>{sport.rank!=='wins'&&<td className="tn-points">{r.p}</td>}
    </tr>)}</tbody>
   </table>
@@ -89,7 +97,11 @@ export function GroupTable({data,group,focusTeam=''}){
 export function GroupTables({data,focusTeam=''}){
  const groups=Object.keys(groupsOf(data.teams||[]));
  if(!groups.length)return <p className="tn-empty">Šim turnīram nav grupu.</p>;
- return <div className="tn-tables">{groups.map(g=><GroupTable key={g} data={data} group={g} focusTeam={focusTeam}/>)}</div>;
+ const final=(data.games||[]).some(g=>g.stage==='final');
+ return <div className="tn-tables">
+  {final&&<FinalGroupTable data={data} focusTeam={focusTeam}/>}
+  {groups.map(g=><GroupTable key={g} data={data} group={g} focusTeam={focusTeam}/>)}
+ </div>;
 }
 
 // Final places as far as they are decided.

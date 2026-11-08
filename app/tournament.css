@@ -322,3 +322,38 @@
  .tn-sheet:last-child{break-after:auto}
  .tn-tabs{position:static}
 }
+
+/* Step 1: the format, as pictures. */
+.tn-formats{display:grid;gap:14px}
+.tn-formats-head h2{margin:0 0 4px;font-family:var(--font-display);font-size:clamp(22px,4vw,30px);letter-spacing:-.02em}
+.tn-formats-head p{margin:0;font-size:15px;color:var(--teksts-2,#4a5565)}
+.tn-format-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin:0;padding:0;border:0;min-width:0}
+.tn-format-card{position:relative;display:grid;grid-template-columns:112px minmax(0,1fr);gap:14px;align-items:center;padding:14px;border:1.5px solid var(--migla,#d8dee6);border-radius:16px;background:#fff;cursor:pointer}
+.tn-format-card input{position:absolute;opacity:0;pointer-events:none}
+.tn-format-card.is-on{border-color:var(--tinte,#1b2430);box-shadow:inset 0 0 0 1px var(--tinte,#1b2430);background:#f4f6f9}
+.tn-format-card:has(input:focus-visible){outline:3px solid var(--tinte,#1b2430);outline-offset:2px}
+.tn-format-text{display:grid;gap:4px;min-width:0}
+.tn-format-text strong{font-size:16px;line-height:1.25}
+.tn-format-text small{font-size:13.5px;line-height:1.4;color:var(--teksts-2,#4a5565)}
+.tn-format-text em{font-style:normal;font-size:12.5px;font-weight:700}
+.tn-format-plan{display:grid;gap:12px;padding:16px;border-radius:18px;background:var(--tinte,#1b2430);color:#fff}
+.tn-format-plan h3{margin:0;font-family:var(--font-display);font-size:18px}
+.tn-format-plan ol{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.tn-format-plan li{display:flex;align-items:center;gap:10px;font-size:15px}
+.tn-format-plan li span{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.14);font-weight:800;font-size:13px}
+.tn-segment-field{display:grid;gap:8px}
+.tn-segment-field>span{font-size:14px;font-weight:700;color:#e0a526}
+.tn-segment{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-width:320px}
+.tn-segment button{min-height:44px;border-radius:12px;border:1.5px solid rgba(255,255,255,.3);background:transparent;color:#fff;font:inherit;font-size:16px;font-weight:800;cursor:pointer}
+.tn-segment button.is-on{background:#fff;color:var(--tinte,#1b2430);border-color:#fff}
+.tn-segment button:focus-visible{outline:3px solid #e0a526;outline-offset:2px}
+.tn-switch{display:flex;align-items:center;gap:12px;cursor:pointer}
+.tn-switch input{flex:none;width:22px;height:22px;accent-color:#e0a526}
+.tn-switch span{display:grid;gap:2px}
+.tn-switch strong{font-size:15px}
+.tn-switch small{font-size:13px;color:#d8dee6}
+@media (max-width:640px){
+ .tn-format-grid{grid-template-columns:1fr}
+ .tn-format-card{grid-template-columns:96px minmax(0,1fr);gap:12px;padding:12px}
+ .tn-format-card .tn-format-diagram{width:96px;height:auto}
+}

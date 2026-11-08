@@ -559,6 +559,10 @@ for(const width of [360,390]){
  await p.route('**/api/tournaments',route=>route.fulfill({status:200,contentType:'application/json',body:'{"tournaments":[]}'}));
  try{
   await p.goto(base+'/registre-turnira?org='+orgId,{waitUntil:'domcontentloaded',timeout:45000});
+  // Step 1 is the format, as pictures; the rest is entered after it.
+  await p.locator('.tn-format-card',{hasText:'Grupa un spēles par vietām'}).click();
+  await assertLayout(p,'tournament-format',width);
+  await p.locator('.tn-steps button',{hasText:'Pamati'}).click();
   await p.getByLabel('Turnīra nosaukums').fill('MEETS kauss');
   await assertLayout(p,'tournament-basics',width);
   await p.locator('.tn-steps button',{hasText:'Komandas'}).click();
