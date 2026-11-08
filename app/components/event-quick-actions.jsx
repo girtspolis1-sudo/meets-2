@@ -1,4 +1,5 @@
 'use client';
+import {track} from '../../lib/analytics.js';
 import {useEffect,useMemo,useState} from 'react';
 import {icsContent,navigationLinks} from '../../lib/meets-personal.js';
 import {eventShareUrl,eventShareTargets,officialEventUrl} from '../../lib/event-sharing.js';
@@ -58,6 +59,7 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
     const res=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:next?'add':'remove',token:session.access_token,eventId:event.id})});if(!res.ok)throw Error('Saglabāšana kontā neizdevās.');
    }
    localStorage.setItem(FAVORITES_KEY,JSON.stringify([...values]));setLocalSaved(next);window.dispatchEvent(new Event('meets-favorites-changed'));
+   if(next)track('save_event',{item_id:event.id,item_category:event.primary_category,municipality:event.municipality});
   }catch(e){setStatus(e?.message||'Neizdevās saglabāt pasākumu.');}finally{setBusy(false);}
  }
  function calendar(){setStatus('');if(onCalendar)onCalendar(event);else if(!saveIcs(event))setStatus('Kalendāra ieraksts nav pieejams.');}

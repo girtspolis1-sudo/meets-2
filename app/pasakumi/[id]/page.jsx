@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import TrackView from '../../components/track-view.jsx';
 import {notFound} from 'next/navigation';
 import {cache} from 'react';
 import {readEventsCached} from '../../../lib/events-server.js';
@@ -85,6 +86,7 @@ export default async function EventPage({params}){
  const time=timeLabel(event);
  return <article className="meets-event-page">
   <script type="application/ld+json" dangerouslySetInnerHTML={{__html:structuredData(event)}}/>
+  <TrackView name="event_view" params={{item_id:event.id,item_category:event.primary_category,municipality:event.municipality}}/>
   <nav className="meets-event-page-back" aria-label="Atpakaļ"><Link href="/pasakumi">← Visi pasākumi</Link></nav>
   <div className="meets-detail-hero">
    {image?<img src={image} alt="" className="catalog-detail-cover"/>:

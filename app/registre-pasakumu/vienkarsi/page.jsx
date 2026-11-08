@@ -1,4 +1,5 @@
 'use client';
+import {track} from '../../../lib/analytics.js';
 import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
 import {useSearchParams} from 'next/navigation';
@@ -457,6 +458,7 @@ function SimpleEventFlow(){
    setSavedId(result.item.id);
    setLastSaved(new Date().toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'}));
    if(status==='draft'){setNotice('Melnraksts saglabāts kontā.');persistLocal({...form},org,account);return;}
+   track('event_submit',{visibility:fields.visibility,schedule:fields.schedule_kind,edit:publishedEdit});
    setSubmitted(result.item);setStage('done');clearLocal(account?.user?.id,org);setNotice('');window.scrollTo({top:0,behavior:'smooth'});
   }catch(e){
    if(e.status===401){setError(e.message);startAuth();return;}

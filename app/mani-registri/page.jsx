@@ -1,4 +1,5 @@
 'use client';
+import {track} from '../../lib/analytics.js';
 import {Suspense,useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
 import PersonalCollections from './personal-collections.jsx';
@@ -71,7 +72,7 @@ function ListsInner(){
  async function save(e){e.preventDefault();if(!editing||!canEdit)return;await perform('save',{...editing,organization_id:orgId||null},()=>{setEditing(null);setPickQuery('');});}
  function copyCode(item){
   const url=window.location.origin+'/iegult/'+item.id,html='<iframe src="'+url+'" title="'+item.title.replaceAll('"','&quot;')+'" width="100%" height="620" loading="lazy" style="border:0;border-radius:12px"></iframe>';
-  navigator.clipboard.writeText(html).then(()=>setNotice('iframe kods nokopēts.')).catch(()=>setError('Kopēšana neizdevās.'));
+  navigator.clipboard.writeText(html).then(()=>{track('embed_copy');setNotice('iframe kods nokopēts.');}).catch(()=>setError('Kopēšana neizdevās.'));
  }
 
  const page=<section className="meets-account-page meets-registry-page">

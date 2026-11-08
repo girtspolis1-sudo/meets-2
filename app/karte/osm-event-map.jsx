@@ -1,4 +1,5 @@
 'use client';
+import {track} from '../../lib/analytics.js';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
 import NearbyList from './nearby-list.jsx';
@@ -164,6 +165,7 @@ export default function OsmEventMap(){
  const [userLocation,setUserLocation]=useState(DEFAULT_LOCATION);
 
  const [favorites,setFavorites]=useState(()=>new Set());
+ useEffect(()=>{track('map_open');},[]);
  // Hover previews only where a pointer can hover (not on touch screens).
  const [canHover,setCanHover]=useState(false);
  useEffect(()=>{
