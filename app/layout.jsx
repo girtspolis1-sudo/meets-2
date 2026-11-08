@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import SiteNav from './site-nav.jsx';
 import MobileBottomNav from './mobile-bottom-nav.jsx';
 import AnalyticsConsent,{ConsentSettingsLink} from './components/analytics-consent.jsx';
+import {CONTROLLER} from '../lib/legal.js';
 import AdminFooterControl from './admin-footer-control.jsx';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -68,6 +69,7 @@ export default function RootLayout({ children }) {
         <ConsentSettingsLink/>
       </nav>
       <div className="footer-side">
+        <a className="footer-contact" href={'mailto:'+CONTROLLER.email}>Kontakti: <strong>{CONTROLLER.email}</strong></a>
         <span>Latvija</span>
         <AdminFooterControl/>
       </div>
