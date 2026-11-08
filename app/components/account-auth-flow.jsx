@@ -1,4 +1,5 @@
 'use client';
+import {track} from '../../lib/analytics.js';
 import {useState} from 'react';
 import {requestPasswordReset,signIn,signUp} from '../../lib/auth-client.js';
 import {saveSession} from '../../lib/account-store.js';
@@ -22,6 +23,7 @@ export default function Authentication({onSuccess,variant='default'}){
     return;
    }
    const result=mode==='register'?await signUp(email,password):await signIn(email,password);
+   if(mode==='register')track('sign_up',{method:'email'});
    if(result.requiresConfirmation){
     setNotice('Konts izveidots. Nosūtījām apstiprinājuma saiti uz '+email.trim()+' — atver to, lai aktivizētu kontu.');
     setMode('login');setPassword('');setRepeat('');

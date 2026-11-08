@@ -17,6 +17,7 @@ const PURPOSES=[
  ['Pasākumu rīkošana','Rīkotāja profils (nosaukums, apraksts, logo, kontakti, adrese, sociālie tīkli, rekvizīti), komandas dalībnieki un lomas, ielūgumi, norises vietas, pasākumu pieteikumi un vāka attēli, privāto pasākumu saites.','Pasākumu iesniegšana, publicēšana kartē un sarakstā, privāto pasākumu kopīgošana un sludinājumi drukai.','Līgums (6. panta 1. punkta b) apakšpunkts). Publiski redzams tikai tas, ko rīkotājs atzīmē kā publisku, un publicētie pasākumi.','Kamēr rīkotāja profils pastāv. Beigušies pasākumi tiek arhivēti.'],
  ['MEETS pārbaude','Pārbaudes lēmumi, iemesli un piezīmes, e-pasta paziņojumi rīkotājam.','Publicēto pasākumu kvalitāte un drošība, ļaunprātīgas izmantošanas novēršana.','Leģitīmās intereses (6. panta 1. punkta f) apakšpunkts).','Kamēr pastāv attiecīgais pasākuma pieteikums.'],
  ['Atrašanās vieta','Ierīces atrašanās vieta, ja to atļauj pārlūkā; izvēlētā pilsēta vai vieta; adreses meklēšanā ievadītais teksts.','Tuvāko pasākumu rādīšana un attāluma filtrs, adrešu atrašana kartē.','Tava piekrišana pārlūka atļaujā (6. panta 1. punkta a) apakšpunkts); adrešu meklēšanai — līgums.','Ierīces atrašanās vieta tiek izmantota tikai tavā pārlūkā, un mēs to neglabājam serverī. Izvēlētā vieta tiek glabāta tavā ierīcē.'],
+ ['Apmeklējumu statistika','Pseidonīms ierīces identifikators (sīkdatnēs), apmeklētās lapas (bez kopīgošanas saišu kodiem un privāto pasākumu nosaukumiem), meklēšanas vārdi, pasākumu atvēršana, saglabāšana un kopīgošana, ierīces un pārlūka veids, aptuvena atrašanās vieta (valsts, pilsēta), ko Google nosaka pēc IP adreses.','Saprast, kuras lapas un pasākumi noder, un uzlabot vietni.','Tava piekrišana (6. panta 1. punkta a) apakšpunkts). To vari atsaukt jebkurā laikā ar saiti “Sīkdatņu iestatījumi” kājenē.','14 mēneši Google Analytics. Ja nepiekrīti, statistika netiek ievākta un Google nekas netiek sūtīts.'],
  ['Tehniskie dati','IP adrese, pārlūka un ierīces dati, pieprasījumu žurnāli, kļūdu ziņojumi (lapas adrese un kļūdas teksts).','Vietnes darbība, drošība un kļūdu novēršana.','Leģitīmās intereses (6. panta 1. punkta f) apakšpunkts).','Īslaicīgi, atbilstoši hostinga un datubāzes pakalpojumu sniedzēju žurnālu termiņiem.'],
  ['Saziņa','Tava e-pasta adrese un vēstules saturs, ja raksti mums.','Atbilde uz jautājumu vai pieprasījumu.','Leģitīmās intereses vai juridisks pienākums (6. panta 1. punkta f) un c) apakšpunkts).','Līdz jautājums ir atrisināts un vēl līdz 1 gadam pieprasījumu uzskaitei.']
 ];
@@ -26,6 +27,7 @@ const PROCESSORS=[
  ['Vercel','Vietnes hostings un pieprasījumu žurnāli.','ES un ASV.'],
  ['Resend','E-pastu nosūtīšana (paziņojumi rīkotājiem un administratoriem).','ASV.'],
  ['OpenStreetMap Foundation (Nominatim)','Adrešu meklēšana: saņem meklēšanas tekstu, ko nosūtām no mūsu servera.','Apvienotā Karaliste.'],
+ ['Google Ireland Limited (Google Analytics)','Apmeklējumu statistika, tikai ar tavu piekrišanu. Google signāli un reklāmu personalizācija ir izslēgti.','ES un ASV.'],
  ['OpenFreeMap','Kartes attēli: saņem tavu IP adresi un pārlūka datus, kad tiek ielādēta karte.','Pakalpojuma sniedzēja serveri (openfreemap.org).']
 ];
 
@@ -33,7 +35,13 @@ const STORAGE=[
  ['meets_user_session_v1','Pieslēgšanās sesija, lai paliktu pieslēgts.','Līdz izrakstīšanās brīdim vai sesijas beigām.'],
  ['meets_favorites_v1','Saglabātie pasākumi, kamēr neesi pieslēdzies.','Līdz tos noņem vai notīri pārlūka datus.'],
  ['meets_location_choice_v1','Izvēlētā pilsēta vai “Mana atrašanās vieta” tuvāko pasākumu rādīšanai.','Līdz izvēli maini vai notīri pārlūka datus.'],
- ['meets_event_draft_v3, meets_venue_draft_v3','Nepabeigtu pasākumu un vietu melnraksti, lai ievadītais nepazustu.','Līdz pasākums ir iesniegts vai forma notīrīta.']
+ ['meets_event_draft_v3, meets_venue_draft_v3','Nepabeigtu pasākumu un vietu melnraksti, lai ievadītais nepazustu.','Līdz pasākums ir iesniegts vai forma notīrīta.'],
+ ['meets_analytics_consent_v1','Tava izvēle par apmeklējumu statistiku (Pieņemt vai Noraidīt).','Līdz izvēli maini vai notīri pārlūka datus.']
+];
+// Set only after "Pieņemt" in the consent notice.
+const COOKIES=[
+ ['_ga','Google Analytics: atšķir apmeklētājus.','2 gadi'],
+ ['_ga_35QTLEMNLP','Google Analytics: saglabā apmeklējuma (sesijas) stāvokli.','2 gadi']
 ];
 
 export default function PrivacyPage(){
@@ -82,12 +90,18 @@ export default function PrivacyPage(){
 
   <section id="p3">
    <h2>3. Ierīcē glabātā informācija</h2>
-   <p>meets.lv neizmanto reklāmas vai analītikas sīkdatnes. Lai vietne darbotos, tavā pārlūkā (localStorage) tiek glabāti šādi ieraksti:</p>
+   <p>meets.lv neizmanto reklāmas sīkdatnes. Lai vietne darbotos, tavā pārlūkā (localStorage) tiek glabāti šādi ieraksti:</p>
    <div className="legal-table-scroll"><table className="legal-table">
     <thead><tr><th>Ieraksts</th><th>Kam vajadzīgs</th><th>Cik ilgi</th></tr></thead>
     <tbody>{STORAGE.map(([key,why,keep])=><tr key={key}><td><code>{key}</code></td><td>{why}</td><td>{keep}</td></tr>)}</tbody>
    </table></div>
-   <p>Šie ieraksti ir nepieciešami pakalpojumam, ko pats pieprasi, tāpēc tiem nav vajadzīga atsevišķa piekrišana. Tos vari izdzēst pārlūka iestatījumos. Ja nākotnē ieviesīsim apmeklējumu statistiku (piemēram, Google Analytics), to ieslēgsim tikai ar tavu piekrišanu un papildināsim šo politiku.</p>
+   <p>Šie ieraksti ir nepieciešami pakalpojumam, ko pats pieprasi, tāpēc tiem nav vajadzīga atsevišķa piekrišana. Tos vari izdzēst pārlūka iestatījumos.</p>
+   <h3>Analītikas sīkdatnes (tikai ar piekrišanu)</h3>
+   <p>Pirmajā apmeklējumā jautājam, vai drīkstam skaitīt apmeklējumus ar Google Analytics. Kamēr neesi izvēlējies “Pieņemt”, Google Analytics netiek ielādēts un šīs sīkdatnes netiek iestatītas. Izvēli vari mainīt jebkurā laikā ar saiti “Sīkdatņu iestatījumi” kājenē; izvēloties “Noraidīt”, sīkdatnes tiek dzēstas.</p>
+   <div className="legal-table-scroll"><table className="legal-table">
+    <thead><tr><th>Sīkdatne</th><th>Kam vajadzīga</th><th>Cik ilgi</th></tr></thead>
+    <tbody>{COOKIES.map(([key,why,keep])=><tr key={key}><td><code>{key}</code></td><td>{why}</td><td>{keep}</td></tr>)}</tbody>
+   </table></div>
   </section>
 
   <section id="p4">
@@ -113,7 +127,7 @@ export default function PrivacyPage(){
     <li><strong>Dzēst</strong> datus. Kontu vari izdzēst pats <Link href="/konta-iestatijumi">konta iestatījumos</Link>; rīkotāja profils jāizdzēš pirms konta.</li>
     <li><strong>Ierobežot</strong> apstrādi vai <strong>iebilst</strong> pret apstrādi, kuras pamatā ir leģitīmās intereses.</li>
     <li><strong>Saņemt</strong> savus datus mašīnlasāmā formā (datu pārnesamība).</li>
-    <li><strong>Atsaukt piekrišanu</strong>, piemēram, atrašanās vietas atļauju pārlūka iestatījumos.</li>
+    <li><strong>Atsaukt piekrišanu</strong>: apmeklējumu statistikai ar saiti “Sīkdatņu iestatījumi” kājenē, atrašanās vietas atļaujai pārlūka iestatījumos.</li>
    </ul>
    <p>Lai izmantotu šīs tiesības, raksti uz <Mail/>. Atbildēsim viena mēneša laikā. Ja uzskati, ka tavi dati tiek apstrādāti nelikumīgi, vari iesniegt sūdzību Datu valsts inspekcijai (<a href="https://www.dvi.gov.lv" target="_blank" rel="noopener noreferrer">www.dvi.gov.lv</a>).</p>
   </section>

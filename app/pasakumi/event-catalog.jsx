@@ -1,4 +1,5 @@
 'use client';
+import {track} from '../../lib/analytics.js';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} from '../../lib/catalog.js';
 import {useEvents} from '../../lib/use-events.js';
@@ -261,6 +262,14 @@ export default function EventCatalog(){
   return '/karte'+(p.size?'?'+p.toString():'');
  },[shared,sharedOrigin,columnFilters,period,data?.window?.to,placeFilter]);
  const selectedEvent=rows.find(event=>event.id===selected);
+ // Measurement: a search once typing stops, and each opened event.
+ useEffect(()=>{
+  const term=String(columnFilters.title||'').trim();
+  if(term.length<3)return;
+  const timer=setTimeout(()=>track('search',{search_term:term}),1200);
+  return()=>clearTimeout(timer);
+ },[columnFilters.title]);
+ useEffect(()=>{if(selectedEvent)track('event_view',{item_id:selectedEvent.id,item_category:selectedEvent.primary_category,municipality:selectedEvent.municipality});},[selectedEvent?.id]);
  useEffect(()=>{
   const id=new URLSearchParams(window.location.search).get('event');
   if(id&&rows.some(event=>event.id===id))setSelected(id);

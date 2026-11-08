@@ -2,6 +2,7 @@ import Link from 'next/link';
 import localFont from 'next/font/local';
 import SiteNav from './site-nav.jsx';
 import MobileBottomNav from './mobile-bottom-nav.jsx';
+import AnalyticsConsent,{ConsentSettingsLink} from './components/analytics-consent.jsx';
 import AdminFooterControl from './admin-footer-control.jsx';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -54,6 +55,7 @@ export default function RootLayout({ children }) {
     </header>
     <main id="saturs">{children}</main>
     <MobileBottomNav/>
+    <AnalyticsConsent/>
     <footer>
       <Wordmark/>
       <p>Pasākumi, kas saved cilvēkus kopā.</p>
@@ -63,6 +65,7 @@ export default function RootLayout({ children }) {
         <Link href="/registre-pasakumu">Pievienot pasākumu</Link>
         <Link href="/organizators">Rīkotājiem</Link>
         <Link href="/privatums">Privātums</Link>
+        <ConsentSettingsLink/>
       </nav>
       <div className="footer-side">
         <span>Latvija</span>

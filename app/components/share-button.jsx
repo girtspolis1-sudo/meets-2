@@ -1,4 +1,5 @@
 'use client';
+import {maskPath,track} from '../../lib/analytics.js';
 import {useState} from 'react';
 
 function targets(url,text){
@@ -20,12 +21,12 @@ export default function ShareButton({path,title,label='Dalīties',className='but
  const url=()=>new URL(path,window.location.origin).toString();
  async function share(){
   if(navigator.share){
-   try{await navigator.share({title,url:url()});return;}catch(e){if(e?.name==='AbortError')return;}
+   try{await navigator.share({title,url:url()});track('share',{method:'device',content_type:'link',item_id:maskPath(path)});return;}catch(e){if(e?.name==='AbortError')return;}
   }
   setOpen(v=>!v);
  }
  async function copy(){
-  try{await navigator.clipboard.writeText(url());setCopied(true);setTimeout(()=>setCopied(false),2500);}catch{window.prompt('Nokopē saiti:',url());}
+  try{await navigator.clipboard.writeText(url());track('share',{method:'copy_link',content_type:'link',item_id:maskPath(path)});setCopied(true);setTimeout(()=>setCopied(false),2500);}catch{window.prompt('Nokopē saiti:',url());}
  }
  return <span className="share-button-wrap">
   <button type="button" className={className} aria-expanded={open} onClick={share}>⤴ {label}</button>

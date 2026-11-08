@@ -467,3 +467,14 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .meets-auth-privacy{margin:0;font-size:13px;color:var(--teksts-2,#4a5565)}
 .meets-auth-privacy a{color:var(--karmins-dark);font-weight:700}
 @media(max-width:560px){.legal-facts>div{grid-template-columns:1fr;gap:2px}}
+
+/* Analytics consent: a card above the bottom bar; both choices equal. */
+.meets-consent{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(var(--meets-dock-height,0px) + 12px);z-index:1200;
+ display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;max-width:760px;margin:0 auto;padding:16px 18px;border:1px solid var(--migla);border-radius:18px;background:#fff;box-shadow:0 16px 40px rgba(27,36,48,.22)}
+.meets-consent>div:first-child{flex:1 1 320px;min-width:0}
+.meets-consent h2{margin:0 0 4px;font-size:16px;font-family:var(--font-body);font-weight:800;letter-spacing:0}
+.meets-consent p{margin:0;font-size:14px;line-height:1.5;color:var(--teksts-2,#4a5565)}
+.meets-consent a{color:var(--karmins-dark);font-weight:700}
+.meets-consent-actions{display:flex;gap:8px;flex:1 1 220px;justify-content:flex-end}
+.meets-consent-actions .button{flex:1;min-height:46px;justify-content:center}
+.footer-consent-link{border:0;background:transparent;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}

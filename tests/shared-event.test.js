@@ -93,3 +93,16 @@ test('flyer date mark shows weekdays, chosen days or a run of days',async()=>{
  assert.deepEqual(flyerDateBadge(dated),{kind:'dates',main:'8 · 15 · 2',sub:'NOV – DEC'});
  assert.deepEqual(scheduleLines(dated),['8., 15. nov.; 2. dec.','17:00–18:30']);
 });
+
+test('analytics never sends share tokens, private titles or e-mails',async()=>{
+ const {pageLocation,pageTitle,maskPath,cleanParams,analyticsHost,trackedPath}=await import('../lib/analytics.js');
+ assert.equal(pageLocation('https://meets.lv/ielugums/9847198c-66d5-4bd1-8f2e-3b2f3a86bb51?x=1#a'),'https://meets.lv/ielugums/:token');
+ assert.equal(pageLocation('https://meets.lv/pasakumi?view=calendar&q=Jānis&radius=25&lat=57'),'https://meets.lv/pasakumi?view=calendar');
+ assert.equal(maskPath('/sludinajums/abc'),'/sludinajums/:token');
+ assert.equal(pageTitle('/ielugums/abc','Andra 40 gadu jubileja'),'Kopīgots pasākums');
+ assert.equal(pageTitle('/pasakumi','Pasākumi | MEETS'),'Pasākumi | MEETS');
+ assert.deepEqual(cleanParams({search_term:'janis@example.com',item_id:'x',n:2,empty:''}),{item_id:'x',n:2});
+ assert.equal(analyticsHost('meets.lv'),true);
+ assert.equal(analyticsHost('meets-2-git-branch.vercel.app'),false);
+ assert.equal(trackedPath('/admin/pasakumi'),false);
+});
