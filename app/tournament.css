@@ -129,10 +129,10 @@
 .tn-steps ol{display:flex;gap:6px;margin:0;padding:0 0 4px;list-style:none;overflow-x:auto;scrollbar-width:thin}
 .tn-steps button{display:flex;align-items:center;gap:8px;min-height:42px;padding:0 14px 0 8px;border:1px solid var(--migla,#d8dee6);border-radius:99px;
  background:#fff;color:var(--tinte,#1b2430);font:inherit;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
-.tn-steps button span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#eef1f5;font-size:13px}
-.tn-steps button.done span{background:#e3f4ec;color:#1e7a4e}
+.tn-steps button>span:first-child{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#eef1f5;font-size:13px}
+.tn-steps button.done>span:first-child{background:#e3f4ec;color:#1e7a4e}
 .tn-steps button.active{background:var(--tinte,#1b2430);border-color:var(--tinte,#1b2430);color:#fff}
-.tn-steps button.active span{background:#fff;color:var(--tinte,#1b2430)}
+.tn-steps button.active>span:first-child{background:#fff;color:var(--tinte,#1b2430)}
 .tn-steps button:disabled{opacity:.45;cursor:not-allowed}
 .tn-step-body{display:contents;border:0;margin:0;padding:0;min-width:0}
 .tn-form{display:grid;gap:16px}
@@ -167,9 +167,11 @@
 .tn-problems{margin:0;padding:10px 14px 10px 30px;border-radius:10px;background:var(--karmins-soft,#f6e8ea);color:var(--karmins-dark,#7a2029);font-size:14px;font-weight:600}
 .tn-blocks{display:grid;gap:8px;margin:0;padding:12px;border:1px solid var(--migla,#d8dee6);border-radius:12px;min-width:0}
 .tn-blocks legend{padding:0 4px;font-weight:700;font-size:14px}
-.tn-block-row{display:grid;grid-template-columns:minmax(0,1fr) 110px 90px auto;align-items:center;gap:6px}
-.tn-block-row .tn-inline{display:flex;align-items:center;gap:6px}
-.tn-block-row input{min-width:0}
+.tn-block-row{display:grid;grid-template-columns:minmax(0,1fr) 120px 110px auto;align-items:end;gap:8px}
+.tn-block-row label{display:grid;gap:4px;font-size:12px;font-weight:700;color:var(--teksts-2,#4a5565);min-width:0}
+.tn-block-row input{min-width:0;width:100%}
+.tn-block-row .icon-button{margin-bottom:5px}
+.tn-block-row+.tn-block-row{padding-top:8px;border-top:1px solid #eef1f5}
 .tn-blocks>button{justify-self:start}
 .tn-schedule-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .tn-schedule-bar small{flex-basis:100%;font-size:13px;color:var(--teksts-2,#4a5565)}
@@ -200,6 +202,12 @@
 .tn-scorers li>button:only-of-type{justify-self:start}
 .tn-danger{border-color:var(--karmins-soft,#f6e8ea)}
 .button.danger{background:#fff;color:var(--karmins,#9e3039);border-color:var(--karmins,#9e3039)}
+.tn-narrow{display:none}
+.tn-step-caption{display:none;margin:-6px 0 0;font-size:14px;font-weight:700;color:var(--teksts-2,#4a5565)}
+.tn-group-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.tn-group-summary div{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:baseline;padding:8px 10px;border-radius:10px;background:#f4f6f9;font-size:13px}
+.tn-group-summary strong{font-family:var(--font-display);font-size:15px}
+.tn-group-summary span{overflow-wrap:anywhere;color:var(--teksts-2,#4a5565)}
 .tn-hint a{color:var(--tinte,#1b2430);font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .tn-wizard-foot{position:sticky;bottom:0;z-index:4;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:10px 0;
  background:color-mix(in srgb,var(--sniegs,#fafbfc) 94%,transparent);backdrop-filter:blur(8px);border-top:1px solid var(--migla,#d8dee6)}
@@ -232,12 +240,21 @@
  .tn-team-row>.tn-team-actions{grid-area:actions}
  .tn-team-head{display:none}
  .tn-team-row+.tn-team-row{padding-top:8px;border-top:1px solid #eef1f5}
- .tn-block-row{grid-template-columns:minmax(0,1fr) 96px auto;}
+ .tn-block-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}
+ .tn-block-row .tn-block-title{grid-column:1/-1}
  .tn-choice-grid:not(.tn-choice-wide){grid-template-columns:repeat(2,minmax(0,1fr))}
+ /* Steps: numbers in one row, the current one named. */
+ .tn-steps ol{gap:5px;overflow:visible}
+ .tn-steps button{gap:6px;padding:0 6px;min-height:40px}
+ .tn-steps .tn-step-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+ .tn-steps button{padding:0 6px}
+ .tn-step-caption{display:block}
+ .tn-wide{display:none}
+ .tn-narrow{display:inline}
+ .tn-foot-back{flex:0 0 52px!important}
  .tn-choice{padding:10px}
  .tn-wizard-foot{flex-wrap:nowrap}
  .tn-wizard-foot .button{flex:1 1 0;min-width:0;padding-inline:8px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .tn-block-row>input:first-child{grid-column:1/-1}
  .tn-edit-list li{grid-template-columns:28px minmax(0,1fr) 104px;}
  .tn-edit-list li>label:last-child{grid-column:3}
  .tn-scorers li{grid-template-columns:minmax(0,1fr) auto}

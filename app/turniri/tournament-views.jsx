@@ -3,7 +3,7 @@
 import {FORMATS,finalPlaces,groupsOf,hasScore,sideName,sportOf,standings,toMin,winnerSide} from '../../lib/tournament.js';
 
 export function contextOf(data){
- return {teams:data?.teams||[],games:data?.games||[],sport:data?.sport||'other'};
+ return {teams:data?.teams||[],games:data?.games||[],sport:data?.sport||'other',places:data?.settings?.places||[]};
 }
 export function stageLabel(game){
  if(game.stage==='group')return game.group?game.group+' grupa':'Grupa';

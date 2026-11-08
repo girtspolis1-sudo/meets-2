@@ -114,8 +114,52 @@ test('pasted team lists',()=>{
 test('snake groups and format problems',()=>{
  const eight=Array.from({length:8},(_,i)=>({key:'s'+i,name:'S'+i}));
  assert.deepEqual(snakeGroups(eight,4).map(t=>t.group),['A','B','C','D','D','C','B','A']);
- assert.match(formatProblem('groups_places',snakeGroups(eight.slice(0,6),3)),/2 vai 4 grupas/);
+ assert.equal(formatProblem('groups_places',snakeGroups(eight.slice(0,6),3)),'');
+ assert.match(formatProblem('groups_places',snakeGroups(eight,5)),/vismaz 2/);
  assert.match(formatProblem('round_robin',[eight[0]]),/vismaz 2/);
+});
+
+// Plays a tournament through: the better seed (then the lower key) always wins.
+function playAll(games,tm,sport='football'){
+ const ctx={teams:tm,games,sport,places:games.direct||[]};
+ for(let pass=0;pass<12;pass++)for(const g of games){
+  if(g.home_score!=null)continue;
+  const h=resolveRef(g.home,ctx),a=resolveRef(g.away,ctx);
+  if(!h||!a)continue;
+  const hw=h.seed<a.seed||(h.seed===a.seed&&h.key<a.key);
+  g.home_score=hw?2:0;g.away_score=hw?0:2;
+ }
+ return ctx;
+}
+const many=n=>Array.from({length:n},(_,i)=>({key:'k'+(i+1),name:'Komanda '+(i+1),coach:''}));
+
+test('groups and all places for any number of groups (1–10)',()=>{
+ for(const [count,teamsN] of [[1,5],[2,8],[3,9],[3,10],[4,16],[5,15],[6,13],[8,24],[10,20],[10,30]]){
+  const tm=snakeGroups(many(teamsN),count);
+  assert.equal(formatProblem('groups_places',tm),'',count+' groups');
+  const set={courts:['1','2','3','4','5','6'],start:'08:00',slot:10,rest:0};
+  const planned=schedule(buildGames('groups_places',tm),tm,set,{tries:10});
+  assert.ok(planned,'schedule for '+count+' groups');
+  assert.deepEqual(scheduleProblems(planned,tm,set),[],count+' groups');
+  const ctx=playAll(planned,tm);
+  const places=finalPlaces(ctx,'groups_places');
+  // Every place 1..n has exactly one team, and every team has a place.
+  assert.equal(places.filter(Boolean).length,teamsN,count+' groups, '+teamsN+' teams');
+  assert.equal(new Set(places.map(t=>t.key)).size,teamsN);
+ }
+});
+
+test('one group: places come from the table; group places A10 and up',()=>{
+ const tm=snakeGroups(many(11),1);
+ const games=buildGames('groups_places',tm);
+ assert.equal(games.filter(g=>g.stage==='placement').length,0);
+ assert.deepEqual([...games.direct].sort((a,b)=>a.place-b.place).map(d=>d.ref).slice(-2),['A10','A11']);
+ const planned=schedule(games,tm,{courts:['1','2','3'],start:'09:00',slot:10,rest:0},{tries:5});
+ assert.equal(planned.direct.length,11);
+ const ctx=playAll(planned,tm);
+ assert.deepEqual(finalPlaces(ctx,'groups_places').map(t=>t.key),tm.map(t=>t.key));
+ const clean=cleanTournament({title:'Viena grupa',sport:'football',format:'groups_places',settings:{courts:['1'],start:'09:00',slot:10,rest:0,places:planned.direct},teams:tm,games:planned});
+ assert.equal(clean.settings.places.length,11);
 });
 
 test('saving: tidy input, reject broken references',()=>{
