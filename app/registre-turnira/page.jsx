@@ -28,6 +28,14 @@ function fromRow(row){
 const courtsText=list=>(list||[]).join(', ');
 const parseCourts=text=>[...new Set(String(text).split(',').map(x=>x.trim().slice(0,40)).filter(Boolean))].slice(0,12);
 
+// Whole minutes. The field keeps what is typed, so it can be emptied and
+// retyped; the tournament gets the number, or '' while the field is empty.
+function NumberField({value,onChange,max=999,...rest}){
+ const [text,setText]=useState(value===''||value==null?'':String(value));
+ useEffect(()=>{if(String(value??'')!==text&&Number(text)!==value)setText(value===''||value==null?'':String(value));},[value]);
+ return <input {...rest} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={text}
+  onChange={e=>{const next=e.target.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'').slice(0,String(max).length);setText(next);onChange(next===''?'':Number(next));}}/>;
+}
 function Qr({text,label}){
  const qr=useMemo(()=>qrPath(text),[text]);
  return <svg className="tn-qr" viewBox={`-4 -4 ${qr.size+8} ${qr.size+8}`} role="img" aria-label={label} shapeRendering="crispEdges">
@@ -89,7 +97,7 @@ function Wizard(){
  const org=orgs.find(o=>o.id===t.organization_id)||null;
  const canSave=t.id?rights.edit:Boolean(org&&canWriteOrganization(org.role));
  const dirty=snapshot(t,teams,games)!==saved;
- const ctx={teams,games,sport:t.sport};
+ const ctx={teams,games,sport:t.sport,places:t.settings.places||[]};
  const sport=sportOf(t.sport);
  const groupFormat=t.format!=='knockout';
  const problem=formatProblem(t.format,teams);
@@ -159,15 +167,21 @@ function Wizard(){
  }
  function chooseFormat(key){
   set('format',key);
-  if(key==='groups_places'&&![2,4].includes(groupCount))setGroupCount(4);
+  if(key!=='knockout'&&teams.some(x=>!x.group)){const next=splitInto(teams,groupCount);setTeams(next);setGroupCount(new Set(next.map(x=>x.group)).size||1);}
  }
 
  // Teams
+ // Groups follow the list order (the seeding): 1. A, 2. B … and back (snake).
+ const maxGroups=Math.max(1,Math.min(GROUP_KEYS.length,Math.floor(teams.length/2)||GROUP_KEYS.length));
+ const groupChoices=Array.from({length:GROUP_KEYS.length},(_,i)=>i+1);
+ function splitInto(list,count){return list.length?snakeGroups(list,Math.min(count,Math.max(1,Math.floor(list.length/2)))):list;}
  function addPasted(){
   const added=parseTeamLines(paste,teams);
-  if(!added.length){setError('Ielīmē komandu nosaukumus, katru savā rindā.');return;}
-  setTeams(list=>[...list,...added]);setPaste('');setError('');
-  setNotice('Pievienotas '+added.length+' komandas.'+(groupFormat?' Tagad sadali tās grupās.':''));
+  if(!added.length){setError(paste.trim()?'Šīs komandas jau ir sarakstā.':'Ielīmē komandu nosaukumus, katru savā rindā.');return;}
+  const next=groupFormat?splitInto([...teams,...added],groupCount):[...teams,...added];
+  setTeams(next);setPaste('');setError('');
+  if(groupFormat)setGroupCount(new Set(next.map(x=>x.group)).size||1);
+  setNotice('Pievienotas '+added.length+' komandas'+(groupFormat?' un sadalītas '+new Set(next.map(x=>x.group)).size+' grupās.':'.'));
  }
  function addTeam(){setTeams(list=>[...list,{key:newTeamKey(new Set(list.map(x=>x.key))),name:'',coach:'',group:'',seed:list.length+1}]);}
  function updateTeam(key,field,value){setTeams(list=>list.map(x=>x.key===key?{...x,[field]:value}:x));}
@@ -175,10 +189,13 @@ function Wizard(){
  function moveTeam(key,delta){
   setTeams(list=>{const i=list.findIndex(x=>x.key===key),j=i+delta;if(j<0||j>=list.length)return list;const next=[...list];[next[i],next[j]]=[next[j],next[i]];return next.map((x,n)=>({...x,seed:n+1}));});
  }
- function splitGroups(){
-  if(teams.length<2){setError('Vispirms pievieno komandas.');return;}
-  setTeams(list=>snakeGroups(list,groupCount));setError('');
-  setNotice('Komandas sadalītas '+groupCount+' grupās čūskas kārtībā: 1. A, 2. B … un atpakaļ. Spēcīgākās liec saraksta augšā.');
+ const groupsNow=groupsOf(teams);
+ function chooseGroupCount(count){
+  setGroupCount(count);setError('');
+  if(teams.length<2)return;
+  if(count>Math.floor(teams.length/2)){setError('Katrā grupā vajag vismaz 2 komandas: '+teams.length+' komandām līdz '+Math.floor(teams.length/2)+' grupām.');return;}
+  setTeams(list=>snakeGroups(list,count));
+  setNotice('Komandas sadalītas '+count+(count===1?' grupā.':' grupās.')+' Grupu vari mainīt katrai komandai sarakstā.');
  }
 
  // Schedule
@@ -190,7 +207,7 @@ function Wizard(){
   const built=buildGames(t.format,teams,{third:t.settings.third});
   const result=schedule(built,teams,t.settings,{tries:160,seed:1+Math.floor(Math.random()*100000)});
   if(!result){setError('Visas spēles neizdevās ievietot līdz dienas beigām. Pievieno laukumu, saīsini spēles vai atpūtas laiku, vai pārtraukumus.');return;}
-  setGames(result);setEditing(false);
+  setGames(result);setSetting('places',result.direct||[]);setEditing(false);
   setNotice(result.length+' spēles ievietotas. Pēdējā sākas '+result.reduce((m,g)=>toMin(g.starts_at)>toMin(m)?g.starts_at:m,result[0].starts_at)+'.');
  }
  function moveGame(no,change){setGames(list=>list.map(g=>g.no===no?{...g,...change}:g));}
@@ -263,7 +280,8 @@ function Wizard(){
 
   <nav className="tn-steps" aria-label="Turnīra soļi"><ol>{STEPS.map(([key,label],i)=><li key={key}>
    <button type="button" aria-current={step===key?'step':undefined} className={step===key?'active':i<stepIndex?'done':''} disabled={needsSaved(key)} title={needsSaved(key)?'Pieejams pēc saglabāšanas':undefined} onClick={()=>{setStep(key);setError('');setNotice('');}}>
-    <span aria-hidden="true">{i+1}</span>{label}</button></li>)}</ol></nav>
+    <span aria-hidden="true">{i+1}</span><span className="tn-step-label">{label}</span></button></li>)}</ol></nav>
+  <p className="tn-step-caption" aria-hidden="true">{stepIndex+1}. solis no {STEPS.length}: {STEPS[stepIndex][1]}</p>
 
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}
   {notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
@@ -301,11 +319,12 @@ function Wizard(){
     <button type="button" className="button compact" onClick={addPasted} disabled={!paste.trim()}>Pievienot sarakstam</button>
    </div>
    {groupFormat&&<div className="tn-groups-bar">
-    <label>Grupu skaits<select value={groupCount} onChange={e=>setGroupCount(Number(e.target.value))}>
-     {(t.format==='groups_places'?[2,4]:[1,2,3,4,5,6,7,8]).map(n=><option key={n} value={n}>{n}</option>)}</select></label>
-    <button type="button" className="button compact" onClick={splitGroups}>Sadalīt grupās</button>
-    <small>Saraksta secība ir izsēšana: spēcīgākās augšā.</small>
+    <label>Grupu skaits<select value={groupCount} onChange={e=>chooseGroupCount(Number(e.target.value))}>
+     {groupChoices.map(n=><option key={n} value={n} disabled={teams.length>=2&&n>maxGroups}>{n}</option>)}</select></label>
+    <small>Komandas sadalās grupās pēc saraksta secības (spēcīgākās augšā): 1. A, 2. B … un atpakaļ.</small>
    </div>}
+   {groupFormat&&Object.keys(groupsNow).length>0&&<div className="tn-group-summary" aria-label="Grupas">{Object.entries(groupsNow).map(([g,list])=><div key={g}>
+    <strong>{g}</strong><span>{list.map(x=>x.name||'—').join(', ')}</span></div>)}</div>}
    <div className="tn-team-table" role="table" aria-label="Komandas">
     <div className="tn-team-row tn-team-head" role="row"><span>#</span><span>Komanda</span><span>Treneris</span>{groupFormat&&<span>Grupa</span>}<span><span className="sr-only">Darbības</span></span></div>
     {teams.map((x,i)=><div className="tn-team-row" role="row" key={x.key}>
@@ -328,16 +347,16 @@ function Wizard(){
    <label>Laukumi <small>(atdali ar komatu)</small><input value={courtsInput} placeholder="A, B, C" onChange={e=>{setCourtsInput(e.target.value);setSetting('courts',parseCourts(e.target.value));}}/></label>
    <div className="tn-row tn-row-3">
     <label>Pirmā spēle<input type="time" step="300" value={t.settings.start} onChange={e=>setSetting('start',e.target.value)}/></label>
-    <label>Spēles laiks, min<input type="number" min={5} max={180} value={t.settings.slot} onChange={e=>setSetting('slot',Number(e.target.value))}/><small>Ar maiņu un iesildīšanos</small></label>
-    <label>Atpūta komandai, min<input type="number" min={0} max={240} value={t.settings.rest} onChange={e=>setSetting('rest',Number(e.target.value))}/><small>Starp vienas komandas spēlēm</small></label>
+    <label>Spēles laiks, min<NumberField max={180} value={t.settings.slot} onChange={v=>setSetting('slot',v)}/><small>Ar maiņu un iesildīšanos</small></label>
+    <label>Atpūta komandai, min<NumberField max={240} value={t.settings.rest} onChange={v=>setSetting('rest',v)}/><small>Starp vienas komandas spēlēm</small></label>
    </div>
    <fieldset className="tn-blocks"><legend>Pārtraukumi un citas aktivitātes</legend>
-    {(t.settings.blocks||[]).map((b,i)=><div className="tn-block-row" key={i}>
-     <input aria-label="Nosaukums" value={b.title} maxLength={60} placeholder="Piem., Metienu konkurss" onChange={e=>setSetting('blocks',t.settings.blocks.map((x,j)=>j===i?{...x,title:e.target.value}:x))}/>
-     <input aria-label="Sākums" type="time" step="300" value={b.at} onChange={e=>setSetting('blocks',t.settings.blocks.map((x,j)=>j===i?{...x,at:e.target.value}:x))}/>
-     <label className="tn-inline">min<input type="number" min={0} max={240} value={b.minutes} onChange={e=>setSetting('blocks',t.settings.blocks.map((x,j)=>j===i?{...x,minutes:Number(e.target.value)}:x))}/></label>
-     <button type="button" className="icon-button" aria-label="Dzēst pārtraukumu" onClick={()=>setSetting('blocks',t.settings.blocks.filter((x,j)=>j!==i))}>×</button>
-    </div>)}
+    {(t.settings.blocks||[]).map((b,i)=>{const change=(key,value)=>setSetting('blocks',t.settings.blocks.map((x,j)=>j===i?{...x,[key]:value}:x));return <div className="tn-block-row" key={i}>
+     <label className="tn-block-title">Nosaukums<input value={b.title} maxLength={60} placeholder="Piem., Metienu konkurss" onChange={e=>change('title',e.target.value)}/></label>
+     <label>Sākums<input type="time" step="300" value={b.at} onChange={e=>change('at',e.target.value)}/></label>
+     <label>Ilgums, min<NumberField max={240} value={b.minutes} onChange={v=>change('minutes',v)}/></label>
+     <button type="button" className="icon-button" aria-label={'Dzēst: '+(b.title||'pārtraukums')} onClick={()=>setSetting('blocks',t.settings.blocks.filter((x,j)=>j!==i))}>×</button>
+    </div>;})}
     <button type="button" className="button compact ghost" onClick={()=>setSetting('blocks',[...(t.settings.blocks||[]),{title:'',at:'12:00',minutes:15}])}>+ Pārtraukums</button>
     <small>Šajā laikā spēles neliek nevienā laukumā.</small>
    </fieldset>
@@ -407,9 +426,9 @@ function Wizard(){
   </div>}
 
   <div className="tn-wizard-foot">
-   <button type="button" className="button ghost" disabled={stepIndex===0||needsSaved(STEPS[stepIndex-1]?.[0])} onClick={()=>setStep(STEPS[stepIndex-1][0])}>← Atpakaļ</button>
-   {canSave&&<button type="button" className={'button'+(dirty?' primary':'')} disabled={busy||!dirty&&Boolean(t.id)} onClick={()=>save()}>{busy?'Saglabā…':t.id?'Saglabāt':'Saglabāt melnrakstu'}</button>}
-   {stepIndex<STEPS.length-1&&<button type="button" className="button" disabled={needsSaved(STEPS[stepIndex+1][0])} onClick={()=>setStep(STEPS[stepIndex+1][0])}>{STEPS[stepIndex+1][1]} →</button>}
+   <button type="button" className="button ghost tn-foot-back" aria-label="Iepriekšējais solis" disabled={stepIndex===0||needsSaved(STEPS[stepIndex-1]?.[0])} onClick={()=>{setStep(STEPS[stepIndex-1][0]);window.scrollTo({top:0});}}>← <span className="tn-wide">Atpakaļ</span></button>
+   {canSave&&<button type="button" className={'button'+(dirty?' primary':'')} disabled={busy||!dirty&&Boolean(t.id)} onClick={()=>save()}>{busy?'Saglabā…':'Saglabāt'}</button>}
+   {stepIndex<STEPS.length-1&&<button type="button" className="button" disabled={needsSaved(STEPS[stepIndex+1][0])} title={needsSaved(STEPS[stepIndex+1][0])?'Vispirms saglabā':undefined} onClick={()=>{setStep(STEPS[stepIndex+1][0]);window.scrollTo({top:0});}}><span className="tn-wide">{STEPS[stepIndex+1][1]}</span><span className="tn-narrow">Tālāk</span> →</button>}
   </div>
  </section></ProfileShell>;
 }
