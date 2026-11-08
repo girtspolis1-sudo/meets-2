@@ -216,3 +216,29 @@ test('groups and a final group: the best of every group play again, all places d
  assert.ok(clean.settings.places.some(d=>d.ref==='Z1'&&d.place===1));
  assert.equal(clean.settings.advance,2);
 });
+
+test('own stages after the groups: places run on from stage to stage',()=>{
+ const tm=snakeGroups(many(16),4);
+ const set={courts:['1','2','3','4'],start:'09:00',slot:12,rest:0};
+ // The default plan is groups and knockout with the others playing for places.
+ const plain=buildGames('custom',tm,{...set,stages:[{type:'knockout',from:1,to:2,third:true},{type:'placement',from:3,to:4}]});
+ assert.equal(plain.length,40);
+ // Group winners in a final group, 2nd and 3rd places in a bracket for 5th–12th, 4th places for 13th–16th.
+ const stages=[{type:'final',from:1,to:1},{type:'knockout',from:2,to:3,third:true},{type:'placement',from:4,to:4}];
+ assert.equal(formatProblem('custom',tm,{stages}),'');
+ const games=buildGames('custom',tm,{...set,stages});
+ assert.equal(games.filter(g=>g.stage==='final').length,6);
+ assert.ok(games.some(g=>g.label==='Par 5. vietu'&&g.place===5));
+ assert.ok(games.some(g=>g.label==='Par 7. vietu'&&g.place===7));
+ const planned=schedule(games,tm,set,{tries:20});
+ assert.deepEqual(scheduleProblems(planned,tm,set),[]);
+ const places=finalPlaces(playAll(planned,tm),'custom');
+ assert.deepEqual(places.map((t,i)=>t?i+1:0).filter(Boolean),[1,2,3,4,5,6,7,8,13,14,15,16]);
+ const clean=cleanTournament({title:'Savs',sport:'football',format:'custom',settings:{...set,stages,places:planned.direct},teams:tm,games:planned});
+ assert.deepEqual(clean.settings.stages.map(s=>s.type),['final','knockout','placement']);
+ // Problems in words.
+ assert.match(formatProblem('custom',tm,{stages:[{type:'knockout',from:1,to:2},{type:'placement',from:2,to:4}]}),/divos posmos/);
+ assert.match(formatProblem('custom',tm,{stages:[{type:'final',from:1,to:1},{type:'final',from:2,to:2}]}),/tikai viena/);
+ assert.match(formatProblem('custom',tm,{stages:[{type:'placement',from:5,to:6}]}),/tikai 4/);
+ assert.match(formatProblem('custom',tm,{stages:[]}),/vismaz vienu posmu/);
+});

@@ -32,6 +32,15 @@ export default function FormatDiagram({format,width=112}){
   <path d="M50 14H62V30H50M50 46H62V62H50M62 22H80V54H62M80 38H98" stroke={INK} strokeWidth="1.6"/>
   <circle cx="106" cy="38" r="7" fill={GOLD}/>
  </svg>;
+ if(format==='custom')return <svg {...props}>
+  <rect x="4" y="4" width="70" height="18" rx="6" fill={SOFT}/>
+  <rect x="4" y="29" width="70" height="18" rx="6" fill={INK}/>
+  <rect x="4" y="54" width="70" height="18" rx="6" fill={SOFT} stroke={LINE} strokeDasharray="3 3"/>
+  <path d="M12 13H40M12 63H34" stroke={LINE} strokeWidth="2" strokeLinecap="round"/>
+  <path d="M12 38H48" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+  <circle cx="100" cy="63" r="11" fill="#fff" stroke={INK} strokeWidth="1.6"/>
+  <path d="M100 57V69M94 63H106" stroke={INK} strokeWidth="1.8" strokeLinecap="round"/>
+ </svg>;
  return <svg {...props}>
   <path d="M4 6H22V15H4M4 24H22V33H4M4 43H22V52H4M4 61H22V70H4M22 10.5H44V28.5H22M22 47.5H44V65.5H22M44 19.5H68V56.5H44M68 38H90" stroke={INK} strokeWidth="1.6"/>
   <circle cx="99" cy="38" r="8" fill={GOLD}/>
