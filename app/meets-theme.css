@@ -230,7 +230,7 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
  /* Mans MEETS | Organizators: centred, the side you are on filled in brand red. */
  .meets-profile-mobile-mode{display:grid;grid-template-columns:1fr 1fr;width:min(100%,340px);padding:4px;border-radius:999px;background:#e9edf2;box-shadow:inset 0 0 0 1px #dde3ea}
  .meets-profile-mobile-mode a{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;white-space:nowrap;padding:0 12px;border-radius:999px;font-size:14px;font-weight:700;color:#5b6675;text-decoration:none}
- .meets-profile-mobile-mode a.active{background:var(--karmins);color:#fff;font-weight:800;box-shadow:0 4px 12px rgba(158,48,57,.3)}
+ .meets-profile-mobile-mode a.active{background:var(--tinte);color:#fff;font-weight:800;box-shadow:0 4px 12px rgba(27,36,48,.25)}
  .meets-profile-mobile-new{flex:none;margin-left:auto;white-space:nowrap;padding:9px 14px;border-radius:999px;background:var(--karmins);color:#fff;font-size:13px;font-weight:800;text-decoration:none}
  /* Forms: the main action first, and nothing hidden behind the bottom bar. */
  .org-form-card .org-actions{flex-direction:column-reverse;align-items:stretch}
@@ -412,7 +412,7 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .map-what-scroller .map-online-toggle.active{background:#2547a6;border-color:#2547a6;color:#fff}
 
 /* The same switch on the desktop sidebar: the active side is filled, as on phones. */
-.meets-profile-shell .meets-profile-mode-switch a.active{background:var(--karmins);color:#fff;font-weight:700;box-shadow:0 4px 12px rgba(158,48,57,.25)}
+.meets-profile-shell .meets-profile-mode-switch a.active{background:var(--tinte);color:#fff;font-weight:700;box-shadow:0 4px 12px rgba(27,36,48,.22)}
 .meets-profile-shell .meets-profile-mode-switch a.active svg{stroke:#fff}
 
 /* Phone header: logo and one account mark on a single, low row. */
@@ -485,3 +485,23 @@ footer .footer-contact-row{flex-basis:100%;order:99;width:100%;margin:4px 0 0;pa
 .footer-contact{color:var(--teksts-2,#4a5565);font-weight:600;text-decoration:none}
 .footer-contact strong{color:var(--karmins-dark);font-weight:800}
 .footer-contact:hover strong{text-decoration:underline;text-underline-offset:3px}
+
+/* 60/30/10. Light surfaces carry the page, ink marks structure and what is
+   chosen, brand red (karmīns) is kept for actions and the brand mark. The
+   older pink (#d36973) and muted reds of earlier layers are brought back to
+   these tokens so there is one red. */
+body:not(.admin-environment) .meets-hero-cta-primary{background:var(--karmins);border-color:var(--karmins);color:#fff}
+body:not(.admin-environment) .meets-hero-cta-primary:hover{background:var(--karmins-dark);border-color:var(--karmins-dark)}
+body:not(.admin-environment) .meets-hero-message h1 em{color:inherit;font-style:normal}
+body:not(.admin-environment) .meets-hero-search button{background:var(--karmins)}
+body:not(.admin-environment) .meets-hero-chips>a.active{background:var(--tinte);border-color:var(--tinte);color:#fff}
+body:not(.admin-environment) .meets-home-section-header>a,body:not(.admin-environment) .meets-home-side-head a{color:var(--karmins-dark)}
+body:not(.admin-environment) .meets-home-side-icon,body:not(.admin-environment) .meets-minimal-benefit-icon{color:var(--karmins)}
+body:not(.admin-environment) .meets-minimal-benefits>a:hover strong{color:var(--karmins-dark)}
+body:not(.admin-environment) .header .meets-nav-desktop>a.active{border-bottom-color:var(--karmins)}
+.meets-detail-image-fallback{color:var(--tinte)}
+.meets-profile-brand-mark,.meets-profile-avatar{background:var(--tinte)}
+.meets-profile-aside-action,.meets-profile-summary-action,.meets-profile-top-cta{background:var(--karmins)}
+.meets-profile-aside-action:hover,.meets-profile-summary-action:hover,.meets-profile-top-cta:hover{background:var(--karmins-dark)}
+.meets-profile-auth .meets-auth-compact .button.primary{background:var(--karmins);border-color:var(--karmins)}
+@media(max-width:760px){.meets-profile-mobile-tabs a.active{background:var(--tinte);border-color:var(--tinte);color:#fff}}
