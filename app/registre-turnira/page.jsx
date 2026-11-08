@@ -5,14 +5,17 @@ import {useSearchParams} from 'next/navigation';
 import ProfileShell from '../components/profile-shell.jsx';
 import {accountRequest,useAccountSession} from '../../lib/account-store.js';
 import {canWriteOrganization,submissionDateLabel} from '../../lib/organizer-workspace.js';
-import {FORMATS,GROUP_KEYS,SPORTS,buildGames,cleanTournament,estimateEnd,formatProblem,groupsOf,hasScore,newTeamKey,parseTeamLines,schedule,scheduleProblems,snakeGroups,sportOf,toMin} from '../../lib/tournament.js';
+import {FORMATS,GROUP_KEYS,SPORTS,advanceOf,buildGames,cleanTournament,estimateEnd,formatProblem,groupsOf,hasScore,newTeamKey,parseTeamLines,schedule,scheduleProblems,snakeGroups,sportOf,toMin,usesGroups} from '../../lib/tournament.js';
+import FormatDiagram from '../turniri/format-diagrams.jsx';
 import {qrPath} from '../../lib/qr-path.js';
 import {GroupTables,Places,contextOf,stageLabel} from '../turniri/tournament-views.jsx';
 import {ScoreEntry} from '../turniri/score-entry.jsx';
 
-const STEPS=[['pamati','Pamati'],['komandas','Komandas'],['laiks','Laiks un laukumi'],['grafiks','Grafiks'],['rezultati','Rezultāti'],['saites','Publicēšana un saites']];
-const EMPTY={id:'',organization_id:'',title:'',sport:'basket3x3',format:'groups_places',play_date:'',venue:'',submission_id:'',youth:false,status:'draft',share_token:'',
- settings:{courts:['A','B'],start:'10:00',slot:15,rest:15,blocks:[],third:true}};
+const STEPS=[['formats','Formāts'],['pamati','Pamati'],['komandas','Komandas'],['laiks','Laiks un laukumi'],['grafiks','Grafiks'],['rezultati','Rezultāti'],['saites','Publicēšana un saites']];
+const EMPTY={id:'',organization_id:'',title:'',sport:'basket3x3',format:'round_robin',play_date:'',venue:'',submission_id:'',youth:false,status:'draft',share_token:'',
+ settings:{courts:['A','B'],start:'10:00',slot:15,rest:15,blocks:[],third:true,advance:2,rest_places:true}};
+// Usual numbers going on: the group winners to a final group, two per group to a bracket.
+const ADVANCE={groups_final:1,groups_knockout:2};
 const DRAFT=userId=>'meets_tournament_draft_v1:'+(userId||'guest');
 const API='/api/tournaments';
 
@@ -81,7 +84,7 @@ function Wizard(){
  const [scorers,setScorers]=useState([]);
  const [rights,setRights]=useState({edit:false,create:false,manage:false});
  const [saved,setSaved]=useState('');
- const [step,setStep]=useState('pamati');
+ const [step,setStep]=useState('formats');
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
@@ -99,10 +102,31 @@ function Wizard(){
  const dirty=snapshot(t,teams,games)!==saved;
  const ctx={teams,games,sport:t.sport,places:t.settings.places||[]};
  const sport=sportOf(t.sport);
- const groupFormat=t.format!=='knockout';
- const problem=formatProblem(t.format,teams);
+ const groupFormat=usesGroups(t.format);
+ const problem=formatProblem(t.format,teams,t.settings);
  const problems=useMemo(()=>games.length?scheduleProblems(games,teams,t.settings):[],[games,teams,t.settings]);
- const planned=useMemo(()=>problem?0:buildGames(t.format,teams,{third:t.settings.third}).length,[t.format,teams,t.settings.third,problem]);
+ const planned=useMemo(()=>problem?0:buildGames(t.format,teams,t.settings).length,[t.format,teams,t.settings.third,t.settings.advance,t.settings.rest_places,problem]);
+ // An example for each format card: the teams entered so far, else 16.
+ const examples=useMemo(()=>{
+  const n=teams.length>=4?teams.length:16;
+  const sample=Array.from({length:n},(_,i)=>({key:'x'+(i+1),name:'x'+(i+1),coach:'',seed:i+1}));
+  const grouped=snakeGroups(sample,Math.max(1,Math.min(groupCount||4,Math.floor(n/2))));
+  return Object.fromEntries(Object.keys(FORMATS).map(key=>{
+   const tm=usesGroups(key)?grouped:sample;
+   const settings=key===t.format||!ADVANCE[key]?t.settings:{...t.settings,advance:ADVANCE[key]};
+   const ok=!formatProblem(key,tm,settings);
+   return [key,n+' komandas'+(ok?' · '+buildGames(key,tm,settings).length+' spēles':'')];
+  }));
+ },[teams.length,groupCount,t.format,t.settings.third,t.settings.advance,t.settings.rest_places]);
+ // The stages of the chosen format, in words.
+ const advance=advanceOf(t.settings);
+ const stages={
+  round_robin:['Grupas: visi pret visiem, uzvar ar vairāk punktiem'],
+  groups_places:['Grupas: visi pret visiem','Spēles par vietām: vienādo vietu komandas no visām grupām'],
+  groups_final:['Grupas: visi pret visiem','Finālgrupa: '+advance+' no katras grupas, uzvar līderis',...(t.settings.rest_places!==false?['Pārējās spēlē par vietām']:[])],
+  groups_knockout:['Grupas: visi pret visiem','Izslēgšana: '+advance+' no katras grupas'+(t.settings.third!==false?', ar spēli par 3. vietu':''),...(t.settings.rest_places!==false?['Pārējās spēlē par vietām']:[])],
+  knockout:['Izslēgšana'+(t.settings.third!==false?', ar spēli par 3. vietu':'')]
+ }[t.format]||[];
  const scored=games.some(hasScore);
  // The schedule no longer matches the teams or the format.
  const stale=games.length>0&&(()=>{
@@ -166,8 +190,8 @@ function Wizard(){
   });
  }
  function chooseFormat(key){
-  set('format',key);
-  if(key!=='knockout'&&teams.some(x=>!x.group)){const next=splitInto(teams,groupCount);setTeams(next);setGroupCount(new Set(next.map(x=>x.group)).size||1);}
+  setT(v=>({...v,format:key,settings:ADVANCE[key]&&v.format!==key?{...v.settings,advance:ADVANCE[key]}:v.settings}));
+  if(usesGroups(key)&&teams.some(x=>!x.group)){const next=splitInto(teams,groupCount);setTeams(next);setGroupCount(new Set(next.map(x=>x.group)).size||1);}
  }
 
  // Teams
@@ -204,7 +228,7 @@ function Wizard(){
   if(problem){setError(problem);setStep('komandas');return;}
   if(teams.some(x=>!x.name.trim())){setError('Katrai komandai vajag nosaukumu.');setStep('komandas');return;}
   if(scored&&!window.confirm('Grafiks tiks sastādīts no jauna. Spēlēm, kuru pāri mainīsies, ievadītie rezultāti tiks dzēsti. Turpināt?'))return;
-  const built=buildGames(t.format,teams,{third:t.settings.third});
+  const built=buildGames(t.format,teams,t.settings);
   const result=schedule(built,teams,t.settings,{tries:160,seed:1+Math.floor(Math.random()*100000)});
   if(!result){setError('Visas spēles neizdevās ievietot līdz dienas beigām. Pievieno laukumu, saīsini spēles vai atpūtas laiku, vai pārtraukumus.');return;}
   setGames(result);setSetting('places',result.direct||[]);setEditing(false);
@@ -288,6 +312,25 @@ function Wizard(){
   {readOnly&&t.id&&<p className="tn-note">Tev ir tiesības šo turnīru skatīt, bet ne labot.</p>}
 
   <fieldset className="tn-step-body" disabled={readOnly&&!['rezultati','saites'].includes(step)}>
+  {step==='formats'&&<div className="tn-formats">
+   <div className="tn-formats-head"><h2>Kā notiks turnīrs?</h2><p>Izvēlies uzbūvi. Komandas, laikus un laukumus ievadīsi nākamajos soļos.</p></div>
+   <fieldset className="tn-format-grid"><legend className="sr-only">Turnīra formāts</legend>
+    {Object.entries(FORMATS).map(([key,f])=><label key={key} className={'tn-format-card'+(t.format===key?' is-on':'')}>
+     <input type="radio" name="format" checked={t.format===key} onChange={()=>chooseFormat(key)}/>
+     <FormatDiagram format={key}/>
+     <span className="tn-format-text"><strong>{f.name}</strong><small>{f.hint}</small><em>{examples[key]}</em></span>
+    </label>)}
+   </fieldset>
+   <section className="tn-format-plan" aria-labelledby="tn-plan-title">
+    <h3 id="tn-plan-title">{FORMATS[t.format]?.name}</h3>
+    <ol>{stages.map((line,i)=><li key={i}><span aria-hidden="true">{i+1}</span>{line}</li>)}</ol>
+    {FORMATS[t.format]?.advance&&<div className="tn-segment-field"><span id="tn-advance">No katras grupas iziet</span>
+     <div className="tn-segment" role="group" aria-labelledby="tn-advance">{[1,2,3,4].map(n=><button key={n} type="button" aria-pressed={advance===n} className={advance===n?'is-on':''} onClick={()=>setSetting('advance',n)}>{n}</button>)}</div></div>}
+    {['knockout','groups_knockout'].includes(t.format)&&<label className="tn-switch"><input type="checkbox" checked={t.settings.third!==false} onChange={e=>setSetting('third',e.target.checked)}/><span><strong>Spēle par 3. vietu</strong><small>Pusfinālu zaudētāji spēlē par bronzu</small></span></label>}
+    {FORMATS[t.format]?.advance&&<label className="tn-switch"><input type="checkbox" checked={t.settings.rest_places!==false} onChange={e=>setSetting('rest_places',e.target.checked)}/><span><strong>Pārējām spēles par vietām</strong><small>Neizgājušās komandas izspēlē savas vietas</small></span></label>}
+   </section>
+  </div>}
+
   {step==='pamati'&&<div className="org-panel tn-form">
    {!t.id&&writable.length>1&&<label>Rīkotājs<select value={t.organization_id} onChange={e=>set('organization_id',e.target.value)}><option value="">Izvēlies rīkotāju</option>{writable.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></label>}
    <label>Turnīra nosaukums<input value={t.title} maxLength={160} placeholder="Piem., Mārupes kauss 2026 · 2018. g. dz. zēni" onChange={e=>set('title',e.target.value)}/></label>
@@ -296,10 +339,6 @@ function Wizard(){
      <strong>{s.name}</strong><small>{s.slot} min · {s.rank==='wins'?'skaita uzvaras':s.rank==='sets'?'seti':'punkti tabulā'}</small></label>)}
    </fieldset>
    <p className="tn-rules">{sport.rules}</p>
-   <fieldset className="tn-choice-grid tn-choice-wide"><legend>Formāts</legend>
-    {Object.entries(FORMATS).map(([key,f])=><label key={key} className={'tn-choice'+(t.format===key?' is-on':'')}><input type="radio" name="format" checked={t.format===key} onChange={()=>chooseFormat(key)}/>
-     <strong>{f.name}</strong><small>{f.hint}</small></label>)}
-   </fieldset>
    <div className="tn-row">
     <label>Datums<input type="date" value={t.play_date} onChange={e=>set('play_date',e.target.value)}/></label>
     <label>Norises vieta<input value={t.venue} maxLength={200} placeholder="Piem., Mārupes sporta komplekss" onChange={e=>set('venue',e.target.value)}/></label>
@@ -360,7 +399,6 @@ function Wizard(){
     <button type="button" className="button compact ghost" onClick={()=>setSetting('blocks',[...(t.settings.blocks||[]),{title:'',at:'12:00',minutes:15}])}>+ Pārtraukums</button>
     <small>Šajā laikā spēles neliek nevienā laukumā.</small>
    </fieldset>
-   {t.format==='knockout'&&<label className="org-public-choice"><input type="checkbox" checked={t.settings.third!==false} onChange={e=>setSetting('third',e.target.checked)}/><span><strong>Spēle par 3. vietu</strong><small>Pusfinālu zaudētāji spēlē par bronzu.</small></span></label>}
    {planned>0&&courts.length>0&&<p className="tn-ok">{planned} spēles {courts.length} laukumos · beigas ap {estimateEnd(t.settings,planned)} (precīzi — pēc grafika sastādīšanas)</p>}
   </div>}
 

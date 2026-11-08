@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildGames,cleanTournament,finalPlaces,formatProblem,matchPoints,numberGames,parseTeamLines,resolveRef,roundRobin,schedule,scheduleProblems,slotTimes,snakeGroups,standings,toMin} from '../lib/tournament.js';
+import {buildGames,cleanTournament,finalGroupStandings,finalPlaces,formatProblem,matchPoints,numberGames,parseTeamLines,resolveRef,roundRobin,schedule,scheduleProblems,slotTimes,snakeGroups,standings,toMin} from '../lib/tournament.js';
 
 // Mārupes Kauss 2026, 2018. g. dz. zēni (the organizer's PDF).
 const GROUPS={
@@ -171,4 +171,48 @@ test('saving: tidy input, reject broken references',()=>{
  assert.throws(()=>cleanTournament({title:'Kauss',sport:'basket3x3',format:'round_robin',settings,teams:teams.slice(0,4),games:[{...planned[0],home:'drop table'}]}),/grafikā/);
  assert.throws(()=>cleanTournament({title:'Kauss',sport:'basket3x3',format:'round_robin',settings,teams:teams.slice(0,3),games:planned}),/vairs nav/);
  assert.throws(()=>cleanTournament({title:'Kauss',sport:'chess',format:'round_robin',settings,teams:[],games:[]}),/sporta veidu/);
+});
+
+test('groups and knockout: best teams go on, same group apart in the first round',()=>{
+ const set={courts:['1','2','3','4'],start:'09:00',slot:12,rest:0,third:true,advance:2,rest_places:true};
+ const tm=snakeGroups(many(16),4);
+ assert.equal(formatProblem('groups_knockout',tm,set),'');
+ const games=buildGames('groups_knockout',tm,set);
+ assert.equal(games.filter(g=>g.stage==='group').length,24);
+ assert.equal(games.filter(g=>g.stage==='knockout').length,8);
+ assert.equal(games.filter(g=>g.stage==='placement').length,8);
+ const first=games.filter(g=>g.stage==='knockout'&&g.round===1);
+ assert.ok(first.every(g=>g.home[0]!==g.away[0]),JSON.stringify(first.map(g=>g.home+'-'+g.away)));
+ const planned=schedule(games,tm,set,{tries:20});
+ assert.deepEqual(scheduleProblems(planned,tm,set),[]);
+ const places=finalPlaces(playAll(planned,tm),'groups_knockout');
+ // 1–4 from the final and the game for 3rd, 9–16 from the others; 5–8 lost a quarterfinal.
+ assert.deepEqual(places.map((t,i)=>t?i+1:0).filter(Boolean),[1,2,3,4,9,10,11,12,13,14,15,16]);
+ assert.equal(places[0].seed,1);
+ // Three groups, two go on: six teams, the two best with a bye, no own-group pair.
+ const six=buildGames('groups_knockout',snakeGroups(many(12),3),{...set,rest_places:false});
+ const r1=six.filter(g=>g.stage==='knockout'&&g.round===1);
+ assert.equal(r1.length,2);
+ assert.ok(r1.every(g=>g.home[0]!==g.away[0]));
+ assert.match(formatProblem('groups_knockout',snakeGroups(many(6),3),{advance:2}),/mazāk komandu/);
+});
+
+test('groups and a final group: the best of every group play again, all places decided',()=>{
+ const set={courts:['1','2','3'],start:'09:00',slot:12,rest:0,advance:2,rest_places:true};
+ const tm=snakeGroups(many(12),3);
+ const games=buildGames('groups_final',tm,set);
+ assert.equal(games.filter(g=>g.stage==='final').length,15);
+ assert.deepEqual(games.direct.filter(d=>d.ref[0]==='Z').map(d=>d.ref),['Z1','Z2','Z3','Z4','Z5','Z6']);
+ const planned=schedule(games,tm,set,{tries:20});
+ assert.deepEqual(scheduleProblems(planned,tm,set),[]);
+ const ctx=playAll(planned,tm);
+ const table=finalGroupStandings(ctx);
+ assert.equal(table.complete,true);
+ assert.equal(table.rows.length,6);
+ const places=finalPlaces(ctx,'groups_final');
+ assert.equal(places.filter(Boolean).length,12);
+ assert.equal(new Set(places.map(t=>t.key)).size,12);
+ const clean=cleanTournament({title:'Finālgrupa',sport:'football',format:'groups_final',settings:{...set,places:planned.direct},teams:tm,games:planned});
+ assert.ok(clean.settings.places.some(d=>d.ref==='Z1'&&d.place===1));
+ assert.equal(clean.settings.advance,2);
 });

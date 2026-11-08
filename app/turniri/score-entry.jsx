@@ -19,7 +19,8 @@ export function ScoreEntry({game,ctx,sport:sportKey,onSave,disabled=false,curren
 
  const h=sideName(game.home,ctx),a=sideName(game.away,ctx);
  const level=home!==''&&home===away;
- const needsWinner=level&&sport.draw&&game.stage!=='group';
+ // Group and final group games may end level; the others need a winner.
+ const needsWinner=level&&sport.draw&&!['group','final'].includes(game.stage);
  const changed=[home,away,ot,winner].join('|')!==[asText(game.home_score),asText(game.away_score),game.details?.ot===true,game.details?.winner||''].join('|');
  const teamsKnown=h.known&&a.known;
 
