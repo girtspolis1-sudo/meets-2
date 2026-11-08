@@ -5,7 +5,7 @@ import {useSearchParams} from 'next/navigation';
 import ProfileShell from '../components/profile-shell.jsx';
 import {accountRequest,useAccountSession} from '../../lib/account-store.js';
 import {canWriteOrganization,submissionDateLabel} from '../../lib/organizer-workspace.js';
-import {FORMATS,GROUP_KEYS,SPORTS,advanceOf,buildGames,cleanTournament,estimateEnd,formatProblem,groupsOf,hasScore,newTeamKey,parseTeamLines,schedule,scheduleProblems,snakeGroups,sportOf,toMin,usesGroups} from '../../lib/tournament.js';
+import {DEFAULT_STAGES,FORMATS,GROUP_KEYS,SPORTS,STAGE_TYPES,advanceOf,buildGames,cleanStages,planStages,cleanTournament,estimateEnd,formatProblem,groupsOf,hasScore,newTeamKey,parseTeamLines,schedule,scheduleProblems,snakeGroups,sportOf,toMin,usesGroups} from '../../lib/tournament.js';
 import FormatDiagram from '../turniri/format-diagrams.jsx';
 import {qrPath} from '../../lib/qr-path.js';
 import {GroupTables,Places,contextOf,stageLabel} from '../turniri/tournament-views.jsx';
@@ -113,11 +113,25 @@ function Wizard(){
   const grouped=snakeGroups(sample,Math.max(1,Math.min(groupCount||4,Math.floor(n/2))));
   return Object.fromEntries(Object.keys(FORMATS).map(key=>{
    const tm=usesGroups(key)?grouped:sample;
-   const settings=key===t.format||!ADVANCE[key]?t.settings:{...t.settings,advance:ADVANCE[key]};
+   let settings=key===t.format||!ADVANCE[key]?t.settings:{...t.settings,advance:ADVANCE[key]};
+   if(key==='custom'&&!cleanStages(settings.stages).length)settings={...settings,stages:DEFAULT_STAGES};
    const ok=!formatProblem(key,tm,settings);
    return [key,n+' komandas'+(ok?' · '+buildGames(key,tm,settings).length+' spēles':'')];
   }));
- },[teams.length,groupCount,t.format,t.settings.third,t.settings.advance,t.settings.rest_places]);
+ },[teams.length,groupCount,t.format,t.settings.third,t.settings.advance,t.settings.rest_places,t.settings.stages]);
+ // Own stages: the teams entered so far (once in groups), else 16 in the chosen number of groups.
+ const customStages=cleanStages(t.settings.stages);
+ const planTeams=useMemo(()=>{
+  if(teams.length>=2&&teams.every(x=>x.group))return teams;
+  const sample=Array.from({length:16},(_,i)=>({key:'x'+(i+1),name:'x'+(i+1),seed:i+1}));
+  return snakeGroups(sample,Math.max(1,Math.min(groupCount||4,8)));
+ },[teams,groupCount]);
+ const customPlan=useMemo(()=>t.format==='custom'?planStages('custom',planTeams,t.settings):[],[t.format,planTeams,t.settings.stages]);
+ const customProblem=t.format==='custom'?formatProblem('custom',planTeams,t.settings):'';
+ function setStages(list){setSetting('stages',list);}
+ function changeStage(i,patch){setStages(customStages.map((st,j)=>{if(j!==i)return st;const next={...st,...patch};if(next.to<next.from)next.to=next.from;return next;}));}
+ function addStage(type){const last=Math.max(0,...customStages.map(st=>st.to));setStages([...customStages,{type,from:last+1,to:last+(type==='final'?1:2),third:true}]);}
+ function removeStage(i){setStages(customStages.filter((_,j)=>j!==i));}
  // The stages of the chosen format, in words.
  const advance=advanceOf(t.settings);
  const stages={
@@ -190,7 +204,11 @@ function Wizard(){
   });
  }
  function chooseFormat(key){
-  setT(v=>({...v,format:key,settings:ADVANCE[key]&&v.format!==key?{...v.settings,advance:ADVANCE[key]}:v.settings}));
+  setT(v=>{
+   let settings=ADVANCE[key]&&v.format!==key?{...v.settings,advance:ADVANCE[key]}:v.settings;
+   if(key==='custom'&&!cleanStages(settings.stages).length)settings={...settings,stages:DEFAULT_STAGES};
+   return {...v,format:key,settings};
+  });
   if(usesGroups(key)&&teams.some(x=>!x.group)){const next=splitInto(teams,groupCount);setTeams(next);setGroupCount(new Set(next.map(x=>x.group)).size||1);}
  }
 
@@ -323,7 +341,29 @@ function Wizard(){
    </fieldset>
    <section className="tn-format-plan" aria-labelledby="tn-plan-title">
     <h3 id="tn-plan-title">{FORMATS[t.format]?.name}</h3>
-    <ol>{stages.map((line,i)=><li key={i}><span aria-hidden="true">{i+1}</span>{line}</li>)}</ol>
+    {t.format!=='custom'&&<ol>{stages.map((line,i)=><li key={i}><span aria-hidden="true">{i+1}</span>{line}</li>)}</ol>}
+    {t.format==='custom'&&<div className="tn-stage-builder">
+     <p className="tn-stage-intro">{teams.length>=2&&teams.every(x=>x.group)?'Tavām komandām':'Piemērs: 16 komandas '+Object.keys(groupsOf(planTeams)).length+' grupās'} — vietas sadalās pēc posmu secības.</p>
+     <ol>
+      <li className="tn-stage"><span className="tn-stage-no" aria-hidden="true">1</span><div className="tn-stage-body"><strong>Grupas</strong><small>Visi pret visiem grupā</small></div></li>
+      {customStages.map((st,i)=>{const info=customPlan.find(x=>x.index===i);return <li className="tn-stage" key={i}>
+       <span className="tn-stage-no" aria-hidden="true">{i+2}</span>
+       <div className="tn-stage-body">
+        <label>Posms<select value={st.type} onChange={e=>changeStage(i,{type:e.target.value})}>{Object.entries(STAGE_TYPES).map(([key,x])=><option key={key} value={key}>{x.name}</option>)}</select></label>
+        <div className="tn-stage-range">
+         <label>No vietas<select value={st.from} onChange={e=>changeStage(i,{from:Number(e.target.value)})}>{Array.from({length:8},(_,n)=><option key={n} value={n+1}>{n+1}.</option>)}</select></label>
+         <label>Līdz vietai<select value={st.to} onChange={e=>changeStage(i,{to:Number(e.target.value)})}>{Array.from({length:8},(_,n)=>n+1).filter(n=>n>=st.from).map(n=><option key={n} value={n}>{n}.</option>)}</select></label>
+        </div>
+        {st.type==='knockout'&&<label className="tn-switch"><input type="checkbox" checked={st.third} onChange={e=>changeStage(i,{third:e.target.checked})}/><span><strong>Spēle par 3. vietu</strong></span></label>}
+        <small>{(st.from===st.to?st.from+'. vieta':st.from+'.–'+st.to+'. vieta')+' katrā grupā'}{info&&info.refs.length?' · '+info.refs.length+' komandas · par '+(info.refs.length>1?info.start+'.–'+info.end+'. vietu':info.start+'. vietu'):' · šīm vietām grupās nav komandu'}</small>
+       </div>
+       <button type="button" className="icon-button tn-stage-remove" aria-label={'Noņemt posmu: '+STAGE_TYPES[st.type].name} onClick={()=>removeStage(i)}>×</button>
+      </li>;})}
+     </ol>
+     {customProblem&&<p className="tn-stage-problem" role="alert">{customProblem}</p>}
+     {customStages.length<4&&<div className="tn-stage-add"><span>+ Pievienot posmu</span>
+      {Object.entries(STAGE_TYPES).map(([key,x])=><button key={key} type="button" onClick={()=>addStage(key)}><strong>{x.name}</strong><small>{x.hint}</small></button>)}</div>}
+    </div>}
     {FORMATS[t.format]?.advance&&<div className="tn-segment-field"><span id="tn-advance">No katras grupas iziet</span>
      <div className="tn-segment" role="group" aria-labelledby="tn-advance">{[1,2,3,4].map(n=><button key={n} type="button" aria-pressed={advance===n} className={advance===n?'is-on':''} onClick={()=>setSetting('advance',n)}>{n}</button>)}</div></div>}
     {['knockout','groups_knockout'].includes(t.format)&&<label className="tn-switch"><input type="checkbox" checked={t.settings.third!==false} onChange={e=>setSetting('third',e.target.checked)}/><span><strong>Spēle par 3. vietu</strong><small>Pusfinālu zaudētāji spēlē par bronzu</small></span></label>}
