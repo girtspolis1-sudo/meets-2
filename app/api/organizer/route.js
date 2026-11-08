@@ -114,6 +114,14 @@ export async function POST(request){
    // Whether the organizer publishes without MEETS review (trusted by an admin).
    const trusted=await Promise.all(orgs.map(org=>api('rpc/meets_org_is_trusted',token,'POST',{p_organization_id:org.id}).catch(()=>false)));
    orgs.forEach((org,i)=>{org.trusted=trusted[i]===true;});
+   // Events and tournaments given to the user one by one ("Labotājs" of one item).
+   // An organizer the user is not a member of appears with the role "item".
+   const access=await api('rpc/meets_my_item_access',token,'POST',{}).catch(()=>[]);
+   for(const grant of Array.isArray(access)?access:[]){
+    let org=orgs.find(o=>o.id===grant.organization_id);
+    if(!org){org={id:grant.organization_id,name:grant.organization_name||'Rīkotājs',role:'item',description:'',trusted:false};orgs.push(org);}
+    (org.items=org.items||[]).push({kind:grant.item_kind,id:grant.item_id,title:grant.title||''});
+   }
    const venues=(visibleVenues||[]).filter(v=>orgIds.has(v.organization_id));
    const publicVenues=(visibleVenues||[]).filter(v=>publicVenue(v,orgIds));
    return NextResponse.json({organizations:orgs,venues,publicVenues,venueLinks:venueLinks||[],submissions:submissions||[]});
@@ -157,13 +165,27 @@ export async function POST(request){
    return NextResponse.json({team:result});
   }
   if(action==='invite'){
-   if(!['admin','editor','viewer'].includes(data.role))return NextResponse.json({error:'Nepareiza loma.'},{status:400});
-   const result=await api('rpc/meets_org_invite_create',token,'POST',{p_organization_id:data.organization_id,p_role:data.role});
+   if(!['admin','editor','contributor','viewer'].includes(data.role))return NextResponse.json({error:'Nepareiza loma.'},{status:400});
+   // One event or tournament: the person may edit only it ("Labotājs").
+   const item=data.item_kind?{kind:data.item_kind,id:data.item_id}:null;
+   if(item&&(!['event','tournament'].includes(item.kind)||!UUID.test(item.id||'')||data.role!=='contributor'))return NextResponse.json({error:'Nepareizs uzaicinājums.'},{status:400});
+   const result=await rpcCall('meets_org_invite_create',token,{p_organization_id:data.organization_id,p_role:data.role,p_item_kind:item?.kind||null,p_item_id:item?.id||null});
    return NextResponse.json({invite:result});
+  }
+  if(action==='removeAccess'){
+   if(!UUID.test(data.user_id||''))return NextResponse.json({error:'Nederīgs lietotājs.'},{status:400});
+   const item=data.item_kind?{kind:data.item_kind,id:data.item_id}:null;
+   if(item&&(!['event','tournament'].includes(item.kind)||!UUID.test(item.id||'')))return NextResponse.json({error:'Nederīgs ieraksts.'},{status:400});
+   await rpcCall('meets_org_access_remove',token,{p_organization_id:data.organization_id,p_user:data.user_id,p_item_kind:item?.kind||null,p_item_id:item?.id||null});
+   return NextResponse.json({ok:true});
   }
 
   const canEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
-  if(canEdit!==true)return NextResponse.json({error:'Nav tiesību veikt izmaiņas šajā organizācijā.'},{status:403});
+  // "Labotājs" (a contributor, or a person given this one event) changes an existing
+  // event, but creates nothing: no new events, venues or other changes.
+  const itemEditor=canEdit!==true&&action==='saveEvent'&&UUID.test(data.id||'')&&
+   await api('rpc/meets_can_edit_item',token,'POST',{p_kind:'event',p_item:data.id,p_org:data.organization_id}).catch(()=>false)===true;
+  if(canEdit!==true&&!itemEditor)return NextResponse.json({error:'Nav tiesību veikt izmaiņas šajā organizācijā.'},{status:403});
 
   // Deleting: first all events, then the organizer (owner only, checked in the database).
   if(action==='deleteOrgEvents'){
@@ -274,6 +296,10 @@ export async function POST(request){
     if(!UUID.test(data.venue_id))return NextResponse.json({error:'Nepareiza norises vieta.'},{status:400});
     const found=await api(TABLES.venues,token,'GET',null,'?select=*&id=eq.'+data.venue_id);
     venue=found[0];
+    if(!venue&&itemEditor){
+     const own=(await api(TABLES.submissions,token,'GET',null,'?select=venue_id,venue_name,address,latitude,longitude&id=eq.'+data.id))[0];
+     if(own?.venue_id===data.venue_id)venue={id:own.venue_id,organization_id:data.organization_id,name:own.venue_name,address:own.address,latitude:own.latitude,longitude:own.longitude};
+    }
     if(!venue)return NextResponse.json({error:'Norises vieta nav pieejama.'},{status:400});
     if(venue.organization_id!==data.organization_id&&venue.is_public!==true)return NextResponse.json({error:'Šo norises vietu nevar izmantot.'},{status:403});
    }
@@ -315,7 +341,7 @@ export async function POST(request){
     if(String(payload.date_to||payload.date_from)<rigaDate())return NextResponse.json({error:'Pasākuma beigu datums jau ir pagājis.'},{status:400});
    }
 
-   if(data.save_venue===true&&!venue&&!isDraft){
+   if(data.save_venue===true&&!venue&&!isDraft&&!itemEditor){
     const name=payload.venue_name.trim();
     if(name.length<2||name.length>160||!payload.address)
      return NextResponse.json({error:'Lai saglabātu vietu, norādi nosaukumu un adresi vai kartes punktu.'},{status:400});
@@ -352,11 +378,13 @@ export async function POST(request){
      const item=await rpcCall('meets_org_update_published_submission',token,{p_id:data.id,p_values:values});
      return NextResponse.json({item,changed_published:true});
     }
-    result=await api(TABLES.submissions,token,'PATCH',{...payload,updated_at:new Date().toISOString()},'?id=eq.'+data.id+'&organization_id=eq.'+data.organization_id);
+    // An item editor's change keeps the original author (MEETS writes to them about review).
+    const {author_id,...changes}=payload;
+    result=await api(TABLES.submissions,token,'PATCH',{...(itemEditor?changes:payload),updated_at:new Date().toISOString()},'?id=eq.'+data.id+'&organization_id=eq.'+data.organization_id);
    }else result=await api(TABLES.submissions,token,'POST',payload);
 
    if(!result.length)return NextResponse.json({error:'Ierakstu nevar labot tā pašreizējā statusā.'},{status:409});
-   if(payload.venue_id){
+   if(payload.venue_id&&!itemEditor){
     const relation=venue?.organization_id===data.organization_id?'managed':'used';
     await linkVenue(token,data.organization_id,payload.venue_id,relation);
    }

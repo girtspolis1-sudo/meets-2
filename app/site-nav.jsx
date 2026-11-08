@@ -29,10 +29,10 @@ export default function SiteNav(){
  const initial=(email||'M').trim().charAt(0).toLocaleUpperCase('lv');
  // Close the account menu after moving to another page.
  useEffect(()=>{document.querySelectorAll('.meets-mobile-account[open]').forEach(menu=>menu.removeAttribute('open'));},[pathname]);
- const profileArea=['/profils','/mani-pasakumi','/mani-registri','/organizators','/sekosana','/konta-iestatijumi','/registre-vietu','/registre-pasakumu'].some(path=>pathname===path||pathname.startsWith(path+'/'));
+ const profileArea=['/profils','/mani-pasakumi','/mani-registri','/organizators','/sekosana','/konta-iestatijumi','/registre-vietu','/registre-pasakumu','/registre-turnira'].some(path=>pathname===path||pathname.startsWith(path+'/'));
  const visibleItems=isAdmin?[...items,{href:'/admin',label:'Admin'}]:items;
  const isActive=item=>item.href==='/profils'
-  ?['/profils','/mani-pasakumi','/mani-registri','/organizators','/sekosana','/konta-iestatijumi','/registre-vietu','/registre-pasakumu'].some(path=>pathname===path||pathname.startsWith(path+'/'))
+  ?['/profils','/mani-pasakumi','/mani-registri','/organizators','/sekosana','/konta-iestatijumi','/registre-vietu','/registre-pasakumu','/registre-turnira'].some(path=>pathname===path||pathname.startsWith(path+'/'))
   :pathname===item.href||pathname.startsWith(item.href+'/');
  async function logout(){
   if(loggingOut)return;

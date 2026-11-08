@@ -10,7 +10,7 @@ import WeeklySchedule from '../../components/weekly-schedule.jsx';
 import {rigaDate} from '../../../lib/meets-personal.js';
 import {countOccurrences,cleanPrice,cleanDatedSlots,datesBetween,DEFAULT_START,defaultEndTime,SCHEDULE_MODES,scheduleModeOf,nextDateAfter} from '../../../lib/event-schedule.js';
 import {ATTENDANCE_LABELS,EVENT_CATEGORIES,QUICK_EVENT_EMPTY,EVENT_DRAFT_KEY,quickEventIssue,normalizeEventTime,copyEventDraft,venueRequired} from '../../../lib/event-entry.js';
-import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
+import {scopedDraftKey,resolveOrganizationId,canEditItem,recurrenceEditScope} from '../../../lib/organizer-workspace.js';
 import {refreshSession} from '../../../lib/auth-client.js';
 import {VISIBILITY_HINTS,flyerPath,rigaOffsetLabel,scheduleLines,sharePath} from '../../../lib/shared-event.js';
 
@@ -92,8 +92,10 @@ function SimpleEventFlow(){
  },[venues,publicVenues,venueLinks,orgId]);
 
  const orgPending=Boolean(account&&!orgs.length);
- const canEdit=activeOrg?canWriteOrganization(activeOrg.role):orgPending;
+ // A "Labotājs" (contributor or given this event) changes it but creates no new ones.
+ const canEdit=activeOrg?canEditItem(activeOrg,'event',savedId):orgPending;
  const viewer=activeOrg?.role==='viewer';
+ const readOnlyMessage=viewer||!activeOrg?'Šim rīkotājam tev ir tikai skatīšanas tiesības.':'Kā labotājs vari mainīt esošos pasākumus. Jaunus izveido rīkotāja komanda.';
  const privateEvent=form.visibility==='private';
  // Trusted organizers are published without MEETS review.
  const trusted=activeOrg?.trusted===true;
@@ -426,7 +428,7 @@ function SimpleEventFlow(){
  function startAuth(){persistLocal();setStage('auth');window.scrollTo({top:0,behavior:'smooth'});}
  async function save(status='draft'){
   if(!account){persistLocal();if(status==='draft')setNotice('Melnraksts saglabāts šajā ierīcē. Pieslēdzies, lai saglabātu to kontā.');else startAuth();return;}
-  if(orgId&&!canEdit){setError('Šim rīkotājam tev ir tikai skatīšanas tiesības.');return;}
+  if(orgId&&!canEdit){setError(readOnlyMessage);return;}
   if(status!=='draft'&&!validateForSubmit())return;
   if(status==='draft'&&publishedEdit){setError('Publicētam pasākumam izmaiņas iesniedz pārbaudei — melnraksts nav pieejams.');return;}
   // The table keeps no event without a name, not even a draft.
@@ -469,7 +471,7 @@ function SimpleEventFlow(){
  function submit(event){
   event.preventDefault();
   if(!account){if(validateForSubmit({guest:true}))startAuth();return;}
-  if(orgId&&!canEdit){setError('Šim rīkotājam tev ir tikai skatīšanas tiesības.');return;}
+  if(orgId&&!canEdit){setError(readOnlyMessage);return;}
   if(validateForSubmit())setConfirming(true);
  }
  function confirmSubmit(){

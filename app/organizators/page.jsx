@@ -6,7 +6,8 @@ import ProfileShell from '../components/profile-shell.jsx';
 import VenueLocationPicker from './venue-location-picker.jsx';
 import ShareButton from '../components/share-button.jsx';
 import {rigaDate} from '../../lib/meets-personal.js';
-import {resolveOrganizationId,canWriteOrganization,submissionDateLabel,organizerTodo,eventStatusMark} from '../../lib/organizer-workspace.js';
+import {resolveOrganizationId,canWriteOrganization,canEditItem,submissionDateLabel,organizerTodo,eventStatusMark,ROLE_LABELS,ROLE_HINTS} from '../../lib/organizer-workspace.js';
+import {SPORTS} from '../../lib/tournament.js';
 import {refreshSession as renewToken} from '../../lib/auth-client.js';
 import {reasonLabel} from '../../lib/submission-review.js';
 import {whenLabel} from '../../lib/map-nearby.js';
@@ -17,10 +18,10 @@ import {flyerPath,sharePath} from '../../lib/shared-event.js';
 import QuickEvent from './quick-event.jsx';
 
 const SESSION='meets_user_session_v1';
-const PANELS=new Set(['overview','events','venues','team','profile']);
+const PANELS=new Set(['overview','events','tournaments','venues','team','profile']);
 function organizationsFrom(items,id){return id&&Array.isArray(items)&&items.some(o=>o.id===id)?id:'';}
 const EDITOR='/registre-pasakumu/vienkarsi';
-const ROLE_LABELS={owner:'Īpašnieks',admin:'Administrators',editor:'Redaktors',viewer:'Skatītājs'};
+const TOURNAMENT_EDITOR='/registre-turnira';
 
 function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION)||'null');}catch{return null;}}
 async function rpc(action,values={},session=sessionRead()){
@@ -55,6 +56,19 @@ function StatusMark({item,archived=false}){
   <span className="org-mark-vis">{mark.visibility}</span>
   {mark.tone==='red'&&mark.hint&&<span className="sr-only">: {mark.hint}</span>}
  </span>;
+}
+function TournamentMark({item}){
+ const live=item.status==='published';
+ return <span className={'org-mark org-mark-'+(live?'green':'yellow')} title={live?'Rezultātu lapa pieejama ar saiti':'Redzams tikai rīkotāja komandai'}>
+  <span className="org-mark-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">{MARK_ICONS[live?'green':'yellow']}</svg></span>
+  <span className="org-mark-label">{live?'Publicēts':'Melnraksts'}</span>
+ </span>;
+}
+async function tournamentCall(action,values,session){
+ const response=await fetch('/api/tournaments',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({action,token:session?.access_token,...values})});
+ const body=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(body.error||'Turnīrus neizdevās ielādēt.');
+ return body;
 }
 function eventDate(item){return submissionDateLabel(item);}
 // The same wording and term colour as the public site: "Pēc 3 dienām", green today, yellow tomorrow.
@@ -173,7 +187,9 @@ function OrganizerPageInner(){
  const [team,setTeam]=useState([]);
  const [inviteRole,setInviteRole]=useState('editor');
  const [inviteLink,setInviteLink]=useState('');
+ const [itemInvite,setItemInvite]=useState(null);
  const [lists,setLists]=useState([]);
+ const [tournaments,setTournaments]=useState([]);
  const [filters,setFilters]=useState({status:'all',time:'upcoming',query:'',venue:''});
 
  async function load(startSession=sessionRead()){
@@ -205,7 +221,10 @@ function OrganizerPageInner(){
 
    const invite=params.get('invite');
    if(invite){
-    await rpc('acceptInvite',{invite_token:invite},current);
+    const accepted=(await rpc('acceptInvite',{invite_token:invite},current)).item||{};
+    // An invitation to one event or tournament opens it straight away.
+    if(accepted.item_kind==='tournament'){window.location.assign(TOURNAMENT_EDITOR+'?id='+accepted.item_id);return;}
+    if(accepted.item_kind==='event'){window.location.assign(EDITOR+'?org='+accepted.organization_id+'&edit='+accepted.item_id);return;}
     const refreshed=await rpc('list',{},current);setItems(refreshed);
     const joined=refreshed.organizations?.find(o=>o.id===requested)||refreshed.organizations?.[0];
     if(joined){setOrgId(joined.id);setPanel('team');replaceUrl(joined.id,'team');}
@@ -236,6 +255,9 @@ function OrganizerPageInner(){
  const organizations=items.organizations||[];
  const activeOrg=organizations.find(o=>o.id===orgId)||null;
  const canEdit=activeOrg&&canWriteOrganization(activeOrg.role);
+ // Owners and admins invite people and take access away.
+ const manage=['owner','admin'].includes(activeOrg?.role);
+ const givenItems=activeOrg?.items||[];
  const orgSubmissions=useMemo(()=>items.submissions.filter(x=>x.organization_id===orgId),[items.submissions,orgId]);
  const managedVenues=useMemo(()=>items.venues.filter(v=>v.organization_id===orgId),[items.venues,orgId]);
  const usedVenueIds=useMemo(()=>new Set((items.venueLinks||[]).filter(x=>x.organization_id===orgId&&x.relation_type==='used').map(x=>x.venue_id)),[items.venueLinks,orgId]);
@@ -249,6 +271,7 @@ function OrganizerPageInner(){
  useEffect(()=>{
   if(!session||!orgId)return;
   if(panel==='team')rpc('team',{organization_id:orgId},session).then(x=>setTeam(x.team||[])).catch(e=>setError(e.message));
+  if(panel==='tournaments'||panel==='overview')tournamentCall('list',{organization_id:orgId},session).then(x=>setTournaments(x.tournaments||[])).catch(()=>setTournaments([]));
   if(panel==='lists'){
    fetch('/api/registries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',token:session.access_token})})
     .then(async r=>{const b=await r.json();if(!r.ok)throw Error(b.error||'Sarakstus neizdevās ielādēt.');return b;})
@@ -337,6 +360,27 @@ function OrganizerPageInner(){
   }catch(e){setError(e.message);}
   finally{setBusy(false);}
  }
+ // "Labotājs" for one event or tournament: an invitation link valid for 7 days.
+ async function inviteForItem(kind,item){
+  setBusy(true);setError('');setNotice('');
+  try{
+   const result=await rpc('invite',{organization_id:orgId,role:'contributor',item_kind:kind,item_id:item.id},session);
+   const link=window.location.origin+'/organizators?invite='+result.invite.token+'&org='+orgId;
+   setItemInvite({title:item.title||'',kind,link});
+   try{await navigator.clipboard.writeText(link);setNotice('Labotāja uzaicinājuma saite nokopēta.');}catch{}
+  }catch(e){setError(e.message);}
+  finally{setBusy(false);}
+ }
+ async function removeAccess(member){
+  const question=member.item_kind?`Noņemt ${member.email} piekļuvi ${member.item_kind==='tournament'?'turnīram':'pasākumam'} “${member.item_title||''}”?`:`Noņemt ${member.email} no komandas?`;
+  if(!window.confirm(question))return;
+  setBusy(true);setError('');setNotice('');
+  try{
+   await rpc('removeAccess',{organization_id:orgId,user_id:member.user_id,item_kind:member.item_kind||null,item_id:member.item_id||null},session);
+   const x=await rpc('team',{organization_id:orgId},session);setTeam(x.team||[]);setNotice('Piekļuve noņemta.');
+  }catch(e){setError(e.message);}
+  finally{setBusy(false);}
+ }
  async function cancelEvent(item){
   const live=item.status==='published';
   const reason=window.prompt(live?`Atcelt “${item.title||'pasākumu'}”? Tas uzreiz pazudīs no kartes un saraksta.\nIemesls (neobligāti):`:`Atcelt “${item.title||'pasākumu'}”? Tas netiks publicēts.\nIemesls (neobligāti):`,'');
@@ -379,8 +423,12 @@ function OrganizerPageInner(){
   catch{window.prompt('Nokopē saiti:',url);}
  }
  function renderActions(item,primary=false){
-  if(!canEdit)return item.status==='published'&&item.event_id?<Link className="button compact" href={'/pasakumi/'+item.event_id}>Skatīt publiski</Link>
-   :shareable(item)?<a className="button compact" href={sharePath(item.share_token)} target="_blank" rel="noopener noreferrer">Atvērt saiti ↗</a>:null;
+  if(!canEdit){
+   const view=item.status==='published'&&item.event_id?<Link className="button compact ghost" href={'/pasakumi/'+item.event_id}>Skatīt publiski</Link>
+    :shareable(item)?<a className="button compact ghost" href={sharePath(item.share_token)} target="_blank" rel="noopener noreferrer">Atvērt saiti ↗</a>:null;
+   if(!canEditItem(activeOrg,'event',item.id)||!canChange(item))return view;
+   return <div className="org-row-actions"><Link className={'button compact'+(primary||item.status==='rejected'?' primary':'')} href={EDITOR+'?org='+orgId+'&edit='+item.id}>Labot</Link>{view}</div>;
+  }
   const stage=lifecycle(item);
   const editLabel=stage==='ended'?'Atjaunot ar jauniem datumiem':item.status==='rejected'?'Labot un iesniegt':item.status==='draft'?'Turpināt':'Labot';
   if(stage==='archived')return <div className="org-row-actions">
@@ -397,6 +445,7 @@ function OrganizerPageInner(){
      {shareable(item)&&<a role="menuitem" href={flyerPath(item.share_token)} target="_blank" rel="noopener noreferrer">Sludinājums drukai ↗</a>}
      <Link role="menuitem" href={EDITOR+'?org='+orgId+'&copy='+item.id}>Dublēt</Link>
      <button role="menuitem" type="button" onClick={()=>copyWithDate(item)}>Dublēt ar citu datumu…</button>
+     {manage&&<button role="menuitem" type="button" onClick={()=>inviteForItem('event',item)}>Pievienot labotāju…</button>}
      {canCancel(item)&&<button role="menuitem" type="button" className="danger" onClick={()=>cancelEvent(item)}>Atcelt pasākumu…</button>}
     </div>
    </details>
@@ -456,7 +505,7 @@ function OrganizerPageInner(){
    </div>
    <div className="org-card-actions">
     <button className="button primary" type="button" onClick={()=>chooseOrganization(org.id)}>Atvērt pārskatu →</button>
-    {org.role!=='viewer'&&<Link className="button" href={EDITOR+'?org='+org.id}>+ Pasākums</Link>}
+    {canWriteOrganization(org.role)&&<Link className="button" href={EDITOR+'?org='+org.id}>+ Pasākums</Link>}
    </div>
   </article>;
  }
@@ -514,9 +563,26 @@ function OrganizerPageInner(){
   </header>
 
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
+  {itemInvite&&<div className="org-item-invite" role="status">
+   <div><strong>Labotāja uzaicinājums: {itemInvite.title||(itemInvite.kind==='tournament'?'turnīrs':'pasākums')}</strong>
+    <small>Nosūti saiti cilvēkam, kas labos tikai šo {itemInvite.kind==='tournament'?'turnīru':'pasākumu'}. Saite derīga 7 dienas un der vienai personai.</small></div>
+   <input readOnly value={itemInvite.link} aria-label="Uzaicinājuma saite" onFocus={e=>e.target.select()}/>
+   <button type="button" className="button compact ghost" onClick={()=>setItemInvite(null)}>Aizvērt</button>
+  </div>}
 
   {panel==='overview'&&<div className="org-stack">
    {canEdit&&<QuickEvent organizations={organizations} orgId={orgId}/>}
+   {givenItems.length>0&&<section className="org-panel" aria-labelledby="org-given-title">
+    <div className="org-panel-head"><div><h2 id="org-given-title">Tev uzticēts labot</h2><p>Šos ierakstus vari mainīt. Jaunus izveido rīkotāja komanda.</p></div></div>
+    <div className="org-list">{givenItems.map(x=><div className="org-row" key={x.kind+x.id}>
+     <div><strong>{x.title||'Bez nosaukuma'}</strong><small>{x.kind==='tournament'?'Turnīrs':'Pasākums'}</small></div>
+     <Link className="button compact primary" href={x.kind==='tournament'?TOURNAMENT_EDITOR+'?id='+x.id:EDITOR+'?org='+orgId+'&edit='+x.id}>Labot</Link>
+    </div>)}</div>
+   </section>}
+   {(canEdit||tournaments.length>0)&&<section className="org-panel org-tournament-teaser" aria-labelledby="org-tournament-teaser">
+    <div className="org-panel-head"><div><h2 id="org-tournament-teaser">Turnīri</h2><p>{tournaments.length?tournaments.length+(tournaments.length===1?' turnīrs':' turnīri')+' · grafiks, rezultāti un tabulas':'Komandas, grupas, spēļu grafiks laukumos un rezultātu tabulas ar QR kodu.'}</p></div>
+     <div className="org-row-actions">{tournaments.length>0&&<button className="text-button org-head-link" type="button" onClick={()=>choosePanel('tournaments')}>Visi turnīri →</button>}{canEdit&&<Link className="button compact" href={TOURNAMENT_EDITOR+'?org='+orgId}>+ Jauns turnīrs</Link>}</div></div>
+   </section>}
    {onboarding&&<section className="org-panel org-onboarding" aria-labelledby="org-onboarding-title">
     <h2 id="org-onboarding-title">Pirmie soļi</h2>
     <ol className="org-steps">
@@ -528,8 +594,8 @@ function OrganizerPageInner(){
    {(todo.rejected.length>0||todo.drafts.length>0)&&<section className="org-panel org-todo" aria-labelledby="org-todo-title">
     <div className="org-panel-head"><h2 id="org-todo-title">Jāpabeidz</h2></div>
     <div className="org-list">
-     {todo.rejected.map(item=><div className="org-row org-row-attention" key={item.id}><div><strong>{item.title||'Bez nosaukuma'}</strong><small><When item={item}/> · MEETS lūdz precizēt</small>{reviewFeedback(item)&&<em>{reviewFeedback(item)}</em>}</div><StatusMark item={item}/>{canEdit&&<Link className="button primary" href={EDITOR+'?org='+orgId+'&edit='+item.id}>Labot un iesniegt</Link>}</div>)}
-     {todo.drafts.map(item=><div className="org-row" key={item.id}><div><strong>{item.title||'Melnraksts bez nosaukuma'}</strong><small><When item={item}/> · {eventStatusMark(item).tone==='red'?eventStatusMark(item).hint:'Melnraksts, vēl nav iesniegts'}</small></div><StatusMark item={item}/>{canEdit&&<Link className="button compact" href={EDITOR+'?org='+orgId+'&edit='+item.id}>Turpināt</Link>}</div>)}
+     {todo.rejected.map(item=><div className="org-row org-row-attention" key={item.id}><div><strong>{item.title||'Bez nosaukuma'}</strong><small><When item={item}/> · MEETS lūdz precizēt</small>{reviewFeedback(item)&&<em>{reviewFeedback(item)}</em>}</div><StatusMark item={item}/>{canEditItem(activeOrg,'event',item.id)&&<Link className="button primary" href={EDITOR+'?org='+orgId+'&edit='+item.id}>Labot un iesniegt</Link>}</div>)}
+     {todo.drafts.map(item=><div className="org-row" key={item.id}><div><strong>{item.title||'Melnraksts bez nosaukuma'}</strong><small><When item={item}/> · {eventStatusMark(item).tone==='red'?eventStatusMark(item).hint:'Melnraksts, vēl nav iesniegts'}</small></div><StatusMark item={item}/>{canEditItem(activeOrg,'event',item.id)&&<Link className="button compact" href={EDITOR+'?org='+orgId+'&edit='+item.id}>Turpināt</Link>}</div>)}
     </div>
    </section>}
    {todo.review.length>0&&<p className="org-review-note" role="status">{todo.review.length===1?'1 pasākums':todo.review.length+' pasākumi'} gaida MEETS pārbaudi. Statusa maiņu redzēsi šeit.</p>}
@@ -570,6 +636,26 @@ function OrganizerPageInner(){
    {!filteredEvents.length&&<p className="org-empty">Šiem filtriem pasākumi nav atrasti. {(filters.status!=='all'||filters.query||filters.venue)&&<button type="button" className="text-button" onClick={()=>{const next={status:'all',time:filters.time,query:'',venue:''};setFilters(next);replaceUrl(orgId,'events',next);}}>Rādīt visus</button>}</p>}
   </section>}
 
+  {panel==='tournaments'&&<section className="org-panel">
+   <div className="org-panel-head"><div><h2>Turnīri</h2><p>Komandas un grupas, spēļu grafiks laukumos, rezultāti un tabulas. Publicētam turnīram ir saite, QR kods un lapas drukai.</p></div>{canEdit&&<Link className="button compact primary" href={TOURNAMENT_EDITOR+'?org='+orgId}>+ Jauns turnīrs</Link>}</div>
+   <div className="org-list">{tournaments.map(t=><div className="org-row" key={t.id}>
+    <div><strong>{t.title}</strong><small>{[t.play_date?submissionDateLabel({date_from:t.play_date}):'Datums nav norādīts',SPORTS[t.sport]?.name,t.venue].filter(Boolean).join(' · ')}</small></div>
+    <TournamentMark item={t}/>
+    <div className="org-row-actions">
+     {canEditItem(activeOrg,'tournament',t.id)?<Link className="button compact" href={TOURNAMENT_EDITOR+'?id='+t.id}>Atvērt</Link>
+      :t.status==='published'&&<a className="button compact ghost" href={'/turniri/'+t.share_token} target="_blank" rel="noopener noreferrer">Rezultāti ↗</a>}
+     {(t.status==='published'||manage)&&<details className="org-more-menu"><summary aria-label={'Vairāk darbību: '+t.title}>⋯</summary>
+      <div role="menu">
+       {t.status==='published'&&<a role="menuitem" href={'/turniri/'+t.share_token} target="_blank" rel="noopener noreferrer">Rezultātu lapa ↗</a>}
+       {t.status==='published'&&<a role="menuitem" href={'/turniri/'+t.share_token+'/druka'} target="_blank" rel="noopener noreferrer">Lapas drukai ↗</a>}
+       {manage&&<button role="menuitem" type="button" onClick={()=>inviteForItem('tournament',t)}>Pievienot labotāju…</button>}
+      </div>
+     </details>}
+    </div>
+   </div>)}
+   {!tournaments.length&&<p className="org-empty">Vēl nav turnīru. {canEdit&&<Link href={TOURNAMENT_EDITOR+'?org='+orgId}>Izveido pirmo →</Link>}</p>}</div>
+  </section>}
+
   {panel==='venues'&&<section className="org-panel">
    <div className="org-panel-head"><div><h2>Manas norises vietas</h2></div>{canEdit&&<Link className="button compact" href={'/registre-vietu?org='+orgId}>+ Pievienot vietu</Link>}</div>
    <div className="org-list">{managedVenues.map(v=><div className="org-row" key={v.id}>
@@ -589,10 +675,15 @@ function OrganizerPageInner(){
   </section>}
 
   {panel==='team'&&<section className="org-panel">
-   <div className="org-panel-head"><div><h2>Komanda</h2><p>Skatītājs var lasīt, bet nevar mainīt organizācijas datus. Redaktors un administrators var pārvaldīt saturu.</p></div></div>
-   <div className="org-list">{team.map(member=><div className="org-row" key={member.user_id}><div><strong>{member.email}</strong></div><span className="org-status">{ROLE_LABELS[member.role]||member.role}</span></div>)}</div>
-   {activeOrg?.role==='owner'&&<div className="org-invite"><label>Uzaicināt kā<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="editor">Redaktors</option><option value="admin">Administrators</option><option value="viewer">Skatītājs</option></select></label>
-    <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>Izveidot uzaicinājumu</button>{inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/><small>Nosūti šo saiti komandas dalībniekam. Atverot to un pieslēdzoties MEETS kontā, notiek pievienošanās komandai ar izvēlēto lomu.</small></label>}</div>}
+   <div className="org-panel-head"><div><h2>Komanda</h2><p>Rīkotājs izveido un pārvalda pasākumus un turnīrus. Labotājs maina esošos, bet jaunus neveido — visus vai tikai vienu, kas viņam uzticēts.</p></div></div>
+   <div className="org-list">{team.map(member=><div className="org-row org-team-row" key={member.user_id+(member.item_id||'')}>
+    <div><strong>{member.email}</strong>{member.item_kind&&<small>Tikai {member.item_kind==='tournament'?'turnīrs':'pasākums'} “{member.item_title||'—'}”</small>}</div>
+    <span className="org-status">{ROLE_LABELS[member.role]||member.role}</span>
+    {manage&&member.role!=='owner'&&member.user_id!==session?.user?.id&&<button type="button" className="button compact ghost" disabled={busy} onClick={()=>removeAccess(member)}>Noņemt</button>}
+   </div>)}</div>
+   {manage&&<div className="org-invite"><label>Uzaicināt kā<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="editor">Rīkotājs</option><option value="contributor">Labotājs</option><option value="admin">Administrators</option><option value="viewer">Skatītājs</option></select><small>{ROLE_HINTS[inviteRole]}</small></label>
+    <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>Izveidot uzaicinājumu</button>{inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/><small>Nosūti šo saiti komandas dalībniekam. Atverot to un pieslēdzoties MEETS kontā, notiek pievienošanās komandai ar izvēlēto lomu.</small></label>}
+    <p className="org-invite-note">Labotāju tikai vienam pasākumam vai turnīram pievieno sadaļā Pasākumi vai Turnīri: ⋯ → Pievienot labotāju.</p></div>}
   </section>}
 
   {panel==='profile'&&profile&&<section className="org-panel">
