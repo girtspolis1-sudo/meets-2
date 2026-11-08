@@ -1,7 +1,8 @@
 'use client';
 import {useState} from 'react';
 import {rigaDate} from '../../lib/meets-personal.js';
-import {quickEventHref} from '../../lib/organizer-workspace.js';
+import Link from 'next/link';
+import {canWriteOrganization,quickEventHref} from '../../lib/organizer-workspace.js';
 
 // Starts an event right in the organizer area: name, date and who sees it.
 // Everything else (place, time, cover, price) is filled in the event editor,
@@ -10,9 +11,10 @@ export default function QuickEvent({organizations=[],orgId='',heading='Izveido p
  const [title,setTitle]=useState('');
  const [date,setDate]=useState('');
  const [visibility,setVisibility]=useState('public');
- const [org,setOrg]=useState(orgId||organizations.find(o=>o.role!=='viewer')?.id||'');
+ // Only roles that create events (a "Labotājs" edits existing ones only).
+ const [org,setOrg]=useState(orgId||organizations.find(o=>canWriteOrganization(o.role))?.id||'');
  const [problem,setProblem]=useState('');
- const writable=organizations.filter(o=>o.role!=='viewer');
+ const writable=organizations.filter(o=>canWriteOrganization(o.role));
  const chooseOrg=!orgId&&writable.length>1;
 
  function start(event){
@@ -45,5 +47,9 @@ export default function QuickEvent({organizations=[],orgId='',heading='Izveido p
    </fieldset>
    <button className="org-quick-submit" type="submit">Turpināt <span aria-hidden="true">→</span></button>
   </form>
+  {(orgId||org)&&<Link className="org-quick-tournament" href={'/registre-turnira?org='+(orgId||org)}>
+   <span aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h5v4H3zM3 15h5v4H3zM16 10h5v4h-5z"/><path d="M8 7h3v10H8M11 12h5"/></svg></span>
+   <span><strong>Sporta turnīrs</strong><small>Komandas, grupas, spēļu grafiks un rezultāti</small></span><span aria-hidden="true">→</span>
+  </Link>}
  </section>;
 }

@@ -506,6 +506,7 @@ function OrganizerPageInner(){
    <div className="org-card-actions">
     <button className="button primary" type="button" onClick={()=>chooseOrganization(org.id)}>Atvērt pārskatu →</button>
     {canWriteOrganization(org.role)&&<Link className="button" href={EDITOR+'?org='+org.id}>+ Pasākums</Link>}
+    {canWriteOrganization(org.role)&&<Link className="button" href={TOURNAMENT_EDITOR+'?org='+org.id}>+ Turnīrs</Link>}
    </div>
   </article>;
  }
@@ -579,9 +580,15 @@ function OrganizerPageInner(){
      <Link className="button compact primary" href={x.kind==='tournament'?TOURNAMENT_EDITOR+'?id='+x.id:EDITOR+'?org='+orgId+'&edit='+x.id}>Labot</Link>
     </div>)}</div>
    </section>}
-   {(canEdit||tournaments.length>0)&&<section className="org-panel org-tournament-teaser" aria-labelledby="org-tournament-teaser">
-    <div className="org-panel-head"><div><h2 id="org-tournament-teaser">Turnīri</h2><p>{tournaments.length?tournaments.length+(tournaments.length===1?' turnīrs':' turnīri')+' · grafiks, rezultāti un tabulas':'Komandas, grupas, spēļu grafiks laukumos un rezultātu tabulas ar QR kodu.'}</p></div>
-     <div className="org-row-actions">{tournaments.length>0&&<button className="text-button org-head-link" type="button" onClick={()=>choosePanel('tournaments')}>Visi turnīri →</button>}{canEdit&&<Link className="button compact" href={TOURNAMENT_EDITOR+'?org='+orgId}>+ Jauns turnīrs</Link>}</div></div>
+   {/* New tournaments start from the card above ("Sporta turnīrs"); here the existing ones. */}
+   {tournaments.length>0&&<section className="org-panel org-tournament-teaser" aria-labelledby="org-tournament-teaser">
+    <div className="org-panel-head"><h2 id="org-tournament-teaser">Turnīri</h2><button className="text-button org-head-link" type="button" onClick={()=>choosePanel('tournaments')}>Visi turnīri →</button></div>
+    <div className="org-list">{tournaments.slice(0,3).map(t=><div className="org-row" key={t.id}>
+     <div><strong>{t.title}</strong><small>{[t.play_date?submissionDateLabel({date_from:t.play_date}):'Datums nav norādīts',SPORTS[t.sport]?.name].filter(Boolean).join(' · ')}</small></div>
+     <TournamentMark item={t}/>
+     {canEditItem(activeOrg,'tournament',t.id)?<Link className="button compact" href={TOURNAMENT_EDITOR+'?id='+t.id}>Atvērt</Link>
+      :t.status==='published'&&<a className="button compact ghost" href={'/turniri/'+t.share_token} target="_blank" rel="noopener noreferrer">Rezultāti ↗</a>}
+    </div>)}</div>
    </section>}
    {onboarding&&<section className="org-panel org-onboarding" aria-labelledby="org-onboarding-title">
     <h2 id="org-onboarding-title">Pirmie soļi</h2>
