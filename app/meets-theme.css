@@ -479,7 +479,9 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .meets-consent-actions .button{flex:1;min-height:46px;justify-content:center}
 .footer-consent-link{border:0;background:transparent;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 
-/* Contact e-mail in the footer. */
+/* Contact e-mail: its own last line at the very bottom of the page. */
+footer:has(.footer-contact-row){flex-wrap:wrap}
+footer .footer-contact-row{flex-basis:100%;order:99;width:100%;margin:4px 0 0;padding-top:12px;border-top:1px solid var(--migla);font-size:14px}
 .footer-contact{color:var(--teksts-2,#4a5565);font-weight:600;text-decoration:none}
 .footer-contact strong{color:var(--karmins-dark);font-weight:800}
 .footer-contact:hover strong{text-decoration:underline;text-underline-offset:3px}

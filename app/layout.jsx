@@ -69,10 +69,11 @@ export default function RootLayout({ children }) {
         <ConsentSettingsLink/>
       </nav>
       <div className="footer-side">
-        <a className="footer-contact" href={'mailto:'+CONTROLLER.email}>Kontakti: <strong>{CONTROLLER.email}</strong></a>
         <span>Latvija</span>
         <AdminFooterControl/>
       </div>
+      {/* The last line of every page. */}
+      <p className="footer-contact-row"><a className="footer-contact" href={'mailto:'+CONTROLLER.email}>Kontakti: <strong>{CONTROLLER.email}</strong></a></p>
     </footer>
   </body></html>;
 }
