@@ -564,8 +564,10 @@ for(const width of [360,390]){
   await p.locator('.tn-steps button',{hasText:'Komandas'}).click();
   await p.getByLabel('Ielīmē komandas').fill('Lūši, Anna\nVilki, Pēteris\nĒrgļi\nDelfīni, Anna\nBebri\nHaizivis\nLāči\nLapsas');
   await p.getByRole('button',{name:'Pievienot sarakstam'}).click();
+  // Teams are split into groups at once; changing the count splits them again.
   await p.getByLabel('Grupu skaits').selectOption('2');
-  await p.getByRole('button',{name:'Sadalīt grupās'}).click();
+  const groups=await p.locator('.tn-group-summary strong').count();
+  if(groups!==2){fails++;console.error('Tournament teams in',groups,'groups instead of 2');}
   await assertLayout(p,'tournament-teams',width);
   await p.locator('.tn-steps button',{hasText:'Grafiks'}).click();
   await p.getByRole('button',{name:'Sastādīt grafiku'}).click();
