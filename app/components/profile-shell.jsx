@@ -16,7 +16,8 @@ const symbols={
  logout:<path d="M9 21H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h3M16 17l5-5-5-5M21 12H9"/>,
  users:<><circle cx="9" cy="8" r="3"/><path d="M3 20c.5-4 2.5-6 6-6s5.5 2 6 6M16 5.5a3 3 0 0 1 0 5.8M17 14c2.4.5 3.7 2.3 4 5"/></>,
  building:<><path d="M4 21V5l8-3 8 3v16M8 9h2M14 9h2M8 13h2M14 13h2M10 21v-4h4v4"/></>,
- eye:<><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></>
+ eye:<><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></>,
+ bracket:<><path d="M3 5h5v4H3zM3 15h5v4H3zM16 10h5v4h-5z"/><path d="M8 7h3v10H8M11 12h5"/></>
 };
 export function ProfileIcon({name,size=19}){
  return <svg aria-hidden="true" viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{symbols[name]||symbols.home}</svg>;
@@ -31,6 +32,7 @@ const personalLinks=[
 const organizerPanels=[
  {panel:'overview',label:'Pārskats',icon:'home'},
  {panel:'events',label:'Pasākumi',icon:'calendar'},
+ {panel:'tournaments',label:'Turnīri',icon:'bracket'},
  {panel:'venues',label:'Vietas',icon:'pin'},
  {panel:'team',label:'Komanda',icon:'users'},
  {panel:'profile',label:'Profils',icon:'building'}
@@ -59,7 +61,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
  }
  const email=identity?.user?.email||'';
  const title=displayName||email?.split('@')[0]||'MEETS lietotājs';
- const organizerMode=mode==='organizer'||pathname==='/organizators'||pathname.startsWith('/registre-pasakumu')||pathname==='/registre-vietu';
+ const organizerMode=mode==='organizer'||pathname==='/organizators'||pathname.startsWith('/registre-pasakumu')||pathname==='/registre-vietu'||pathname.startsWith('/registre-turnira');
  const orgId=params.get('org')||activeOrganization?.id||'';
  const panel=params.get('panel')||'overview';
  const organizerLinks=useMemo(()=>organizerPanels.map(item=>({
@@ -124,7 +126,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
      <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={16}/>Rīkotājs</Link>
     </div>
     {/* The organizer pages start events in their own card. */}
-    {organizerMode&&!pathname.startsWith('/registre-pasakumu')&&pathname!=='/organizators'&&<Link className="meets-profile-mobile-new" href={eventHref}>+ Jauns pasākums</Link>}
+    {organizerMode&&!pathname.startsWith('/registre-pasakumu')&&!pathname.startsWith('/registre-turnira')&&pathname!=='/organizators'&&<Link className="meets-profile-mobile-new" href={eventHref}>+ Jauns pasākums</Link>}
    </div>
    {/* Before an organizer is chosen there is only one tab, so the row is left out. */}
    {(!organizerMode||orgId)&&<nav ref={tabsRef} className="meets-profile-mobile-tabs" aria-label={organizerMode?'Rīkošanas sadaļas':'Mans MEETS sadaļas'}>

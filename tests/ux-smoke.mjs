@@ -545,6 +545,44 @@ for(const width of [360,390,768,1440]){
  await page.close();
 }
 
+// Tournament wizard on phones: teams pasted, split into groups, a schedule made.
+for(const width of [360,390]){
+ const p=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+ const errors=[];p.on('pageerror',e=>errors.push(String(e)));
+ const orgId='9847198c-66d5-4bd1-8f2e-3b2f3a86bb51';
+ await p.addInitScript(()=>localStorage.setItem('meets_user_session_v1',JSON.stringify({
+  access_token:'tournament-test',refresh_token:'tournament-refresh',expires_in:3600,expires_at:Date.now()+3600000,
+  user:{id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',email:'organizer@example.com'}
+ })));
+ await p.route('**/api/organizer',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+  organizations:[{id:orgId,name:'MEETS Sporta skola',kind:'organizer',owner_id:orgId,role:'owner'}],venues:[],publicVenues:[],venueLinks:[],submissions:[]})}));
+ await p.route('**/api/tournaments',route=>route.fulfill({status:200,contentType:'application/json',body:'{"tournaments":[]}'}));
+ try{
+  await p.goto(base+'/registre-turnira?org='+orgId,{waitUntil:'domcontentloaded',timeout:45000});
+  await p.getByLabel('Turnīra nosaukums').fill('MEETS kauss');
+  await assertLayout(p,'tournament-basics',width);
+  await p.locator('.tn-steps button',{hasText:'Komandas'}).click();
+  await p.getByLabel('Ielīmē komandas').fill('Lūši, Anna\nVilki, Pēteris\nĒrgļi\nDelfīni, Anna\nBebri\nHaizivis\nLāči\nLapsas');
+  await p.getByRole('button',{name:'Pievienot sarakstam'}).click();
+  await p.getByLabel('Grupu skaits').selectOption('2');
+  await p.getByRole('button',{name:'Sadalīt grupās'}).click();
+  await assertLayout(p,'tournament-teams',width);
+  await p.locator('.tn-steps button',{hasText:'Grafiks'}).click();
+  await p.getByRole('button',{name:'Sastādīt grafiku'}).click();
+  await p.locator('.tn-board').waitFor({timeout:10000});
+  const games=await p.locator('.tn-board-game').count();
+  if(games!==16){fails++;console.error('Tournament schedule has',games,'games instead of 16');}
+  if(await p.locator('.tn-problems').count()){fails++;console.error('Tournament schedule problems',await p.locator('.tn-problems').innerText());}
+  await assertLayout(p,'tournament-schedule',width);
+  await p.screenshot({path:'ux-screenshots/'+width+'-tournament-schedule.png',fullPage:true});
+  if(errors.length){fails++;console.error('Tournament wizard JS errors',errors.slice(0,3));}
+ }catch(error){
+  fails++;console.error('Tournament wizard smoke failed',width,error.message);
+  try{await p.screenshot({path:'ux-screenshots/'+width+'-tournament-failure.png',fullPage:true});}catch{}
+ }
+ await p.close();
+}
+
 await browser.close();
 if(fails){console.error('UX smoke failures:',fails);process.exit(1);}
 console.log('PASS: responsive smoke checks include 360px, 390px, 768px and 1440px');

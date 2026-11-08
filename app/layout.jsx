@@ -18,6 +18,7 @@ import './design-refresh.css';
 import './meets-theme.css';
 import './mobile-bottom-nav.css';
 import './event-share.css';
+import './tournament.css';
 import './event-create.css';
 import './event-calendar.css';
 

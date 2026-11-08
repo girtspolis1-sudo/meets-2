@@ -33,7 +33,7 @@ function isActive(pathname,href){
 // bar with the bubble placed by CSS; the notch is added once its width is known.
 export default function MobileBottomNav(){
  const pathname=usePathname()||'/';
- const hidden=pathname.startsWith('/admin')||pathname.startsWith('/registre-')||pathname.startsWith('/organizatori/');
+ const hidden=pathname.startsWith('/admin')||pathname.startsWith('/registre-')||pathname.startsWith('/organizatori/')||pathname.startsWith('/rezultati/');
  const navRef=useRef(null);
  const shown=useRef({x:null,width:0});
  const [width,setWidth]=useState(0);
