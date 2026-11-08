@@ -62,6 +62,7 @@ export default function RootLayout({ children }) {
         <Link href="/pasakumi">Pasākumi</Link>
         <Link href="/registre-pasakumu">Pievienot pasākumu</Link>
         <Link href="/organizators">Rīkotājiem</Link>
+        <Link href="/privatums">Privātums</Link>
       </nav>
       <div className="footer-side">
         <span>Latvija</span>

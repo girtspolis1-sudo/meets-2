@@ -47,6 +47,7 @@ export default function Authentication({onSuccess,variant='default'}){
    {error&&<p className="meets-inline-error meets-auth-inline-alert" role="alert" aria-live="assertive">{error}</p>}
    {notice&&<p className="meets-auth-notice" role="status">{notice}</p>}
    <button type="submit" className="button primary" disabled={busy}>{submitLabel}</button>
+   {mode==='register'&&<p className="meets-auth-privacy">Kā apstrādājam tavus datus, lasi <a href="/privatums" target="_blank" rel="noopener">privātuma politikā</a>.</p>}
    {askPassword&&mode==='login'&&<button type="button" className="text-button meets-auth-forgot" onClick={()=>switchMode('reset')}>Aizmirsi paroli?</button>}
   </form>
   {mode==='reset'?<button type="button" className="button meets-auth-switch" onClick={()=>switchMode('login')}>← Atpakaļ uz pieslēgšanos</button>:
