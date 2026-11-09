@@ -575,8 +575,9 @@ for(const width of [360,390]){
   await assertLayout(p,'tournament-teams',width);
   await p.locator('.tn-steps button',{hasText:'Grafiks'}).click();
   await p.getByRole('button',{name:'Sastādīt grafiku'}).click();
-  await p.locator('.tn-board').waitFor({timeout:10000});
-  const games=await p.locator('.tn-board-game').count();
+  // The schedule is the day plan: times down, courts across, games as buttons.
+  await p.locator('.tn-day').waitFor({timeout:10000});
+  const games=await p.locator('button.tn-day-cell:not(.is-free)').count();
   if(games!==16){fails++;console.error('Tournament schedule has',games,'games instead of 16');}
   if(await p.locator('.tn-problems').count()){fails++;console.error('Tournament schedule problems',await p.locator('.tn-problems').innerText());}
   await assertLayout(p,'tournament-schedule',width);

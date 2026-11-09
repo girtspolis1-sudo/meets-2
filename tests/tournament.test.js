@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildGames,cleanTournament,finalGroupStandings,finalPlaces,formatProblem,matchPoints,numberGames,parseTeamLines,resolveRef,roundRobin,schedule,scheduleProblems,slotTimes,snakeGroups,standings,toMin} from '../lib/tournament.js';
+import {breakStarts,buildGames,cleanTournament,dayPlan,finalGroupStandings,placeGame,shiftGame,toTime,finalPlaces,formatProblem,matchPoints,numberGames,parseTeamLines,resolveRef,roundRobin,schedule,scheduleProblems,slotTimes,snakeGroups,standings,toMin} from '../lib/tournament.js';
 
 // Mārupes Kauss 2026, 2018. g. dz. zēni (the organizer's PDF).
 const GROUPS={
@@ -241,4 +241,28 @@ test('own stages after the groups: places run on from stage to stage',()=>{
  assert.match(formatProblem('custom',tm,{stages:[{type:'final',from:1,to:1},{type:'final',from:2,to:2}]}),/tikai viena/);
  assert.match(formatProblem('custom',tm,{stages:[{type:'placement',from:5,to:6}]}),/tikai 4/);
  assert.match(formatProblem('custom',tm,{stages:[]}),/vismaz vienu posmu/);
+});
+
+test('day plan: a gap between games, a pause after the groups, moving games by hand',()=>{
+ assert.deepEqual(slotTimes({start:'10:00',slot:20,gap:5,blocks:[{at:'11:00',minutes:15}]},5).map(toTime),['10:00','10:25','11:15','11:40','12:05']);
+ assert.deepEqual(breakStarts({start:'10:00',slot:20,gap:0,blocks:[]}).slice(0,3),['10:00','10:20','10:40']);
+ const tm=snakeGroups(many(8),2);
+ const set={courts:['A','B'],start:'10:00',slot:20,rest:0,gap:0,stage_break:30,blocks:[{title:'Atpūta',at:'11:00',minutes:15}]};
+ const planned=schedule(buildGames('groups_places',tm,set),tm,set,{tries:20});
+ assert.deepEqual(scheduleProblems(planned,tm,set),[]);
+ const groupsEnd=Math.max(...planned.filter(g=>g.stage==='group').map(g=>toMin(g.starts_at)))+20;
+ assert.ok(planned.filter(g=>g.stage==='placement').every(g=>toMin(g.starts_at)>=groupsEnd+30));
+ const plan=dayPlan(planned,set);
+ assert.ok(plan.rows.some(r=>r.kind==='block'&&r.time==='11:00'&&r.until==='11:15'));
+ assert.ok(plan.rows.some(r=>r.kind==='pause'&&r.minutes===30));
+ // Moving a game into a taken place swaps the two; one step later skips the break.
+ const [a,b]=planned;
+ const swapped=placeGame(planned,a.no,b.starts_at,b.court);
+ assert.equal(swapped.find(g=>g.no===a.no).court,b.court);
+ assert.equal(swapped.find(g=>g.no===b.no).starts_at,a.starts_at);
+ const at1040=placeGame(planned,a.no,'10:40','A');
+ assert.equal(shiftGame(at1040,a.no,1,set).find(g=>g.no===a.no).starts_at,'11:15');
+ // A placement game moved into the pause is named.
+ const early=placeGame(planned,planned.find(g=>g.stage==='placement').no,toTime(groupsEnd),'A');
+ assert.ok(scheduleProblems(early,tm,set).some(p=>/pārtraukumā pēc grupām/.test(p)));
 });
