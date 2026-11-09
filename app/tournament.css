@@ -477,3 +477,9 @@ button.tn-day-cell:focus-visible{outline:3px solid var(--tinte,#1b2430);outline-
 .tn-table tr.is-through>.tn-pos{box-shadow:inset 3px 0 0 #1e9a62;color:#1e7a4e;font-weight:700}
 .tn-zone-note{display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:12.5px;color:var(--teksts-2,#4a5565)}
 .tn-zone-note span{width:3px;height:14px;background:#1e9a62;border-radius:2px}
+
+/* Teams in seeding order: drag the handle. */
+.tn-drag{cursor:grab;touch-action:none;color:var(--teksts-2,#4a5565)}
+.tn-team-row.is-dragging{opacity:.55}
+.tn-team-row.is-dragging .tn-drag{cursor:grabbing}
+.tn-team-row.is-over{box-shadow:0 -3px 0 var(--tinte,#1b2430)}
