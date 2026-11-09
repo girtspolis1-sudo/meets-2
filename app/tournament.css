@@ -126,6 +126,7 @@
 .tn-save-state{font-size:13px;font-weight:700;color:var(--teksts-2,#4a5565)}
 .tn-save-state.is-dirty{color:#8a6100}
 .tn-steps li{flex:none}
+@media (min-width:641px){.tn-steps ol{flex-wrap:wrap;overflow:visible}}
 .tn-steps ol{display:flex;gap:6px;margin:0;padding:0 0 4px;list-style:none;overflow-x:auto;scrollbar-width:thin}
 .tn-steps button{display:flex;align-items:center;gap:8px;min-height:42px;padding:0 14px 0 8px;border:1px solid var(--migla,#d8dee6);border-radius:99px;
  background:#fff;color:var(--tinte,#1b2430);font:inherit;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
@@ -159,8 +160,8 @@
 .tn-team-head{font-size:12px;font-weight:800;color:var(--teksts-2,#4a5565)}
 .tn-team-seed{font-weight:800;color:var(--teksts-2,#4a5565);text-align:center}
 .tn-team-row input,.tn-team-row select{min-width:0;min-height:40px}
-.tn-team-actions{display:flex;gap:2px}
-.icon-button{display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid var(--migla,#d8dee6);border-radius:8px;background:#fff;color:var(--tinte,#1b2430);font-size:16px;cursor:pointer}
+.tn-team-actions{display:flex;gap:4px}
+.icon-button{display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid var(--migla,#d8dee6);border-radius:8px;background:#fff;color:var(--tinte,#1b2430);font-size:16px;cursor:pointer}
 .icon-button:disabled{opacity:.35;cursor:default}
 .tn-warn{margin:0;padding:10px 14px;border-radius:10px;background:#fff7e0;color:#5c4400;font-weight:700;font-size:14px}
 .tn-ok{margin:0;font-size:14px;font-weight:700;color:#1e7a4e}
@@ -231,7 +232,7 @@
  .tn-share-actions{justify-content:center}
  .tn-entry-team{flex-direction:column-reverse;align-items:flex-end;gap:6px}
  .tn-entry-away{flex-direction:column;align-items:flex-start}
- .tn-team-row,.tn-wizard .tn-team-row:not(:has(select)){grid-template-columns:22px minmax(0,1fr) 56px;grid-template-areas:"seed name group" ". coach actions"}
+ .tn-team-row,.tn-wizard .tn-team-row:not(:has(select)){grid-template-columns:22px minmax(0,1fr) auto;grid-template-areas:"seed name group" ". coach actions"}
  .tn-team-row:not(:has(select)){grid-template-areas:"seed name name" ". coach actions"}
  .tn-team-row>.tn-team-seed{grid-area:seed}
  .tn-team-row>input:nth-of-type(1){grid-area:name}

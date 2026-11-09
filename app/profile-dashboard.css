@@ -11,7 +11,7 @@
 .meets-profile-identity small{font-size:10px;display:block;color:var(--p-muted);overflow-wrap:anywhere;line-height:1.35}
 .meets-profile-avatar{width:39px;height:39px;flex:none;border-radius:13px;background:linear-gradient(130deg,#d36973,#9e4d55);color:white;display:grid;place-items:center;font-size:21px;font-weight:800}
 .meets-profile-nav{display:grid;gap:16px}.meets-profile-nav-group{display:grid;gap:4px}
-.meets-profile-nav-label{color:#9690a1;font-size:9px;letter-spacing:1.7px;font-weight:800;padding:0 13px 7px}
+.meets-profile-nav-label{color:#4a5565;font-size:9px;letter-spacing:1.7px;font-weight:800;padding:0 13px 7px}
 .meets-profile-nav-link{display:flex;align-items:center;gap:11px;min-height:42px;padding:10px 11px;text-decoration:none;font-size:13px;font-weight:640;border-radius:11px;color:#635e70}
 .meets-profile-nav-link:hover{background:#f7f8fa;color:#96454d}
 .meets-profile-nav-link.active{background:#ecf0f5;color:#99424a;font-weight:800}
