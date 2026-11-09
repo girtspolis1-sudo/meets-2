@@ -463,3 +463,17 @@ button.tn-day-cell:focus-visible{outline:3px solid var(--tinte,#1b2430);outline-
 
 /* Tournament list: results so far and the day. */
 .org-row small.org-tournament-progress{font-weight:600;color:var(--tinte,#1b2430)}
+
+/* Now: the games on the courts, the next start, the games that just ended. */
+.tn-now{display:grid;gap:10px;padding:14px;border-radius:16px;background:#fff;border:1.5px solid var(--tinte,#1b2430)}
+.tn-now h2{margin:0;font-family:var(--font-display);font-size:18px}
+.tn-now p{margin:0;font-size:14px;color:var(--teksts-2,#4a5565)}
+.tn-now-list{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.tn-now-mine{padding:8px 12px;border-radius:10px;background:#fff7e0;color:#5c4400!important;font-weight:600}
+.tn-now-recent>summary{min-height:40px;display:flex;align-items:center;font-size:14px;font-weight:600;cursor:pointer}
+.tn-now-all{justify-self:start;font-size:14px;font-weight:600;color:var(--tinte,#1b2430)}
+.tn-now-ended{border-color:var(--migla,#d8dee6)}
+/* Group tables: the places that go on. */
+.tn-table tr.is-through>.tn-pos{box-shadow:inset 3px 0 0 #1e9a62;color:#1e7a4e;font-weight:700}
+.tn-zone-note{display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:12.5px;color:var(--teksts-2,#4a5565)}
+.tn-zone-note span{width:3px;height:14px;background:#1e9a62;border-radius:2px}

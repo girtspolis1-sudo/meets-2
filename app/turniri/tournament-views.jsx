@@ -1,6 +1,6 @@
 // Read-only views of a tournament, shared by the public page, the court
 // secretary page, the organizer wizard and the print sheets.
-import {FORMATS,finalGroupStandings,finalPlaces,groupsOf,hasScore,sideName,sportOf,standings,toMin,winnerSide} from '../../lib/tournament.js';
+import {FORMATS,finalGroupStandings,finalPlaces,groupsOf,hasScore,planStages,resolveRef,sideName,sportOf,standings,toMin,winnerSide} from '../../lib/tournament.js';
 
 export function contextOf(data){
  return {teams:data?.teams||[],games:data?.games||[],sport:data?.sport||'other',places:data?.settings?.places||[]};
@@ -33,6 +33,25 @@ export function gameMoments(data,now){
  }
  if(next!==null)for(const g of data.games||[])if(toMin(g.starts_at)===next&&!hasScore(g))out[g.no]=out[g.no]||'next';
  return out;
+}
+
+// The block at the top of the schedule while a tournament is on: the games on
+// the courts now (else the next start), the chosen team's next game and the
+// games that just ended. null before the first result on another day, and
+// 'ended' once every game has a result.
+export function nowBlock(data,moments,focusTeam=''){
+ const games=[...(data?.games||[])].sort((a,b)=>(toMin(a.starts_at)??9999)-(toMin(b.starts_at)??9999)||a.no-b.no);
+ if(!games.length)return null;
+ const open=games.filter(g=>!hasScore(g)),played=games.filter(hasScore);
+ if(!open.length)return {ended:true};
+ const live=games.filter(g=>moments[g.no]==='live');
+ const firstAt=open[0].starts_at;
+ const next=live.length?[]:open.filter(g=>g.starts_at===firstAt);
+ const underway=played.length>0||Object.keys(moments).length>0;
+ if(!underway)return null;
+ const ctx=contextOf(data);
+ const mine=focusTeam?open.find(g=>[g.home,g.away].some(ref=>ref==='T:'+focusTeam||resolveRef(ref,ctx)?.key===focusTeam))||null:null;
+ return {live,next,mine,recent:played.slice(-3).reverse()};
 }
 
 export function Score({game,show=true}){
@@ -73,13 +92,21 @@ export function Schedule({data,games,showScores=true,moments={},focusTeam='',sho
 
 // One group table with the columns the sport ranks by.
 export function GroupTable({data,group,focusTeam=''}){
- return <TableView data={data} id={'tn-group-'+group} title={group+' grupa'} table={standings(group,data.teams||[],data.games||[],data.sport)} focusTeam={focusTeam}/>;
+ return <TableView data={data} id={'tn-group-'+group} title={group+' grupa'} table={standings(group,data.teams||[],data.games||[],data.sport)} focusTeam={focusTeam} zones={goingOn(data)}/>;
+}
+// Group places that go on to a final group or a knockout: {place: 'Izslēgšana' …}.
+const ZONE_NAMES={final:'finālgrupā',knockout:'izslēgšanā'};
+export function goingOn(data){
+ const out={};
+ for(const st of planStages(data?.format,data?.teams||[],data?.settings||{}))
+  if(ZONE_NAMES[st.type])for(let k=st.from;k<=st.to;k++)out[k]=ZONE_NAMES[st.type];
+ return out;
 }
 // The final group: the best of every group, shown by name once the groups are over.
 export function FinalGroupTable({data,focusTeam=''}){
  return <TableView data={data} id="tn-group-final" title="Finālgrupa" table={finalGroupStandings(contextOf(data))} focusTeam={focusTeam}/>;
 }
-function TableView({data,id,title,table,focusTeam}){
+function TableView({data,id,title,table,focusTeam,zones={}}){
  const sport=sportOf(data.sport);
  const {rows,complete}=table;
  const sets=sport.rank==='sets';
@@ -89,11 +116,16 @@ function TableView({data,id,title,table,focusTeam}){
   <h3 id={id}>{title}{complete&&<small>Noslēgta</small>}</h3>
   <table>
    <thead><tr><th scope="col" className="tn-pos">#</th><th scope="col" className="tn-team">Komanda</th><th scope="col" title="Spēles">S</th><th scope="col" title="Uzvaras">U</th>{draws&&<th scope="col" title="Neizšķirti">N</th>}<th scope="col" title="Zaudējumi">Z</th><th scope="col" title={sets?'Seti':'Gūti un zaudēti'}>{sets?'Seti':'G:Z'}</th>{sport.rank!=='wins'&&<th scope="col" title="Punkti" className="tn-points">P</th>}</tr></thead>
-   <tbody>{rows.map((r,i)=><tr key={r.ref} className={r.key&&focusTeam===r.key?'is-mine':''}>
+   <tbody>{rows.map((r,i)=><tr key={r.ref} className={(r.key&&focusTeam===r.key?'is-mine':'')+(zones[i+1]?' is-through':'')}>
     <td className="tn-pos">{i+1}</td><th scope="row" className="tn-team">{r.name}</th><td>{r.gp}</td><td className={primary==='U'?'tn-points':''}>{r.w}</td>{draws&&<td>{r.d}</td>}<td>{r.l}</td><td className="tn-ratio">{r.f}:{r.a}</td>{sport.rank!=='wins'&&<td className="tn-points">{r.p}</td>}
    </tr>)}</tbody>
   </table>
+  {Object.keys(zones).length>0&&<p className="tn-zone-note"><span aria-hidden="true"/>{zoneText(zones)}</p>}
  </section>;
+}
+function zoneText(zones){
+ const byName={};for(const [k,name] of Object.entries(zones))(byName[name]=byName[name]||[]).push(Number(k));
+ return Object.entries(byName).map(([name,list])=>(list.length>1?Math.min(...list)+'.–'+Math.max(...list)+'. vieta':list[0]+'. vieta')+' turpina '+name).join('; ');
 }
 export function GroupTables({data,focusTeam=''}){
  const groups=Object.keys(groupsOf(data.teams||[]));

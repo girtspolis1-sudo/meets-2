@@ -3,7 +3,7 @@ import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
 import ShareButton from '../../components/share-button.jsx';
 import {groupsOf,playsIn,sportOf} from '../../../lib/tournament.js';
-import {GroupTables,Places,Schedule,contextOf,formatName,gameMoments,playDateLabel,rigaNow} from '../tournament-views.jsx';
+import {GameRow,GroupTables,Places,Schedule,contextOf,formatName,gameMoments,nowBlock,playDateLabel,rigaNow} from '../tournament-views.jsx';
 import {organizerPath} from '../../../lib/organizer-path.js';
 
 const REFRESH_MS=30000;
@@ -59,6 +59,7 @@ export default function TournamentLive({token,initial,link,qr}){
  const showPlaces=!youth&&(data.format!=='round_robin'||groups.length===1);
  const tabs=[['grafiks','Grafiks'],...(!youth&&groups.length?[['tabulas','Tabulas']]:[]),...(showPlaces?[['vietas','Vietas']]:[])];
  const moments=useMemo(()=>gameMoments(data,now),[data,now]);
+ const current=useMemo(()=>nowBlock(data,moments,team),[data,moments,team]);
  // The chosen team's games, also the later ones once their references (A1, W:5) are settled.
  const games=useMemo(()=>(data.games||[]).filter(g=>(!court||g.court===court)&&playsIn(g,team,ctx)),[data,court,team]);
  const when=playDateLabel(data.play_date);
@@ -83,7 +84,18 @@ export default function TournamentLive({token,initial,link,qr}){
   <div className="tn-body">
    {youth&&<p className="tn-note">Bērnu turnīrs: rezultāti un tabulas publiski netiek rādīti.</p>}
 
-   {tab==='grafiks'&&<section aria-label="Spēļu grafiks">
+   {tab==='grafiks'&&current&&(current.ended
+    ?<section className="tn-now tn-now-ended" aria-label="Turnīrs beidzies"><h2>Turnīrs beidzies</h2><p>Visām spēlēm ir rezultāts.</p>{showPlaces&&<button type="button" className="button compact" onClick={()=>setTab('vietas')}>Skatīt vietas</button>}</section>
+    :<section className="tn-now" aria-labelledby="tn-now-title">
+     <h2 id="tn-now-title">{current.live.length?'Notiek tagad':'Nākamās spēles'}</h2>
+     <ul className="tn-now-list">{(current.live.length?current.live:current.next).map(g=><GameRow key={g.no} game={g} ctx={ctx} showScore={!youth} moment={moments[g.no]} focusTeam={team} showCourt={courts.length>1}/>)}</ul>
+     {current.mine&&<p className="tn-now-mine">Tava komanda: nākamā spēle {current.mine.starts_at}{courts.length>1?', laukums '+current.mine.court:''} (Nr. {current.mine.no})</p>}
+     {current.recent.length>0&&<details className="tn-now-recent"><summary>Tikko beigušās ({current.recent.length})</summary>
+      <ul className="tn-now-list">{current.recent.map(g=><GameRow key={g.no} game={g} ctx={ctx} showScore={!youth} focusTeam={team} showCourt={courts.length>1}/>)}</ul></details>}
+     <a className="tn-now-all" href="#tn-schedule">Viss grafiks ↓</a>
+    </section>)}
+
+   {tab==='grafiks'&&<section aria-label="Spēļu grafiks" id="tn-schedule">
     <div className="tn-filters">
      {courts.length>1&&<label>Laukums<select value={court} onChange={e=>setCourt(e.target.value)}><option value="">Visi laukumi</option>{courts.map(c=><option key={c} value={c}>{c}</option>)}</select></label>}
      <label>Mana komanda<select value={team} onChange={e=>chooseTeam(e.target.value)}><option value="">Visas komandas</option>{(data.teams||[]).map(t=><option key={t.key} value={t.key}>{t.name}</option>)}</select></label>
