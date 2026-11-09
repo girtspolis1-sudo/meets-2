@@ -265,10 +265,22 @@
 }
 
 /* A4 sheets. On screen they are pages on a grey desk; printed, one per sheet. */
-.tn-print-screen{display:grid;justify-items:center;gap:16px;padding:14px 8px 40px;background:#eef1f5}
-.tn-print-toolbar label{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px}
+.tn-print-screen{display:grid;justify-items:center;gap:16px;padding:14px 8px 40px;background:#eef1f5;min-width:0;overflow-x:clip}
+.tn-print-toolbar{position:sticky;top:0;z-index:5;box-sizing:border-box;width:min(100%,794px);flex-wrap:nowrap;align-items:center;padding:10px;border-radius:12px;background:rgba(238,241,245,.94);backdrop-filter:blur(6px)}
+.tn-print-toolbar label{display:flex;align-items:center;gap:6px;min-width:0;font-weight:700;font-size:14px}
+.tn-print-toolbar select{min-width:0;max-width:100%}
+.tn-print-hint{margin:-10px 0 0;max-width:794px;padding:0 8px;text-align:center;font-size:12px;line-height:1.45;color:var(--teksts-2,#4a5565)}
+/* Phone: back, sheet and print on one sticky row, so the sheets keep the screen. */
+@media (max-width:640px){
+ .tn-print-toolbar{gap:6px;padding:8px}
+ .tn-print-toolbar .button{flex:none;padding-inline:12px}
+ .tn-print-toolbar label{flex:1}
+ .tn-print-toolbar label>span,.tn-print-back-text{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .tn-print-back{min-width:44px;justify-content:center;font-size:18px}
+ .tn-print-toolbar select{flex:1;width:100%}
+}
 .tn-print-note{margin:0;font-size:14px;font-weight:600;color:#5c4400}
-.tn-sheet{box-sizing:border-box;display:flex;flex-direction:column;gap:14px;width:min(100%,794px);min-height:calc(min(100vw,794px)*297/210);padding:40px 44px 28px;
+.tn-sheet{box-sizing:border-box;display:flex;flex-direction:column;gap:14px;width:794px;min-height:1123px;padding:45px;zoom:var(--tn-zoom,1);
  background:#fff;color:var(--tinte,#1b2430);border-radius:4px;box-shadow:0 10px 30px rgba(27,36,48,.14);font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .tn-sheet-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;padding-bottom:10px;border-bottom:2px solid var(--tinte,#1b2430)}
 .tn-sheet-head p{margin:0 0 4px;font-size:11px;font-weight:700;color:var(--teksts-2,#4a5565)}
@@ -282,25 +294,35 @@
 .tn-grid tbody th{width:44px;font-family:var(--font-display);font-size:12px}
 .tn-grid td{display:table-cell}
 .tn-grid td small{display:block;font-size:9px;color:var(--teksts-2,#4a5565)}
-.tn-grid td span{display:block;font-weight:700;font-size:11px;line-height:1.25}
+.tn-grid td span{display:block;font-weight:700;font-size:11px;line-height:1.25;overflow-wrap:anywhere}
+.tn-grid caption{text-align:left;font-weight:700;font-size:12px;padding:0 0 4px}
+.tn-grid+.tn-grid{margin-top:6px}
+/* Printed only: what the page is, repeated on every page a table runs over. */
+.tn-repeat{display:none}
+.tn-repeat>th,.tn-repeat>td{padding:0 0 5px!important;border:0!important;background:none!important;text-align:left;font-size:9.5px;font-weight:700;color:var(--tinte,#1b2430)}
+.tn-repeat>*>span:last-child{float:right;max-width:60%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:500;color:var(--teksts-2,#4a5565)}
+.tn-grid tbody th{white-space:nowrap}
 .tn-grid td b{display:block;margin-top:2px;font-family:var(--font-display)}
 .tn-grid-block td{background:#fdf6e3;font-weight:700}
+.tn-grid-block.is-pause td{background:#eef1f5}
 .tn-court th,.tn-court td{border:1px solid #c9d1db;padding:8px 6px;text-align:left}
 .tn-court thead th{background:#eef1f5;font-size:11px}
 .tn-court td{font-size:13px;height:34px}
-.tn-court-team{width:32%;font-weight:700}
+.tn-court-team{width:32%;font-weight:700;overflow-wrap:anywhere}
 .tn-court-team.is-open{font-weight:500;font-style:italic;color:var(--teksts-2,#4a5565)}
 .tn-court-stage{font-size:11px!important;color:var(--teksts-2,#4a5565)}
 .tn-court-score{white-space:nowrap;text-align:center!important;font-family:var(--font-display)}
 .tn-court-score span{display:inline-block;min-width:34px;height:24px;margin:0 3px;border:1.5px solid var(--tinte,#1b2430);border-radius:4px;line-height:22px;text-align:center}
 .tn-court-box{width:30px}
 .tn-court-sign{margin:4px 0 0;font-size:12px}
-.tn-groups-print{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.tn-groups-print{width:calc(100% + 32px);margin:-8px -16px;border-collapse:separate;border-spacing:16px 8px;table-layout:fixed}
+.tn-groups-print>tbody>tr>td{padding:0;vertical-align:top}
+.tn-cross tbody th span{overflow-wrap:anywhere}
 .tn-cross caption{text-align:left;font-family:var(--font-display);font-size:15px;font-weight:700;padding-bottom:4px}
-.tn-cross th,.tn-cross td{border:1px solid #c9d1db;padding:5px;font-size:11px;text-align:center}
-.tn-cross tbody th{text-align:left;font-weight:700}
+.tn-cross th,.tn-cross td{border:1px solid #c9d1db;padding:4px 5px;font-size:11px;text-align:center}
+.tn-cross tbody th{text-align:left;font-weight:700;font-size:10.5px;line-height:1.2}
 .tn-cross tbody th small{display:block;font-weight:500;color:var(--teksts-2,#4a5565)}
-.tn-cross td{width:30px;height:30px}
+.tn-cross td{width:30px;height:28px}
 .tn-cross-self{background:#1b2430}
 .tn-sheet-poster{align-items:center;justify-content:center;gap:12px;text-align:center;padding:60px 50px}
 .tn-poster-sport{margin:0;font-size:16px;font-weight:800;color:var(--karmins,#9e3039)}
@@ -320,12 +342,21 @@
 .tn-court-scorer span{display:block;margin-top:4px;font-size:11px;color:var(--teksts-2,#4a5565)}
 .tn-court-scorer .tn-court-sign{margin-top:12px}
 @media print{
- @page{size:A4;margin:0}
+ @page{size:A4;margin:13mm 12mm}
  body:has(.tn-sheet)>*:not(main){display:none!important}
  body:has(.tn-sheet) main#saturs{margin:0!important;padding:0!important;max-width:none!important}
  .tn-print-screen{display:block;padding:0;background:#fff}
- .tn-print-toolbar,.tn-print-note{display:none!important}
- .tn-sheet{width:210mm;min-height:297mm;height:297mm;padding:14mm 14mm 10mm;border-radius:0;box-shadow:none;break-after:page;overflow:hidden}
+ .tn-print-toolbar,.tn-print-note,.tn-print-hint{display:none!important}
+ /* The page margins come from @page, so a sheet that runs on keeps them on every page. */
+ .tn-sheet{zoom:1!important;width:auto;min-height:269mm;height:auto;padding:0;border-radius:0;box-shadow:none;break-after:page;overflow:visible}
+ .tn-sheet-poster{min-height:269mm;break-inside:avoid}
+ .tn-sheet table thead{display:table-header-group}
+ .tn-sheet tr,.tn-cross,.tn-court-scorer{break-inside:avoid}
+ .tn-sheet-head{break-after:avoid}
+ .tn-sheet .tn-repeat{display:table-row}
+ .tn-grid caption{display:none}
+ .tn-grid.is-new-page{break-before:page;margin-top:0}
+ .tn-grid.is-whole{break-inside:avoid}
  .tn-sheet:last-child{break-after:auto}
  .tn-tabs{position:static}
 }

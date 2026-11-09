@@ -4,6 +4,7 @@ import {useSearchParams} from 'next/navigation';
 import {accountRequest,useAccountSession} from '../../../lib/account-store.js';
 import {qrPath} from '../../../lib/qr-path.js';
 import PrintToolbar from '../../turniri/print-toolbar.jsx';
+import PrintFit from '../../turniri/print-fit.jsx';
 import {PrintSheets,sheetChoices} from '../../turniri/print-sheets.jsx';
 
 // The organizer's print view: also for a draft, and with coaches in the groups.
@@ -25,6 +26,7 @@ function OrganizerPrint(){
  if(error)return <main className="tn-print-screen"><p className="meets-inline-error" role="alert">{error}</p></main>;
  if(!data)return <main className="tn-print-screen"><p role="status">Ielādē…</p></main>;
  return <div className="tn-print-screen">
+  <PrintFit/>
   <PrintToolbar backHref={'/registre-turnira?id='+data.id} choices={sheetChoices(data)} choice={choice} onChoose={setChoice}/>
   {data.status!=='published'&&<p className="tn-print-note">Turnīrs vēl nav publicēts: QR kods sāks darboties pēc publicēšanas.</p>}
   {!data.scorers.length&&<p className="tn-print-note">Laukumu lapās nav sekretāru QR koda: izveido saites vednī sadaļā “Publicēšana un saites”.</p>}
