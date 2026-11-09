@@ -5,8 +5,9 @@ import {useSearchParams} from 'next/navigation';
 import ProfileShell from '../components/profile-shell.jsx';
 import {accountRequest,useAccountSession} from '../../lib/account-store.js';
 import {canWriteOrganization,submissionDateLabel} from '../../lib/organizer-workspace.js';
-import {DEFAULT_STAGES,FORMATS,GROUP_KEYS,SPORTS,STAGE_TYPES,advanceOf,buildGames,cleanStages,planStages,cleanTournament,estimateEnd,formatProblem,groupsOf,hasScore,newTeamKey,parseTeamLines,schedule,scheduleProblems,snakeGroups,sportOf,toMin,usesGroups} from '../../lib/tournament.js';
+import {DEFAULT_STAGES,FORMATS,GROUP_KEYS,SPORTS,STAGE_TYPES,advanceOf,breakStarts,buildGames,dayPlan,placeGame,shiftGame,toTime,cleanStages,planStages,cleanTournament,estimateEnd,formatProblem,groupsOf,hasScore,newTeamKey,parseTeamLines,schedule,scheduleProblems,snakeGroups,sportOf,toMin,usesGroups} from '../../lib/tournament.js';
 import FormatDiagram from '../turniri/format-diagrams.jsx';
+import DayPlan,{sideText} from './day-plan.jsx';
 import {qrPath} from '../../lib/qr-path.js';
 import {GroupTables,Places,contextOf,stageLabel} from '../turniri/tournament-views.jsx';
 import {ScoreEntry} from '../turniri/score-entry.jsx';
@@ -51,27 +52,6 @@ function CopyField({value,label}){
   <button type="button" className="button compact" onClick={async()=>{try{await navigator.clipboard.writeText(value);setCopied(true);setTimeout(()=>setCopied(false),2000);}catch{window.prompt('Nokopē saiti:',value);}}}>{copied?'✓ Nokopēts':'Kopēt'}</button></div>;
 }
 
-// Courts across, times down. In edit mode each game gets a time and a court.
-function ScheduleBoard({games,ctx,courts,editing,onMove}){
- const times=[...new Set(games.map(g=>g.starts_at).filter(Boolean))].sort((a,b)=>toMin(a)-toMin(b));
- if(editing)return <ol className="tn-edit-list">{[...games].sort((a,b)=>a.no-b.no).map(g=><li key={g.no}>
-  <span className="tn-edit-no">{g.no}</span>
-  <span className="tn-edit-game"><small>{stageLabel(g)}</small>{sideText(g.home,ctx)} – {sideText(g.away,ctx)}</span>
-  <label>Laiks<input type="time" step="300" value={g.starts_at||''} onChange={e=>onMove(g.no,{starts_at:e.target.value})}/></label>
-  <label>Laukums<select value={g.court} onChange={e=>onMove(g.no,{court:e.target.value})}>{courts.map(c=><option key={c} value={c}>{c}</option>)}</select></label>
- </li>)}</ol>;
- return <div className="tn-board" style={{'--courts':courts.length}} role="table" aria-label="Spēļu grafiks pa laukumiem">
-  <div className="tn-board-row tn-board-head" role="row"><span role="columnheader">Laiks</span>{courts.map(c=><span role="columnheader" key={c}>{c}</span>)}</div>
-  {times.map(t=><div className="tn-board-row" role="row" key={t}><strong role="rowheader">{t}</strong>{courts.map(c=>{const g=games.find(x=>x.starts_at===t&&x.court===c);
-   return <span role="cell" key={c} className={g?'tn-board-game tn-stage-'+g.stage:'tn-board-free'}>{g&&<><small>{g.no} · {stageLabel(g)}</small><b>{sideText(g.home,ctx)}</b><b>{sideText(g.away,ctx)}</b></>}</span>;})}</div>)}
- </div>;
-}
-function sideText(ref,ctx){
- if(ref.startsWith('T:'))return ctx.teams.find(t=>'T:'+t.key===ref)?.name||'—';
- const m=/^([WL]):(\d+)$/.exec(ref);
- return m?(m[1]==='W'?'Uzv. ':'Zaud. ')+m[2]:ref;
-}
-
 function Wizard(){
  const params=useSearchParams();
  const {session,ready}=useAccountSession();
@@ -91,7 +71,7 @@ function Wizard(){
  const [paste,setPaste]=useState('');
  const [groupCount,setGroupCount]=useState(4);
  const [courtsInput,setCourtsInput]=useState(courtsText(EMPTY.settings.courts));
- const [editing,setEditing]=useState(false);
+ const [picked,setPicked]=useState(null);
  const [courtFilter,setCourtFilter]=useState('');
  const [invite,setInvite]=useState('');
  const loadedOnce=useRef(false);
@@ -249,10 +229,38 @@ function Wizard(){
   const built=buildGames(t.format,teams,t.settings);
   const result=schedule(built,teams,t.settings,{tries:160,seed:1+Math.floor(Math.random()*100000)});
   if(!result){setError('Visas spēles neizdevās ievietot līdz dienas beigām. Pievieno laukumu, saīsini spēles vai atpūtas laiku, vai pārtraukumus.');return;}
-  setGames(result);setSetting('places',result.direct||[]);setEditing(false);
+  setGames(result);setSetting('places',result.direct||[]);setPicked(null);
   setNotice(result.length+' spēles ievietotas. Pēdējā sākas '+result.reduce((m,g)=>toMin(g.starts_at)>toMin(m)?g.starts_at:m,result[0].starts_at)+'.');
  }
- function moveGame(no,change){setGames(list=>list.map(g=>g.no===no?{...g,...change}:g));}
+ // By hand: pick a game, then another game (they swap) or a free place (it moves there).
+ function onPlanCell(time,court,game){
+  if(picked===null){if(game)setPicked(game.no);return;}
+  if(game&&game.no===picked){setPicked(null);return;}
+  setGames(list=>placeGame(list,picked,time,court));setPicked(null);
+ }
+ function stepPicked(step){setGames(list=>shiftGame(list,picked,step,t.settings));}
+ const pickedGame=games.find(g=>g.no===picked)||null;
+ // The day with the settings being edited: a schedule tried in the background,
+ // and how much later the day ends because of each break.
+ const preview=useMemo(()=>{
+  if(step!=='laiks'||problem||teams.length<2||teams.some(x=>!x.name.trim())||!(t.settings.courts||[]).length)return null;
+  const run=settings=>schedule(buildGames(t.format,teams,settings),teams,settings,{tries:20,seed:7});
+  const slot=Number(t.settings.slot)||15;
+  const endOf=list=>list&&list.length?Math.max(...list.map(g=>toMin(g.starts_at)))+slot:null;
+  const base=run(t.settings);
+  if(!base)return {failed:true};
+  const end=endOf(base),impacts={};
+  (t.settings.blocks||[]).forEach((b,i)=>{const other=run({...t.settings,blocks:t.settings.blocks.filter((_,j)=>j!==i)});if(other)impacts[i]=end-endOf(other);});
+  if(Number(t.settings.stage_break)>0){const other=run({...t.settings,stage_break:0});if(other)impacts.pause=end-endOf(other);}
+  return {games:base,impacts};
+ },[step,problem,teams,t.format,t.settings]);
+ const hasStages=t.format!=='round_robin'&&t.format!=='knockout';
+ // A break starts where a game could: the time nearest to `target` among those.
+ function addBlock(title,minutes,target){
+  const options=breakStarts(t.settings).map(toMin);
+  const at=options.length?options.reduce((best,x)=>Math.abs(x-target)<Math.abs(best-target)?x:best,options[0]):target;
+  setSetting('blocks',[...(t.settings.blocks||[]),{title,at:toTime(at),minutes}]);
+ }
 
  // Saving
  async function save(status){
@@ -424,34 +432,56 @@ function Wizard(){
 
   {step==='laiks'&&<div className="org-panel tn-form">
    <label>Laukumi <small>(atdali ar komatu)</small><input value={courtsInput} placeholder="A, B, C" onChange={e=>{setCourtsInput(e.target.value);setSetting('courts',parseCourts(e.target.value));}}/></label>
-   <div className="tn-row tn-row-3">
-    <label>Pirmā spēle<input type="time" step="300" value={t.settings.start} onChange={e=>setSetting('start',e.target.value)}/></label>
+   <div className="tn-row tn-row-3 tn-row-even">
+    <label>Pirmā spēle<input type="time" step="300" value={t.settings.start} onChange={e=>setSetting('start',e.target.value)}/><small>Kad sākas pirmā spēle</small></label>
     <label>Spēles laiks, min<NumberField max={180} value={t.settings.slot} onChange={v=>setSetting('slot',v)}/><small>Ar maiņu un iesildīšanos</small></label>
     <label>Atpūta komandai, min<NumberField max={240} value={t.settings.rest} onChange={v=>setSetting('rest',v)}/><small>Starp vienas komandas spēlēm</small></label>
+   </div>
+   <div className="tn-row tn-row-3 tn-row-even">
+    <label>Starplaiks starp spēlēm, min<NumberField max={60} value={t.settings.gap??0} onChange={v=>setSetting('gap',v)}/><small>Laukums brīvs pēc katras spēles</small></label>
+    {hasStages&&<label>Pārtraukums pēc grupām, min<NumberField max={240} value={t.settings.stage_break??0} onChange={v=>setSetting('stage_break',v)}/><small>Pirms spēlēm par vietām vai izslēgšanas</small></label>}
    </div>
    <fieldset className="tn-blocks"><legend>Pārtraukumi un citas aktivitātes</legend>
     {(t.settings.blocks||[]).map((b,i)=>{const change=(key,value)=>setSetting('blocks',t.settings.blocks.map((x,j)=>j===i?{...x,[key]:value}:x));return <div className="tn-block-row" key={i}>
      <label className="tn-block-title">Nosaukums<input value={b.title} maxLength={60} placeholder="Piem., Metienu konkurss" onChange={e=>change('title',e.target.value)}/></label>
-     <label>Sākums<input type="time" step="300" value={b.at} onChange={e=>change('at',e.target.value)}/></label>
+     <label>Sākums<select value={b.at} onChange={e=>change('at',e.target.value)}>{[...new Set([b.at,...breakStarts(t.settings,i)])].filter(Boolean).sort().map(x=><option key={x} value={x}>{x}</option>)}</select></label>
      <label>Ilgums, min<NumberField max={240} value={b.minutes} onChange={v=>change('minutes',v)}/></label>
      <button type="button" className="icon-button" aria-label={'Dzēst: '+(b.title||'pārtraukums')} onClick={()=>setSetting('blocks',t.settings.blocks.filter((x,j)=>j!==i))}>×</button>
     </div>;})}
-    <button type="button" className="button compact ghost" onClick={()=>setSetting('blocks',[...(t.settings.blocks||[]),{title:'',at:'12:00',minutes:15}])}>+ Pārtraukums</button>
-    <small>Šajā laikā spēles neliek nevienā laukumā.</small>
+    <div className="tn-block-presets">
+     <button type="button" className="button compact ghost" onClick={()=>addBlock('Pārtraukums',15,(toMin(t.settings.start)??600)+120)}>+ Pārtraukums 15 min</button>
+     <button type="button" className="button compact ghost" onClick={()=>addBlock('Pusdienas',30,12*60)}>+ Pusdienas 30 min</button>
+     <button type="button" className="button compact ghost" onClick={()=>addBlock('',15,(toMin(t.settings.start)??600)+60)}>+ Cita aktivitāte</button>
+    </div>
+    <small>Sākumu var izvēlēties tikai tad, kad varētu sākties spēle. Šajā laikā spēles neliek nevienā laukumā.</small>
    </fieldset>
-   {planned>0&&courts.length>0&&<p className="tn-ok">{planned} spēles {courts.length} laukumos · beigas ap {estimateEnd(t.settings,planned)} (precīzi — pēc grafika sastādīšanas)</p>}
+   <section className="tn-day-wrap" aria-labelledby="tn-day-title">
+    <h3 id="tn-day-title">Dienas plāns</h3>
+    {preview?.games?<>
+     <p>{preview.games.length} spēles {courts.length} laukumos, {dayPlan(preview.games,t.settings).start}–{dayPlan(preview.games,t.settings).end}. Pie katra pārtraukuma redzams, cik vēlāk tā dēļ beigsies diena. Precīzu grafiku sastādīsi nākamajā solī.</p>
+     <DayPlan plan={dayPlan(preview.games,t.settings)} courts={courts} ctx={{...ctx,games:preview.games}} impacts={preview.impacts}/>
+    </>:preview?.failed?<p className="tn-warn">Ar šiem laikiem visas spēles dienā neietilpst. Pievieno laukumu vai saīsini laikus.</p>
+     :<p className="tn-hint">{planned>0&&courts.length>0?planned+' spēles '+courts.length+' laukumos · beigas ap '+estimateEnd(t.settings,planned)+'. ':''}Dienas plāns parādīsies, kad būs ievadītas komandas.</p>}
+   </section>
   </div>}
 
   {step==='grafiks'&&<div className="org-panel tn-form">
    <div className="tn-schedule-bar">
     <button type="button" className="button primary" onClick={makeSchedule} disabled={busy}>{games.length?'Sastādīt no jauna':'Sastādīt grafiku'}</button>
-    {games.length>0&&<button type="button" className="button compact ghost" onClick={()=>setEditing(v=>!v)}>{editing?'Rādīt pa laukumiem':'Mainīt laikus un laukumus'}</button>}
-    <small>Ievēro laukumus, pārtraukumus, komandu atpūtu un to, ka viens treneris nevar būt divās spēlēs reizē. Spēles par vietām — pēc grupām.</small>
+    <small>Ievēro laukumus, pārtraukumus, komandu atpūtu un to, ka viens treneris nevar būt divās spēlēs reizē. Lai mainītu ar roku, pieskaries spēlei un tad citai spēlei (samainīt) vai brīvai vietai (pārvietot).</small>
    </div>
    {stale&&<p className="tn-warn">Komandas vai formāts mainīti — sastādi grafiku no jauna.</p>}
    {games.length>0&&(problems.length?<ul className="tn-problems" role="alert">{problems.map(p=><li key={p}>{p}</li>)}</ul>
     :<p className="tn-ok">✓ Grafikā nav pārklāšanos: laukumi, atpūta un treneri pārbaudīti.</p>)}
-   {games.length>0?<ScheduleBoard games={games} ctx={ctx} courts={courts.length?courts:[...new Set(games.map(g=>g.court))]} editing={editing} onMove={moveGame}/>
+   {pickedGame&&<div className="tn-pick-bar" role="status">
+    <span><strong>Spēle {pickedGame.no}</strong> · {pickedGame.starts_at} · {pickedGame.court}: {sideText(pickedGame.home,ctx)} – {sideText(pickedGame.away,ctx)}</span>
+    <span className="tn-pick-actions">
+     <button type="button" className="button compact" onClick={()=>stepPicked(-1)}>↑ Agrāk</button>
+     <button type="button" className="button compact" onClick={()=>stepPicked(1)}>↓ Vēlāk</button>
+     <button type="button" className="button compact ghost" onClick={()=>setPicked(null)}>Gatavs</button>
+    </span>
+   </div>}
+   {games.length>0?<DayPlan plan={dayPlan(games,t.settings,{extra:2})} courts={courts.length?courts:[...new Set(games.map(g=>g.court))]} ctx={ctx} picked={picked} onCell={onPlanCell}/>
     :<p className="tn-empty">Grafiks vēl nav sastādīts.</p>}
   </div>}
   </fieldset>

@@ -381,3 +381,43 @@
 .tn-stage-add button small{font-size:12px;color:#d8dee6}
 .tn-stage-add button:focus-visible{outline:3px solid #e0a526;outline-offset:2px}
 @media (max-width:640px){.tn-stage-add{grid-template-columns:1fr}}
+
+/* Times step: fields of one row at one height. */
+.tn-row-even{align-items:start}
+.tn-row-even label{align-content:start}
+.tn-row-even input,.tn-row-even select,.tn-block-row input,.tn-block-row select{box-sizing:border-box;height:50px;min-height:50px}
+.tn-block-presets{display:flex;flex-wrap:wrap;gap:6px}
+
+/* The day plan: times down, courts across, breaks across every court. */
+.tn-day-wrap{display:grid;gap:10px;padding-top:6px;border-top:1px solid var(--migla,#d8dee6)}
+.tn-day-wrap h3{margin:0;font-size:17px}
+.tn-day-wrap p{margin:0;font-size:14px;color:var(--teksts-2,#4a5565)}
+.tn-day{display:grid;gap:4px;overflow-x:auto;padding-bottom:4px}
+.tn-day-row{display:grid;grid-template-columns:56px repeat(var(--courts,2),minmax(140px,1fr));gap:4px;align-items:stretch}
+.tn-day-head span{font-size:12px;font-weight:800;color:var(--teksts-2,#4a5565);text-align:center}
+.tn-day-head span:first-child{text-align:left}
+.tn-day-time{align-self:center;font-family:var(--font-display);font-size:14px;font-variant-numeric:tabular-nums}
+.tn-day-cell{display:grid;gap:1px;align-content:start;min-width:0;min-height:58px;padding:7px 9px;border-radius:9px;border:1px solid var(--migla,#d8dee6);background:#fff;font:inherit;font-size:13px;color:var(--tinte,#1b2430);text-align:left}
+button.tn-day-cell{cursor:pointer}
+button.tn-day-cell:disabled{cursor:default;opacity:1}
+.tn-day-cell small{font-size:11px;color:var(--teksts-2,#4a5565)}
+.tn-day-cell b{font-weight:700;overflow-wrap:anywhere}
+.tn-day-cell.is-free{border-style:dashed;border-color:#e4e8ee;background:transparent}
+.tn-day-cell.is-target{border-color:var(--tinte,#1b2430);background:#f4f6f9}
+.tn-day-free{align-self:center;justify-self:center;font-size:12px;font-weight:700;color:var(--teksts-2,#4a5565)}
+.tn-day-cell.tn-stage-placement,.tn-day-cell.tn-stage-knockout,.tn-day-cell.tn-stage-final{background:#f4f6f9}
+.tn-day-cell.is-picked{border-color:var(--tinte,#1b2430);box-shadow:inset 0 0 0 2px var(--tinte,#1b2430);background:#fff}
+button.tn-day-cell:focus-visible{outline:3px solid var(--tinte,#1b2430);outline-offset:2px}
+.tn-day-break-cell{grid-column:2/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:9px 12px;border-radius:9px;background:#fdf6e3;border:1px solid #f0d58f;font-size:13px}
+.tn-day-break.is-pause .tn-day-break-cell{background:#eef1f5;border-color:#d8dee6}
+.tn-day-break-cell em{font-style:normal;font-weight:700;color:#8a6100}
+.tn-day-end-cell{grid-column:2/-1;align-self:center;font-size:13px;font-weight:700;color:var(--teksts-2,#4a5565)}
+.tn-pick-bar{position:sticky;top:8px;z-index:3;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 12px;border-radius:12px;background:var(--tinte,#1b2430);color:#fff;font-size:14px}
+.tn-pick-actions{display:flex;flex-wrap:wrap;gap:6px}
+.tn-pick-bar .button{background:#fff;color:var(--tinte,#1b2430);border-color:#fff}
+.tn-pick-bar .button.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+@media (max-width:640px){
+ .tn-day-row{grid-template-columns:46px repeat(var(--courts,2),minmax(110px,1fr))}
+ .tn-day-time{font-size:13px}
+ .tn-day-cell{padding:6px 7px;font-size:12.5px}
+}
