@@ -144,7 +144,11 @@ function Wizard(){
     const list=await accountRequest('/api/organizer','list');
     setOrgs(list.organizations||[]);setEvents(list.submissions||[]);
     const id=params.get('id');
-    if(id){apply(await accountRequest(API,'get',{id}));}
+    if(id){
+     apply(await accountRequest(API,'get',{id}));
+     // A link may open one step, e.g. ?solis=rezultati from the tournament list.
+     const wanted=params.get('solis');if(STEPS.some(([key])=>key===wanted))setStep(wanted);
+    }
     else{
      const choices=(list.organizations||[]).filter(o=>canWriteOrganization(o.role));
      const requested=params.get('org');

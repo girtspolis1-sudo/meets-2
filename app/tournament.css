@@ -460,3 +460,6 @@ button.tn-day-cell:focus-visible{outline:3px solid var(--tinte,#1b2430);outline-
 .tn-day-courts{display:flex;flex-wrap:wrap;gap:6px}
 .tn-day-courts button{min-height:40px;padding:0 14px;border-radius:99px;border:1.5px solid var(--migla,#d8dee6);background:#fff;color:var(--tinte,#1b2430);font:inherit;font-size:14px;font-weight:500;cursor:pointer}
 .tn-day-courts button.is-on{background:var(--tinte,#1b2430);border-color:var(--tinte,#1b2430);color:#fff;font-weight:700}
+
+/* Tournament list: results so far and the day. */
+.org-row small.org-tournament-progress{font-weight:600;color:var(--tinte,#1b2430)}

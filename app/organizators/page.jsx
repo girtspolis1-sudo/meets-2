@@ -57,6 +57,13 @@ function StatusMark({item,archived=false}){
   {mark.tone==='red'&&mark.hint&&<span className="sr-only">: {mark.hint}</span>}
  </span>;
 }
+// Where a tournament stands: results so far and the day.
+function tournamentProgress(t){
+ const total=t.games_total||0,scored=t.games_scored||0,today=rigaDate();
+ if(!total)return 'Grafiks vēl nav sastādīts';
+ const state=scored===total?'Beidzies':t.play_date===today?'Notiek šodien':t.play_date&&t.play_date<today?'Rezultāti nav pabeigti':'';
+ return [state,'rezultāti '+scored+'/'+total].filter(Boolean).join(' · ');
+}
 function TournamentMark({item}){
  const live=item.status==='published';
  return <span className={'org-mark org-mark-'+(live?'green':'yellow')} title={live?'Rezultātu lapa pieejama ar saiti':'Redzams tikai rīkotāja komandai'}>
@@ -584,9 +591,9 @@ function OrganizerPageInner(){
    {tournaments.length>0&&<section className="org-panel org-tournament-teaser" aria-labelledby="org-tournament-teaser">
     <div className="org-panel-head"><h2 id="org-tournament-teaser">Turnīri</h2><button className="text-button org-head-link" type="button" onClick={()=>choosePanel('tournaments')}>Visi turnīri →</button></div>
     <div className="org-list">{tournaments.slice(0,3).map(t=><div className="org-row" key={t.id}>
-     <div><strong>{t.title}</strong><small>{[t.play_date?submissionDateLabel({date_from:t.play_date}):'Datums nav norādīts',SPORTS[t.sport]?.name].filter(Boolean).join(' · ')}</small></div>
+     <div><strong>{t.title}</strong><small>{[t.play_date?submissionDateLabel({date_from:t.play_date}):'Datums nav norādīts',SPORTS[t.sport]?.name].filter(Boolean).join(' · ')}</small><small className="org-tournament-progress">{tournamentProgress(t)}</small></div>
      <TournamentMark item={t}/>
-     {canEditItem(activeOrg,'tournament',t.id)?<Link className="button compact" href={TOURNAMENT_EDITOR+'?id='+t.id}>Atvērt</Link>
+     {canEditItem(activeOrg,'tournament',t.id)?<div className="org-row-actions"><Link className="button compact" href={TOURNAMENT_EDITOR+'?id='+t.id}>Atvērt</Link>{t.games_total>0&&<Link className="button compact ghost" href={TOURNAMENT_EDITOR+'?id='+t.id+'&solis=rezultati'}>Ievadīt rezultātus</Link>}</div>
       :t.status==='published'&&<a className="button compact ghost" href={'/turniri/'+t.share_token} target="_blank" rel="noopener noreferrer">Rezultāti ↗</a>}
     </div>)}</div>
    </section>}
@@ -646,9 +653,10 @@ function OrganizerPageInner(){
   {panel==='tournaments'&&<section className="org-panel">
    <div className="org-panel-head"><div><h2>Turnīri</h2><p>Komandas un grupas, spēļu grafiks laukumos, rezultāti un tabulas. Publicētam turnīram ir saite, QR kods un lapas drukai.</p></div>{canEdit&&<Link className="button compact primary" href={TOURNAMENT_EDITOR+'?org='+orgId}>+ Jauns turnīrs</Link>}</div>
    <div className="org-list">{tournaments.map(t=><div className="org-row" key={t.id}>
-    <div><strong>{t.title}</strong><small>{[t.play_date?submissionDateLabel({date_from:t.play_date}):'Datums nav norādīts',SPORTS[t.sport]?.name,t.venue].filter(Boolean).join(' · ')}</small></div>
+    <div><strong>{t.title}</strong><small>{[t.play_date?submissionDateLabel({date_from:t.play_date}):'Datums nav norādīts',SPORTS[t.sport]?.name,t.venue].filter(Boolean).join(' · ')}</small><small className="org-tournament-progress">{tournamentProgress(t)}</small></div>
     <TournamentMark item={t}/>
     <div className="org-row-actions">
+     {canEditItem(activeOrg,'tournament',t.id)&&t.games_total>0&&<Link className="button compact ghost" href={TOURNAMENT_EDITOR+'?id='+t.id+'&solis=rezultati'}>Ievadīt rezultātus</Link>}
      {canEditItem(activeOrg,'tournament',t.id)?<Link className="button compact" href={TOURNAMENT_EDITOR+'?id='+t.id}>Atvērt</Link>
       :t.status==='published'&&<a className="button compact ghost" href={'/turniri/'+t.share_token} target="_blank" rel="noopener noreferrer">Rezultāti ↗</a>}
      {(t.status==='published'||manage)&&<details className="org-more-menu"><summary aria-label={'Vairāk darbību: '+t.title}>⋯</summary>
