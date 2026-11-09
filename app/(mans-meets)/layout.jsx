@@ -12,10 +12,13 @@ export default function MansMeetsLayout({children}){
  const registries=useAccountData('registries',{enabled:Boolean(session)});
  const avatar=useAccountData('avatar',{enabled:Boolean(session)});
  const [linkMessage,setLinkMessage]=useState('');
- // The e-mail confirmation link returns here with the new session in the URL hash.
+ // The e-mail confirmation link and Google return here with the new session in the URL hash.
  useEffect(()=>{
   readAuthRedirect().then(result=>{
-   if(result?.session){saveSession(result.session);setLinkMessage('E-pasts apstiprināts. Laipni lūdzam MEETS!');}
+   if(result?.session){
+    saveSession(result.session);
+    setLinkMessage(result.type!=='google'?'E-pasts apstiprināts. Laipni lūdzam MEETS!':result.linked?'Google konts pievienots. Turpmāk vari pieslēgties arī ar Google.':'Tu esi pieslēdzies ar Google.');
+   }
    else if(result?.error)setLinkMessage(result.error);
   }).catch(e=>setLinkMessage(e.message));
  },[]);

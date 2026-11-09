@@ -1,6 +1,8 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {accountRequest,setAccountData,useAccountData,useAccountSession} from '../../../lib/account-store.js';
+import {accountRequest,freshSession,setAccountData,useAccountData,useAccountSession} from '../../../lib/account-store.js';
+import {fetchUser,startGoogle,unlinkIdentity} from '../../../lib/auth-client.js';
+import {GoogleMark} from '../../components/account-auth-flow.jsx';
 async function resizeImage(file){
  if(!file.type.startsWith('image/')||file.size>5*1024*1024)throw Error('Izvēlies attēlu līdz 5 MB.');
  const bitmap=await createImageBitmap(file);
@@ -21,6 +23,24 @@ export default function AccountSettings(){
  const savedName=registries.data?.profile?.display_name||'',avatar=profile.data?.avatar_url||profile.data?.avatar_data_url||'';
  const [name,setName]=useState(null),[busy,setBusy]=useState(''),[message,setMessage]=useState(''),[error,setError]=useState('');
  const [currentPassword,setCurrentPassword]=useState(''),[password,setPassword]=useState(''),[repeat,setRepeat]=useState('');
+ // Ways to sign in (Supabase identities): e-mail and password, Google.
+ const [identities,setIdentities]=useState(null);
+ async function loadIdentities(){
+  try{const current=await freshSession();if(!current)return;const user=await fetchUser(current.access_token);setIdentities(Array.isArray(user?.identities)?user.identities:[]);}
+  catch{setIdentities([]);}
+ }
+ useEffect(()=>{if(session?.access_token)loadIdentities();},[session?.access_token]);
+ const google=identities?.find(i=>i.provider==='google');
+ const hasPassword=!identities||identities.some(i=>i.provider==='email');
+ async function addGoogle(){
+  setBusy('google');setError('');setMessage('');
+  try{const current=await freshSession();await startGoogle({accessToken:current?.access_token,returnTo:'/konta-iestatijumi'});}
+  catch(e){setError(e.message);setBusy('');}
+ }
+ async function removeGoogle(){
+  if(!google||!window.confirm('Atvienot Google kontu? Pēc tam pieslēgsies tikai ar e-pastu un paroli.'))return;
+  await act(async()=>{const current=await freshSession();await unlinkIdentity(current.access_token,google.identity_id);await loadIdentities();},'google');
+ }
  // Show the saved name until the person starts editing it.
  const nameValue=name??savedName;
  useEffect(()=>{const failed=registries.error||profile.error;if(failed)setError(failed.message);},[registries.error,profile.error]);
@@ -60,12 +80,24 @@ export default function AccountSettings(){
    <label>E-pasts<input value={session?.user?.email||''} readOnly type="email"/></label>
    <button className="button primary" disabled={!!busy}>Saglabāt nosaukumu</button>
   </form></section>
-  <section className="meets-settings-panel"><h2>Paroles maiņa</h2><form onSubmit={changePassword} className="meets-settings-form">
+  <section className="meets-settings-panel" aria-labelledby="meets-signin-title"><h2 id="meets-signin-title">Pieslēgšanās veidi</h2>
+   <p className="meets-muted">Vienā kontā var būt vairāki veidi. Rīkotāji, pasākumi un saglabātais paliek tie paši.</p>
+   <ul className="meets-signin-list">
+    {hasPassword&&<li><span className="meets-signin-icon" aria-hidden="true">@</span><span><strong>E-pasts un parole</strong><small>{session?.user?.email||''}</small></span><span className="meets-signin-state">Ieslēgts</span></li>}
+    <li><span className="meets-signin-icon" aria-hidden="true"><GoogleMark/></span>
+     <span><strong>Google</strong><small>{identities===null?'Pārbauda…':google?'Pievienots: '+(google.identity_data?.email||google.email||'Google konts'):'Pieslēdzies ar savu Google kontu bez paroles.'}</small></span>
+     {identities!==null&&(google
+      ?(identities.length>1?<button type="button" className="button compact" disabled={!!busy} onClick={removeGoogle}>Atvienot</button>:<span className="meets-signin-state">Ieslēgts</span>)
+      :<button type="button" className="button compact primary" disabled={!!busy} onClick={addGoogle}>{busy==='google'?'Atver Google…':'Pievienot Google'}</button>)}
+    </li>
+   </ul>
+  </section>
+  {hasPassword?<section className="meets-settings-panel"><h2>Paroles maiņa</h2><form onSubmit={changePassword} className="meets-settings-form">
    <label>Pašreizējā parole<input type="password" autoComplete="current-password" required value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)}/></label>
    <label>Jaunā parole<input type="password" autoComplete="new-password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
    <label>Atkārtot jauno paroli<input type="password" autoComplete="new-password" minLength={8} required value={repeat} onChange={e=>setRepeat(e.target.value)}/></label>
    <button className="button primary" disabled={!!busy}>Mainīt paroli</button>
-  </form></section>
+  </form></section>:<section className="meets-settings-panel"><h2>Parole</h2><p className="meets-muted">Tu pieslēdzies ar Google, tāpēc parole nav vajadzīga.</p></section>}
   <section className="meets-settings-panel meets-settings-danger"><h2>Dzēst MEETS kontu</h2>
    <p>Tiks izdzēsts tavs konts, saglabātie pasākumi, sekošana un atgādinājumi. To nevar atsaukt.</p>
    <p className="meets-muted">Ja tev ir rīkotāji, vispirms izdzēs tos: Pasākumu rīkošana → Profils → Dzēst rīkotāju.</p>

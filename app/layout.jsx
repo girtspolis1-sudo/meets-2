@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import SiteNav from './site-nav.jsx';
 import MobileBottomNav from './mobile-bottom-nav.jsx';
 import AnalyticsConsent,{ConsentSettingsLink} from './components/analytics-consent.jsx';
+import AuthReturn from './components/auth-return.jsx';
 import {CONTROLLER} from '../lib/legal.js';
 import AdminFooterControl from './admin-footer-control.jsx';
 import 'leaflet/dist/leaflet.css';
@@ -47,7 +48,7 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  return <html lang="lv" className={manrope.variable+' '+unbounded.variable}><body>
+  return <html lang="lv" className={manrope.variable+' '+unbounded.variable}><body><AuthReturn/>
     <a className="skip" href="#saturs">Pāriet uz saturu</a>
     <header className="header">
       <Link className="brand" href="/" aria-label="meets.lv sākumlapa">
