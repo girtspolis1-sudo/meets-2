@@ -45,8 +45,9 @@ export function nowBlock(data,moments,focusTeam=''){
  const open=games.filter(g=>!hasScore(g)),played=games.filter(hasScore);
  if(!open.length)return {ended:true};
  const live=games.filter(g=>moments[g.no]==='live');
- const firstAt=open[0].starts_at;
- const next=live.length?[]:open.filter(g=>g.starts_at===firstAt);
+ // As many next games as there are courts: what is about to start everywhere.
+ const courtCount=Math.max(1,Math.min(4,new Set(games.map(g=>g.court).filter(Boolean)).size));
+ const next=live.length?[]:open.slice(0,courtCount);
  const underway=played.length>0||Object.keys(moments).length>0;
  if(!underway)return null;
  const ctx=contextOf(data);
