@@ -7,7 +7,7 @@ import {canWriteOrganization,quickEventHref} from '../../lib/organizer-workspace
 // Starts an event right in the organizer area: name, date and who sees it.
 // Everything else (place, time, cover, price) is filled in the event editor,
 // which opens with these values already in place.
-export default function QuickEvent({organizations=[],orgId='',heading='Izveido pasākumu'}){
+function QuickEvent({organizations=[],orgId='',heading='Izveido pasākumu'}){
  const [title,setTitle]=useState('');
  const [date,setDate]=useState('');
  const [visibility,setVisibility]=useState('public');
@@ -47,9 +47,38 @@ export default function QuickEvent({organizations=[],orgId='',heading='Izveido p
    </fieldset>
    <button className="org-quick-submit" type="submit">Turpināt <span aria-hidden="true">→</span></button>
   </form>
-  {(orgId||org)&&<Link className="org-quick-tournament" href={'/registre-turnira?org='+(orgId||org)}>
-   <span aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h5v4H3zM3 15h5v4H3zM16 10h5v4h-5z"/><path d="M8 7h3v10H8M11 12h5"/></svg></span>
-   <span><strong>Sporta turnīrs</strong><small>Komandas, grupas, spēļu grafiks un rezultāti</small></span><span aria-hidden="true">→</span>
-  </Link>}
  </section>;
+}
+
+const BRACKET=<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h5v4H3zM3 15h5v4H3zM16 10h5v4h-5z"/><path d="M8 7h3v10H8M11 12h5"/></svg>;
+// A sports tournament is its own thing: teams, groups, the schedule and live
+// results. It can be linked to an event later (or from the event list).
+function QuickTournament({organizations=[],orgId=''}){
+ const writable=organizations.filter(o=>canWriteOrganization(o.role));
+ const [org,setOrg]=useState(orgId||writable[0]?.id||'');
+ const chosen=orgId||org;
+ return <section className="org-quick org-quick-tn" aria-labelledby="org-quick-tn-title">
+  <div className="org-quick-head">
+   <span className="org-quick-icon" aria-hidden="true">{BRACKET}</span>
+   <div><h2 id="org-quick-tn-title">Jauns turnīrs</h2><p>Komandas, grupas, spēļu grafiks laukumos un rezultāti tiešsaistē.</p></div>
+  </div>
+  <ul className="org-quick-tn-points">
+   <li>Tabulas un vietas aprēķinās pašas</li>
+   <li>Rezultātus ievada laukumu sekretāri ar QR kodu</li>
+   <li>Publiska rezultātu lapa un lapas drukai</li>
+  </ul>
+  {!orgId&&writable.length>1&&<label className="org-quick-tn-org"><span>Rīkotājs</span>
+   <select value={org} onChange={e=>setOrg(e.target.value)}>{writable.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></label>}
+  <Link className="org-quick-tn-start" href={'/registre-turnira'+(chosen?'?org='+encodeURIComponent(chosen):'')}>Veidot turnīru <span aria-hidden="true">→</span></Link>
+  <small className="org-quick-tn-note">Turnīru vari piesaistīt pasākumam — tad pasākuma lapā būs saite uz grafiku un rezultātiem.</small>
+ </section>;
+}
+
+// What to create: an event or a tournament, side by side as two separate things.
+export default function CreateChoice({organizations=[],orgId='',heading='Jauns pasākums'}){
+ const tournaments=organizations.some(o=>canWriteOrganization(o.role));
+ return <div className={'org-create'+(tournaments?'':' is-single')}>
+  <QuickEvent organizations={organizations} orgId={orgId} heading={heading}/>
+  {tournaments&&<QuickTournament organizations={organizations} orgId={orgId}/>}
+ </div>;
 }

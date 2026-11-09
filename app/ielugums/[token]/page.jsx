@@ -5,6 +5,7 @@ import ShareButton from '../../components/share-button.jsx';
 import OnlineJoin from '../../components/online-join.jsx';
 import MeetsSunMark from '../../components/meets-sun-mark.jsx';
 import SharedEventNav from './shared-nav.jsx';
+import EventTournaments from '../../components/event-tournaments.jsx';
 import {readSharedEvent} from '../../../lib/shared-event-server.js';
 import {coverImageUrl,excerpt,flyerPath,placeLines,priceLine,rigaOffsetLabel,scheduleLines,sharedStatusNote,sharePath} from '../../../lib/shared-event.js';
 import {navigationLinks} from '../../../lib/meets-personal.js';
@@ -67,6 +68,7 @@ export default async function SharedEventPage({params}){
    </dl>
    <OnlineJoin event={event}/>
    {description&&<section className="meets-detail-description"><h2>Par pasākumu</h2><p>{description}</p></section>}
+   <EventTournaments shareToken={token}/>
    <div className="meets-detail-primary-actions shared-event-actions">
     <ShareButton path={sharePath(token)} title={event.title} label="Kopīgot saiti" className="button primary"/>
     <Link className="button" href={flyerPath(token)}>Sludinājums drukai</Link>

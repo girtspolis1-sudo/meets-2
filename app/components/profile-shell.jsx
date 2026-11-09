@@ -41,7 +41,8 @@ const organizerPanels=[
 const INITIALS=(name='')=>String(name).trim().slice(0,1).toLocaleUpperCase('lv')||'M';
 
 // compact: on a phone only the page itself (the tournament wizard keeps its own way back).
-function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeOrganization=null,mode='',compact=false}) {
+// sidebarOrganization: on the organizer list, the only organizer's sections are shown too.
+function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeOrganization=null,sidebarOrganization=null,mode='',compact=false}) {
  const pathname=usePathname(),params=useSearchParams();
  const [identity,setIdentity]=useState(session||null);
  const [loggingOut,setLoggingOut]=useState(false);
@@ -64,18 +65,20 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
  const title=displayName||email?.split('@')[0]||'MEETS lietotājs';
  const organizerMode=mode==='organizer'||pathname==='/organizators'||pathname.startsWith('/registre-pasakumu')||pathname==='/registre-vietu'||pathname.startsWith('/registre-turnira');
  const orgId=params.get('org')||activeOrganization?.id||'';
+ const linkOrg=orgId||sidebarOrganization?.id||'';
  const panel=params.get('panel')||'overview';
  const organizerLinks=useMemo(()=>organizerPanels.map(item=>({
   ...item,
-  href:'/organizators?panel='+item.panel+(orgId?'&org='+encodeURIComponent(orgId):'')
- })),[orgId]);
- const eventHref='/registre-pasakumu/vienkarsi'+(orgId?'?org='+encodeURIComponent(orgId):'');
+  href:'/organizators?panel='+item.panel+(linkOrg?'&org='+encodeURIComponent(linkOrg):'')
+ })),[linkOrg]);
+ const eventHref='/registre-pasakumu/vienkarsi'+(linkOrg?'?org='+encodeURIComponent(linkOrg):'');
+ const tournamentHref='/registre-turnira'+(linkOrg?'?org='+encodeURIComponent(linkOrg):'');
 
  const activePersonal=(href)=>{
   if(href.includes('#'))return pathname===href.split('#')[0]&&typeof window!=='undefined'&&window.location.hash===href.split('#')[1];
   return pathname===href;
  };
- const activeOrganizer=(item)=>pathname==='/organizators'&&panel===item.panel;
+ const activeOrganizer=(item)=>Boolean(orgId)&&pathname==='/organizators'&&panel===item.panel;
  // On a phone the tabs scroll sideways: keep the active one in view.
  const tabsRef=useRef(null);
  useEffect(()=>{tabsRef.current?.querySelector('.active')?.scrollIntoView({block:'nearest',inline:'center'});},[pathname,panel,orgId]);
@@ -105,15 +108,20 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
      <Link href="/organizators" className={'meets-profile-nav-link'+(!orgId&&pathname==='/organizators'?' active':'')}>
       <ProfileIcon name="building"/><span>Rīkotāji</span>
      </Link>
-     {orgId&&organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined}
+    </div>
+    {linkOrg&&<div className="meets-profile-nav-group"><span className="meets-profile-nav-label">{activeOrganization&&pathname!=='/organizators'?'Sadaļas':(activeOrganization||sidebarOrganization)?.name||'Rīkotājs'}</span>
+     {organizerLinks.map(item=><Link key={item.panel} href={item.href} aria-current={activeOrganizer(item)?'page':undefined}
        className={'meets-profile-nav-link'+(activeOrganizer(item)?' active':'')}>
       <ProfileIcon name={item.icon}/><span>{item.label}</span>{activeOrganizer(item)&&<ProfileIcon name="arrow" size={14}/>}
      </Link>)}
-    </div>
+    </div>}
    </nav>}
 
    <div className="meets-profile-aside-footer">
-    {organizerMode&&<Link className="meets-profile-aside-action org-sidebar-event-action" href={eventHref}><ProfileIcon name="plus"/> Jauns pasākums</Link>}
+    {organizerMode&&<div className="org-sidebar-create" role="group" aria-label="Izveidot">
+     <Link className="meets-profile-aside-action org-sidebar-event-action" href={eventHref}><ProfileIcon name="plus"/> Jauns pasākums</Link>
+     <Link className="meets-profile-aside-action org-sidebar-tournament-action" href={tournamentHref}><ProfileIcon name="bracket"/> Jauns turnīrs</Link>
+    </div>}
 
     <button type="button" className="meets-profile-logout" disabled={loggingOut} onClick={logout}><ProfileIcon name="logout" size={17}/>{loggingOut?"Iziet…":"Iziet no konta"}</button>
    </div>
@@ -127,7 +135,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
      <Link href="/organizators" aria-current={organizerMode?'page':undefined} className={organizerMode?'active':''}><ProfileIcon name="building" size={16}/>Rīkotājs</Link>
     </div>
     {/* The organizer pages start events in their own card. */}
-    {organizerMode&&!pathname.startsWith('/registre-pasakumu')&&!pathname.startsWith('/registre-turnira')&&pathname!=='/organizators'&&<Link className="meets-profile-mobile-new" href={eventHref}>+ Jauns pasākums</Link>}
+    {organizerMode&&!pathname.startsWith('/registre-pasakumu')&&!pathname.startsWith('/registre-turnira')&&pathname!=='/organizators'&&<div className="meets-profile-mobile-create"><Link className="meets-profile-mobile-new" href={eventHref}>+ Pasākums</Link><Link className="meets-profile-mobile-new is-tournament" href={tournamentHref}>+ Turnīrs</Link></div>}
    </div>
    {/* Before an organizer is chosen there is only one tab, so the row is left out. */}
    {(!organizerMode||orgId)&&<nav ref={tabsRef} className="meets-profile-mobile-tabs" aria-label={organizerMode?'Rīkošanas sadaļas':'Mans MEETS sadaļas'}>
