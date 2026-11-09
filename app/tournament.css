@@ -313,6 +313,12 @@
 .tn-poster-link{margin:0;font-size:13px;color:var(--teksts-2,#4a5565);overflow-wrap:anywhere}
 .tn-poster-brand{margin:auto 0 0;font-size:22px}
 
+/* The secretary's results link on a court sheet (organizer print). */
+.tn-court-scorer{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center;padding:12px;border:1.5px dashed #9aa5b4;border-radius:8px}
+.tn-court-qr{width:110px;height:110px}
+.tn-court-scorer strong{display:block;font-size:14px}
+.tn-court-scorer span{display:block;margin-top:4px;font-size:11px;color:var(--teksts-2,#4a5565)}
+.tn-court-scorer .tn-court-sign{margin-top:12px}
 @media print{
  @page{size:A4;margin:0}
  body:has(.tn-sheet)>*:not(main){display:none!important}

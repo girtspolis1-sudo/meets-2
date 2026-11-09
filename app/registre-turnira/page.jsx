@@ -291,6 +291,18 @@ function Wizard(){
   }catch(e){setError(e.message);}
   finally{setBusy(false);}
  }
+ // Every court and "all courts" at once; links that exist stay as they are.
+ async function allScorerLinks(){
+  setBusy(true);setError('');
+  try{
+   const missing=[...(t.settings.courts||[]),'*'].filter(c=>!scorers.some(x=>x.court===c));
+   const made=[];
+   for(const court of missing){const r=await accountRequest(API,'scorerLink',{id:t.id,court,renew:false});made.push({court,token:r.token});}
+   setScorers(list=>[...list,...made].sort((a,b)=>a.court.localeCompare(b.court)));
+   setNotice(made.length?'Izveidotas '+made.length+' saites. Laukumu drukas lapās tās ir kā QR kodi.':'Visām saitēm jau ir izveidotas.');
+  }catch(e){setError(e.message);}
+  finally{setBusy(false);}
+ }
  async function inviteEditor(){
   setBusy(true);setError('');
   try{
@@ -516,6 +528,10 @@ function Wizard(){
    <section className="org-panel">
     <h2>Laukumu sekretāri</h2>
     <p>Katram laukumam sava saite rezultātu ievadei — bez MEETS konta. Sekretārs var ievadīt tikai sava laukuma spēles.</p>
+    <div className="org-row-actions">
+     <button type="button" className="button compact primary" disabled={busy||!rights.edit} onClick={allScorerLinks}>Izveidot visas saites</button>
+     <a className="button compact" href={'/registre-turnira/druka?id='+t.id+'&lapa=laukumi'} target="_blank" rel="noopener noreferrer">Drukāt laukumu lapas ar QR ↗</a>
+    </div>
     <ul className="tn-scorers">{[...courts,'*'].map(c=>{const link=scorers.find(x=>x.court===c);const url=link?origin+'/rezultati/'+link.token:'';return <li key={c}>
      <strong>{c==='*'?'Visi laukumi':'Laukums '+c}</strong>
      {link?<><CopyField value={url} label={'Saite: '+c}/><button type="button" className="text-button" disabled={busy||!rights.edit} onClick={()=>scorerLink(c,true)}>Jauna saite</button></>

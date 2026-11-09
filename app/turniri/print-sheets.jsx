@@ -1,11 +1,12 @@
 // A4 sheets of a tournament for printing: a QR poster for the results page,
 // the whole schedule, one sheet per court for the court secretary, and the groups.
 import {groupsOf,hasScore,refLabel,sideName,sportOf,toMin} from '../../lib/tournament.js';
+import {qrPath} from '../../lib/qr-path.js';
 import {contextOf,formatName,playDateLabel,stageLabel} from './tournament-views.jsx';
 
 export function sheetChoices(data){
  const courts=[...new Set((data.games||[]).map(g=>g.court).filter(Boolean))];
- return [['visas','Visas lapas'],['qr','QR plakāts'],['grafiks','Viss grafiks'],...courts.map(c=>['laukums-'+c,'Laukums '+c]),...(Object.keys(groupsOf(data.teams||[])).length?[['grupas','Grupas']]:[])];
+ return [['visas','Visas lapas'],['qr','QR plakāts'],['grafiks','Viss grafiks'],...(courts.length>1?[['laukumi','Visi laukumi']]:[]),...courts.map(c=>['laukums-'+c,'Laukums '+c]),...(Object.keys(groupsOf(data.teams||[])).length?[['grupas','Grupas']]:[])];
 }
 
 function SheetHead({data,title}){
@@ -60,7 +61,8 @@ export function ScheduleSheet({data,link,showScores=false}){
 }
 
 // The court secretary writes results here; known teams are printed by name.
-export function CourtSheet({data,court,link,showScores=false}){
+// scorerLink (organizer print only): the court's results link as a QR code for the secretary.
+export function CourtSheet({data,court,link,showScores=false,scorerLink=''}){
  const ctx=contextOf(data);
  const games=ctx.games.filter(g=>g.court===court).sort((a,b)=>(toMin(a.starts_at)??0)-(toMin(b.starts_at)??0));
  const sport=sportOf(data.sport);
@@ -75,7 +77,11 @@ export function CourtSheet({data,court,link,showScores=false}){
     <td className={'tn-court-team'+(a.known?'':' is-open')}>{a.name}</td>{sport.overtime&&<td className="tn-court-box"/>}
    </tr>;})}</tbody>
   </table>
-  <p className="tn-court-sign">Laukuma sekretārs: ______________________ &nbsp; Paraksts: ____________</p>
+  {scorerLink?<div className="tn-court-scorer">
+   <ScorerQr link={scorerLink}/>
+   <div><strong>Rezultātu ievade laukumam {court}</strong><span>Sekretārs noskenē ar tālruni un ievada rezultātus uzreiz turnīra lapā. Šo kodu nerādi skatītājiem.</span>
+    <p className="tn-court-sign">Laukuma sekretārs: ______________________ &nbsp; Paraksts: ____________</p></div>
+  </div>:<p className="tn-court-sign">Laukuma sekretārs: ______________________ &nbsp; Paraksts: ____________</p>}
   <SheetFoot link={link}/>
  </section>;
 }
@@ -95,14 +101,21 @@ export function GroupsSheet({data,link}){
  </section>;
 }
 
-export function PrintSheets({data,link,qr,choice='visas',showScores=false}){
+function ScorerQr({link}){
+ const qr=qrPath(link);
+ return <svg className="tn-court-qr" viewBox={`-4 -4 ${qr.size+8} ${qr.size+8}`} role="img" aria-label="QR kods rezultātu ievadei" shapeRendering="crispEdges">
+  <rect x="-4" y="-4" width={qr.size+8} height={qr.size+8} fill="#fff"/><path d={qr.d} fill="#1b2430"/>
+ </svg>;
+}
+// scorers: {court: results link} — given only in the organizer's print view.
+export function PrintSheets({data,link,qr,choice='visas',showScores=false,scorers={}}){
  const courts=[...new Set((data.games||[]).map(g=>g.court).filter(Boolean))];
  const all=choice==='visas';
  const court=choice.startsWith('laukums-')?choice.slice(8):'';
  return <>
   {(all||choice==='qr')&&<QrPoster data={data} link={link} qr={qr}/>}
   {(all||choice==='grafiks')&&<ScheduleSheet data={data} link={link} showScores={showScores}/>}
-  {courts.filter(c=>all||c===court).map(c=><CourtSheet key={c} data={data} court={c} link={link} showScores={showScores}/>)}
+  {courts.filter(c=>all||choice==='laukumi'||c===court).map(c=><CourtSheet key={c} data={data} court={c} link={link} showScores={showScores} scorerLink={scorers[c]||scorers['*']||''}/>)}
   {(all||choice==='grupas')&&Object.keys(groupsOf(data.teams||[])).length>0&&<GroupsSheet data={data} link={link}/>}
  </>;
 }
