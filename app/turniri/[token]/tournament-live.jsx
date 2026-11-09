@@ -33,7 +33,8 @@ export default function TournamentLive({token,initial,link,qr}){
   async function refresh(){
    if(document.visibilityState!=='visible')return;
    try{
-    const response=await fetch('/api/tournaments?share='+encodeURIComponent(token),{cache:'no-store'});
+    // No cache option: the response itself says how long the CDN may keep it.
+    const response=await fetch('/api/tournaments?share='+encodeURIComponent(token));
     if(!response.ok)throw Error();
     const body=await response.json();
     if(alive&&body.tournament){setData(body.tournament);setUpdated(new Date());setStale(false);}
