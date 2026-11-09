@@ -422,3 +422,35 @@ button.tn-day-cell:focus-visible{outline:3px solid var(--tinte,#1b2430);outline-
  .tn-day-time{font-size:13px}
  .tn-day-cell{padding:6px 7px;font-size:12.5px}
 }
+
+/* Phone: the tournament wizard without the organizer tabs above it. */
+@media (max-width:760px){
+ .meets-profile-shell.is-compact .meets-profile-mobile-actions,
+ .meets-profile-shell.is-compact .meets-profile-mobile-tabs,
+ .meets-profile-shell.is-compact .meets-org-mode-band{display:none}
+}
+/* Scorer: finished games folded away. */
+.tn-done-list{border:1px solid var(--migla,#d8dee6);border-radius:14px;background:#fff}
+.tn-done-list>summary{min-height:48px;display:flex;align-items:center;padding:0 14px;font-weight:700;font-size:14px;cursor:pointer}
+.tn-done-list[open]>summary{border-bottom:1px solid var(--migla,#d8dee6)}
+.tn-done-list>.tn-entries{padding:10px}
+
+/* Weight carries hierarchy (audit 07): bold for team names, times, results and
+   headings; labels, hints and secondary buttons in regular or medium. */
+.tn-filters label,.tn-inline,.tn-form>label,.tn-row label,.tn-paste label,.tn-groups-bar label,.tn-block-row label,
+.tn-choice-grid legend,.tn-blocks legend,.tn-team-head,.tn-day-head span,.tn-table thead th,.tn-save-state,
+.tn-step-caption,.tn-ok,.tn-day-free,.tn-format-text em,.tn-sport,.tn-print-toolbar label,.tn-hint a,
+.tn-day-break-cell em,.tn-segment-field>span,.tn-stage-body label,.tn-team-seed{font-weight:500}
+.tn-tabs button:not(.active),.tn-steps button:not(.active){font-weight:500}
+.tn-wizard .button:not(.primary),.tn-links .button:not(.primary),.tn-share .button,.tn-pick-bar .button{font-weight:500}
+.tn-game-when small{font-weight:600}
+.tn-side{font-weight:500}
+.tn-game:not(.is-done) .tn-side:not(.is-open){font-weight:600}
+.tn-side.is-won{font-weight:700}
+.tn-entry-team{font-weight:600}
+.tn-day-cell b{font-weight:600}
+.tn-table .tn-team,.tn-places li{font-weight:600}
+.tn-day-box{display:grid;gap:8px;min-width:0}
+.tn-day-courts{display:flex;flex-wrap:wrap;gap:6px}
+.tn-day-courts button{min-height:40px;padding:0 14px;border-radius:99px;border:1.5px solid var(--migla,#d8dee6);background:#fff;color:var(--tinte,#1b2430);font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+.tn-day-courts button.is-on{background:var(--tinte,#1b2430);border-color:var(--tinte,#1b2430);color:#fff;font-weight:700}

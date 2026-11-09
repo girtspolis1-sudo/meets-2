@@ -321,7 +321,7 @@ function Wizard(){
  const readOnly=!canSave;
  const backHref='/organizators?'+(t.organization_id?'org='+t.organization_id+'&':'')+'panel=tournaments';
 
- return <ProfileShell mode="organizer" activeOrganization={org}><section className="org-workspace tn-wizard">
+ return <ProfileShell mode="organizer" activeOrganization={org} compact><section className="org-workspace tn-wizard">
   <header className="ev-head tn-wizard-head">
    <Link className="ev-back" href={backHref}>← Turnīri</Link>
    <h1>{t.id?t.title||'Turnīrs':'Jauns turnīrs'}</h1>
