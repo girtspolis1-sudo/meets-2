@@ -11,6 +11,7 @@ import EventVenueFavorite from '../../components/event-venue-favorite.jsx';
 import EventFacts from '../../components/event-facts.jsx';
 import OnlineJoin from '../../components/online-join.jsx';
 import {rigaClockMinutes,rigaTodayIso} from '../../../lib/event-date.js';
+import EventTournaments from '../../components/event-tournaments.jsx';
 
 export const dynamic='force-dynamic';
 
@@ -102,6 +103,7 @@ export default async function EventPage({params}){
    </div>
    <OnlineJoin event={event}/>
    {description&&<section className="meets-detail-description"><h2>Par pasākumu</h2><p>{description}</p></section>}
+   <EventTournaments eventId={event.id}/>
    <div className="meets-detail-follow"><EventQuickActions event={event} listOnly/></div>
    <div className="meets-detail-primary-actions">
     {event.latitude!=null&&event.longitude!=null&&<Link className="button primary" href={'/karte?event='+encodeURIComponent(event.id)}>Atvērt kartē →</Link>}

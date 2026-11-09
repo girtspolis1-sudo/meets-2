@@ -154,7 +154,12 @@ function Wizard(){
      const requested=params.get('org');
      const orgId=choices.some(o=>o.id===requested)?requested:choices.length===1?choices[0].id:'';
      const draft=readDraft(session.user?.id);
-     if(draft?.t&&(!requested||draft.t.organization_id===requested)){
+     // Started from an event (?event=…): its name, day and place, linked to it.
+     const fromEvent=(list.submissions||[]).find(e=>e.id===params.get('event')&&e.organization_id===orgId);
+     if(fromEvent){
+      setT({...EMPTY,organization_id:orgId,submission_id:fromEvent.id,title:fromEvent.title||'',play_date:fromEvent.date_from||'',venue:fromEvent.venue_name||''});
+      setNotice('Turnīrs būs piesaistīts pasākumam “'+(fromEvent.title||'')+'”: pasākuma lapā parādīsies saite uz grafiku un rezultātiem.');
+     }else if(draft?.t&&(!requested||draft.t.organization_id===requested)){
       setT({...EMPTY,...draft.t,id:'',organization_id:draft.t.organization_id||orgId});setTeams(draft.teams||[]);setGames(draft.games||[]);
       setCourtsInput(courtsText(draft.t.settings?.courts||EMPTY.settings.courts));
       setNotice('Atjaunots nesaglabātais turnīra melnraksts šajā ierīcē.');
@@ -422,7 +427,7 @@ function Wizard(){
     <label>Datums<input type="date" value={t.play_date} onChange={e=>set('play_date',e.target.value)}/></label>
     <label>Norises vieta<input value={t.venue} maxLength={200} placeholder="Piem., Mārupes sporta komplekss" onChange={e=>set('venue',e.target.value)}/></label>
    </div>
-   <label>Saistītais pasākums <small>(neobligāti — turnīra lapā būs saite uz to)</small><select value={t.submission_id} onChange={e=>set('submission_id',e.target.value)}>
+   <label>Saistītais pasākums <small>(neobligāti — turnīra lapā būs saite uz pasākumu, pasākuma lapā uz turnīru)</small><select value={t.submission_id} onChange={e=>set('submission_id',e.target.value)}>
     <option value="">Nav saistīts</option>
     {events.filter(e=>e.organization_id===t.organization_id&&!['cancelled','declined'].includes(e.status)).map(e=><option key={e.id} value={e.id}>{e.title} · {submissionDateLabel(e)}</option>)}
    </select></label>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope,submissionDateLabel,organizerTodo} from '../lib/organizer-workspace.js';
+import {scopedDraftKey,resolveOrganizationId,canWriteOrganization,recurrenceEditScope,submissionDateLabel,organizerTodo,eventReach,eventFormat} from '../lib/organizer-workspace.js';
 
 test('draft keys are isolated by user and organization',()=>{
  assert.notEqual(scopedDraftKey('user-a','org-1'),scopedDraftKey('user-b','org-1'));
@@ -58,4 +58,26 @@ test('event marks: green ready, yellow on its way, red needs the organizer',asyn
  assert.equal(tone({...base,status:'declined'}),'red');
  assert.equal(tone({...base,status:'cancelled'}),'gray');
  assert.equal(eventStatusMark({...base,status:'published'},{archived:true}).label,'Arhivēts');
+});
+
+test('event reach says where people can see an event',()=>{
+ const today='2026-11-09',pub={is_public:true},hidden={is_public:false};
+ const states=(item,org=pub)=>Object.fromEntries(eventReach(item,org,today).places.map(p=>[p.key,p.state]));
+ assert.deepEqual(states({status:'draft',date_from:'2026-12-01'}),{map:'off',profile:'off',link:'off'});
+ assert.equal(eventReach({status:'draft'},pub,today).who,'Redz tikai rīkotāja komanda');
+ assert.deepEqual(states({status:'private',share_token:'t',date_from:'2026-12-01'}),{map:'off',profile:'off',link:'on'});
+ assert.deepEqual(states({status:'pending_review',share_token:'t',date_from:'2026-12-01'}),{map:'wait',profile:'off',link:'on'});
+ // A published event being changed stays on the map.
+ assert.deepEqual(states({status:'pending_review',event_id:'e',share_token:'t',date_from:'2026-12-01'}),{map:'on',profile:'on',link:'on'});
+ assert.deepEqual(states({status:'published',event_id:'e',share_token:'t',date_from:'2026-12-01'}),{map:'on',profile:'on',link:'on'});
+ assert.deepEqual(states({status:'published',event_id:'e',share_token:'t',date_from:'2026-12-01'},hidden),{map:'on',profile:'off',link:'on'});
+ assert.equal(eventReach({status:'published',event_id:'e',date_from:'2026-12-01'},hidden,today).places[1].hint,'Rīkotāja profils nav publisks');
+ assert.deepEqual(states({status:'published',event_id:'e',share_token:'t',date_from:'2026-11-01'}),{map:'off',profile:'off',link:'on'});
+ assert.deepEqual(states({status:'cancelled',share_token:'t',date_from:'2026-12-01'}),{map:'off',profile:'off',link:'off'});
+ assert.equal(eventReach({status:'rejected'},pub,today).who,'Nav redzams — MEETS lūdz precizēt');
+});
+test('event format names visibility and schedule',()=>{
+ assert.equal(eventFormat({visibility:'public'}),'Publisks');
+ assert.equal(eventFormat({visibility:'private',schedule_kind:'recurring'}),'Privāts · Atkārtojas');
+ assert.equal(eventFormat({schedule_kind:'dated'}),'Publisks · Vairāki datumi');
 });
