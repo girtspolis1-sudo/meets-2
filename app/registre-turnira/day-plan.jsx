@@ -1,11 +1,11 @@
 'use client';
+import {refLabel} from '../../lib/tournament.js';
 import {stageLabel} from '../turniri/tournament-views.jsx';
 
-// How a reference reads in the plan: the team, or "Uzv. 12" / "A1".
+// How a reference reads in the plan: the team, "Uzv. 12" or "B gr. 3. vieta".
 export function sideText(ref,ctx){
- if(ref.startsWith('T:'))return ctx.teams.find(t=>'T:'+t.key===ref)?.name||'—';
  const m=/^([WL]):(\d+)$/.exec(ref);
- return m?(m[1]==='W'?'Uzv. ':'Zaud. ')+m[2]:ref;
+ return m?(m[1]==='W'?'Uzv. ':'Zaud. ')+m[2]:refLabel(ref,ctx.teams);
 }
 function impactText(minutes){
  if(minutes===undefined||minutes===null)return '';

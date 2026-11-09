@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {breakStarts,buildGames,cleanTournament,dayPlan,finalGroupStandings,placeGame,shiftGame,toTime,finalPlaces,formatProblem,matchPoints,numberGames,parseTeamLines,resolveRef,roundRobin,schedule,scheduleProblems,slotTimes,snakeGroups,standings,toMin} from '../lib/tournament.js';
+import {refLabel,breakStarts,buildGames,cleanTournament,dayPlan,finalGroupStandings,placeGame,shiftGame,toTime,finalPlaces,formatProblem,matchPoints,numberGames,parseTeamLines,resolveRef,roundRobin,schedule,scheduleProblems,slotTimes,snakeGroups,standings,toMin} from '../lib/tournament.js';
 
 // Mārupes Kauss 2026, 2018. g. dz. zēni (the organizer's PDF).
 const GROUPS={
@@ -265,4 +265,11 @@ test('day plan: a gap between games, a pause after the groups, moving games by h
  // A placement game moved into the pause is named.
  const early=placeGame(planned,planned.find(g=>g.stage==='placement').no,toTime(groupsEnd),'A');
  assert.ok(scheduleProblems(early,tm,set).some(p=>/pārtraukumā pēc grupām/.test(p)));
+});
+
+test('references in words: group and final group places',()=>{
+ assert.equal(refLabel('B3',[]),'B gr. 3. vieta');
+ assert.equal(refLabel('A10',[]),'A gr. 10. vieta');
+ assert.equal(refLabel('Z1',[]),'Finālgr. 1. vieta');
+ assert.equal(refLabel('W:12',[]),'Uzv. sp. 12');
 });

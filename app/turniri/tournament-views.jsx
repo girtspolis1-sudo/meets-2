@@ -19,7 +19,8 @@ export function rigaNow(){
  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Riga',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(p=>[p.type,p.value]));
  return {date:parts.year+'-'+parts.month+'-'+parts.day,minutes:Number(parts.hour)*60+Number(parts.minute)};
 }
-// 'live' while a game's slot runs on the tournament day, 'next' for the next start.
+// 'live' while a game's slot runs on the tournament day, 'next' for the next
+// start of a game not played yet (a game with a result is never "next").
 export function gameMoments(data,now){
  const out={};
  if(!now||data?.play_date!==now.date)return out;
@@ -28,9 +29,9 @@ export function gameMoments(data,now){
  for(const g of data.games||[]){
   const at=toMin(g.starts_at);if(at===null)continue;
   if(!hasScore(g)&&at<=now.minutes&&now.minutes<at+slot)out[g.no]='live';
-  else if(at>now.minutes&&(next===null||at<next))next=at;
+  else if(!hasScore(g)&&at>now.minutes&&(next===null||at<next))next=at;
  }
- if(next!==null)for(const g of data.games||[])if(toMin(g.starts_at)===next)out[g.no]=out[g.no]||'next';
+ if(next!==null)for(const g of data.games||[])if(toMin(g.starts_at)===next&&!hasScore(g))out[g.no]=out[g.no]||'next';
  return out;
 }
 
