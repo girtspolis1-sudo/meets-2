@@ -49,7 +49,11 @@ export async function GET(request){
  try{
   const data=share?await readSharedTournament(share):scorer?await readScorerTournament(scorer):null;
   if(!data)return fail('Turnīrs nav atrasts vai vēl nav publicēts.',404);
-  return NextResponse.json({tournament:data},{headers:{'Cache-Control':'no-store'}});
+  // The public page asks every 30 seconds from every open screen: the CDN
+  // answers them from a copy at most 10 seconds old, so a full hall does not
+  // reach the database. A court secretary always gets the live record.
+  const cacheControl=share?'public, max-age=0, s-maxage=10, stale-while-revalidate=20':'no-store';
+  return NextResponse.json({tournament:data},{headers:{'Cache-Control':cacheControl}});
  }catch(error){
   console.error('tournament_public_failed',{message:error?.message});
   return fail('Turnīru neizdevās ielādēt.',502);

@@ -1,10 +1,12 @@
-import { readEvents } from '../../../lib/events-server.js';
+import { readEventsCached } from '../../../lib/events-server.js';
 
 export const dynamic='force-dynamic';
 
 export async function GET() {
  try {
-  const data=await readEvents();
+  // The shared copy (refreshed once a minute): a stream of health checks must not
+  // run the whole catalogue query each time.
+  const data=await readEventsCached();
   return Response.json(
    {application:'meets 2',status:'ok',database:'connected',events:data.total},
    {headers:{'Cache-Control':'no-store'}}
