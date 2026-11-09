@@ -2,6 +2,7 @@ import {headers} from 'next/headers';
 import {notFound} from 'next/navigation';
 import {cache} from 'react';
 import PrintToolbar from '../../print-toolbar.jsx';
+import PrintFit from '../../print-fit.jsx';
 import {PrintSheets,sheetChoices} from '../../print-sheets.jsx';
 import {readSharedTournament} from '../../../../lib/tournament-server.js';
 import {requestOrigin} from '../../../../lib/shared-event-server.js';
@@ -26,6 +27,7 @@ export default async function TournamentPrintPage({params,searchParams}){
  const choices=sheetChoices(data);
  const choice=choices.some(([key])=>key===lapa)?lapa:'visas';
  return <div className="tn-print-screen">
+  <PrintFit/>
   <PrintToolbar backHref={'/turniri/'+token} choices={choices} choice={choice}/>
   <PrintSheets data={data} link={link} qr={qrPath(link)} choice={choice} showScores={!data.youth}/>
  </div>;

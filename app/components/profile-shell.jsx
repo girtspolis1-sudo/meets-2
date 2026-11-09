@@ -40,7 +40,8 @@ const organizerPanels=[
 
 const INITIALS=(name='')=>String(name).trim().slice(0,1).toLocaleUpperCase('lv')||'M';
 
-function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeOrganization=null,mode=''}) {
+// compact: on a phone only the page itself (the tournament wizard keeps its own way back).
+function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeOrganization=null,mode='',compact=false}) {
  const pathname=usePathname(),params=useSearchParams();
  const [identity,setIdentity]=useState(session||null);
  const [loggingOut,setLoggingOut]=useState(false);
@@ -79,7 +80,7 @@ function Inner({children,session,displayName='',avatarUrl='',subtitle='',activeO
  const tabsRef=useRef(null);
  useEffect(()=>{tabsRef.current?.querySelector('.active')?.scrollIntoView({block:'nearest',inline:'center'});},[pathname,panel,orgId]);
 
- return <div className="meets-profile-shell">
+ return <div className={'meets-profile-shell'+(compact?' is-compact':'')}>
   <aside className="meets-profile-aside" aria-label="Profila navigācija">
    <div className="meets-profile-identity">
     <div className="meets-profile-avatar" aria-hidden="true">{avatarUrl?<img src={avatarUrl} alt="" className="meets-settings-avatar-image"/>:INITIALS(displayName||email)}</div>

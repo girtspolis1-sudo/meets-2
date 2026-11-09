@@ -32,6 +32,7 @@ export default function ScorerBoard({token,initial}){
  const ctx=contextOf(data);
  const mine=useMemo(()=>ctx.games.filter(g=>all||g.court===data.court).sort((a,b)=>(toMin(a.starts_at)??0)-(toMin(b.starts_at)??0)||a.no-b.no),[data]);
  const next=mine.find(g=>!hasScore(g));
+ const finished=mine.filter(hasScore),open=mine.filter(g=>!hasScore(g));
  const done=mine.filter(hasScore).length;
  return <main className="tn-page tn-scorer">
   <header className="tn-hero tn-hero-compact">
@@ -48,7 +49,12 @@ export default function ScorerBoard({token,initial}){
    <button type="button" role="tab" aria-selected={view==='tables'} className={view==='tables'?'active':''} onClick={()=>setView('tables')}>Tabulas</button>
   </div></nav>
   <div className="tn-body">
-   {view==='mine'&&<ol className="tn-entries">{mine.map(g=><ScoreEntry key={g.no} game={g} ctx={ctx} sport={data.sport} current={g===next} onSave={save}/>)}</ol>}
+   {view==='mine'&&<>
+    {finished.length>0&&<details className="tn-done-list"><summary>Pabeigtās spēles ({finished.length}) — atvērt, lai labotu</summary>
+     <ol className="tn-entries">{finished.map(g=><ScoreEntry key={g.no} game={g} ctx={ctx} sport={data.sport} onSave={save}/>)}</ol></details>}
+    {open.length?<ol className="tn-entries">{open.map(g=><ScoreEntry key={g.no} game={g} ctx={ctx} sport={data.sport} current={g===next} onSave={save}/>)}</ol>
+     :<p className="tn-note">Visām šī laukuma spēlēm ir rezultāts. Paldies!</p>}
+   </>}
    {view==='all'&&<Schedule data={data}/>}
    {view==='tables'&&<GroupTables data={data}/>}
    <p className="tn-note">Rezultāti uzreiz parādās turnīra lapā. Ja kļūdījies, izlabo un saglabā vēlreiz.</p>

@@ -78,8 +78,13 @@ export async function POST(request){
   // Tournaments the user may see: their organizers' and the ones given to them.
   if(action==='list'){
    const filter=UUID.test(data.organization_id||'')?'&organization_id=eq.'+data.organization_id:'';
-   const items=await call('meets_tournaments?select='+LIST_FIELDS+filter+'&order=play_date.desc.nullsfirst,created_at.desc',token);
-   return NextResponse.json({tournaments:items||[]});
+   const items=await call('meets_tournaments?select='+LIST_FIELDS+filter+'&order=play_date.desc.nullsfirst,created_at.desc',token)||[];
+   // How far each tournament is: games in the schedule and games with a result.
+   const ids=items.map(t=>t.id).slice(0,100);
+   const games=ids.length?await call('meets_tournament_games?select=tournament_id,home_score&tournament_id=in.('+ids.join(',')+')',token).catch(()=>[]):[];
+   const count={};
+   for(const g of games||[]){const c=count[g.tournament_id]=count[g.tournament_id]||{games_total:0,games_scored:0};c.games_total++;if(g.home_score!==null&&g.home_score!==undefined)c.games_scored++;}
+   return NextResponse.json({tournaments:items.map(t=>({...t,...(count[t.id]||{games_total:0,games_scored:0})}))});
   }
 
   if(action==='save'){

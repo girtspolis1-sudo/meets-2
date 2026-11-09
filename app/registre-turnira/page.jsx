@@ -144,7 +144,11 @@ function Wizard(){
     const list=await accountRequest('/api/organizer','list');
     setOrgs(list.organizations||[]);setEvents(list.submissions||[]);
     const id=params.get('id');
-    if(id){apply(await accountRequest(API,'get',{id}));}
+    if(id){
+     apply(await accountRequest(API,'get',{id}));
+     // A link may open one step, e.g. ?solis=rezultati from the tournament list.
+     const wanted=params.get('solis');if(STEPS.some(([key])=>key===wanted))setStep(wanted);
+    }
     else{
      const choices=(list.organizations||[]).filter(o=>canWriteOrganization(o.role));
      const requested=params.get('org');
@@ -212,6 +216,21 @@ function Wizard(){
   setTeams(list=>{const i=list.findIndex(x=>x.key===key),j=i+delta;if(j<0||j>=list.length)return list;const next=[...list];[next[i],next[j]]=[next[j],next[i]];return next.map((x,n)=>({...x,seed:n+1}));});
  }
  const groupsNow=groupsOf(teams);
+ // Order by dragging the handle (finger or mouse) or with ↑ ↓ on it; the order is the seeding.
+ const [dragKey,setDragKey]=useState('');
+ const [overKey,setOverKey]=useState('');
+ function moveTo(key,target){
+  setTeams(list=>{const from=list.findIndex(x=>x.key===key),to=list.findIndex(x=>x.key===target);if(from<0||to<0||from===to)return list;
+   const next=[...list];const [item]=next.splice(from,1);next.splice(to,0,item);return next.map((x,n)=>({...x,seed:n+1}));});
+ }
+ function dragStart(e,key){e.currentTarget.setPointerCapture?.(e.pointerId);setDragKey(key);setOverKey(key);}
+ function dragMove(e){if(!dragKey)return;const row=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-team-key]');if(row)setOverKey(row.dataset.teamKey);}
+ function dragEnd(){if(dragKey&&overKey&&overKey!==dragKey)moveTo(dragKey,overKey);setDragKey('');setOverKey('');}
+ function dragKeys(e,key){
+  if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;
+  e.preventDefault();moveTeam(key,e.key==='ArrowUp'?-1:1);
+  requestAnimationFrame(()=>document.querySelector('[data-team-key="'+key+'"] .tn-drag')?.focus());
+ }
  function chooseGroupCount(count){
   setGroupCount(count);setError('');
   if(teams.length<2)return;
@@ -291,6 +310,18 @@ function Wizard(){
   }catch(e){setError(e.message);}
   finally{setBusy(false);}
  }
+ // Every court and "all courts" at once; links that exist stay as they are.
+ async function allScorerLinks(){
+  setBusy(true);setError('');
+  try{
+   const missing=[...(t.settings.courts||[]),'*'].filter(c=>!scorers.some(x=>x.court===c));
+   const made=[];
+   for(const court of missing){const r=await accountRequest(API,'scorerLink',{id:t.id,court,renew:false});made.push({court,token:r.token});}
+   setScorers(list=>[...list,...made].sort((a,b)=>a.court.localeCompare(b.court)));
+   setNotice(made.length?'Izveidotas '+made.length+' saites. Laukumu drukas lapās tās ir kā QR kodi.':'Visām saitēm jau ir izveidotas.');
+  }catch(e){setError(e.message);}
+  finally{setBusy(false);}
+ }
  async function inviteEditor(){
   setBusy(true);setError('');
   try{
@@ -321,7 +352,7 @@ function Wizard(){
  const readOnly=!canSave;
  const backHref='/organizators?'+(t.organization_id?'org='+t.organization_id+'&':'')+'panel=tournaments';
 
- return <ProfileShell mode="organizer" activeOrganization={org}><section className="org-workspace tn-wizard">
+ return <ProfileShell mode="organizer" activeOrganization={org} compact><section className="org-workspace tn-wizard">
   <header className="ev-head tn-wizard-head">
    <Link className="ev-back" href={backHref}>← Turnīri</Link>
    <h1>{t.id?t.title||'Turnīrs':'Jauns turnīrs'}</h1>
@@ -408,20 +439,21 @@ function Wizard(){
    {groupFormat&&<div className="tn-groups-bar">
     <label>Grupu skaits<select value={groupCount} onChange={e=>chooseGroupCount(Number(e.target.value))}>
      {groupChoices.map(n=><option key={n} value={n} disabled={teams.length>=2&&n>maxGroups}>{n}</option>)}</select></label>
-    <small>Komandas sadalās grupās pēc saraksta secības (spēcīgākās augšā): 1. A, 2. B … un atpakaļ.</small>
+    <small>Komandas sadalās grupās pēc saraksta secības (spēcīgākās augšā): 1. A, 2. B … un atpakaļ. Secību maini, velkot aiz ⋮⋮.</small>
    </div>}
    {groupFormat&&Object.keys(groupsNow).length>0&&<div className="tn-group-summary" aria-label="Grupas">{Object.entries(groupsNow).map(([g,list])=><div key={g}>
     <strong>{g}</strong><span>{list.map(x=>x.name||'—').join(', ')}</span></div>)}</div>}
    <div className="tn-team-table" role="table" aria-label="Komandas">
     <div className="tn-team-row tn-team-head" role="row"><span>#</span><span>Komanda</span><span>Treneris</span>{groupFormat&&<span>Grupa</span>}<span><span className="sr-only">Darbības</span></span></div>
-    {teams.map((x,i)=><div className="tn-team-row" role="row" key={x.key}>
+    {teams.map((x,i)=><div className={'tn-team-row'+(dragKey===x.key?' is-dragging':'')+(dragKey&&overKey===x.key&&dragKey!==x.key?' is-over':'')} role="row" key={x.key} data-team-key={x.key}>
      <span className="tn-team-seed">{i+1}</span>
      <input aria-label={'Komanda '+(i+1)} value={x.name} maxLength={120} placeholder="Nosaukums" onChange={e=>updateTeam(x.key,'name',e.target.value)}/>
      <input aria-label={'Treneris '+(i+1)} value={x.coach} maxLength={120} placeholder="Treneris" onChange={e=>updateTeam(x.key,'coach',e.target.value)}/>
      {groupFormat&&<select aria-label={'Grupa '+(i+1)} value={x.group} onChange={e=>updateTeam(x.key,'group',e.target.value)}><option value="">–</option>{GROUP_KEYS.map(g=><option key={g} value={g}>{g}</option>)}</select>}
      <span className="tn-team-actions">
-      <button type="button" className="icon-button" aria-label="Uz augšu" disabled={i===0} onClick={()=>moveTeam(x.key,-1)}>↑</button>
-      <button type="button" className="icon-button" aria-label="Uz leju" disabled={i===teams.length-1} onClick={()=>moveTeam(x.key,1)}>↓</button>
+      <button type="button" className="icon-button tn-drag" aria-label={'Pārvietot: '+(x.name||'komanda')+' ('+(i+1)+'. vieta sarakstā). Velc vai spied ↑ ↓.'}
+       onPointerDown={e=>dragStart(e,x.key)} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={()=>{setDragKey('');setOverKey('');}} onKeyDown={e=>dragKeys(e,x.key)}>
+       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></button>
       <button type="button" className="icon-button" aria-label={'Dzēst '+(x.name||'komandu')} onClick={()=>removeTeam(x.key)}>×</button>
      </span>
     </div>)}
@@ -516,6 +548,10 @@ function Wizard(){
    <section className="org-panel">
     <h2>Laukumu sekretāri</h2>
     <p>Katram laukumam sava saite rezultātu ievadei — bez MEETS konta. Sekretārs var ievadīt tikai sava laukuma spēles.</p>
+    <div className="org-row-actions">
+     <button type="button" className="button compact primary" disabled={busy||!rights.edit} onClick={allScorerLinks}>Izveidot visas saites</button>
+     <a className="button compact" href={'/registre-turnira/druka?id='+t.id+'&lapa=laukumi'} target="_blank" rel="noopener noreferrer">Drukāt laukumu lapas ar QR ↗</a>
+    </div>
     <ul className="tn-scorers">{[...courts,'*'].map(c=>{const link=scorers.find(x=>x.court===c);const url=link?origin+'/rezultati/'+link.token:'';return <li key={c}>
      <strong>{c==='*'?'Visi laukumi':'Laukums '+c}</strong>
      {link?<><CopyField value={url} label={'Saite: '+c}/><button type="button" className="text-button" disabled={busy||!rights.edit} onClick={()=>scorerLink(c,true)}>Jauna saite</button></>
