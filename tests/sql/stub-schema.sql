@@ -1,8 +1,10 @@
 -- A minimal copy of the production objects the automatic map points build on, so
 -- the matching rules can be tested in an empty Postgres with PostGIS:
 --   psql -d scratch -f tests/sql/stub-schema.sql
---   psql -d scratch -f supabase/migrations/20261111090000_location_auto_reference.sql
---   psql -d scratch -f supabase/migrations/20261111100000_location_auto_apply.sql
+--   psql -d scratch -f supabase/migrations/20261111084937_location_auto_reference.sql
+--   psql -d scratch -f supabase/migrations/20261111100352_location_auto_register_match_speed.sql
+--   psql -d scratch -f supabase/migrations/20261111101048_location_auto_batched_check_and_snapshot.sql
+--   psql -d scratch -f supabase/migrations/20261111110000_location_auto_apply.sql
 --   psql -d scratch -f tests/sql/location-auto.test.sql
 -- The name functions further down are copied from the migrations that define them.
 create extension if not exists postgis;

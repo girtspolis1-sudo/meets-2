@@ -32,6 +32,12 @@ async function load(kind:"centroids"|"institutions"){
  for(let i=0;i<parts.length;i++){
   await rpc("meets_place_reference_import",{p_kind:kind,p_rows:parts[i],p_first:i===0,p_last:i===parts.length-1});
  }
+ // The coordinate check runs in parts: one call may not take longer than a few seconds.
+ if(kind==="institutions"){
+  for(let i=0;i<60;i++){
+   if(Number(await rpc("meets_place_reference_check",{p_limit:300}))===0)break;
+  }
+ }
  return rows.length;
 }
 

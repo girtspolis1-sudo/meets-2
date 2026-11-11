@@ -1,4 +1,4 @@
--- Tests of the automatic map points (migrations 20261111090000 and 20261111100000).
+-- Tests of the automatic map points (migrations 20261111084937 and 20261111110000).
 -- Runs in a scratch database prepared with tests/sql/stub-schema.sql; everything is
 -- rolled back at the end. A failed check stops the script with an exception.
 \set ON_ERROR_STOP 1
@@ -116,6 +116,9 @@ select public.meets_place_reference_import('institutions',$j$[
  ["LV-KN-7","Kultūras centri","Kultūras nams","Bauskas Kultūras centrs","Brīvības iela 17, Bauska, Bauskas nov., LV-3901","56.9000","24.9000",""],
  ["LV-M-1","Muzeji","Muzejs","Mūsas muzejs","\"Muzejs\", Ceraukstes pag., Bauskas nov., LV-3908","56.3500","24.2500",""]
 ]$j$::jsonb,true,true);
+select pg_temp.eq('institutions wait for the coordinate check',(select count(*) from meets_private.culture_institutions where coord_check is not null),0::bigint);
+select pg_temp.eq('check in parts: some left',public.meets_place_reference_check(4),6);
+select pg_temp.eq('check in parts: none left',public.meets_place_reference_check(300),0);
 select pg_temp.eq('point agrees with the register address',(select coord_check from meets_private.culture_institutions where isil='LV-KN-1'),'register');
 select pg_temp.eq('house name, point near the village centre',(select coord_check from meets_private.culture_institutions where isil='LV-KN-2'),'settlement');
 select pg_temp.eq('point far from the village',(select coord_check from meets_private.culture_institutions where isil='LV-KN-3'),null);
@@ -336,6 +339,7 @@ select pg_temp.event('p1','Iecavas jauniešu centrs',null,5);
 select pg_temp.event('p2','Bauskas pils',null,5);
 select pg_temp.event('p3','Vecsaules parks',null,5);
 select pg_temp.eq('step 4 is off: nothing to read',public.meets_location_source_pages_next(10),'[]'::jsonb);
+select pg_temp.eq('plan stored',meets_private.location_auto_plan_refresh()>0,true);
 select pg_temp.eq('forced: pages offered',jsonb_array_length(public.meets_location_source_pages_next(50,true))>=3,true);
 select public.meets_location_source_pages_store(jsonb_build_array(
   jsonb_build_object('event_id',(pg_temp.loc('p1')).event_id,'url','https://example.lv/p1','status','ok',

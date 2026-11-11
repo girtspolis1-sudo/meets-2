@@ -1,4 +1,4 @@
--- Automatic map points, part 2: applying the plan of 20261111090000.
+-- Automatic map points, part 2: applying the plan of 20261111084937.
 --
 -- A resolved place is saved once in meets_private.location_auto_places; a trigger
 -- gives its point to every unverified event with that name in that municipality,
@@ -180,6 +180,9 @@ begin
   select count(*) into v_events from public.event_locations l
    where l.location_auto_place_id is not null
      and l.event_id in (select unnest(p.event_ids) from unnest(v_rows) p where p.decision in ('apply','existing'));
+
+  -- What is left for the admin, with reasons (meets_private.location_auto_plan_snapshot).
+  perform meets_private.location_auto_plan_refresh(p_steps);
 
   return v_summary||jsonb_build_object('newPlaces',v_places,'appliedEvents',v_events,
            'published',meets_private.auto_publish_verified_imports());

@@ -3,8 +3,10 @@
 Places without a verified map point are resolved automatically when an official
 source gives exactly one answer. Anything doubtful stays in Admin → Mapping.
 
-Migrations: `20261111090000_location_auto_reference.sql` (tables, matching, plan),
-`20261111100000_location_auto_apply.sql` (trigger, run, revert, publishing, cron).
+Migrations: `20261111084937_location_auto_reference.sql` (tables, matching, plan),
+`20261111100352_location_auto_register_match_speed.sql`,
+`20261111101048_location_auto_batched_check_and_snapshot.sql`,
+`20261111110000_location_auto_apply.sql` (trigger, run, revert, publishing, cron).
 
 ## Steps
 
