@@ -160,3 +160,38 @@ Nolasītas 120 no aptuveni 360 avota lapām vietām, kam nekas cits nav atrasts
 Ieguvums ir ap 1 % vietu, bet katra lapā atrasta adrese ir potenciāli svešas iestādes
 adrese. Solis ir izslēgts (`location_auto_source_pages = off`); ja to ieslēdz, punkts
 tiek ielikts, bet pasākums netiek publicēts un paliek manuālajā rindā apstiprināšanai.
+
+## Pēc piemērošanas (11.11.2026.)
+
+`select meets_private.location_auto_run()` piemēroja tieši to, ko rādīja izmēģinājums:
+262 vietas, 419 pasākumi; 234 nākotnes importētie pasākumi tika publicēti.
+
+| | Pirms | Pēc |
+|---|---:|---:|
+| Pasākumi bez `verified_at` (published + pending_review) | 891 | 891 |
+| no tiem manuālajā rindā | 891 | 472 |
+| `published` | 3 983 | 4 217 |
+| `pending_review` | 713 | 479 |
+| kvalitāte `missing_point` | 687 | 336 |
+| kvalitāte `source_exact` | 7 | 296 |
+| kvalitāte `fallback_center` | 170 | 232 |
+| kvalitāte `verified_exact` | 3 805 | 3 805 |
+
+`verified_at` automātiskajiem punktiem paliek tukšs, tāpēc pirmā rinda nemainās;
+mainās tas, cik no tiem gaida adminu.
+
+Pārbaudes:
+
+- Automātiskie punkti ārpus Latvijas robežas: 0.
+- Automātiskās vietas ar diviem dažādiem punktiem: 0; rindas, kuru punkts atšķiras no
+  vietas punkta: 0; vietas, kam pārbaudīts punkts citā pasākumā ir tālāk par 150 m: 0.
+- 4 527 rindas ar `verified_at` un 506 saglabātie mapējumi: kontrolsummas pirms un pēc sakrīt.
+- Žurnālā 419 ieraksti, pa vienam katram pasākumam.
+- Neviens pasākums ar apdzīvotas vietas centru netika publicēts.
+- Jaunās funkcijas: visas `SECURITY DEFINER` ar tukšu `search_path` (palīgfunkcijas bez
+  datu piekļuves ir parastas `immutable`), nevienai nav `EXECUTE` tiesību `anon` vai
+  `authenticated`.
+
+Atrasts, bet nav mainīts: 45 jau pārbaudītas rindas ar valsts kodu `LV` vai bez koda
+atrodas ārpus Latvijas (24 Igaunijā, piemēram, "Jõgeva SH", un 21 Lietuvā, piemēram,
+"LSMU Sporto Centras"). Punkti ir pareizi, nepareizs ir valsts kods.

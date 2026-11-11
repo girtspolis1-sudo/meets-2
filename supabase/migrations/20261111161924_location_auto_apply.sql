@@ -126,8 +126,7 @@ end
 $$;
 
 -- After classify_event_location and the saved admin mapping (triggers fire in name order).
-drop trigger if exists zzz_apply_auto_location_before_write on public.event_locations;
-create trigger zzz_apply_auto_location_before_write
+create or replace trigger zzz_apply_auto_location_before_write
   before insert or update on public.event_locations
   for each row execute function meets_private.apply_auto_location_before_write();
 
