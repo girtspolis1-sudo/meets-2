@@ -47,8 +47,14 @@ const QUALITY={
 };
 
 function qualityMeta(value){return QUALITY[value]||{label:value||'Nav novērtēts',tone:'bad',priority:0};}
+// Points placed automatically from an official source (meets_private.location_auto_places):
+// an exact register or institution address needs no admin work and may be published;
+// a town or parish centre is all the source says, so it is not in the mapping queue either.
+const AUTO_EXACT=new Set(['address_register','culture_institution']);
+const AUTO_SETTLED=new Set(['address_register','culture_institution','settlement_center']);
 function canPublishEvent(event){
- return event?.attendance_mode==='online'||event?.location_quality==='verified_exact';
+ return event?.attendance_mode==='online'||event?.location_quality==='verified_exact'
+  ||(event?.location_quality==='source_exact'&&AUTO_EXACT.has(event?.location_auto));
 }
 function eventIsCurrent(event,today=rigaTodayIso()){
  const end=String(event?.date_to||event?.date_from||'');
@@ -81,6 +87,7 @@ function isLocationIssue(event){
  const quality=String(event?.location_quality||'');
  const hasPoint=event?.latitude!=null&&event?.longitude!=null&&Number.isFinite(Number(event.latitude))&&Number.isFinite(Number(event.longitude));
  const hasPlace=Boolean(String(event?.venue_name||event?.address_raw||'').trim());
+ if(hasPoint&&hasPlace&&AUTO_SETTLED.has(event?.location_auto))return false;
  return !hasPoint||!hasPlace||quality!=='verified_exact';
 }
 function locationIssueReason(event){

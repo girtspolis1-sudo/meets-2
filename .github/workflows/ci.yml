@@ -41,6 +41,38 @@ jobs:
       - name: Build production bundle
         run: npm run build
 
+  location-sql-tests:
+    name: location-sql-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test automatic map point rules
+        run: |
+          psql -v ON_ERROR_STOP=1 -q -f tests/sql/stub-schema.sql
+          psql -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261111090000_location_auto_reference.sql
+          psql -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261111100000_location_auto_apply.sql
+          psql -v ON_ERROR_STOP=1 -q -f tests/sql/location-auto.test.sql
+
   mobile-ux-smoke:
     name: mobile-ux-smoke
     if: github.event_name == 'pull_request'

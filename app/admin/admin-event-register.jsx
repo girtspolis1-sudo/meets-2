@@ -20,6 +20,9 @@ function locationProblem(event){
  if(event.attendance_mode==='online')return '';
  if(!String(event.venue_name||event.address_raw||'').trim())return 'Nav norises vietas / adreses';
  if(!hasCoordinates(event))return 'Nav precīza kartes punkta';
+ // Placed automatically from the address register or the institutions list.
+ if(['address_register','culture_institution'].includes(event.location_auto))return '';
+ if(event.location_auto==='settlement_center')return 'Zināma tikai apdzīvotā vieta';
  switch(event.location_quality){
   case 'verified_exact':return '';
   case 'fallback_center':return 'Norādīts tikai pašvaldības centrs';
