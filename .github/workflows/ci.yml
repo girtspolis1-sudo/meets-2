@@ -72,6 +72,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261111084937_location_auto_reference.sql
           psql -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261111100352_location_auto_register_match_speed.sql
           psql -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261111101048_location_auto_batched_check_and_snapshot.sql
+          psql -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261111101513_location_auto_register_match_stricter.sql
           psql -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261111110000_location_auto_apply.sql
           psql -v ON_ERROR_STOP=1 -q -f tests/sql/location-auto.test.sql
 

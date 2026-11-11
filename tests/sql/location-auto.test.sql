@@ -31,7 +31,11 @@ select k,s,meets_private.address_key(split_part(s,', ',1)),
    (9,'Rīgas iela 18, Iecava, Bauskas nov., LV-3913',56.5970,24.2030),
    (10,'Brīvības iela 17, Bauska, Bauskas nov., LV-3901',56.4080,24.1850),
    (11,'Brīvības iela 17B, Bauska, Bauskas nov., LV-3901',56.4085,24.1870),
-   (12,'Brīvības iela 75, Rīga, LV-1001',56.9570,24.1270)
+   (12,'Brīvības iela 75, Rīga, LV-1001',56.9570,24.1270),
+   (13,'Dārza iela 5, Iecava, Bauskas nov., LV-3913',56.6000,24.2100),
+   (14,'Skolas iela 2, Rīga, LV-1010',56.9558,24.1157),
+   (15,'Gaujas iela 1, Bauska, Bauskas nov., LV-3901',56.4090,24.1910),
+   (16,'Dakteru iela 27, Bauska, Bauskas nov., LV-3901',56.4095,24.1920)
   ) v(k,s,la,lo);
 
 -- ---------------------------------------------------------------------------
@@ -78,6 +82,10 @@ select pg_temp.eq('next word is not a house letter',pg_temp.reg('Brīvības iela
 select pg_temp.eq('house letter',pg_temp.reg('Brīvības iela 17B, Bauska',5),'match:11');
 select pg_temp.eq('house letter after a space',pg_temp.reg('Brīvības iela 17 B, Bauska',5),'match:11');
 select pg_temp.eq('two addresses in one text',pg_temp.reg('Dārza iela 5, Lielā Dārza iela 5, Bauska',5),'ambiguous');
+select pg_temp.eq('two addresses in one phrase',pg_temp.reg('Bauskas bibliotēka, Gaujas iela 1 un Dakteru iela 27',5),'ambiguous');
+select pg_temp.eq('municipality name, one such address in it',pg_temp.reg('Bauskas novads, Brīvības iela 17',5),'match:10');
+select pg_temp.eq('municipality name does not pick the town',pg_temp.reg('Bauskas novads, Dārza iela 5',5),'ambiguous');
+select pg_temp.eq('municipality name and the town',pg_temp.reg('Bauskas novads, Dārza iela 5, Iecava',5),'match:13');
 select pg_temp.eq('no municipality',pg_temp.reg('Kalēju iela 9/11, Rīga',null),'none');
 select pg_temp.eq('not one municipality',pg_temp.reg('Kalēju iela 9/11, Rīga',27),'none');
 select pg_temp.eq('no street address',pg_temp.reg('Iecavas kultūras nams',5),'none');
@@ -98,9 +106,14 @@ select public.meets_place_reference_import('centroids',$j$[
  ["210","106","Pope","Pope, Popes pag., Ventspils nov.","57.4000","21.8600"],
  ["211","105","Popes pag.","Popes pag., Ventspils nov.","57.3800","21.9000"],
  ["212","113","Bauskas nov.","Bauskas nov.","56.4500","24.3000"],
- ["213","104","Rīga","Rīga","56.9871","24.1292"]
+ ["213","104","Rīga","Rīga","56.9871","24.1292"],
+ ["214","104","Salaspils","Salaspils, Salaspils nov.","56.8600","24.3500"]
 ]$j$::jsonb,true,false);
-select pg_temp.eq('municipality rows are not loaded',(select count(*) from meets_private.place_centroids),12::bigint);
+select pg_temp.eq('municipality rows are not loaded',(select count(*) from meets_private.place_centroids),13::bigint);
+-- With the towns known: a city address is refused when the text names another town.
+select pg_temp.eq('another town named in a city event',pg_temp.reg('Iecavas koncertzāle, Skolas iela 2 Iecava',19),'unconfirmed:14');
+select pg_temp.eq('a street named after a town is fine',pg_temp.reg('Skolas iela 2, Rīga',19),'match:14');
+select pg_temp.eq('the city itself',pg_temp.reg('Rīgas koncertzāle, Skolas iela 2',19),'match:14');
 select pg_temp.eq('parish stem',(select name_stem from meets_private.place_centroids where kods=207),'cod');
 select pg_temp.eq('centroid municipality',(select municipality_id from meets_private.place_centroids where kods=210),25::bigint);
 
