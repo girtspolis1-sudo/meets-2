@@ -188,8 +188,11 @@ Pārbaudes:
 - 4 527 rindas ar `verified_at` un 506 saglabātie mapējumi: kontrolsummas pirms un pēc sakrīt.
 - Žurnālā 419 ieraksti, pa vienam katram pasākumam.
 - Neviens pasākums ar apdzīvotas vietas centru netika publicēts.
-- Jaunās funkcijas: visas `SECURITY DEFINER` ar tukšu `search_path` (palīgfunkcijas bez
-  datu piekļuves ir parastas `immutable`), nevienai nav `EXECUTE` tiesību `anon` vai
+- Jaunās funkcijas, kas lasa vai raksta `meets_private` tabulas, ir `SECURITY DEFINER` ar
+  tukšu `search_path`. Teksta palīgfunkcijas (`lv_stems`, `location_place_key`,
+  `location_name_core`, `location_name_variants`, `std_locality_stems`,
+  `points_distance_m`) un `std_municipality_id` ir parastas funkcijas ar tukšu
+  `search_path`, tāpat kā esošā `plain_text`. Nevienai nav `EXECUTE` tiesību `anon` vai
   `authenticated`.
 
 Atrasts, bet nav mainīts: 45 jau pārbaudītas rindas ar valsts kodu `LV` vai bez koda
