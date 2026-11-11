@@ -35,7 +35,10 @@ select k,s,meets_private.address_key(split_part(s,', ',1)),
    (13,'Dārza iela 5, Iecava, Bauskas nov., LV-3913',56.6000,24.2100),
    (14,'Skolas iela 2, Rīga, LV-1010',56.9558,24.1157),
    (15,'Gaujas iela 1, Bauska, Bauskas nov., LV-3901',56.4090,24.1910),
-   (16,'Dakteru iela 27, Bauska, Bauskas nov., LV-3901',56.4095,24.1920)
+   (16,'Dakteru iela 27, Bauska, Bauskas nov., LV-3901',56.4095,24.1920),
+   (17,'Iecavas iela 3, Bauska, Bauskas nov., LV-3901',56.4120,24.1930),
+   (18,'Iecavas iela 3, Iecava, Bauskas nov., LV-3913',56.5990,24.2060),
+   (19,'Iecavas iela 4, Bauska, Bauskas nov., LV-3901',56.4121,24.1931)
   ) v(k,s,la,lo);
 
 -- ---------------------------------------------------------------------------
@@ -86,6 +89,10 @@ select pg_temp.eq('two addresses in one phrase',pg_temp.reg('Bauskas bibliotēka
 select pg_temp.eq('municipality name, one such address in it',pg_temp.reg('Bauskas novads, Brīvības iela 17',5),'match:10');
 select pg_temp.eq('municipality name does not pick the town',pg_temp.reg('Bauskas novads, Dārza iela 5',5),'ambiguous');
 select pg_temp.eq('municipality name and the town',pg_temp.reg('Bauskas novads, Dārza iela 5, Iecava',5),'match:13');
+select pg_temp.eq('the street name does not name the town',pg_temp.reg('Sporta nams, Iecavas iela 3',5),'ambiguous');
+select pg_temp.eq('town named outside the street',pg_temp.reg('Bauska, Iecavas iela 3',5),'match:17');
+select pg_temp.eq('town named before the street, no comma',pg_temp.reg('Bauska Iecavas iela 3',5),'match:17');
+select pg_temp.eq('street called after a town, only one such address',pg_temp.reg('Sporta nams, Iecavas iela 4',5),'unconfirmed:19');
 select pg_temp.eq('no municipality',pg_temp.reg('Kalēju iela 9/11, Rīga',null),'none');
 select pg_temp.eq('not one municipality',pg_temp.reg('Kalēju iela 9/11, Rīga',27),'none');
 select pg_temp.eq('no street address',pg_temp.reg('Iecavas kultūras nams',5),'none');
@@ -112,6 +119,7 @@ select public.meets_place_reference_import('centroids',$j$[
 select pg_temp.eq('municipality rows are not loaded',(select count(*) from meets_private.place_centroids),13::bigint);
 -- With the towns known: a city address is refused when the text names another town.
 select pg_temp.eq('another town named in a city event',pg_temp.reg('Iecavas koncertzāle, Skolas iela 2 Iecava',19),'unconfirmed:14');
+select pg_temp.eq('another town named before the street, no comma',pg_temp.reg('Iecavas koncertzāle Skolas iela 2',19),'unconfirmed:14');
 select pg_temp.eq('a street named after a town is fine',pg_temp.reg('Skolas iela 2, Rīga',19),'match:14');
 select pg_temp.eq('the city itself',pg_temp.reg('Rīgas koncertzāle, Skolas iela 2',19),'match:14');
 select pg_temp.eq('parish stem',(select name_stem from meets_private.place_centroids where kods=207),'cod');

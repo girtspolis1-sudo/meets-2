@@ -5,6 +5,7 @@
 --   psql -d scratch -f supabase/migrations/20261111100352_location_auto_register_match_speed.sql
 --   psql -d scratch -f supabase/migrations/20261111101048_location_auto_batched_check_and_snapshot.sql
 --   psql -d scratch -f supabase/migrations/20261111101513_location_auto_register_match_stricter.sql
+--   psql -d scratch -f supabase/migrations/20261111101815_location_auto_register_match_town_outside_street.sql
 --   psql -d scratch -f supabase/migrations/20261111110000_location_auto_apply.sql
 --   psql -d scratch -f tests/sql/location-auto.test.sql
 -- The name functions further down are copied from the migrations that define them.
