@@ -225,7 +225,7 @@ test('home categories use verified taxonomy, include municipal sport and do not 
 });
 
 
-test('discovery separates event kind, audience and civic content without title guesses',async()=>{
+test('discovery separates event kind, audience and civic content; audience is never guessed from the title',async()=>{
  const {HOME_GROUP_KEYS,eventGroup,matchesAudience,matchesHomeCategory}=await import('../lib/home-category-filters.js');
  assert.equal(HOME_GROUP_KEYS.length,8);
  assert.equal(eventGroup({event_type:'exhibition',primary_category:'Izklaide'}),'culture');
@@ -241,6 +241,23 @@ test('discovery separates event kind, audience and civic content without title g
  assert(!matchesHomeCategory({event_type:'government'},''));
  assert(matchesHomeCategory({event_type:'government'},'civic'));
  assert(matchesHomeCategory({event_type:'exhibition'},''));
+});
+
+test('council and committee meetings are civic whatever label the municipality gives them',async()=>{
+ const {eventGroup,isCouncilMeeting,matchesHomeCategory}=await import('../lib/home-category-filters.js');
+ for(const title of ['Sociālās un veselības komitejas sēde','Jūrmalas domes sēde','Pāles pagasta iedzīvotāju padomes sēde',
+  'Administratīvās komisijas sēde','Talsu novada domes ārkārtas sēdē','Domes deputātu pieņemšana: J. Bērziņš']){
+  assert(isCouncilMeeting(title),title);
+ }
+ assert.equal(eventGroup({title:'Vides un attīstības komitejas sēde',primary_category:'Pašvaldība'}),'civic');
+ assert.equal(eventGroup({title:'Birzgales pagasta iedzīvotāju padomes sēde',primary_category:'Sanāksme'}),'civic');
+ assert(!matchesHomeCategory({title:'Finanšu komitejas sēde',primary_category:'Tikšanās'},''));
+ // Events that only mention the municipality or a sitting are not meetings.
+ for(const title of ['Papildu ekskursijas atjaunotajās pašvaldības ēkās','Saruna par sevis pieņemšanu un drosmi',
+  'Sēdes vingrošana senioriem','Komitejas organizēts koncerts','Domes laukuma Ziemassvētku tirgus']){
+  assert(!isCouncilMeeting(title),title);
+ }
+ assert.equal(eventGroup({title:'Papildu ekskursijas atjaunotajās pašvaldības ēkās',primary_category:'Pašvaldība'}),'');
 });
 
 test('map markers use approved MEETS category icons and generic fallback',()=>{

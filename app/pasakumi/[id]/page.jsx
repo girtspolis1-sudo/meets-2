@@ -3,7 +3,7 @@ import TrackView from '../../components/track-view.jsx';
 import {notFound} from 'next/navigation';
 import {cache} from 'react';
 import {readEventsCached} from '../../../lib/events-server.js';
-import {cardCategory,cardDate,cardDescription,cardGroup,cardImage,cardLocation} from '../../../lib/discovery-card.js';
+import {cardCategory,cardDate,cardDescription,cardImage,cardLocation} from '../../../lib/discovery-card.js';
 import {timeLabel} from '../../../lib/catalog.js';
 import {officialEventUrl} from '../../../lib/event-sharing.js';
 import EventQuickActions from '../../components/event-quick-actions.jsx';
@@ -89,10 +89,8 @@ export default async function EventPage({params}){
   <script type="application/ld+json" dangerouslySetInnerHTML={{__html:structuredData(event)}}/>
   <TrackView name="event_view" params={{item_id:event.id,item_category:event.primary_category,municipality:event.municipality}}/>
   <nav className="meets-event-page-back" aria-label="Atpakaļ"><Link href="/pasakumi">← Visi pasākumi</Link></nav>
-  <div className="meets-detail-hero">
-   {image?<img src={image} alt="" className="catalog-detail-cover"/>:
-    <div className={'meets-detail-image-fallback theme-'+cardGroup(event)} aria-hidden="true">✦</div>}
-  </div>
+  {/* Without a picture the title comes first; an empty image area only pushes it down. */}
+  {image&&<div className="meets-detail-hero"><img src={image} alt="" className="catalog-detail-cover"/></div>}
   <div className="meets-detail-body">
    <div className="meets-detail-headline"><span className="meets-detail-tag">{cardCategory(event)}</span><h1>{event.title}</h1></div>
    {/* The same facts as on the map card, plus the full date. */}

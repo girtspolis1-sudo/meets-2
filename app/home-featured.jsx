@@ -5,6 +5,7 @@ import {useEvents} from '../lib/use-events.js';
 import {cardDate,cardImage,cardLocation} from '../lib/discovery-card.js';
 import {eventGroup} from '../lib/home-category-filters.js';
 import {rigaTodayIso} from '../lib/event-date.js';
+import {isBackgroundLong} from '../lib/event-duration.js';
 import DiscoveryEventCard from './components/discovery-event-card.jsx';
 
 const FAVORITES='meets_favorites_v1';
@@ -23,7 +24,9 @@ export default function HomeFeatured(){
  const all=data?.events||[];
  const picks=useMemo(()=>{
   const today=rigaTodayIso();
-  return all.filter(e=>e.id&&e.title&&eventGroup(e)!=='civic'&&String(e.date_to||e.date_from||'')>=today)
+  // Exhibitions and season programmes that are simply running are not "nearest";
+  // they come back on their opening day and in their last week.
+  return all.filter(e=>e.id&&e.title&&eventGroup(e)!=='civic'&&!isBackgroundLong(e,today)&&String(e.date_to||e.date_from||'')>=today)
    .sort((a,b)=>{
     const date=String(a.date_from||'9999').localeCompare(String(b.date_from||'9999'));
     if(date)return date;
