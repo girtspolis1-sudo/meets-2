@@ -110,6 +110,12 @@ export default async function EventPage({params}){
     {official&&<a className="button" href={official} target="_blank" rel="noopener noreferrer">Rīkotāja saite ↗</a>}
    </div>
    <div className="meets-detail-quick"><h2>Ātrās darbības</h2><EventQuickActions event={event}/></div>
+   {/* Imported events without an organizer: the organizer can take them over. */}
+   {!event.organization_id&&<aside className="meets-claim-callout" aria-labelledby="claim-callout-title">
+    <h2 id="claim-callout-title">Vai tu rīko šo pasākumu?</h2>
+    <p>Pievieno attēlu, aprakstu un cenu — pasākums tiks rādīts ar tavu rīkotāja vārdu.</p>
+    <Link className="button" href={'/organizators/pieteikt?event='+encodeURIComponent(event.id)}>Tas ir mans pasākums</Link>
+   </aside>}
   </div>
  </article>;
 }
