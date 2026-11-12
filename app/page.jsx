@@ -18,7 +18,7 @@ export default function Home(){
    <div className="meets-hero-message">
     <span className="eyebrow">LATVIJAS PASĀKUMI VIENUVIET</span>
     <h1 id="meets-welcome-title">Atrodi pasākumus,<br/><em>kas iedvesmo.</em></h1>
-    <p>Atrodi sev piemērotus pasākumus tuvumā un visā Latvijā — koncertus, kultūru, sportu un citus piedzīvojumus.</p>
+    <p>Koncerti, izrādes, izstādes, sporta spēles un novadu pasākumi — tuvumā un visā Latvijā, vienuviet.</p>
     <div className="meets-hero-ctas"><Link className="meets-hero-cta-primary" href="/karte">Atvērt karti <span aria-hidden="true">↗</span></Link><Link className="meets-hero-cta-secondary" href="/pasakumi">Skatīt pasākumus <span aria-hidden="true">→</span></Link></div>
     <div className="meets-hero-chips" aria-label="Populārākās kategorijas">
      <Link href="/karte" className="active">Visi</Link>

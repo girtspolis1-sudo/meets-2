@@ -20,7 +20,7 @@ export default function EventDetailCard({event,today,clock,km,saved,onSave,onCal
   </div>
   {description?<p className="event-detail-description">{long&&!open?description.slice(0,200).trimEnd()+'…':description}
    {long&&<button type="button" className="text-button" onClick={()=>setOpen(v=>!v)} aria-expanded={open}>{open?'Mazāk':'Vairāk'}</button>}</p>
-   :<p className="event-detail-description meets-muted">Apraksts nav norādīts.</p>}
+   :null}
   <OnlineJoin event={full||event} compact/>
   <EventQuickActions event={event} quiet saved={saved} onSave={onSave} onCalendar={onCalendar}/>
   <div className="event-detail-links">

@@ -138,6 +138,8 @@ export default function EventCatalog(){
    .some(value=>String(value||'').toLocaleLowerCase('lv').includes(query)))return false;
   if(placeFilter&&placeFromEvent(event)?.key!==placeFilter)return false;
   if(shared.group&&eventGroup(event)!==shared.group)return false;
+  // Council and committee meetings only when that group is chosen, as on the map and the home page.
+  if(!shared.group&&eventGroup(event)==='civic')return false;
   if(shared.audience&&!matchesAudience(event,shared.audience))return false;
   if(shared.types?.length&&!shared.types.includes(sourceType(event)))return false;
   if(shared.competition&&event.competition_key!==shared.competition)return false;
@@ -489,9 +491,8 @@ function EventDetails({event:listed,close}){
  useEffect(()=>{const node=dialog.current;node?.showModal();return()=>{if(node?.open)node.close();};},[]);
  const image=cardImage(event),description=cardDescription(event),price=cardPrice(event);
  return <dialog ref={dialog} className="event-dialog meets-event-detail-dialog" onCancel={close} onClose={close} aria-label={'Pasākums: '+event.title}>
-  <div className="meets-detail-hero">
-   {image?<img src={image} alt="" className="catalog-detail-cover" loading="eager"/>:
-    <div className={'meets-detail-image-fallback theme-'+cardGroup(event)} aria-hidden="true">✦</div>}
+  <div className={'meets-detail-hero'+(image?'':' is-empty')}>
+   {image&&<img src={image} alt="" className="catalog-detail-cover" loading="eager"/>}
    <button className="meets-detail-close" type="button" aria-label="Aizvērt ✕" onClick={close} autoFocus>✕</button>
   </div>
   <div className="meets-detail-body">

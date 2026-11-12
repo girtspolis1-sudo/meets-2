@@ -50,7 +50,8 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
    <div className="meets-discovery-card-facts">
     <EventFacts event={event} today={rigaTodayIso()} clock={rigaClockMinutes()} compact title={title}/>
    </div>
-   <p className={'meets-discovery-description'+(summary?'':' is-empty')}>{summary||'Apraksts nav norādīts.'}</p>
+   {/* No description: the row is left out rather than saying so. */}
+   {summary&&<p className="meets-discovery-description">{summary}</p>}
    <div className="meets-card-links">
     {orgId&&orgName&&<span className="meets-card-organizer">Organizē <Link href={'/organizatori/'+encodeURIComponent(orgId)}>{orgName}</Link></span>}
     {original?<a className="meets-card-original" href={original} target="_blank" rel="noopener noreferrer">Oriģinālais pasākums{host?' · '+host:''} <span aria-hidden="true">↗</span></a>
