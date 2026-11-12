@@ -145,6 +145,12 @@ export async function POST(request){
 
   if(!UUID.test(data.organization_id||''))return NextResponse.json({error:'Izvēlies organizāciju.'},{status:400});
 
+  // "Tas ir mans pasākums": the organizer's requests for imported events (any member may see them).
+  if(action==='eventClaims'){
+   const result=await rpcCall('meets_org_event_claims',token,{p_org:data.organization_id});
+   return NextResponse.json({claims:Array.isArray(result)?result:[]});
+  }
+
   if(action==='saveOrgContacts'){
    const owned=await api(TABLES.organizations,token,'GET',null,'?select=owner_id,is_public&id=eq.'+data.organization_id);
    const mayEdit=await api('rpc/meets_org_can_edit',token,'POST',{p_org:data.organization_id});
@@ -186,6 +192,14 @@ export async function POST(request){
   const itemEditor=canEdit!==true&&action==='saveEvent'&&UUID.test(data.id||'')&&
    await api('rpc/meets_can_edit_item',token,'POST',{p_kind:'event',p_item:data.id,p_org:data.organization_id}).catch(()=>false)===true;
   if(canEdit!==true&&!itemEditor)return NextResponse.json({error:'Nav tiesību veikt izmaiņas šajā organizācijā.'},{status:403});
+
+  // Asks MEETS to give an imported event to this organizer; an admin approves it.
+  if(action==='claimEvent'){
+   if(!UUID.test(data.event_id||''))return NextResponse.json({error:'Nederīgs pasākums.'},{status:400});
+   const message=typeof data.message==='string'?data.message.trim().slice(0,1000):'';
+   const result=await rpcCall('meets_claim_event',token,{p_event:data.event_id,p_org:data.organization_id,p_message:message});
+   return NextResponse.json({claim:result});
+  }
 
   // Deleting: first all events, then the organizer (owner only, checked in the database).
   if(action==='deleteOrgEvents'){

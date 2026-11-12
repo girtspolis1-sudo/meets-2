@@ -8,6 +8,7 @@ import AdminImportHealth,{importProblemCount} from './admin-import-health.jsx';
 import AdminSourceChannels from './admin-source-channels.jsx';
 import AdminCalendarFeeds from './admin-calendar-feeds.jsx';
 import AdminUserSubmissions from './admin-user-submissions.jsx';
+import AdminEventClaims from './admin-event-claims.jsx';
 import AdminEventRegister from './admin-event-register.jsx';
 import AdminOrganizers from './admin-organizers.jsx';
 import {rigaTodayIso} from '../../lib/event-date.js';
@@ -901,6 +902,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    <AdminImportHealth health={importHealth}/>
   </>}
 
+  {workspaceView==='userSubmissions'&&<AdminEventClaims supabaseUrl={supabaseUrl} publishableKey={publishableKey}/>}
   {workspaceView==='userSubmissions'&&<AdminUserSubmissions items={userSubmissions} focusedId={focusedSubmissionId} onReview={reviewUserSubmission}
    busy={reviewingSubmission} supabaseUrl={supabaseUrl} matches={submissionMatches} onSearchPlace={searchSubmissionPlace}
    organizations={organizations} onSetTrust={setOrganizationTrust}/>}
