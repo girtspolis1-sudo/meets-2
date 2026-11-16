@@ -36,8 +36,8 @@ function Wordmark(){
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://meets.lv'),
-  title: { default: 'MEETS — Pasākumi Latvijā', template: '%s | MEETS' },
-  description: 'Atrodi pasākumus Latvijā un Baltijā kartē un pasākumu sarakstā.',
+  title: { default: 'MEETS — Pasākumi tuvumā', template: '%s | MEETS' },
+  description: 'Atrodi, kas notiek tev blakus šodien un nedēļas nogalē: koncerti, izrādes, izstādes un sporta spēles visā Latvijā.',
   openGraph: { siteName: 'MEETS', locale: 'lv_LV', type: 'website' },
   icons: {
     icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],

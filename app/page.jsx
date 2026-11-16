@@ -16,9 +16,9 @@ export default function Home(){
  return <div className="meets-discovery-home">
   <section className="meets-discovery-hero" aria-labelledby="meets-welcome-title">
    <div className="meets-hero-message">
-    <span className="eyebrow">LATVIJAS PASĀKUMI VIENUVIET</span>
-    <h1 id="meets-welcome-title">Atrodi pasākumus,<br/><em>kas iedvesmo.</em></h1>
-    <p>Koncerti, izrādes, izstādes, sporta spēles un novadu pasākumi — tuvumā un visā Latvijā, vienuviet.</p>
+    <span className="eyebrow">PASĀKUMI TUVUMĀ</span>
+    <h1 id="meets-welcome-title">Pasākumi tev blakus.<br/><em>Lai kur tu būtu.</em></h1>
+    <p>Atver karti un uzreiz redzi, kas notiek tuvumā: šovakar, rīt vai nedēļas nogalē.</p>
     <div className="meets-hero-ctas"><Link className="meets-hero-cta-primary" href="/karte">Atvērt karti <span aria-hidden="true">↗</span></Link><Link className="meets-hero-cta-secondary" href="/pasakumi">Skatīt pasākumus <span aria-hidden="true">→</span></Link></div>
     <div className="meets-hero-chips" aria-label="Populārākās kategorijas">
      <Link href="/karte" className="active">Visi</Link>
@@ -28,14 +28,14 @@ export default function Home(){
    </div>
   </section>
   <nav className="meets-minimal-benefits" aria-label="MEETS iespējas">
-   <Link href="/karte"><span className="meets-minimal-benefit-icon"><BenefitIcon name="nearby"/></span><span><strong>Pasākumi tuvumā</strong><small>Atrodi notikumus savā apkārtnē</small></span></Link>
-   <Link href="/karte"><span className="meets-minimal-benefit-icon"><BenefitIcon name="categories"/></span><span><strong>Dažādas kategorijas</strong><small>Izvēlies sev interesējošo</small></span></Link>
-   <Link href="/mani-pasakumi"><span className="meets-minimal-benefit-icon"><BenefitIcon name="saved"/></span><span><strong>Saglabā iecienītos</strong><small>Atgriezies pie saviem favorītiem</small></span></Link>
-   <Link href="/sekosana"><span className="meets-minimal-benefit-icon"><BenefitIcon name="follow"/></span><span><strong>Seko, kas interesē</strong><small>Rīkotāji un norises vietas</small></span></Link>
+   <Link href="/karte"><span className="meets-minimal-benefit-icon"><BenefitIcon name="nearby"/></span><span><strong>Tuvākais vispirms</strong><small>Kas notiek tavā apkārtnē</small></span></Link>
+   <Link href="/karte"><span className="meets-minimal-benefit-icon"><BenefitIcon name="categories"/></span><span><strong>Viss vienuviet</strong><small>Koncerti, sports, izstādes, tirdziņi</small></span></Link>
+   <Link href="/mani-pasakumi"><span className="meets-minimal-benefit-icon"><BenefitIcon name="saved"/></span><span><strong>Saglabā iecienītos</strong><small>Atrodi tos vēlāk vienā vietā</small></span></Link>
+   <Link href="/sekosana"><span className="meets-minimal-benefit-icon"><BenefitIcon name="follow"/></span><span><strong>Seko vietām un rīkotājiem</strong><small>Uzzini, kas tur notiek</small></span></Link>
   </nav>
   <HomeFeatured/>
   <section className="meets-discovery-categories" aria-labelledby="all-categories-heading">
-   <header className="meets-home-section-header"><div><p className="eyebrow">Atrodi pēc intereses</p><h2 id="all-categories-heading">Visas kategorijas</h2></div><Link href="/karte">Skatīt kartē →</Link></header>
+   <header className="meets-home-section-header"><div><p className="eyebrow">Izvēlies pēc intereses</p><h2 id="all-categories-heading">Visas kategorijas</h2></div><Link href="/karte">Skatīt kartē →</Link></header>
    <div className="meets-all-categories">{GROUPS.map(group=><Link href={'/karte?category='+group.key} key={group.key}><span className="meets-category-tile-icon"><CategoryIcon name={group.key} size={24}/></span><strong>{group.title}</strong><small>{group.subtitle}</small></Link>)}</div>
   </section>
  </div>;
