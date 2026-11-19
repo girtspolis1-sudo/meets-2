@@ -30,8 +30,17 @@ import './event-calendar.css';
 const manrope=localFont({src:'./fonts/Manrope-latin.woff2',weight:'400 800',variable:'--font-manrope',display:'swap'});
 const unbounded=localFont({src:'./fonts/Unbounded-latin.woff2',weight:'500 700',variable:'--font-unbounded',display:'swap'});
 
-function Wordmark(){
-  return <span className="meets-wordmark">meets<span>.</span>lv</span>;
+// The header wordmark tells the brand in under two seconds (design system
+// "meets.lv", component AnimatedLogo): the two e's are two people who meet,
+// three rays spark above them, the dot drops like a map pin and a ripple
+// spreads from it ("tuvumā"). Pure CSS in meets-theme.css: it plays once when
+// the page loads (the layout persists across client navigation), again on
+// hover, and not at all with prefers-reduced-motion. The footer stays static.
+function Wordmark({animated=false}){
+  if(!animated) return <span className="meets-wordmark">meets<span className="wm-dot">.</span>lv</span>;
+  return <span className="meets-wordmark is-animated">
+    <span className="wm-m">m</span><span className="wm-ee"><span className="wm-e1">e</span><span className="wm-e2">e</span><svg className="wm-rays" viewBox="-450 -940 900 320" aria-hidden="true" focusable="false"><path className="wm-ray wm-r2" pathLength="1" d="M0 -690V-900"/><path className="wm-ray wm-r1" pathLength="1" d="M-300 -660L-410 -820"/><path className="wm-ray wm-r3" pathLength="1" d="M300 -660L410 -820"/></svg></span><span className="wm-ts">ts</span><span className="wm-dot">.</span><span className="wm-lv">lv</span>
+  </span>;
 }
 
 export const metadata = {
@@ -52,7 +61,7 @@ export default function RootLayout({ children }) {
     <a className="skip" href="#saturs">Pāriet uz saturu</a>
     <header className="header">
       <Link className="brand" href="/" aria-label="meets.lv sākumlapa">
-        <Wordmark/>
+        <Wordmark animated/>
       </Link>
       <SiteNav/>
     </header>
