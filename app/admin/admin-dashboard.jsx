@@ -7,6 +7,8 @@ import AdminMappingList from './admin-mapping-list.jsx';
 import AdminImportHealth,{importProblemCount} from './admin-import-health.jsx';
 import AdminSourceChannels from './admin-source-channels.jsx';
 import AdminCalendarFeeds from './admin-calendar-feeds.jsx';
+import AdminMunicipalitySources from './admin-municipality-sources.jsx';
+import {channelLabel,seenText} from '../../lib/admin-sources.js';
 import AdminUserSubmissions from './admin-user-submissions.jsx';
 import AdminEventClaims from './admin-event-claims.jsx';
 import AdminEventRegister from './admin-event-register.jsx';
@@ -909,6 +911,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
 
   {workspaceView==='organizers'&&<AdminOrganizers organizations={organizations} onSetTrust={setOrganizationTrust} busy={loading}/>}
 
+  {workspaceView==='sources'&&<AdminMunicipalitySources supabaseUrl={supabaseUrl} publishableKey={publishableKey}/>}
   {workspaceView==='sources'&&<AdminCalendarFeeds supabaseUrl={supabaseUrl} publishableKey={publishableKey}/>}
   {workspaceView==='sources'&&<AdminSourceChannels
    sources={sources}
@@ -1030,7 +1033,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
          <small className="table-subline">{event.address_raw&&event.address_raw!==event.venue_name?event.address_raw+' · ':''}{event.municipality||event.settlement||''}</small>
          {!compact&&<small className="table-subline">{event.latitude!=null&&event.longitude!=null?Number(event.latitude).toFixed(5)+', '+Number(event.longitude).toFixed(5):'Nav koordinātu'}</small>}
         </td>
-        <td>{sourceLinks(event).length?sourceLinks(event).map((s,i)=><span key={(s.url||'')+i} className="source-link-row"><a href={s.url} target="_blank" rel="noreferrer">{s.source||'Avots'} ↗</a></span>):sourceText(event)}</td>
+        <td>{sourceLinks(event).length?sourceLinks(event).map((s,i)=><span key={(s.url||'')+i} className="source-link-row"><a href={s.url} target="_blank" rel="noreferrer">{s.source||'Avots'} ↗</a>{channelLabel(s.via)&&<small className="table-subline" title={seenText(s.seen)}>{channelLabel(s.via)}</small>}</span>):sourceText(event)}</td>
         <td><div className="admin-actions">
          {canPublishEvent(event)&&event.status!=='published'&&<button className="text-button strong-action" onClick={()=>changeStatus(event,'published')}>Publicēt</button>}
          {event.status==='published'&&<button className="text-button" onClick={()=>changeStatus(event,'pending_review')}>Atgriezt pārbaudei</button>}
@@ -1179,6 +1182,7 @@ function LocationEditor({event,close,save,mode='event',mappingAlias='',mappingCo
      ?'Saglabājot vietu, esošie ieraksti tiks salaboti uzreiz, un nākamajos importos šis pats nosaukums automātiski saņems apstiprināto vietu.'
      :(event.location_review_reason||(isLocationIssue(event)?locationIssueReason(event)+'. Atrodi vietu, pārbaudi punktu kartē un saglabā.':'Vieta ir verificēta.'))}</p>
    {event.address_raw&&<p><b>Nolasītā adrese:</b> {event.address_raw}</p>}
+   {(event.sources||[]).length>0&&<p className="event-source-channels"><b>Avoti:</b> {(event.sources||[]).map((s,i)=><span key={(s.url||s.source||'')+i}>{i?'; ':''}{s.source||'avots'}{channelLabel(s.via)?' — '+channelLabel(s.via):''}{seenText(s.seen)?' ('+seenText(s.seen)+')':''}</span>)}</p>}
    {sourceLinks(event).map((s,i)=><a key={(s.url||'')+i} href={s.url} target="_blank" rel="noreferrer">Atvērt {s.source||'avotu'} ↗</a>)}
   </div>
 
