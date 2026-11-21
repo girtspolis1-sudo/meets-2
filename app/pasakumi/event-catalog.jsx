@@ -47,7 +47,8 @@ function eventCountLabel(n){
  return count+' '+word;
 }
 
-export default function EventCatalog(){
+// fallback = the server-rendered nearest events, shown until the catalogue loads here.
+export default function EventCatalog({fallback=null}){
  const {data,loading,error,refresh}=useEvents();
  const [columnFilters,setColumnFilters]=useState({});
  const [page,setPage]=useState(0);
@@ -397,7 +398,7 @@ export default function EventCatalog(){
    </div>
   </details>}
 
-  {!data&&loading&&<div className="catalog-card-grid catalog-skeleton" aria-hidden="true">{Array.from({length:6},(_,i)=><div key={i} className="catalog-skeleton-card"/>)}</div>}
+  {!data&&loading&&(fallback||<div className="catalog-card-grid catalog-skeleton" aria-hidden="true">{Array.from({length:6},(_,i)=><div key={i} className="catalog-skeleton-card"/>)}</div>)}
 
   {viewMode==='cards'&&data&&listed.longRunning.length>0&&<section className={'catalog-long-running'+(showLong?' open':'')} aria-labelledby="long-running-title">
    <button type="button" className="catalog-long-running-toggle" aria-expanded={showLong} onClick={()=>setShowLong(open=>!open)}>

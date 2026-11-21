@@ -73,6 +73,13 @@ SUPABASE_PUBLISHABLE_KEY=
 
 Never expose a Supabase `service_role` key in browser code.
 
+## Search engines
+
+- `NEXT_PUBLIC_ALLOW_INDEXING=true` only in Vercel Production. Without it every page is `noindex` and `/robots.txt` disallows everything, so preview deployments never reach search results.
+- Indexed: home, `/karte`, `/pasakumi`, event pages (`/pasakumi/<name>-<first 8 id characters>`; old `/pasakumi/<uuid>` links redirect), listing pages by municipality, time, category and league (`lib/event-listings.js`), public venues and organizers. A listing with fewer than 5 events is shown but `noindex`; an event page stays for six months after the event and is `noindex` from 30 days after it.
+- Never indexed: accounts, admin, forms and private-token links (`PRIVATE_PATHS` in `lib/seo.js`, sent as `X-Robots-Tag: noindex` by `next.config.mjs`).
+- `/sitemap.xml` (`app/sitemap.js`) lists every indexable address; `/api/indexnow` (Vercel Cron, `INDEXNOW_KEY`, `CRON_SECRET`) tells IndexNow once a day about events changed in the last 26 hours.
+
 ## Map runtime dependencies
 
 Leaflet, MapLibre GL and the Leaflet/MapLibre adapter are installed as pinned npm dependencies and bundled by Next.js.

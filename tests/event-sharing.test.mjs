@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {eventSharePath,eventShareUrl,eventShareTargets,officialEventUrl} from '../lib/event-sharing.js';
 const event={id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51',title:'MEETS koncerts & draugi'};
 test('individual share links are safe and do not expose account or location parameters',()=>{
- assert.equal(eventSharePath(event),'/pasakumi/'+event.id);
- assert.equal(eventShareUrl(event,'https://meets.lv'), 'https://meets.lv/pasakumi/'+event.id);
+ // Name plus the first 8 characters of the id; nothing else from the page or account.
+ assert.equal(eventSharePath(event),'/pasakumi/meets-koncerts-draugi-9847198c');
+ assert.equal(eventShareUrl(event,'https://meets.lv'), 'https://meets.lv/pasakumi/meets-koncerts-draugi-9847198c');
  assert.equal(eventSharePath({id:'invalid'}),'/pasakumi');
 });
 test('social links use properly encoded public event URL',()=>{

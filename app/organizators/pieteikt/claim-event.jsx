@@ -5,6 +5,7 @@ import {useSearchParams} from 'next/navigation';
 import Authentication from '../../components/account-auth-flow.jsx';
 import {accountRequest,useAccountSession} from '../../../lib/account-store.js';
 import {cardDate,cardLocation} from '../../../lib/discovery-card.js';
+import {eventPath} from '../../../lib/seo.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Roles that may add events for an organizer (meets_org_can_edit).
@@ -54,7 +55,7 @@ export default function ClaimEvent(){
    :<div className="meets-claim-event">
     <strong>{event.title}</strong>
     <span>{cardDate(event)} · {cardLocation(event)}</span>
-    <Link href={'/pasakumi/'+encodeURIComponent(event.id)}>Skatīt pasākumu</Link>
+    <Link href={eventPath(event)}>Skatīt pasākumu</Link>
    </div>}
 
   {event&&!eventError&&(done?<div className="meets-claim-done" role="status">

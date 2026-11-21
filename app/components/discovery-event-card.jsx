@@ -11,6 +11,7 @@ import {priceLabel} from '../../lib/map-nearby.js';
 import {rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
 import {eventTerm} from '../../lib/event-term.js';
 import {durationKind,isLastDays,untilBadge} from '../../lib/event-duration.js';
+import {eventPath} from '../../lib/seo.js';
 
 function hostOf(url){try{return new URL(url).hostname.replace(/^www\./,'');}catch{return '';}}
 
@@ -34,7 +35,7 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
  const paid=isPaidEvent(event),price=paid?priceLabel(event):'';
  const original=officialEventUrl(event),host=original?hostOf(original):'';
  const orgId=event.organization_id,orgName=event.organizer_name;
- const detailHref='/pasakumi/'+encodeURIComponent(event.id);
+ const detailHref=eventPath(event);
  const title=onOpen
   ?<h3><button type="button" className="meets-card-open" onClick={()=>onOpen(event.id)}>{event.title}</button></h3>
   :<h3><Link className="meets-card-open" href={detailHref}>{event.title}</Link></h3>;

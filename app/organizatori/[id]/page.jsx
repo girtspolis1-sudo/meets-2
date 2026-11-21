@@ -5,6 +5,7 @@ import {organizerPath} from '../../../lib/organizer-path.js';
 import FollowButton from '../../components/follow-button.jsx';
 import {socialLabel} from '../../../lib/social-links.js';
 import ShareButton from '../../components/share-button.jsx';
+import {eventPath} from '../../../lib/seo.js';
 
 export const dynamic='force-dynamic';
 // Link previews on Facebook, WhatsApp and others: name, description and logo.
@@ -99,15 +100,15 @@ export default async function OrganizerPublicPage({params}){
      <div className="org-site-date" aria-hidden="true">{d?<><strong>{d.day}</strong><span>{d.month}</span></>:<span>—</span>}</div>
      <div className="org-site-event-body">
       <p className="org-site-event-when">{d?d.weekday:''}{when?' · '+when:''}</p>
-      <h3>{e.id?<Link href={'/pasakumi/'+e.id}>{e.title}</Link>:e.title}</h3>
+      <h3>{e.id?<Link href={eventPath(e)}>{e.title}</Link>:e.title}</h3>
       <p className="org-site-event-place">{e.venue_name||e.address||'Vieta nav norādīta'}</p>
       {e.description&&<p className="org-site-event-text">{String(e.description).slice(0,180)}{String(e.description).length>180?'…':''}</p>}
       <div className="org-site-event-foot">
        {(e.category||price)&&<span className="org-site-tags">{e.category&&<span>{e.category}</span>}{price&&<span className={e.price_status==='free'?'free':''}>{price}</span>}</span>}
        {e.id&&<span className="org-site-event-actions">
-        <Link className="button compact" href={'/pasakumi/'+e.id}>Atvērt</Link>
+        <Link className="button compact" href={eventPath(e)}>Atvērt</Link>
         <Link className="button compact ghost" href={'/karte?event='+e.id}>Kartē</Link>
-        <ShareButton path={'/pasakumi/'+e.id} title={e.title} label="Dalīties" className="button compact ghost"/>
+        <ShareButton path={eventPath(e)} title={e.title} label="Dalīties" className="button compact ghost"/>
        </span>}
       </div>
      </div>

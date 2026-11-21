@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
 import {useEvents} from '../lib/use-events.js';
+import {eventPath} from '../lib/seo.js';
 import {cardDate,cardImage,cardLocation} from '../lib/discovery-card.js';
 import {eventGroup} from '../lib/home-category-filters.js';
 import {rigaTodayIso} from '../lib/event-date.js';
@@ -13,7 +14,8 @@ function readFavorites(){
  try{const ids=JSON.parse(localStorage.getItem(FAVORITES)||'[]');return Array.isArray(ids)?ids.map(String):[];}
  catch{return [];}
 }
-export default function HomeFeatured(){
+// fallback = the server-rendered nearest events, shown until the catalogue loads here.
+export default function HomeFeatured({fallback=null}){
  const {data,loading,error,refresh}=useEvents();
  const [favorites,setFavorites]=useState([]);
  useEffect(()=>{
@@ -42,7 +44,7 @@ export default function HomeFeatured(){
    <div className="meets-home-featured-main">
     <header className="meets-home-section-header"><div><p className="eyebrow">Ko piedzīvot</p><h2 id="featured-events-title">Tuvākajās dienās</h2></div><Link href="/pasakumi">Skatīt visus <span aria-hidden="true">→</span></Link></header>
     {error&&<p className="meets-discovery-error" role="alert">{error} <button type="button" onClick={refresh}>Mēģināt vēlreiz</button></p>}
-    {loading&&!data?<div className="meets-home-loading" role="status">Ielādējam aktuālos pasākumus…</div>:
+    {loading&&!data?(fallback||<div className="meets-home-loading" role="status">Ielādējam aktuālos pasākumus…</div>):
      picks.length?<div className="meets-discovery-grid">{picks.map(event=><DiscoveryEventCard key={event.id} event={event} actions/>)}</div>:
      <div className="meets-home-empty"><strong>Tuvākajām dienām pasākumu pagaidām nav.</strong><p>Apskati kartē, kas notiek tev tuvumā.</p><Link className="button primary" href="/karte">Atvērt karti →</Link></div>}
    </div>
@@ -55,7 +57,7 @@ export default function HomeFeatured(){
     </div>
     <div className="meets-home-side-card">
      <div className="meets-home-side-head"><h3>Mani saglabātie</h3><Link href="/mani-pasakumi">Skatīt visus →</Link></div>
-     {saved.length?<div className="meets-home-saved-list">{saved.map(e=><Link href={'/pasakumi/'+encodeURIComponent(e.id)} key={e.id}>
+     {saved.length?<div className="meets-home-saved-list">{saved.map(e=><Link href={eventPath(e)} key={e.id}>
       {cardImage(e)?<img src={cardImage(e)} alt="" loading="lazy"/>:<span className="meets-saved-fallback" aria-hidden="true">✦</span>}
       <span><strong>{e.title}</strong><small>{cardDate(e)} · {cardLocation(e)}</small></span>
      </Link>)}</div>:<p className="meets-muted">Atzīmē pasākumu ar <span aria-label="sirds">♡</span>, un tas parādīsies šeit.</p>}

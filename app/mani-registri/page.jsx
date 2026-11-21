@@ -71,7 +71,7 @@ function ListsInner(){
  }
  async function save(e){e.preventDefault();if(!editing||!canEdit)return;await perform('save',{...editing,organization_id:orgId||null},()=>{setEditing(null);setPickQuery('');});}
  function copyCode(item){
-  const url=window.location.origin+'/iegult/'+item.id,html='<iframe src="'+url+'" title="'+item.title.replaceAll('"','&quot;')+'" width="100%" height="620" loading="lazy" style="border:0;border-radius:12px"></iframe>';
+  const url=window.location.origin+'/iegult/'+item.id,html='<iframe src="'+url+'" title="'+item.title.replaceAll('"','&quot;')+'" width="100%" height="620" loading="lazy" style="border:0;border-radius:12px"></iframe>\n<p style="font-size:13px;margin:6px 0 0"><a href="'+window.location.origin+'/pasakumi">Pasākumi: meets.lv</a></p>';
   navigator.clipboard.writeText(html).then(()=>{track('embed_copy');setNotice('iframe kods nokopēts.');}).catch(()=>setError('Kopēšana neizdevās.'));
  }
 

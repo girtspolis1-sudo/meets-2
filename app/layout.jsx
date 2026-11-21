@@ -6,6 +6,7 @@ import AnalyticsConsent,{ConsentSettingsLink} from './components/analytics-conse
 import AuthReturn from './components/auth-return.jsx';
 import {CONTROLLER} from '../lib/legal.js';
 import AdminFooterControl from './admin-footer-control.jsx';
+import {SITE_URL,siteRobots} from '../lib/seo.js';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './globals.css';
@@ -35,16 +36,17 @@ function Wordmark(){
 }
 
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://meets.lv'),
+  metadataBase: new URL(SITE_URL),
   title: { default: 'MEETS — Pasākumi tuvumā', template: '%s | MEETS' },
   description: 'Atrodi, kas notiek tev blakus šodien un nedēļas nogalē: koncerti, izrādes, izstādes un sporta spēles visā Latvijā.',
-  openGraph: { siteName: 'MEETS', locale: 'lv_LV', type: 'website' },
+  openGraph: { siteName: 'MEETS', locale: 'lv_LV', type: 'website', images: [{ url: '/og', width: 1200, height: 630 }] },
   icons: {
     icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
     shortcut: '/icon.svg',
     apple: '/meets-logo-purple.png'
   },
-  robots: { index: false, follow: false }
+  // Indexed only where NEXT_PUBLIC_ALLOW_INDEXING=true (Vercel Production).
+  robots: siteRobots()
 };
 
 export default function RootLayout({ children }) {

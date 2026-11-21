@@ -2,6 +2,21 @@ import Link from 'next/link';
 import HomeFeatured from './home-featured.jsx';
 import CategoryIcon from './components/category-icon.jsx';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS} from '../lib/home-category-filters.js';
+import EventLinkList from './components/event-link-list.jsx';
+import {nearestEvents} from '../lib/home-server.js';
+import {listingPath} from '../lib/event-listings.js';
+import {SITE_URL} from '../lib/seo.js';
+import {jsonLdScript} from '../lib/event-seo.js';
+import {CONTROLLER} from '../lib/legal.js';
+
+export const dynamic='force-dynamic';
+
+function siteJsonLd(){
+ return [
+  {'@context':'https://schema.org','@type':'Organization',name:'meets.lv',url:SITE_URL,logo:SITE_URL+'/meets-logo-purple.png',email:CONTROLLER.email},
+  {'@context':'https://schema.org','@type':'WebSite',name:'meets.lv',url:SITE_URL,inLanguage:'lv'}
+ ];
+}
 
 const GROUPS=HOME_GROUP_KEYS.map(key=>({key,...HOME_CATEGORY_FILTERS[key]}));
 // Same stroke style as the mobile navigation icons.
@@ -12,8 +27,10 @@ function BenefitIcon({name}){
  if(name==='saved')return <svg {...base}><path d="M20.8 4.8a5.3 5.3 0 0 0-7.5 0L12 6.1l-1.3-1.3a5.3 5.3 0 0 0-7.5 7.5L12 21l8.8-8.7a5.3 5.3 0 0 0 0-7.5Z"/></svg>;
  return <svg {...base}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>;
 }
-export default function Home(){
+export default async function Home(){
+ const {near,towns}=await nearestEvents(12);
  return <div className="meets-discovery-home">
+  <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLdScript(siteJsonLd())}}/>
   <section className="meets-discovery-hero" aria-labelledby="meets-welcome-title">
    <div className="meets-hero-message">
     <span className="eyebrow">PASĀKUMI TUVUMĀ</span>
@@ -33,10 +50,15 @@ export default function Home(){
    <Link href="/mani-pasakumi"><span className="meets-minimal-benefit-icon"><BenefitIcon name="saved"/></span><span><strong>Saglabā iecienītos</strong><small>Atrodi tos vēlāk vienā vietā</small></span></Link>
    <Link href="/sekosana"><span className="meets-minimal-benefit-icon"><BenefitIcon name="follow"/></span><span><strong>Seko vietām un rīkotājiem</strong><small>Uzzini, kas tur notiek</small></span></Link>
   </nav>
-  <HomeFeatured/>
+  <HomeFeatured fallback={near.length?<EventLinkList events={near} className="home-fallback-list"/>:null}/>
   <section className="meets-discovery-categories" aria-labelledby="all-categories-heading">
    <header className="meets-home-section-header"><div><p className="eyebrow">Izvēlies pēc intereses</p><h2 id="all-categories-heading">Visas kategorijas</h2></div><Link href="/karte">Skatīt kartē →</Link></header>
    <div className="meets-all-categories">{GROUPS.map(group=><Link href={'/karte?category='+group.key} key={group.key}><span className="meets-category-tile-icon"><CategoryIcon name={group.key} size={24}/></span><strong>{group.title}</strong><small>{group.subtitle}</small></Link>)}</div>
   </section>
+  {towns.length>0&&<nav className="meets-home-browse" aria-labelledby="home-browse-title">
+   <h2 id="home-browse-title">Pasākumi pa novadiem un interesēm</h2>
+   <ul className="meets-home-browse-list">{towns.slice(0,16).map(t=><li key={t.slug}><Link href={listingPath({municipalitySlug:t.slug})}>{t.name}</Link></li>)}</ul>
+   <ul className="meets-home-browse-list">{GROUPS.map(g=><li key={g.key}><Link href={listingPath({category:g.key})}>{g.title}</Link></li>)}</ul>
+  </nav>}
  </div>;
 }
