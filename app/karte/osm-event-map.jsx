@@ -21,6 +21,7 @@ import {eventGroup,HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audien
 import {useEvents} from '../../lib/use-events.js';
 import {eventDateState,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
+import {eventPath} from '../../lib/seo.js';
 
 const MAP_STYLES={
  positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
@@ -787,7 +788,7 @@ export default function OsmEventMap(){
   const marker=markerByEventRef.current.get(String(event.id));
   const group=locationGroups.find(g=>g.events.some(e=>String(e.id)===String(event.id)));
   setHighlightedId(String(event.id));
-  if(!group){window.location.assign('/pasakumi/'+encodeURIComponent(event.id));return;}
+  if(!group){window.location.assign(eventPath(event));return;}
   setPlaceKey(group.key);
   if(!isPhone&&marker&&mapRef.current)mapRef.current.setView(marker.getLatLng(),Math.max(mapRef.current.getZoom(),CLUSTER_MAX_ZOOM),{animate:false});
  }

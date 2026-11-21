@@ -5,6 +5,7 @@ import EventQuickActions from './event-quick-actions.jsx';
 import OnlineJoin from './online-join.jsx';
 import {cardDescription} from '../../lib/discovery-card.js';
 import {useFullEvent} from '../../lib/use-full-event.js';
+import {eventPath} from '../../lib/seo.js';
 
 // One event as shown on the map: facts, description, the five quick actions
 // and a link to the event page. Used by the desktop place panel and the phone sheet.
@@ -24,7 +25,7 @@ export default function EventDetailCard({event,today,clock,km,saved,onSave,onCal
   <OnlineJoin event={full||event} compact/>
   <EventQuickActions event={event} quiet saved={saved} onSave={onSave} onCalendar={onCalendar}/>
   <div className="event-detail-links">
-   <a href={'/pasakumi/'+encodeURIComponent(event.id)}>Pasākuma lapa →</a>
+   <a href={eventPath(event)}>Pasākuma lapa →</a>
    {isAdmin&&<a className="admin-popup-edit" href={'/admin?edit='+encodeURIComponent(event.id)}>Labot</a>}
   </div>
   {outside&&<small className="meets-mobile-sheet-outside-label">Neatbilst izvēlētajiem filtriem</small>}

@@ -57,7 +57,8 @@ test('decode accepts the old object form and rejects garbage',()=>{
 });
 
 test('calendar description points to the event page when shortened',()=>{
- const row=listEvent(full);
- assert.match(calendarDescription(row,'https://meets.lv'),/Pilns apraksts: https:\/\/meets\.lv\/pasakumi\/e1$/);
+ const row={...listEvent(full),id:'9847198c-66d5-4bd1-8f2e-3b2f3a86bb51'};
+ // The event address carries the name and the first 8 characters of the id.
+ assert.match(calendarDescription(row,'https://meets.lv'),/Pilns apraksts: https:\/\/meets\.lv\/pasakumi\/[a-z0-9-]+-9847198c$/);
  assert.equal(calendarDescription({id:'x',description:'Īss.'}),'Īss.');
 });

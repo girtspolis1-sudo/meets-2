@@ -1,5 +1,6 @@
 import {chromium} from 'playwright';
 import {mkdir} from 'node:fs/promises';
+import {eventPath} from '../lib/seo.js';
 const base='http://127.0.0.1:3000';
 await mkdir('ux-screenshots',{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
@@ -15,6 +16,7 @@ const mockEvent={
  latitude:56.9496,longitude:24.1052,location_precision:'verified',
  sources:[{source:'test.example',url:'https://example.com/events/test'}],tags:[]
 };
+const sharedPath=encodeURIComponent(eventPath(mockEvent));
 const mockedCatalog={events:[mockEvent],window:{from:today,to:today},fetchedAt:new Date().toISOString(),competitions:[]};
 let fails=0;
 async function assertLayout(page,name,width){
@@ -123,8 +125,8 @@ for(const width of cases){
    fails++;console.error('Missing social sharing targets',width,names);
   }
   const whatsapp=await sharing.getByRole('link',{name:'WhatsApp'}).getAttribute('href');
-  if(!whatsapp?.includes(encodeURIComponent(mockEvent.id))){
-   fails++;console.error('Share URL missing event ID',width,whatsapp);
+  if(!whatsapp?.includes(sharedPath)){
+   fails++;console.error('Share URL missing event address',width,whatsapp);
   }
   await actions.getByRole('button',{name:'Dalīties ar pasākumu'}).click();
   await actions.getByRole('button',{name:'Saglabāt pasākumu'}).click();
@@ -246,7 +248,7 @@ try{
  const panel=desktop.locator('.nearby-place .meets-circle-options').first();
  if(await panel.isHidden()){fails++;console.error('Desktop sharing fallback did not open');}
  const telegram=await panel.getByRole('link',{name:'Telegram'}).getAttribute('href');
- if(!telegram?.includes(encodeURIComponent(mockEvent.id))){fails++;console.error('Desktop sharing URL wrong',telegram);}
+ if(!telegram?.includes(sharedPath)){fails++;console.error('Desktop sharing URL wrong',telegram);}
  if(await popup.locator('.popup-add-list').count()){fails++;console.error('Desktop popup still shows the removed list action');}
  await desktop.screenshot({path:'ux-screenshots/desktop-map-actions.png',fullPage:true});
  await assertLayout(desktop,'desktop-map',1440);

@@ -505,3 +505,38 @@ body:not(.admin-environment) .header .meets-nav-desktop>a.active{border-bottom-c
 .meets-profile-aside-action:hover,.meets-profile-summary-action:hover,.meets-profile-top-cta:hover{background:var(--karmins-dark)}
 .meets-profile-auth .meets-auth-compact .button.primary{background:var(--karmins);border-color:var(--karmins)}
 @media(max-width:760px){.meets-profile-mobile-tabs a.active{background:var(--tinte);border-color:var(--tinte);color:#fff}}
+
+/* Server-rendered event links (home and list until the catalogue loads, listing
+   pages, related events on an event page). */
+.event-link-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.event-link-list li{display:grid;gap:2px;padding:12px 14px;border:1px solid var(--migla);border-radius:12px;background:#fff}
+.event-link-list a{color:var(--tinte)}
+.event-link-list a:hover strong{color:var(--karmins);text-decoration:underline;text-underline-offset:3px}
+.event-link-list strong{font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+.event-link-meta{font-size:13px;color:var(--teksts-2)}
+.event-link-category{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--karmins-dark)}
+.home-fallback-list,.catalog-fallback-list{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+
+.listing-page h1{font-family:var(--font-display);font-size:clamp(30px,4.5vw,48px);letter-spacing:-1px;margin:14px 0 8px}
+.listing-crumbs{font-size:13px;color:var(--teksts-2)}
+.listing-crumbs a{text-decoration:underline;text-underline-offset:3px}
+.listing-chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px}
+.listing-chips a{padding:7px 12px;border:1px solid var(--migla);border-radius:999px;font-size:13px;font-weight:600;background:#fff}
+.listing-chips a[aria-current="page"]{background:var(--karmins);border-color:var(--karmins);color:#fff}
+.listing-day{margin-top:26px}
+.listing-day h2{font-size:17px;margin:0;text-transform:none}
+.listing-more,.listing-actions{margin-top:22px}
+.listing-related{margin-top:40px;padding-top:22px;border-top:1px solid var(--migla);display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+.listing-related>h2{grid-column:1/-1;margin:0;font-size:20px}
+.listing-related h3{font-size:14px;margin:0 0 8px}
+.listing-related ul,.meets-home-browse-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px}
+.listing-related a,.meets-home-browse-list a{text-decoration:underline;text-underline-offset:3px;color:var(--tinte)}
+
+.meets-home-browse{margin:36px 0 12px;display:grid;gap:12px}
+.meets-home-browse h2{font-size:20px;margin:0}
+
+.meets-event-ended{margin:12px 0;padding:12px 16px;border-radius:12px;background:var(--dzintars-soft);border:1px solid #efd99c;font-size:14px}
+.meets-detail-organizer{font-size:14px}
+.meets-detail-organizer a,.meets-detail-related p a,.meets-event-page-back a{text-decoration:underline;text-underline-offset:3px}
+.meets-detail-related{margin-top:28px}
+.meets-detail-related h2{font-size:19px}
