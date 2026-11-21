@@ -1109,6 +1109,18 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .calendar-feed-list{padding:0 12px 12px}
 .calendar-feed-row-actions{display:flex;gap:12px;flex-wrap:wrap}
 .admin-calendar-feeds .meets-inline-error,.admin-calendar-feeds .meets-organizer-success{margin:10px 12px 0}
+.feed-format{display:inline-block;margin-right:4px;padding:1px 5px;border-radius:5px;font-size:9px;font-weight:800;letter-spacing:.04em;background:#ebeff4;color:#3e4a56;vertical-align:1px}
+.feed-format-rss{background:#fdebd9;color:#8a4a12}
+.admin-municipality-sources{margin:0 0 14px}
+.admin-municipality-sources details{padding:0 12px 12px}
+.admin-municipality-sources .meets-inline-error{margin:10px 12px 0}
+.municipality-sources-table-wrap{overflow-x:auto;margin-top:8px}
+.municipality-sources-table{width:100%;border-collapse:collapse;font-size:12px}
+.municipality-sources-table th,.municipality-sources-table td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+.municipality-sources-table th{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#6d747a}
+.municipality-sources-table td:nth-child(n+3){white-space:nowrap}
+.municipality-sources-table .import-error{color:#8d3d35}
+.event-source-channels{font-size:12px}
 
 /* Mobile public catalogue: list-first instead of wide-table behaviour */
 @media(max-width:640px){
