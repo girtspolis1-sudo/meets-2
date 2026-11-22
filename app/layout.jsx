@@ -47,8 +47,11 @@ export const metadata = {
   },
   // Indexed only where NEXT_PUBLIC_ALLOW_INDEXING=true (Vercel Production).
   robots: siteRobots(),
-  // Google Search Console ownership of https://www.meets.lv/.
-  verification: { google: 'aauDfGwLpip0cv31cXFcuTwTxKWEF59nghTP0FSnJBA' }
+  // Search engine ownership of https://www.meets.lv/: Google Search Console and Bing Webmaster Tools.
+  verification: {
+    google: 'aauDfGwLpip0cv31cXFcuTwTxKWEF59nghTP0FSnJBA',
+    other: { 'msvalidate.01': '873D0FC5F5D0365C2E4BF221424EC60B' }
+  }
 };
 
 export default function RootLayout({ children }) {
