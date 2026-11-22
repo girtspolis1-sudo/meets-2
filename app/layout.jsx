@@ -46,7 +46,9 @@ export const metadata = {
     apple: '/meets-logo-purple.png'
   },
   // Indexed only where NEXT_PUBLIC_ALLOW_INDEXING=true (Vercel Production).
-  robots: siteRobots()
+  robots: siteRobots(),
+  // Google Search Console ownership of https://www.meets.lv/.
+  verification: { google: 'aauDfGwLpip0cv31cXFcuTwTxKWEF59nghTP0FSnJBA' }
 };
 
 export default function RootLayout({ children }) {
