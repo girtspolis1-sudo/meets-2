@@ -540,3 +540,5 @@ body:not(.admin-environment) .header .meets-nav-desktop>a.active{border-bottom-c
 .meets-detail-organizer a,.meets-detail-related p a,.meets-event-page-back a{text-decoration:underline;text-underline-offset:3px}
 .meets-detail-related{margin-top:28px}
 .meets-detail-related h2{font-size:19px}
+.meets-event-more-links ul{list-style:none;margin:20px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px}
+.meets-event-more-links a{text-decoration:underline;text-underline-offset:3px;color:var(--tinte)}

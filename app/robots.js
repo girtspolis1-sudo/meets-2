@@ -1,6 +1,6 @@
 import {SITE_URL,indexingAllowed} from '../lib/seo.js';
 
-export const dynamic='force-dynamic';
+// Static: the indexing switch is read at build time.
 
 // https://meets.lv/robots.txt. Private pages are not blocked here: they answer
 // with "X-Robots-Tag: noindex" (next.config.mjs), which a crawler can only see

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import EventLinkList from '../components/event-link-list.jsx';
-import {byDay,listing,listingHeading,listingPath,municipalities} from '../../lib/event-listings.js';
+import {byDay,listing,listingHeading,listingPath,listingTail,municipalities,topLeagues} from '../../lib/event-listings.js';
+import {breadcrumbJsonLd,listingCrumbs} from '../../lib/breadcrumbs.js';
+import {pageMeta} from '../../lib/page-meta.js';
 import {jsonLdScript,sentenceDate} from '../../lib/event-seo.js';
 import {SITE_URL,TIME_SLUGS,eventPath,municipalityLocative,pageRobots} from '../../lib/seo.js';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS} from '../../lib/home-category-filters.js';
@@ -26,7 +28,7 @@ export function buildListing(events,{municipality=null,category='',time='',leagu
    (municipality?municipalityLocative(municipality.name)+' ':'')+'ir '+countWords(count)+'.'
   :'Šobrīd šeit nav neviena pasākuma.';
  const description=count
-  ?`${heading}: ${countWords(count)} ar datumiem, laikiem un vietu kartē. Koncerti, izrādes, izstādes, sports un citi pasākumi meets.lv.`
+  ?`${heading}: ${countWords(count)} ar datumiem, laikiem un vietu kartē. ${listingTail({category,league:league?.slug||''})}`
   :`${heading}. Šobrīd nav pasākumu — skati citus novadus un kategorijas meets.lv.`;
  return {...result,heading,path,lead,description,today};
 }
@@ -35,9 +37,8 @@ export function listingMetadata(data){
  return {
   title:data.heading,
   description:data.description.slice(0,160),
-  alternates:{canonical:data.path},
   robots:pageRobots(data.indexable),
-  openGraph:{type:'website',title:data.heading,description:data.description.slice(0,200),url:data.path,images:[{url:'/og',width:1200,height:630}]}
+  ...pageMeta(data.path,{title:data.heading,description:data.description.slice(0,200)})
  };
 }
 
@@ -51,11 +52,12 @@ export default function ListingPage({data,allEvents,municipality=null,category='
  const towns=municipalities(allEvents);
  const nearbyTowns=towns.filter(m=>m.slug!==municipality?.slug).slice(0,12);
  const shown=data.events.slice(0,MAX_SHOWN);
+ const crumbs=listingCrumbs({municipality,category,time,league,heading:data.heading,path:data.path});
+ const leagueLinks=category==='sport'&&!league?topLeagues(allEvents,data.today,40):[];
  return <section className="section catalog listing-page">
   {data.events.length>0&&<script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLdScript(itemList(data))}}/>}
-  <nav className="listing-crumbs" aria-label="Ceļš"><Link href="/pasakumi">Pasākumi</Link>
-   {municipality&&(time||category)&&<> / <Link href={listingPath({municipalitySlug:municipality.slug})}>{municipality.name}</Link></>}
-  </nav>
+  <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLdScript(breadcrumbJsonLd(crumbs))}}/>
+  <nav className="listing-crumbs" aria-label="Ceļš">{crumbs.slice(1,-1).map((c,i)=><span key={c.path}>{i>0&&' / '}<Link href={c.path}>{c.name}</Link></span>)}</nav>
   <h1>{data.heading}</h1>
   <p className="lead">{data.lead}</p>
   {municipality&&<nav className="listing-chips" aria-label="Laiks">
@@ -74,6 +76,10 @@ export default function ListingPage({data,allEvents,municipality=null,category='
     <h3>Pēc intereses{municipality?' '+municipalityLocative(municipality.name):''}</h3>
     <ul>{HOME_GROUP_KEYS.filter(k=>k!==category).map(k=><li key={k}><Link href={listingPath({category:k,municipalitySlug:municipality?.slug||''})}>{HOME_CATEGORY_FILTERS[k].title}</Link></li>)}</ul>
    </div>
+   {leagueLinks.length>0&&<div>
+    <h3>Līgas</h3>
+    <ul>{leagueLinks.map(l=><li key={l.slug}><Link href={l.path}>{l.name}</Link></li>)}</ul>
+   </div>}
    <div>
     <h3>Citos novados</h3>
     <ul>{nearbyTowns.map(m=><li key={m.slug}><Link href={listingPath({municipalitySlug:m.slug,category:category||''})}>{m.name}</Link></li>)}</ul>
