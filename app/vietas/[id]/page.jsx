@@ -5,14 +5,14 @@ import VenueCalendar from './venue-calendar.jsx';
 import CopyVenueEmbed from './copy-embed.jsx';
 import FollowButton from '../../components/follow-button.jsx';
 import PublicVenueMap from './public-venue-map.jsx';
+import {pageMeta} from '../../../lib/page-meta.js';
 export const dynamic='force-dynamic';
 export async function generateMetadata({params}){
  const {id}=await params;const venue=await publicVenue(id).catch(()=>null);
  if(!venue?.name)return {title:'MEETS norises vieta'};
  const count=venue.events?.length||0;
  const description=((venue.description||'').trim()||venue.name+(venue.address?', '+venue.address:'')+'. Pasākumu kalendārs: '+(count?count+' gaidāmi pasākumi.':'gaidāmie pasākumi.')).slice(0,160);
- return {title:venue.name+' — pasākumu kalendārs',description,alternates:{canonical:'/vietas/'+venue.id},
-  openGraph:{type:'website',title:venue.name,description,url:'/vietas/'+venue.id,images:[{url:'/og',width:1200,height:630}]}};
+ return {title:venue.name+' — pasākumu kalendārs',description,...pageMeta('/vietas/'+venue.id,{title:venue.name,description})};
 }
 export default async function VenuePage({params}){
  const {id}=await params;

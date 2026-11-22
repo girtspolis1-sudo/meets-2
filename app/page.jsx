@@ -8,8 +8,18 @@ import {listingPath} from '../lib/event-listings.js';
 import {SITE_URL} from '../lib/seo.js';
 import {jsonLdScript} from '../lib/event-seo.js';
 import {CONTROLLER} from '../lib/legal.js';
+import {pageMeta} from '../lib/page-meta.js';
 
-export const dynamic='force-dynamic';
+// Served from the CDN and rebuilt every five minutes.
+export const dynamic='force-static';
+export const revalidate=300;
+
+const HOME_DESCRIPTION='Atrodi, kas notiek tev blakus šodien un nedēļas nogalē: koncerti, izrādes, izstādes un sporta spēles visā Latvijā.';
+export const metadata={
+ title:{absolute:'Pasākumi Latvijā šodien un brīvdienās — MEETS'},
+ description:HOME_DESCRIPTION,
+ ...pageMeta('/',{title:'Pasākumi Latvijā šodien un brīvdienās',description:HOME_DESCRIPTION})
+};
 
 function siteJsonLd(){
  return [
@@ -28,13 +38,13 @@ function BenefitIcon({name}){
  return <svg {...base}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>;
 }
 export default async function Home(){
- const {near,towns}=await nearestEvents(12);
+ const {near,towns,leagues}=await nearestEvents(12);
  return <div className="meets-discovery-home">
   <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLdScript(siteJsonLd())}}/>
   <section className="meets-discovery-hero" aria-labelledby="meets-welcome-title">
    <div className="meets-hero-message">
     <span className="eyebrow">PASĀKUMI TUVUMĀ</span>
-    <h1 id="meets-welcome-title">Pasākumi tev blakus.<br/><em>Lai kur tu būtu.</em></h1>
+    <h1 id="meets-welcome-title">Pasākumi tev blakus.<br/><em>Visā Latvijā.</em></h1>
     <p>Atver karti un uzreiz redzi, kas notiek tuvumā: šovakar, rīt vai nedēļas nogalē.</p>
     <div className="meets-hero-ctas"><Link className="meets-hero-cta-primary" href="/karte">Atvērt karti <span aria-hidden="true">↗</span></Link><Link className="meets-hero-cta-secondary" href="/pasakumi">Skatīt pasākumus <span aria-hidden="true">→</span></Link></div>
     <div className="meets-hero-chips" aria-label="Populārākās kategorijas">
@@ -59,6 +69,7 @@ export default async function Home(){
    <h2 id="home-browse-title">Pasākumi pa novadiem un interesēm</h2>
    <ul className="meets-home-browse-list">{towns.slice(0,16).map(t=><li key={t.slug}><Link href={listingPath({municipalitySlug:t.slug})}>{t.name}</Link></li>)}</ul>
    <ul className="meets-home-browse-list">{GROUPS.map(g=><li key={g.key}><Link href={listingPath({category:g.key})}>{g.title}</Link></li>)}</ul>
+   {leagues.length>0&&<ul className="meets-home-browse-list" aria-label="Sporta līgas">{leagues.map(l=><li key={l.slug}><Link href={l.path}>{l.name}</Link></li>)}</ul>}
   </nav>}
  </div>;
 }

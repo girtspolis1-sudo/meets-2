@@ -16,5 +16,5 @@ export async function GET(_request,{params}){
  const time=e.time_from?' plkst. '+String(e.time_from).slice(0,5):'';
  const place=[cardLocation(e),e.settlement||municipalityShortName(e.municipality||'')].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', ');
  return new ImageResponse(ogCard({kicker:cardCategory(e),title:e.title,line:[sentenceDate(e.date_from)+time,place].filter(Boolean).join(' · ')}),
-  {...OG_SIZE,headers:{'Cache-Control':'public, max-age=3600, s-maxage=3600'}});
+  {...OG_SIZE,headers:{'Cache-Control':'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800'}});
 }

@@ -1,12 +1,14 @@
 import EventCatalog from './event-catalog.jsx';
 import EventLinkList from '../components/event-link-list.jsx';
 import {nearestEvents} from '../../lib/home-server.js';
+import {pageMeta} from '../../lib/page-meta.js';
 
-export const dynamic='force-dynamic';
+export const dynamic='force-static';
+export const revalidate=300;
 export const metadata = {
  title:'Pasākumu saraksts',
  description:'Gaidāmie pasākumi visā Latvijā: koncerti, izrādes, izstādes, sports un tirdziņi. Filtrē pēc datuma, novada un intereses.',
- alternates:{canonical:'/pasakumi'}
+ ...pageMeta('/pasakumi',{title:'Pasākumu saraksts'})
 };
 export default async function EventsPage() {
  const {near}=await nearestEvents(24);

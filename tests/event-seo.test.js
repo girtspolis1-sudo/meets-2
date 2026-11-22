@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {eventDescription,eventJsonLd,eventTitle,isoWithZone,jsonLdScript,looksLikeTable,rigaOffset,shortDate} from '../lib/event-seo.js';
+import {eventDescription,eventEndDate,eventImage,eventJsonLd,eventTitle,isoWithZone,jsonLdScript,looksLikeTable,rigaOffset,shortDate} from '../lib/event-seo.js';
 
 const base={id:'bbbc0627-fd81-489e-9fbc-909b74d32322',title:'Ziemassvētku koncerts novada senioriem',date_from:'2026-12-14',date_to:'2026-12-14',
  time_from:'13:00:00',time_to:'15:00:00',venue_name:'Kultūras centrs "Ulbrokas Pērle"',address_raw:'Kultūras centrs "Ulbrokas Pērle"',
@@ -67,4 +67,25 @@ test('descriptions: table text and short text are replaced by the facts',()=>{
 
 test('JSON for the script element cannot close it',()=>{
  assert.equal(jsonLdScript({name:'</script><b>'}),'{"name":"\\u003c/script>\\u003cb>"}');
+});
+
+test('end date never falls before the start',()=>{
+ assert.equal(eventEndDate(base),'2026-12-14T15:00:00+02:00','end time kept');
+ assert.equal(eventEndDate({...base,time_to:null}),undefined,'one day, start time, no end time: no end');
+ assert.equal(eventEndDate({...base,date_to:'2026-12-16',time_to:null}),'2026-12-16T23:59:00+02:00','longer event ends at the last day 23:59');
+ assert.equal(eventEndDate({...base,date_to:'2026-07-03',date_from:'2026-07-01',time_to:null}),'2026-07-03T23:59:00+03:00','summer offset');
+ assert.equal(eventEndDate({...base,time_from:null,time_to:null}),undefined,'all-day one-day event');
+ assert.equal(eventEndDate({...base,date_to:'2026-12-16',time_from:null,time_to:null}),'2026-12-16','all-day multi-day stays dates');
+ assert.equal(eventEndDate({...base,date_to:null,time_to:null}),undefined,'missing date_to');
+ const d=eventJsonLd({...base,time_to:null});
+ assert.equal(d.startDate,'2026-12-14T13:00:00+02:00');
+ assert.equal('endDate' in d,false);
+});
+
+test('every event has a picture: its cover or its share card',()=>{
+ assert.equal(eventImage(base,'https://cdn.example/cover.jpg'),'https://cdn.example/cover.jpg');
+ assert.equal(eventImage(base,''),'https://www.meets.lv/og/bbbc0627-fd81-489e-9fbc-909b74d32322'.replace('https://www.meets.lv',eventJsonLd(base).url.split('/pasakumi')[0]));
+ assert.deepEqual(eventJsonLd(base).image,[eventImage(base)]);
+ assert.deepEqual(eventJsonLd(base,{image:'https://cdn.example/c.jpg'}).image,['https://cdn.example/c.jpg']);
+ assert.equal(eventImage({id:'nav-uuid'}),'');
 });

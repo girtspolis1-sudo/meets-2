@@ -16,10 +16,16 @@ import EventTournaments from '../../components/event-tournaments.jsx';
 import {eventDescription,eventJsonLd,eventTitle,jsonLdScript} from '../../../lib/event-seo.js';
 import {eventPath,municipalityLocative,municipalitySlug,pageRobots,parseEventParam} from '../../../lib/seo.js';
 import {eventGroup} from '../../../lib/home-category-filters.js';
-import {municipalityBySlug,overlaps} from '../../../lib/event-listings.js';
+import {eventMoreLinks,municipalityBySlug,overlaps,teamGames} from '../../../lib/event-listings.js';
+import {breadcrumbJsonLd,eventCrumbs} from '../../../lib/breadcrumbs.js';
+import {pageMeta} from '../../../lib/page-meta.js';
 import ListingPage,{buildListing,listingMetadata} from '../listing-page.jsx';
 
-export const dynamic='force-dynamic';
+// Rendered on first visit, then served from the CDN and rebuilt in the background every
+// five minutes. The catalogue read is not put into the data cache (it is over its 2 MB limit).
+export const dynamic='force-static';
+export const revalidate=300;
+export async function generateStaticParams(){return [];}
 
 // One read per request for generateMetadata and the page: an event, or a municipality listing.
 const resolve=cache(async param=>{
@@ -49,15 +55,9 @@ export async function generateMetadata({params}){
  return {
   title:(ended?'Beidzies: ':'')+eventTitle(event),
   description,
-  alternates:{canonical},
   robots:pageRobots(!ended||indexableEnded(event)),
-  openGraph:{
-   type:'website',
-   title:event.title,
-   description:cardDate(event)+' · '+cardLocation(event),
-   url:canonical,
-   images:[image.startsWith('https://')?{url:image}:{url:'/og/'+event.id,width:1200,height:630}]
-  }
+  ...pageMeta(canonical,{title:event.title,description:cardDate(event)+' · '+cardLocation(event),
+   images:[image.startsWith('https://')?{url:image}:{url:'/og/'+event.id,width:1200,height:630}]})
  };
 }
 
@@ -85,9 +85,14 @@ export default async function EventPage({params}){
  const image=cardImage(event),description=cardDescription(event),official=officialEventUrl(event);
  const time=timeLabel(event);
  const related=await relatedEvents(event,ended);
+ const {events:all}=await readEventsCached();
+ const today=rigaTodayIso();
+ const more=eventMoreLinks(event,all,today);
+ const games=ended?[]:teamGames(event,all,today);
  const townSlug=municipalitySlug(event.municipality);
  return <article className="meets-event-page">
   <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLdScript(eventJsonLd(event,{image,officialUrl:official}))}}/>
+  <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLdScript(breadcrumbJsonLd(eventCrumbs(event)))}}/>
   <TrackView name="event_view" params={{item_id:event.id,item_category:event.primary_category,municipality:event.municipality}}/>
   <nav className="meets-event-page-back" aria-label="Atpakaļ"><Link href="/pasakumi">← Visi pasākumi</Link>
    {townSlug&&<> · <Link href={'/pasakumi/'+townSlug}>Pasākumi {municipalityLocative(event.municipality)}</Link></>}</nav>
@@ -117,6 +122,13 @@ export default async function EventPage({params}){
     <EventLinkList events={related}/>
     {townSlug&&<p><Link href={'/pasakumi/'+townSlug}>Visi pasākumi {municipalityLocative(event.municipality)} →</Link></p>}
    </section>}
+   {games.length>0&&<section className="meets-detail-related" aria-labelledby="team-games-title">
+    <h2 id="team-games-title">Citas {[event.home_team,event.away_team].filter(Boolean).join(' un ')} spēles</h2>
+    <EventLinkList events={games}/>
+   </section>}
+   {more.length>0&&<nav className="meets-event-more-links" aria-label="Vairāk pasākumu">
+    <ul>{more.map(l=><li key={l.path}><Link href={l.path}>{l.label} →</Link></li>)}</ul>
+   </nav>}
    {/* Imported events without an organizer: the organizer can take them over. */}
    {!ended&&!event.organization_id&&<aside className="meets-claim-callout" aria-labelledby="claim-callout-title">
     <h2 id="claim-callout-title">Vai tu rīko šo pasākumu?</h2>

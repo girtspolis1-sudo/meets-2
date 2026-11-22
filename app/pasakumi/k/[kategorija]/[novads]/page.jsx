@@ -5,7 +5,11 @@ import {municipalityBySlug} from '../../../../../lib/event-listings.js';
 import {categoryKeyFromSlug} from '../../../../../lib/seo.js';
 import ListingPage,{buildListing,listingMetadata} from '../../../listing-page.jsx';
 
-export const dynamic='force-dynamic';
+// Rendered on first visit, then served from the CDN and rebuilt in the background every
+// five minutes. The catalogue read is not put into the data cache (it is over its 2 MB limit).
+export const dynamic='force-static';
+export const revalidate=300;
+export async function generateStaticParams(){return [];}
 
 // /pasakumi/k/muzika/jelgava — one discovery group in one municipality.
 const resolve=cache(async(slug,town)=>{
