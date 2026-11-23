@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cardCategory,cardDate,cardDescription,cardImage,cardLocation,cardPrice} from '../lib/discovery-card.js';
+import {cardArt,cardCategory,cardDate,cardDescription,cardImage,cardLocation,cardPrice} from '../lib/discovery-card.js';
 
 test('card keeps real event title, category and location',()=>{
  const event={title:'Pasākums Rīgā',event_type:'concert',venue_name:'Kultūras pils',date_from:'2026-11-02',time_from:'19:00'};
@@ -20,4 +20,11 @@ test('missing image returns empty and content is condensed',()=>{
  assert.equal(cardImage({cover_image_url:'javascript:alert(1)'}),'');
  assert.equal(cardImage({cover_image_url:'https://example.com/event.jpg'}),'https://example.com/event.jpg');
  assert.equal(cardDescription({description:'Pirmais  <strong>otrais</strong>   trešais'}),'Pirmais otrais trešais');
+});
+test('standard picture follows the event group',()=>{
+ assert.deepEqual(cardArt({event_type:'concert'}),{palette:'karmins',icon:'note'});
+ assert.deepEqual(cardArt({event_type:'sports_match'}),{palette:'priede',icon:'ball'});
+ assert.deepEqual(cardArt({event_type:'exhibition'}),{palette:'tinte',icon:'frame'});
+ assert.deepEqual(cardArt({event_type:'workshop'}),{palette:'slate',icon:'bulb'});
+ assert.deepEqual(cardArt({}),{palette:'tinte',icon:'spark'});
 });
