@@ -23,7 +23,7 @@ export const metadata={
 
 function siteJsonLd(){
  return [
-  {'@context':'https://schema.org','@type':'Organization',name:'meets.lv',url:SITE_URL,logo:SITE_URL+'/meets-logo-purple.png',email:CONTROLLER.email},
+  {'@context':'https://schema.org','@type':'Organization',name:'meets.lv',url:SITE_URL,logo:SITE_URL+'/meets-logo-512.png',email:CONTROLLER.email},
   {'@context':'https://schema.org','@type':'WebSite',name:'meets.lv',url:SITE_URL,inLanguage:'lv'}
  ];
 }

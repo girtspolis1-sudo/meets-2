@@ -40,10 +40,16 @@ export const metadata = {
   title: { default: 'MEETS — Pasākumi tuvumā', template: '%s | MEETS' },
   description: 'Atrodi, kas notiek tev blakus šodien un nedēļas nogalē: koncerti, izrādes, izstādes un sporta spēles visā Latvijā.',
   openGraph: { siteName: 'MEETS', locale: 'lv_LV', type: 'website', images: [{ url: '/og', width: 1200, height: 630 }] },
+  // The "m." mark. Search engines want a square favicon in a multiple of 48 px,
+  // so the .ico (16/32/48) and the 192 px PNG come before the SVG.
   icons: {
-    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
-    shortcut: '/icon.svg',
-    apple: '/meets-logo-purple.png'
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/icon.svg', type: 'image/svg+xml' }
+    ],
+    shortcut: '/favicon.ico',
+    apple: [{ url: '/apple-icon.png', sizes: '180x180' }]
   },
   // Indexed only where NEXT_PUBLIC_ALLOW_INDEXING=true (Vercel Production).
   robots: siteRobots(),
