@@ -11,13 +11,17 @@
 .ec-media{position:relative;min-height:180px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:#1b2430;color:#fff}
 .ec-media>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .ec-media.ec-art{background-image:radial-gradient(rgba(255,255,255,.13) 1.6px,transparent 1.8px);background-size:16px 16px}
-.ec-media.ec-art.ec-karmins{background-color:#9e3039}
-.ec-media.ec-art.ec-tinte{background-color:#1b2430}
-.ec-media.ec-art.ec-priede{background-color:#2f5d50}
-.ec-media.ec-art.ec-slate{background-color:#4a5565}
-.ec-media .ec-art-icon{position:absolute;right:-12px;top:10px;width:128px;height:128px;color:rgba(255,255,255,.22);pointer-events:none}
+.ec-media.ec-art-priede{background-color:#1d3a32}
+.ec-media.ec-art-karmins{background-color:#3b1a21}
+.ec-media.ec-art-bruns{background-color:#2b2416}
+.ec-media.ec-art-tinte{background-color:#1b2430}
+.ec-media.ec-art-slate{background-color:#262e3a}
+/* Theme picture: only between the chip row (with the heart) and the band, right
+   of 42 % of the width and 60 px clear of the right edge. */
+.ec-media .ec-scene{flex:1 1 auto;min-height:56px;box-sizing:border-box;padding:8px 60px 6px 42%;display:flex}
+.ec-media .ec-scene-art{flex:1;width:100%;height:100%;min-height:48px}
 
-.ec-media .ec-top{position:relative;padding-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding-left:14px;padding-right:12px;padding-top:12px}
+.ec-media .ec-top{position:absolute;left:0;right:0;top:0;z-index:1;padding-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding-left:14px;padding-right:12px;padding-top:12px}
 .ec-media .ec-category{max-width:calc(100% - 52px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.94);color:#1b2430;padding:6px 10px;border-radius:999px}
 .ec-media .ec-top .meets-card-favorite{position:static}
 .ec-media .ec-top .meets-card-favorite-button{width:44px;height:44px;border:0;background:#fff;color:#1b2430;box-shadow:none}
@@ -25,7 +29,8 @@
 .ec-media .ec-top .meets-card-favorite-button.is-saved svg{fill:#f6e8ea}
 .ec-media .ec-top .meets-card-favorite-status{position:absolute;right:12px;top:60px;max-width:220px;background:#fff;color:#1b2430;border-radius:10px;padding:6px 8px;font-size:12px}
 
-.ec-media .ec-band{position:relative;margin-top:auto;background:rgba(27,36,48,.86);padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px}
+.ec-media .ec-band{position:relative;margin-top:auto;flex:none;background:rgba(27,36,48,.86);padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px}
+.ec-media.ec-art .ec-band{background:#1b2430}
 .ec-media .ec-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .ec-media .ec-when.event-facts-when{margin:0;padding:3px 9px;border-radius:999px;font-size:12px;line-height:16px;font-weight:800;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .ec-media .ec-when.term-long{background:#eef1f4;color:#4a5565}
@@ -66,7 +71,6 @@
 /* Compact card (C): narrow column or small screen. */
 @container ec (max-width:339px){
  .ec-card .ec-media{min-height:150px}
- .ec-card .ec-art-icon{width:104px;height:104px}
  .ec-card .ec-band{padding:8px 12px 10px;gap:5px}
  .ec-card .ec-title{font-size:15px;line-height:20px}
  .ec-card .ec-when.event-facts-when,.ec-card .ec-price{font-size:11px;padding:2px 8px}
@@ -85,7 +89,6 @@
 @media(max-width:760px){
  main .meets-discovery-grid,main .meets-catalog-image-grid.catalog-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
  .ec-card .ec-media{min-height:150px}
- .ec-card .ec-art-icon{width:104px;height:104px}
  .ec-card .ec-band{padding:8px 12px 10px;gap:5px}
  .ec-card .ec-title{font-size:15px;line-height:20px}
  .ec-card .ec-when.event-facts-when,.ec-card .ec-price{font-size:11px;padding:2px 8px}
