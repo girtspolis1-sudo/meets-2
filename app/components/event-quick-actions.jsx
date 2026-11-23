@@ -20,12 +20,12 @@ function Icon({name}){
   default:return <svg {...props}><circle cx="18" cy="5" r="2.2"/><circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="m8 11 8-5m-8 8 8 4"/></svg>;
  }
 }
-function saveIcs(event){
+export function saveIcs(event){
  const str=icsContent(event);if(!str)return false;
  const blob=new Blob([str],{type:'text/calendar;charset=utf-8'}),url=URL.createObjectURL(blob);
  const a=document.createElement('a');a.href=url;a.download='meets-'+event.id+'.ics';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);return true;
 }
-async function copyLink(value){
+export async function copyLink(value){
  if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(value);return;}
  const field=document.createElement('textarea');field.value=value;field.style.position='fixed';field.style.opacity='0';document.body.appendChild(field);field.select();const success=document.execCommand('copy');field.remove();if(!success)throw new Error('Kopēšana nav pieejama');
 }
