@@ -24,7 +24,7 @@ async function account(action,token,fields={}){
  if(!r.ok)throw Error(b.error||'Neizdevās saglabāt norises vietu.');
  return b;
 }
-export default function EventVenueFavorite({event,compact=false,fullLabel=false}){
+export default function EventVenueFavorite({event,compact=false,fullLabel=false,asAction=false}){
  const place=placeFromEvent(event);
  const [following,setFollowing]=useState(false),[busy,setBusy]=useState(false),[ready,setReady]=useState(false),[status,setStatus]=useState('');
  useEffect(()=>{let live=true;
@@ -52,6 +52,19 @@ export default function EventVenueFavorite({event,compact=false,fullLabel=false}
    window.dispatchEvent(new Event('meets-location-follows-changed'));
   }catch(e){setStatus(e.message);}finally{setBusy(false);}
  }
+ // A pin with a plus (follow) or a tick (following), unlike the plain route pin beside it.
+ const icon=<svg viewBox="0 0 24 24" width="18" height="18" fill={following?'currentColor':'none'}
+  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/>
+  {following?<path d="m9.2 10 2 2 3.6-3.8" stroke="#fff"/>:<path d="M12 7v6M9 10h6"/>}
+ </svg>;
+ // In a card's action row: the same round button as Kalendārs, Norādes, Atvērt.
+ if(asAction)return <button type="button" className={'meets-circle-action meets-place-action'+(following?' active':'')} aria-pressed={following}
+  aria-label={(following?'Pārtraukt sekošanu vietai: ':'Sekot norises vietai: ')+place.name}
+  title={(following?'Seko vietai: ':'Sekot vietai: ')+place.name} disabled={!ready||busy} onClick={toggle}>
+  {icon}<small className="meets-quiet-label">{following?'Seko':'Sekot'}</small>
+  {status&&<span className="sr-only" role="status">{status}</span>}
+ </button>;
  return <span className={'meets-place-favorite'+(compact?' compact':'')}>
   <button type="button" className={following?'active':''} aria-pressed={following}
    aria-label={(following?'Pārtraukt sekošanu vietai: ':'Sekot norises vietai: ')+place.name}
