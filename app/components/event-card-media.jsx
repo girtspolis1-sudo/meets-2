@@ -4,23 +4,9 @@ import EventQuickActions from './event-quick-actions.jsx';
 import TopicScene from './topic-scenes.jsx';
 import {cardImage,isPaidEvent} from '../../lib/discovery-card.js';
 import {topicArt} from '../../lib/topic-art.js';
-import {liveBadge,priceLabel,shortDate,whenLabel} from '../../lib/map-nearby.js';
-import {rigaClockMinutes} from '../../lib/event-date.js';
-import {eventTerm} from '../../lib/event-term.js';
-import {isBackgroundLong,isLastDays} from '../../lib/event-duration.js';
+import WhenChip from './when-chip.jsx';
+import {priceLabel} from '../../lib/map-nearby.js';
 import './event-card.css';
-
-// When the event is: "Šodien 18:00", "Rīt", "Apskatāms līdz 28. nov.", coloured
-// like the map pin (today, tomorrow, later, last days, long-running).
-function WhenChip({event,today}){
- const clock=rigaClockMinutes();
- const multiDay=event.date_to&&event.date_to>event.date_from&&String(event.date_from)>=String(today);
- const live=liveBadge(event,today,clock);
- const tone=isBackgroundLong(event,today)?'long':isLastDays(event,today)?'lastdays':eventTerm(event,today).tone;
- return <span className={'ec-when event-facts-when term-'+tone}>
-  {live==='now'?'Notiek tagad':whenLabel(event,today)}{multiDay?' – '+shortDate(event.date_to):''}
- </span>;
-}
 
 // The top of an event card: the event's picture, or its theme picture
 // (topic-art.js, topic-scenes.jsx) drawn in the safe zone between the chip row
@@ -42,7 +28,7 @@ export default function EventCardMedia({event,today,title,saved,onSave,className
   </div>
   <div className="ec-band">
    <div className="ec-chips">
-    <WhenChip event={event} today={today}/>
+    <WhenChip event={event} today={today} className="ec-when"/>
     {paid&&<span className="ec-price" title={price?'Maksas pasākums: '+price:'Maksas pasākums'}>{price||'€'}</span>}
     {event.price_status==='free'&&<span className="ec-price free">Bezmaksas</span>}
    </div>
