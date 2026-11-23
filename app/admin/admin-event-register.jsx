@@ -1,4 +1,7 @@
 'use client';
+import StatusChip from '../components/status-chip.jsx';
+import {rowTile} from '../../lib/event-row.js';
+import '../components/event-row.css';
 import {reasonLabel} from '../../lib/submission-review.js';
 
 import {useEffect,useMemo,useState} from 'react';
@@ -7,7 +10,6 @@ const STATUS_LABELS={
  published:'Publicēts',pending_review:'Jāpublicē',draft:'Melnraksts',
  rejected:'Jālabo',declined:'Noraidīts',cancelled:'Atcelts',archived:'Arhivēts',closed:'Slēgts'
 };
-const STATUS_TONES={published:'published',pending_review:'pending',draft:'draft',rejected:'problem',declined:'muted',cancelled:'muted',archived:'muted',closed:'muted'};
 const PAGE_SIZES=[25,50,100];
 
 const lower=value=>String(value??'').toLocaleLowerCase('lv');
@@ -200,11 +202,12 @@ export default function AdminEventRegister({events=[],submissions=[],sources=[],
     <tbody>
      {shown.map(row=><tr key={row.id} className={row.reasonTone==='bad'?'admin-register-problem':row.reasonTone==='warn'?'admin-register-pending':''}>
       <td className="admin-register-date" title={row.date_to&&row.date_to!==row.date_from?formatDate(row.date_from)+' – '+formatDate(row.date_to):undefined}>
-       {formatDate(row.date_from)}{row.date_to&&row.date_to!==row.date_from&&<small>līdz {formatDate(row.date_to)}</small>}
+       <span className="admin-register-when"><span className={'erow-tile erow-'+rowTile(row.raw||row).palette} aria-hidden="true"><strong>{rowTile(row.raw||row).day}</strong><small>{rowTile(row.raw||row).month}</small></span>
+       <span>{formatDate(row.date_from)}{row.date_to&&row.date_to!==row.date_from&&<small>līdz {formatDate(row.date_to)}</small>}</span></span>
       </td>
       <td className="admin-register-title"><strong title={row.title}>{row.title}</strong>{row.expired&&<small>Beidzies</small>}</td>
       <td><span title={row.type} className="admin-register-ellipsis">{row.type}</span></td>
-      <td><span className={'admin-register-status '+(STATUS_TONES[row.status]||'draft')}>{STATUS_LABELS[row.status]||row.status||'Nezināms'}</span></td>
+      <td><StatusChip status={row.status} label={STATUS_LABELS[row.status]||row.status||'Nezināms'}/></td>
       <td className="admin-register-reason"><span className={'admin-register-reason-dot '+row.reasonTone} aria-hidden="true"/> <span title={row.reason}>{row.reason}</span></td>
       <td className="admin-register-location"><span title={row.location}>{row.location}</span>{row.address&&row.location!==row.address&&<small>{row.address}</small>}{row.municipality&&<small>{row.municipality}</small>}</td>
       <td><span className="admin-register-ellipsis" title={row.source}>{row.source}</span></td>

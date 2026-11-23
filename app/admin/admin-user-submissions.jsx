@@ -1,4 +1,5 @@
 'use client';
+import EventCardMedia from '../components/event-card-media.jsx';
 import {useState} from 'react';
 import {countOccurrences} from '../../lib/event-schedule.js';
 import {pendingSubmissions,waitingDays} from '../../lib/admin-submissions.js';
@@ -93,8 +94,12 @@ function SubmissionCard({item,today,focused,matches,onSearchPlace,onReview,busy,
   <div className="admin-submission-body">
    <section className="admin-submission-details">
     <p>{item.description||'Nav apraksta.'}</p>
-    {item.cover_image_path&&/^[a-f\d-]+\/[a-f\d-]+\/[a-f\d-]+\.(jpg|png|webp)$/.test(item.cover_image_path)&&supabaseUrl&&<img
-     src={supabaseUrl+'/storage/v1/object/public/meets-event-images/'+item.cover_image_path} alt="Iesniegtā pasākuma attēls"/>}
+    {/* How the event will look in public: the same picture top as the cards. */}
+    <div className="admin-submission-preview" aria-label="Publiskais izskats">
+     <EventCardMedia event={{...item,primary_category:item.primary_category||item.category,
+      cover_image_url:item.cover_image_path&&/^[a-f\d-]+\/[a-f\d-]+\/[a-f\d-]+\.(jpg|png|webp)$/.test(item.cover_image_path)&&supabaseUrl?supabaseUrl+'/storage/v1/object/public/meets-event-images/'+item.cover_image_path:null}}
+      today={today} title={item.title} noFavorite/>
+    </div>
     <dl>
      <dt>Kategorija</dt><dd>{item.category||'—'}</dd>
      <dt>Maksa</dt><dd>{priceText(item)}</dd>
