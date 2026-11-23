@@ -1,0 +1,48 @@
+/* Event rows on the listing pages (event-link-list.jsx): date tile | title,
+   when and where | "Kartē · 20 km apkārtnē" and small calendar, save, share.
+   The share tray opens under the row. On phones the buttons move under the text. */
+
+.event-link-list.elist li.elist-row{display:grid;grid-template-columns:56px minmax(0,1fr) auto auto;align-items:center;column-gap:14px;row-gap:10px;padding:12px 14px;border-radius:16px}
+.elist-row .elist-end{display:contents}
+
+.elist-date{grid-column:1;grid-row:1;width:56px;height:56px;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;background-image:radial-gradient(rgba(255,255,255,.14) 1.4px,transparent 1.6px);background-size:12px 12px}
+.event-link-list .elist-date strong{font-family:var(--font-display,Unbounded,system-ui,sans-serif);font-weight:700;font-size:20px;line-height:1;color:#fff!important;text-decoration:none!important}
+.event-link-list .elist-date small{margin-top:3px;font-size:10px;font-weight:800;letter-spacing:.08em}
+.elist-karmins{background-color:#9e3039}.elist-tinte{background-color:#1b2430}.elist-priede{background-color:#2f5d50}.elist-slate{background-color:#4a5565}
+
+.elist-info{grid-column:2;grid-row:1;display:grid;gap:2px;min-width:0}
+.elist-info .event-link-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.event-link-list .elist-map{grid-column:3;grid-row:1;display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:12px;background:#f6e8ea;color:#7a2029;font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap}
+.event-link-list .elist-map:hover{background:#ecd3d6;color:#7a2029}
+
+.elist-buttons{grid-column:4;grid-row:1;display:flex;align-items:center;gap:6px}
+.elist-icon,.elist-buttons .meets-card-favorite-button{width:40px;height:40px;border-radius:12px;border:1px solid #d8dee6;background:#fff;color:#1b2430;display:grid;place-items:center;padding:0;cursor:pointer;box-shadow:none}
+.elist-icon:hover,.elist-icon.on,.elist-buttons .meets-card-favorite-button:hover{background:#f6e8ea;color:#7a2029;border-color:#ecd3d6}
+.elist-buttons .meets-card-favorite{position:relative;right:auto;top:auto}
+.elist-buttons .meets-card-favorite-button svg{width:17px;height:17px}
+.elist-buttons .meets-card-favorite-button.is-saved{color:#9e3039}
+.elist-buttons .meets-card-favorite-button.is-saved svg{fill:#f6e8ea}
+.elist-buttons .meets-card-favorite-status{position:absolute;right:0;top:46px;z-index:2;width:max-content;max-width:240px;background:#fff;border:1px solid #d8dee6;border-radius:10px;padding:6px 8px;font-size:12px}
+
+.elist-share{grid-column:2/-1;grid-row:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding-top:10px;border-top:1px solid #eef1f4}
+.elist-share>span{font-size:12px;font-weight:700;color:#4a5565;margin-right:4px}
+.event-link-list .elist-chip{height:30px;padding:0 11px;border-radius:999px;border:1px solid #d8dee6;background:#fff;color:#1b2430;font:700 12px var(--font-body,Manrope),system-ui,sans-serif;display:inline-flex;align-items:center;gap:6px;cursor:pointer;text-decoration:none}
+.event-link-list .elist-chip:hover{border-color:#9e3039;color:#7a2029}
+.elist-status{grid-column:2/-1;font-size:12px;color:#2f5d50}
+
+/* Narrow: the map link and the buttons go to a second row under the text. */
+@media(max-width:760px){
+ .event-link-list.elist li.elist-row{grid-template-columns:48px minmax(0,1fr) auto;column-gap:12px;padding:12px}
+ .elist-date{width:48px;height:48px;border-radius:12px}
+ .event-link-list .elist-date strong{font-size:17px}
+ .elist-info{grid-column:2/-1}
+ .elist-info .event-link-meta{white-space:normal}
+ .event-link-list .elist-map{grid-column:1/3;grid-row:2;justify-self:start;min-width:0;max-width:100%;overflow:hidden;height:36px;padding:0 12px;font-size:12px}
+ .elist-buttons{grid-column:3;grid-row:2;gap:4px}
+ .elist-map-around{display:none}
+ .elist-icon,.elist-buttons .meets-card-favorite-button{width:36px;height:36px;border-radius:10px}
+ .elist-share{grid-column:1/-1;grid-row:3}
+ .elist-status{grid-column:1/-1}
+}
+@media(max-width:360px){.elist-map-radius{display:none}}

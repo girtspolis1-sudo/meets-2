@@ -154,7 +154,7 @@ export default function OsmEventMap(){
  const [from,setFrom]=useState(searchParams.get('from')||'');
  const [to,setTo]=useState(searchParams.get('to')||'');
  // null until we know whether a place was chosen: then 30 km around it, otherwise all of Latvia.
- const [radiusKm,setRadiusKm]=useState(()=>{const q=searchParams.get('radius'),n=Number(q);return q!==null&&[0,5,10,25,30,50].includes(n)?n:null;});
+ const [radiusKm,setRadiusKm]=useState(()=>{const q=searchParams.get('radius'),n=Number(q);return q!==null&&[0,5,10,20,25,30,50].includes(n)?n:null;});
  const [periodMode,setPeriodMode]=useState(()=>periodKey(searchParams.get('period')));
  const [locationPrompt,setLocationPrompt]=useState(false);
  const [highlightedId,setHighlightedId]=useState('');
