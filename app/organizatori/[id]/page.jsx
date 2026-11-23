@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import EventRow from '../../components/event-row.jsx';
+import EventListActions from '../../components/event-list-actions.jsx';
+import {nearbyMapPath} from '../../../lib/event-sharing.js';
 import {notFound,permanentRedirect} from 'next/navigation';
 import {publicOrganizer,validOrganizerId} from '../../../lib/public-organizers.js';
 import {organizerPath} from '../../../lib/organizer-path.js';
@@ -22,27 +25,6 @@ export async function generateMetadata({params}){
   twitter:{card:'summary',title,description,images:images?.map(i=>i.url)}};
 }
 
-const WD=['svētdiena','pirmdiena','otrdiena','trešdiena','ceturtdiena','piektdiena','sestdiena'];
-const MONTHS=['janv.','febr.','marts','apr.','maijs','jūn.','jūl.','aug.','sept.','okt.','nov.','dec.'];
-function dateParts(e){
- if(!/^\d{4}-\d{2}-\d{2}$/.test(String(e.date_from||'')))return null;
- const d=new Date(e.date_from+'T12:00:00Z');
- const wd=WD[d.getUTCDay()];
- return {day:d.getUTCDate(),month:MONTHS[d.getUTCMonth()],weekday:wd.charAt(0).toLocaleUpperCase('lv')+wd.slice(1)};
-}
-function eventWhen(e){
- const parts=[];
- if(e.date_to&&e.date_to!==e.date_from)parts.push('līdz '+e.date_to.slice(8,10)+'.'+e.date_to.slice(5,7)+'.');
- const from=String(e.time_from||'').slice(0,5),to=String(e.time_to||'').slice(0,5);
- if(from)parts.push(to?from+'–'+to:from);
- return parts.join(' · ');
-}
-function priceText(e){
- if(e.price_status==='free')return 'Bezmaksas';
- const min=Number(e.price_min),max=Number(e.price_max);
- if(e.price_min!=null&&Number.isFinite(min)&&min>0)return (Number.isFinite(max)&&max>min?min+'–'+max:String(min)).replace(/\./g,',')+' €';
- return e.price_status==='paid'?'Maksas':'';
-}
 const CONTACT_LABEL={email:'E-pasts',phone:'Telefons',person:'Kontaktpersona',other:'Kontakts'};
 const REQUISITES=[['legal_name','Nosaukums'],['reg_number','Reģ. Nr.'],['vat_number','PVN Nr.'],['bank_name','Banka'],['bank_account','Konts']];
 function directionsUrl(lat,lon,address){
@@ -94,25 +76,14 @@ export default async function OrganizerPublicPage({params}){
     <div><h2 id="org-events">Gaidāmie pasākumi</h2><p>Visi rīkotāja publicētie pasākumi vienuviet.</p></div>
     {events.length>0&&<Link className="button" href={mapHref}>Rādīt kartē →</Link>}
    </div>
-   {events.length?<div className="org-site-events">{events.map(e=>{
-    const d=dateParts(e),when=eventWhen(e),price=priceText(e);
-    return <article key={e.submission_id||e.id} className="org-site-event">
-     <div className="org-site-date" aria-hidden="true">{d?<><strong>{d.day}</strong><span>{d.month}</span></>:<span>—</span>}</div>
-     <div className="org-site-event-body">
-      <p className="org-site-event-when">{d?d.weekday:''}{when?' · '+when:''}</p>
-      <h3>{e.id?<Link href={eventPath(e)}>{e.title}</Link>:e.title}</h3>
-      <p className="org-site-event-place">{e.venue_name||e.address||'Vieta nav norādīta'}</p>
-      {e.description&&<p className="org-site-event-text">{String(e.description).slice(0,180)}{String(e.description).length>180?'…':''}</p>}
-      <div className="org-site-event-foot">
-       {(e.category||price)&&<span className="org-site-tags">{e.category&&<span>{e.category}</span>}{price&&<span className={e.price_status==='free'?'free':''}>{price}</span>}</span>}
-       {e.id&&<span className="org-site-event-actions">
-        <Link className="button compact" href={eventPath(e)}>Atvērt</Link>
-        <Link className="button compact ghost" href={'/karte?event='+e.id}>Kartē</Link>
-        <ShareButton path={eventPath(e)} title={e.title} label="Dalīties" className="button compact ghost"/>
-       </span>}
-      </div>
-     </div>
-    </article>;})}</div>
+   {/* The shared event row (prompt_vienoti_pasakumi.md): the same tile, date chip and actions as the listing pages. */}
+   {events.length?<ul className="event-link-list elist">{events.map(e=>{
+    const ev={...e,primary_category:e.primary_category||e.category,venue_name:e.venue_name||e.address};
+    const map=e.id?nearbyMapPath(ev):null;
+    return <EventRow key={e.submission_id||e.id} event={ev} href={e.id?undefined:false} actions={e.id?<>
+     {map&&<Link className="elist-map" href={map}><span>Kartē</span></Link>}
+     <EventListActions event={ev}/>
+    </>:null}/>;})}</ul>
    :<p className="org-empty">Šobrīd nav gaidāmu pasākumu. Seko rīkotājam — paziņosim, kad parādīsies jauni.</p>}
   </section>
 

@@ -13,7 +13,8 @@ import './event-card.css';
 // and the band, with the theme or category, the heart, the date chips and the
 // title on a dark band. Shared by the grid cards and the map cards. `saved`/`onSave` make the
 // heart controlled (the map keeps its own favourites).
-export default function EventCardMedia({event,today,title,saved,onSave,className=''}){
+export default function EventCardMedia({event,today,title,saved,onSave,className='',heading='h3',noFavorite=false}){
+ const Heading=heading;
  const [broken,setBroken]=useState(false),imgRef=useRef(null);
  // An image that failed before hydration never fires onError: check it once mounted.
  useEffect(()=>{const img=imgRef.current;if(img&&img.complete&&!img.naturalWidth)setBroken(true);},[]);
@@ -24,7 +25,7 @@ export default function EventCardMedia({event,today,title,saved,onSave,className
    :<div className="ec-scene"><TopicScene scene={art.scene} variant={art.variant}/></div>}
   <div className="ec-top">
    <span className="ec-category">{art.label}</span>
-   <EventQuickActions event={event} favoriteOnly saved={saved} onSave={onSave}/>
+   {!noFavorite&&<EventQuickActions event={event} favoriteOnly saved={saved} onSave={onSave}/>}
   </div>
   <div className="ec-band">
    <div className="ec-chips">
@@ -32,7 +33,7 @@ export default function EventCardMedia({event,today,title,saved,onSave,className
     {paid&&<span className="ec-price" title={price?'Maksas pasākums: '+price:'Maksas pasākums'}>{price||'€'}</span>}
     {event.price_status==='free'&&<span className="ec-price free">Bezmaksas</span>}
    </div>
-   <h3 className="ec-title">{title}</h3>
+   <Heading className="ec-title">{title}</Heading>
   </div>
  </div>;
 }

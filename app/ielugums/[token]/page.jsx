@@ -3,7 +3,8 @@ import {notFound} from 'next/navigation';
 import {cache} from 'react';
 import ShareButton from '../../components/share-button.jsx';
 import OnlineJoin from '../../components/online-join.jsx';
-import MeetsSunMark from '../../components/meets-sun-mark.jsx';
+import EventCardMedia from '../../components/event-card-media.jsx';
+import {rigaTodayIso} from '../../../lib/event-date.js';
 import SharedEventNav from './shared-nav.jsx';
 import EventTournaments from '../../components/event-tournaments.jsx';
 import {readSharedEvent} from '../../../lib/shared-event-server.js';
@@ -52,13 +53,10 @@ export default async function SharedEventPage({params}){
  return <article className="meets-event-page meets-shared-event">
   <SharedEventNav token={token} status={event.status}/>
   <p className={'shared-event-note '+(event.visibility==='private'?'is-private':event.status==='pending_review'&&!event.event_id?'is-pending':'is-public')} role="note">{event.visibility==='private'?<LockIcon/>:<GlobeIcon/>}{note}</p>
-  <div className="meets-detail-hero">
-   {image?<img src={image} alt="" className="catalog-detail-cover"/>:<div className="shared-event-cover-fallback" aria-hidden="true"><MeetsSunMark/></div>}
-  </div>
+  {/* The same picture top as the event cards: the organizer's image or the theme picture. */}
+  <EventCardMedia event={{...event,id:token,primary_category:event.category,cover_image_url:image||null}} today={rigaTodayIso()} title={event.title} heading="h1" className="ec-page-media" noFavorite/>
   <div className="meets-detail-body">
    <div className="meets-detail-headline">
-    <span className="meets-detail-tag">{event.category||'Pasākums'}</span>
-    <h1>{event.title}</h1>
     {org.name&&<p className="shared-event-organizer">Organizē {org.slug||org.id?<Link href={organizerPath(org)}>{org.name}</Link>:<strong>{org.name}</strong>}</p>}
    </div>
    <dl className="shared-event-facts">

@@ -115,3 +115,10 @@
 .meets-quiet-event-sheet .meets-mobile-sheet-event.ec-detail .ec-media h3.ec-title{margin:0;color:#fff;font-size:17px;line-height:22px;font-weight:800;letter-spacing:0;-webkit-line-clamp:3}
 .ec-detail .meets-quiet-actions .meets-event-action-grid.meets-circle-actions{grid-template-columns:repeat(4,minmax(0,1fr))}
 .ec-detail .meets-quiet-actions .meets-event-action-grid.meets-circle-actions>.meets-circle-action{max-width:none}
+
+/* Event page (/pasakumi/[id]): the same picture top, large. */
+.ec-media.ec-page-media{min-height:260px;border-radius:24px;margin:8px 0 18px}
+.ec-media.ec-page-media .ec-scene{padding:14px 72px 10px 46%}
+.ec-media.ec-page-media .ec-band{padding:14px 20px 18px;gap:8px}
+.ec-media.ec-page-media h1.ec-title{margin:0;font-family:var(--font-display,Unbounded,system-ui,sans-serif);font-size:clamp(22px,3.4vw,36px);line-height:1.15;letter-spacing:-.03em;color:#fff;-webkit-line-clamp:4}
+@media(max-width:760px){.ec-media.ec-page-media{min-height:210px;border-radius:20px}.ec-media.ec-page-media .ec-scene{padding:10px 60px 8px 40%}}

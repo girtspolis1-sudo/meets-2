@@ -3,11 +3,12 @@ import TrackView from '../../components/track-view.jsx';
 import {notFound,permanentRedirect} from 'next/navigation';
 import {cache} from 'react';
 import {findPublicEvent,readEventsCached} from '../../../lib/events-server.js';
-import {cardCategory,cardDate,cardDescription,cardImage,cardLocation} from '../../../lib/discovery-card.js';
+import {cardDate,cardDescription,cardImage,cardLocation} from '../../../lib/discovery-card.js';
 import {timeLabel} from '../../../lib/catalog.js';
 import {officialEventUrl} from '../../../lib/event-sharing.js';
 import EventQuickActions from '../../components/event-quick-actions.jsx';
 import EventVenueFavorite from '../../components/event-venue-favorite.jsx';
+import EventCardMedia from '../../components/event-card-media.jsx';
 import EventFacts from '../../components/event-facts.jsx';
 import OnlineJoin from '../../components/online-join.jsx';
 import EventLinkList from '../../components/event-link-list.jsx';
@@ -97,13 +98,13 @@ export default async function EventPage({params}){
   <nav className="meets-event-page-back" aria-label="Atpakaļ"><Link href="/pasakumi">← Visi pasākumi</Link>
    {townSlug&&<> · <Link href={'/pasakumi/'+townSlug}>Pasākumi {municipalityLocative(event.municipality)}</Link></>}</nav>
   {ended&&<p className="meets-event-ended" role="status"><strong>Pasākums ir beidzies.</strong> Zemāk ir citi pasākumi {townSlug?municipalityLocative(event.municipality):'tuvumā'}.</p>}
-  {/* Without a picture the title comes first; an empty image area only pushes it down. */}
-  {image&&<div className="meets-detail-hero"><img src={image} alt="" className="catalog-detail-cover"/></div>}
+  {/* The same picture top as the cards: the event's image or its theme picture,
+      with the theme, the heart, the date chip and the title. */}
+  <EventCardMedia event={event} today={today} title={event.title} heading="h1" className="ec-page-media"/>
   <div className="meets-detail-body">
-   <div className="meets-detail-headline"><span className="meets-detail-tag">{cardCategory(event)}</span><h1>{event.title}</h1></div>
    {/* The same facts as on the map card, plus the full date. */}
    <div className="meets-detail-key-facts event-facts-page">
-    <EventFacts event={event} today={rigaTodayIso()} clock={rigaClockMinutes()}/>
+    <EventFacts event={event} today={today} clock={rigaClockMinutes()} hideWhen/>
     <span className="event-facts-date">{cardDate({...event,time_from:null})}{time!=='Nav norādīts'?' · '+time:''}</span>
     <EventVenueFavorite event={event} compact/>
    </div>

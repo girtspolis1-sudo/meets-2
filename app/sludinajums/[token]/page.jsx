@@ -2,7 +2,8 @@ import {headers} from 'next/headers';
 import {notFound} from 'next/navigation';
 import {cache} from 'react';
 import FlyerToolbar from './flyer-toolbar.jsx';
-import MeetsSunMark from '../../components/meets-sun-mark.jsx';
+import TopicScene from '../../components/topic-scenes.jsx';
+import {topicArt} from '../../../lib/topic-art.js';
 import {readSharedEvent,requestOrigin} from '../../../lib/shared-event-server.js';
 import {coverImageUrl,excerpt,flyerDateBadge,flyerTextLines,placeLines,priceLine,scheduleLines,sharePath} from '../../../lib/shared-event.js';
 import {qrPath} from '../../../lib/qr-path.js';
@@ -32,11 +33,13 @@ export default async function FlyerPage({params}){
  const textLines=flyerTextLines({title:event.title,when,where,price});
  const text=textLines?excerpt(event.description,textLines*65):'';
  const org=event.organization?.name||'';
+ // Without the organizer's image: the theme picture, as on the event cards.
+ const art=topicArt({title:event.title,primary_category:event.category});
  return <div className="flyer-screen">
   <FlyerToolbar backHref={sharePath(token)}/>
   <article className={'flyer-sheet'+(image?' has-image':'')} aria-label={'Sludinājums: '+event.title}>
    <div className="flyer-top">
-    {image?<img src={image} alt=""/>:<MeetsSunMark className="flyer-mark"/>}
+    {image?<img src={image} alt=""/>:<div className="flyer-art" style={{backgroundColor:art.color}}><TopicScene scene={art.scene}/></div>}
     {badge&&<span className={'flyer-date flyer-date-'+badge.kind}><strong>{badge.main}</strong><small>{badge.sub}</small></span>}
    </div>
    <div className="flyer-body">
