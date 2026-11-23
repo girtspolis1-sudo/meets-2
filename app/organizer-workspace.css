@@ -79,15 +79,15 @@
 .public-organizer-logo{width:82px;height:82px;border-radius:20px;background:#e8ecf2;display:grid;place-items:center;overflow:hidden;color:#9b323d;font-size:32px;font-weight:850}.public-organizer-logo img{width:100%;height:100%;object-fit:cover}
 .public-organizer-hero p{margin:6px 0;color:#74657c;line-height:1.55}.public-organizer-contacts{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.public-organizer-contacts a{font-size:12px;color:#993640}
 .public-organizer-section{border:1px solid #e6dcea;background:#fff;border-radius:18px;padding:20px;margin-top:14px}
-.public-event-grid,.public-venue-grid,.following-event-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.public-event-grid article,.public-venue-grid article,.following-event-grid article{border:1px solid #e4e9ef;border-radius:13px;padding:13px;min-width:0}.public-event-grid span,.following-event-grid span{font-size:11px;color:#7a6885;font-weight:750}.public-event-grid h3,.public-venue-grid h3,.following-event-grid h3{font-size:15px;margin:5px 0}.public-event-grid p,.public-venue-grid p,.following-event-grid p{font-size:12px;color:#786b80;margin:5px 0}.public-event-grid a,.public-venue-grid a,.following-event-grid a{font-size:12px;color:#993640}
+.public-event-grid,.public-venue-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.public-event-grid article,.public-venue-grid article{border:1px solid #e4e9ef;border-radius:13px;padding:13px;min-width:0}.public-event-grid span{font-size:11px;color:#7a6885;font-weight:750}.public-event-grid h3,.public-venue-grid h3{font-size:15px;margin:5px 0}.public-event-grid p,.public-venue-grid p{font-size:12px;color:#786b80;margin:5px 0}.public-event-grid a,.public-venue-grid a{font-size:12px;color:#993640}
 .following-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 
 @media(max-width:960px){
  .org-card-grid{grid-template-columns:1fr}.org-metric-grid{grid-template-columns:repeat(2,1fr)}
  .org-filters{grid-template-columns:repeat(2,1fr)}
  .org-table-head{display:none}.org-table-row{grid-template-columns:1fr 1fr;padding:13px}.org-table-row>*{min-width:0}.org-table-row>*::before{content:attr(data-label);display:block;font-size:9px;color:#95889b;text-transform:uppercase;font-weight:800;margin-bottom:3px}.org-table-row>div:first-child,.org-table-row>.org-row-actions{grid-column:1/-1}
- .public-event-grid,.public-venue-grid,.following-event-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .public-event-grid,.public-venue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:720px){
  .org-workspace,.public-organizer-page{padding:16px 12px 46px}.org-page-head{display:grid}.org-head-actions{justify-content:flex-start}.org-head-actions select{max-width:100%;width:100%}
@@ -98,7 +98,7 @@
  .org-invite{grid-template-columns:1fr}.event-editor-context{justify-content:stretch}.event-editor-context label{min-width:0;width:100%}
  .event-editor-actions{bottom:4px}.quick-flow-actions.event-editor-actions .button{flex:1 1 140px}
  .public-organizer-hero{grid-template-columns:58px 1fr}.public-organizer-logo{width:58px;height:58px;border-radius:15px;font-size:24px}.public-organizer-hero>.meets-follow-control{grid-column:1/-1}
- .following-grid,.public-event-grid,.public-venue-grid,.following-event-grid{grid-template-columns:1fr}
+ .following-grid,.public-event-grid,.public-venue-grid{grid-template-columns:1fr}
 }
 @media(max-width:430px){
  .org-workspace{padding-left:10px;padding-right:10px}.org-metric-grid{gap:7px}.org-section-tabs button{padding:8px 10px;font-size:12px}
@@ -466,23 +466,12 @@
 .org-site-section-head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
 .org-site-section-head h2,.org-site-card h2{margin:0;font-size:22px}
 .org-site-section-head p{margin:4px 0 0;color:#5b6475}
-.org-site-events{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
-.org-site-event{display:grid;grid-template-columns:62px minmax(0,1fr);gap:14px;padding:14px;border:1px solid #e9edf2;border-radius:16px;background:#fbfcfd}
 .org-site-date{display:grid;place-items:center;align-content:center;height:68px;border-radius:14px;background:#1b2430;color:#fff;text-align:center}
 .org-site-date strong{font:800 26px/1 var(--font-display,inherit)}
 .org-site-date span{font-size:12px;font-weight:700;opacity:.85}
-.org-site-event-body{display:flex;flex-direction:column;gap:4px;min-width:0}
-.org-site-event-when{margin:0;font-size:12px;font-weight:800;color:#7a2029}
-.org-site-event h3{margin:0;font-size:17px;line-height:1.3}
-.org-site-event h3 a{color:#1b2430;text-decoration:none}
-.org-site-event h3 a:hover{text-decoration:underline}
-.org-site-event-place{margin:0;font-size:13px;color:#5b6475}
-.org-site-event-text{margin:0;font-size:13px;line-height:1.5;color:#667085;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-.org-site-event-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px}
 .org-site-tags{display:flex;gap:6px;flex-wrap:wrap}
 .org-site-tags span{padding:2px 8px;border-radius:999px;background:#eef1f6;font-size:12px;font-weight:700;color:#4b5565}
 .org-site-tags span.free{background:#e7f6ee;color:#1d6b43}
-.org-site-event-actions{display:flex;flex-wrap:wrap;gap:6px}
 .org-site-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
 .org-site-card h2{margin-bottom:12px}
 .org-site-place{display:grid;gap:10px;padding-bottom:12px}
@@ -509,7 +498,6 @@
  .org-site-logo{width:64px;height:64px;border-radius:16px}
  .org-site-actions{grid-column:1/-1;min-width:0;grid-template-columns:1fr 1fr}
  .org-site-actions>.button{grid-column:1/-1}
- .org-site-events{grid-template-columns:1fr}
  .org-site-section,.org-site-card{padding:16px}
  .meets-minisite-home{font-size:13px;padding:7px 12px}
 }
@@ -637,16 +625,10 @@
 .org-status-tabs button.active{background:var(--tinte,#1b2430);border-color:var(--tinte,#1b2430);color:#fff}
 .org-status-tabs button.active span{background:rgba(255,255,255,.18);color:#fff}
 .org-status-tabs button:focus-visible{outline:3px solid var(--tinte,#1b2430);outline-offset:2px}
-.org-event-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
 .org-event{display:grid;grid-template-columns:minmax(0,1fr) 190px minmax(240px,1.15fr) 184px;align-items:center;gap:10px 18px;padding:14px 16px;border:1px solid #e3e8ee;border-radius:16px;background:#fff}
 .org-event.lifecycle-archived{background:#f7f8fa}
-.org-event-main{display:grid;gap:3px;min-width:0}
-.org-event-main strong{font-size:15.5px;line-height:1.3;overflow-wrap:anywhere}
-.org-event-main small{font-size:13px;line-height:1.4;color:#4a5565}
 .org-event-tn{display:inline-flex;align-items:center;gap:6px;margin-top:2px;font-size:13px;font-weight:650;color:#1b2430}
 .org-event-tn a{color:inherit;text-decoration:underline;text-underline-offset:2px}
-.org-event-state{display:grid;gap:4px;justify-items:start}
-.org-event-actions{justify-self:end}
 .org-reach{display:grid;gap:6px;min-width:0}
 .org-reach-who{font-size:13px;font-weight:650;line-height:1.35;color:#1b2430}
 .org-reach-places{display:flex;flex-wrap:wrap;gap:5px;margin:0;padding:0;list-style:none}
@@ -659,13 +641,10 @@
 .org-tournament-event{color:#1b2430}
 @media(max-width:1180px){
  .org-event{grid-template-columns:minmax(0,1fr) auto}
- .org-event-state{grid-column:2;grid-row:1;justify-items:end}
  .org-reach{grid-column:1/-1}
- .org-event-actions{grid-column:1/-1;justify-self:start}
 }
 @media(max-width:560px){
  .org-event{grid-template-columns:minmax(0,1fr);padding:13px}
- .org-event-state{grid-column:1;grid-row:auto;justify-items:start}
 }
 
 /* Sidebar: create an event or a tournament. */

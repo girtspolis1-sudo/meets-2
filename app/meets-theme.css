@@ -74,16 +74,6 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 /* Time chips: selected = ink, like the map filters ------------------------- */
 .catalog-period-chips button[aria-pressed="true"],
 .catalog-period-chips button.active{background:var(--tinte);border-color:var(--tinte);color:#fff}
-
-/* Event cards: flat category tints instead of gradients -------------------- */
-.meets-card-symbol{background:#eef1f4}
-.theme-sport .meets-card-symbol,.theme-active .meets-card-symbol{background:var(--priede-soft)}
-.theme-culture .meets-card-symbol,.theme-stage .meets-card-symbol{background:var(--karmins-soft)}
-.theme-markets .meets-card-symbol{background:var(--dzintars-soft)}
-.meets-discovery-card.catalog-event-card{border-color:var(--migla);box-shadow:none}
-.meets-discovery-card.catalog-event-card:hover{border-color:#b9c3cf;box-shadow:0 4px 14px rgba(27,36,48,.08)}
-.meets-discovery-card .meets-card-category{color:var(--teksts-2);text-transform:none;letter-spacing:0;font-size:12px;font-weight:700}
-.meets-discovery-card .meets-discovery-card-facts h3{color:var(--tinte)}
 .event-facts-when{color:var(--tinte)}
 /* The day line of an event card carries the term colour, like the map pins. */
 .event-facts-when.term-today,.event-facts-when.term-tomorrow,.event-facts-when.term-later,.event-facts-when.term-ended{align-self:flex-start;width:fit-content;max-width:100%;box-sizing:border-box;padding:2px 9px;border-radius:999px}
@@ -110,9 +100,6 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .nearby-group.group-today h3{color:var(--sodien-text)}
 .nearby-group.group-tomorrow h3{color:var(--rit-text)}
 .nearby-group h3 span{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:0;color:var(--teksts-2)}
-.nearby-item{border-color:var(--migla)}
-.nearby-item:hover,.nearby-item.is-highlighted{border-color:var(--tinte);box-shadow:0 0 0 1px var(--tinte)}
-.nearby-item:has(.nearby-live.now){border-color:var(--sodien);background:var(--sodien-soft);box-shadow:inset 4px 0 0 var(--sodien)}
 
 /* Category icons and chips ------------------------------------------------ */
 .meets-category-icon{flex:none;vertical-align:-.2em}
@@ -132,7 +119,6 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 /* C3 term colours everywhere ------------------------------------------------ */
 .nearby-live.now{background:var(--sodien-badge);color:#fff}
 .nearby-live.soon{background:var(--sodien-soft);color:var(--sodien-text);box-shadow:inset 0 0 0 1px #b9e3cb}
-.meets-discovery-card:has(.nearby-live.now){border-color:var(--sodien);box-shadow:inset 4px 0 0 var(--sodien)}
 .catalog-day-heading.is-today .day-number{color:var(--sodien-text)}
 .catalog-day-heading.is-tomorrow .day-number{color:#a87a00}
 .catalog-day-heading .day-label::before{content:'';display:inline-block;width:9px;height:9px;margin:0 8px 1px 0;border-radius:50%;background:var(--velak);vertical-align:middle}
@@ -144,16 +130,7 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .event-date-badge.tomorrow,.event-date-badge-prominent.tomorrow{background:var(--rit-soft);color:var(--rit-text);border-color:#efd892}
 .event-date-badge.future,.event-date-badge-prominent.future{background:var(--velak-soft);color:var(--velak-text);border-color:#efc4c1}
 .event-date-indicator.ended-today,.event-date-badge.ended-today,.event-date-badge-prominent.ended-today{background:#f3f5f7;color:#4a5565;border-color:#d8dee6}
-
-.c3-card-symbol{position:relative;overflow:visible}
 .c3-days-chip{display:inline-block;min-width:24px;height:19px;box-sizing:border-box;padding:0 6px;border:2px solid #fff;border-radius:10px;background:var(--velak-badge);color:var(--velak-text);font:800 11px/15px var(--font-body);text-align:center;font-variant-numeric:tabular-nums}
-.c3-card-symbol .c3-days-chip{position:absolute;right:-8px;top:-7px}
-.meets-discovery-card-media{position:relative}
-.meets-discovery-card-media>.c3-days-chip{position:absolute;left:10px;top:10px;height:22px;line-height:18px;font-size:12px}
-.c3-card-symbol{box-shadow:inset 0 0 0 2px var(--velak)}
-.c3-card-symbol.tone-today{box-shadow:inset 0 0 0 2px var(--sodien)}
-.c3-card-symbol.tone-tomorrow{box-shadow:inset 0 0 0 2px var(--rit)}
-.c3-card-symbol.tone-ended{box-shadow:inset 0 0 0 2px var(--beidzies)}
 .tone-today>.c3-days-chip,.c3-days-chip.tone-today{background:var(--sodien-badge);color:#fff}
 .tone-tomorrow>.c3-days-chip,.c3-days-chip.tone-tomorrow{background:var(--rit-badge);color:var(--tinte)}
 .tone-ended>.c3-days-chip,.c3-days-chip.tone-ended{background:#eef1f4;color:#4a5565}
@@ -255,41 +232,26 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 @keyframes c3-now-pulse{0%{transform:scale(1);opacity:.85}100%{transform:scale(2.1);opacity:0}}
 @media (prefers-reduced-motion:reduce){.c3-pin-days.c3-pin-now::after{animation:none;display:none}}
 
-/* ---- Event cards (Pasākumi, home): symmetric layout, topic icon, marks, actions ---- */
-.meets-discovery-card.catalog-event-card{height:100%}
-.meets-discovery-card.no-image{grid-template-rows:auto;align-content:stretch}
-.meets-discovery-card .meets-discovery-card-body{display:flex;flex-direction:column;gap:6px;height:100%}
-/* Same rhythm in every card: title up to 3 lines, place 1 line, description always 2 lines. */
-.meets-discovery-card .meets-discovery-card-facts h3{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
-.meets-discovery-card .meets-discovery-description{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-@media (min-width:700px){.meets-discovery-card .meets-discovery-description{min-height:calc(2 * 1.5em)}}
-/* The first line (time, "Notiek tagad") stays clear of the heart button. */
-.meets-discovery-card .meets-discovery-card-facts>.event-facts-when{max-width:calc(100% - 42px);white-space:normal}
-.meets-discovery-card .meets-discovery-description.is-empty{color:#9aa3b2;font-style:italic}
+/* ---- Event cards (Pasākumi, home): symmetric layout, topic icon, marks{height:100%}
+/* Same rhythm in every card: title up to 3 lines, place 1 line{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 .meets-card-links{display:flex;flex-direction:column;gap:3px;font-size:12.5px;line-height:1.4;min-width:0}
 .meets-card-links a{color:var(--accent,#9e3039);font-weight:700;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meets-card-links a:hover,.meets-card-links a:focus-visible{text-decoration:underline}
 .meets-card-organizer{color:#5b6475;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meets-card-original.is-missing{color:#9aa3b2}
-/* Footer is pinned to the bottom, so the rows line up across a grid row. */
-.meets-discovery-card .meets-card-footer{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid #edf0f4}
+/* Footer is pinned to the bottom{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid #edf0f4}
 .meets-card-follows{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .meets-card-follows .meets-follow-control{display:inline-flex;align-items:center;gap:6px}
 .meets-card-follow-org{min-height:36px;padding:6px 12px;border:1px solid var(--migla,#dfe5ec);border-radius:10px;background:#fff;color:#2a3346;font:700 13px/1.2 var(--font-body);cursor:pointer}
 .meets-card-follow-org[aria-pressed="true"]{border-color:#b9dcc7;background:#eef8f2;color:#1d6b43}
 .meets-card-follows .meets-follow-control small{font-size:11px;color:#5b6475}
-.meets-discovery-card .meets-card-footer .meets-quiet-actions.meets-event-actions-wrapper{margin:0}
-.meets-discovery-card .meets-card-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions{margin:0;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
-.meets-discovery-card .meets-card-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions>.meets-circle-action{max-width:none;height:50px;min-height:50px;border-color:#edf0f4}
 /* Today: a green pulsing dot instead of "0d". */
 .c3-days-chip.c3-days-now{min-width:0;width:16px;height:16px;padding:0;border-radius:50%;background:var(--sodien-badge);overflow:visible}
 .c3-days-chip.c3-days-now::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--sodien-badge);animation:c3-now-pulse 1.6s ease-out infinite}
 .c3-days-chip.c3-days-now.ended{background:#b6bfca}
 .c3-days-chip.c3-days-now.ended::after{display:none}
-.c3-card-symbol .c3-days-chip.c3-days-now{right:-5px;top:-5px}
 /* Paid: a small "€" mark at the lower corner of the icon. */
 .c3-price-chip{display:inline-grid;place-items:center;min-width:19px;height:19px;box-sizing:border-box;padding:0 4px;border:2px solid #fff;border-radius:10px;background:#1b2430;color:#fff;font:800 11px/1 var(--font-body)}
-.c3-card-symbol .c3-price-chip{position:absolute;right:-7px;bottom:-6px}
 .c3-media-marks{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:4px}
 .c3-media-marks .c3-days-chip{position:relative;height:22px;line-height:18px;font-size:12px}
 .c3-media-marks .c3-days-chip.c3-days-now{width:18px;height:18px}
@@ -318,7 +280,6 @@ body:not(.admin-environment) .meets-card-main-action:hover{background:var(--karm
 .map-chip-row .map-long-toggle[aria-pressed="false"]{color:#8a93a0;background:#f3f5f8}
 .c3-days-chip.c3-days-until{min-width:0;padding:0 5px;font-size:10px;background:#eef1f4;color:#4a5565;white-space:nowrap}
 .c3-days-chip.c3-days-until.last{background:#fde8c8;color:#7a4a05}
-.c3-card-symbol .c3-days-chip.c3-days-until{right:auto;left:22px}
 .event-facts-when.term-long,.event-facts-when.term-lastdays{align-self:flex-start;width:fit-content;max-width:100%;box-sizing:border-box;padding:2px 9px;border-radius:999px}
 .event-facts-when.term-long{background:#eef1f4;color:#4a5565}
 .event-facts-when.term-lastdays{background:#fde8c8;color:#7a4a05}

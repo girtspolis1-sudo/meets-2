@@ -30,8 +30,6 @@
 /* On a phone the back arrow already leads to the organizer's events or the public list. */
 @media(max-width:420px){.shared-nav-links .shared-nav-link:nth-child(2){display:none}}
 .meets-shared-event .meets-detail-hero{margin-top:0}
-.shared-event-cover-fallback{display:grid;place-items:center;height:200px;background:#eef1f5;color:var(--tinte,#1b2430)}
-.shared-event-cover-fallback svg{width:120px;height:120px;opacity:.16}
 .shared-event-organizer{margin:6px 0 0;color:var(--teksts-2,#4a5565);font-size:14px}
 .shared-event-organizer a{color:var(--karmins,#9e3039);font-weight:700}
 .shared-event-facts{display:grid;gap:8px;margin:0}
