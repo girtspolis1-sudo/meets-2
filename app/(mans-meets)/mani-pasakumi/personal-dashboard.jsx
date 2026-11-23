@@ -2,6 +2,7 @@
 import {useMemo,useState} from 'react';
 import Link from 'next/link';
 import PersonalMap from './personal-map.jsx';
+import EventRow from '../../components/event-row.jsx';
 import EventQuickActions from '../../components/event-quick-actions.jsx';
 import {PlanIcon,HeartIcon,CheckIcon,CalendarIcon,RouteIcon,ExternalIcon,BellIcon} from './event-icons.jsx';
 import {eventsAtPlace} from '../../../lib/location-follow.js';
@@ -22,13 +23,9 @@ function EventCard({event,favorites,plans,visits,reminders,busy,onToggle,onRemin
   const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='meets-'+event.id+'.ics';
   document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
- return <article className="meets-personal-event">
-  <div className="meets-personal-event-top"><div className="meets-account-day"><strong>{event.date_from?.slice(8,10)||'—'}</strong><small>{event.date_from?.slice(5,7)||''}.</small></div>
-  <div className="meets-personal-event-main"><h3>{event.title}</h3>
-   <p>{[dateText(event.date_from),event.time_from?.slice(0,5),event.venue_name||event.municipality].filter(Boolean).join(' · ')}</p>
-  </div></div>
-  <div className="meets-personal-event-bottom">
-   <EventQuickActions event={event} saved={favorites.includes(event.id)}
+ // The shared EventRow (personal variant); the plan, visit and reminder controls are its footer.
+ return <EventRow as="article" event={event} variant="personal" footer={<>
+   <EventQuickActions event={event} quiet compact saved={favorites.includes(event.id)}
     disabledFavorite={busy} onSave={id=>onToggle(id,'favorite')} onCalendar={downloadCalendar}/>
    <div className="meets-personal-status-actions" role="group" aria-label="Pasākuma statuss">
     <button type="button" className={plans.includes(event.id)?'chosen':''} disabled={busy}
@@ -44,8 +41,8 @@ function EventCard({event,favorites,plans,visits,reminders,busy,onToggle,onRemin
      <option value="0">Izslēgts</option><option value="1440">1 dienu iepriekš</option><option value="120">2 stundas iepriekš</option>
     </select>
    </label>
-  </div>
- </article>;
+  </>}/>;
+
 }
 function CalendarView({events,selectedDate,setSelectedDate,month,setMonth,renderCards}){
  const [year,mm]=month.split('-').map(Number);
@@ -110,7 +107,7 @@ export default function PersonalDashboard({favorites,plans,visits,onToggle,busy,
  const unread=extra.notices.filter(n=>!n.read_at);
  const shared=extra.shared?.is_enabled&&extra.shared.share_token?'/saraksts/'+extra.shared.share_token:'';
  const shareUrl=shared?typeof window!=='undefined'?window.location.origin+shared:'https://meets.lv'+shared:'';
- const cardEvents=items=><div className="meets-account-list">{items.map(event=><EventCard key={event.id} event={event} favorites={favorites} plans={plans} visits={visits} reminders={extra.reminders} busy={busy||saving} onToggle={onToggle}
+ const cardEvents=items=><div className="meets-account-list elist">{items.map(event=><EventCard key={event.id} event={event} favorites={favorites} plans={plans} visits={visits} reminders={extra.reminders} busy={busy||saving} onToggle={onToggle}
   onReminder={(id,minutes)=>mutate({action:'reminder',eventId:id,enabled:minutes>0,leadMinutes:minutes||1440},()=>{
    setExtra(p=>({...p,reminders:minutes?[...p.reminders.filter(x=>x.event_id!==id),{event_id:id,lead_minutes:minutes}]:p.reminders.filter(x=>x.event_id!==id)}));
   })}/>)}</div>;
