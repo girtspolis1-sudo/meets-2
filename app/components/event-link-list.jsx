@@ -44,7 +44,7 @@ export default function EventLinkList({events,className=''}){
     <div className="elist-end">
      {map&&<Link className="elist-map" href={map} title={'Atvērt kartē: '+NEARBY_MAP_RADIUS+' km ap '+(event.venue_name||'pasākuma vietu')}>
       <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg>
-      <span>Kartē<span className="elist-map-radius"> · {NEARBY_MAP_RADIUS} km</span><span className="elist-map-around"> apkārtnē</span></span>
+      <span>Kartē</span>
      </Link>}
      <EventListActions event={event}/>
     </div>
