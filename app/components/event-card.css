@@ -101,9 +101,14 @@
 }
 @media(prefers-reduced-motion:reduce){.ec-card{transition:none}}
 
-/* Map cards (event-detail-card.jsx): the same picture top, flush with the card's edges. */
-.event-detail-card.ec-detail{overflow:hidden}
-.ec-detail>.ec-media.ec-detail-media{margin:-14px -14px 4px;min-height:164px}
-.ec-detail .ec-detail-media .ec-title{-webkit-line-clamp:3;font-size:17px;line-height:22px}
+/* Map cards (event-detail-card.jsx): the same picture top, flush with the card's
+   edges. No overflow:hidden on the card: in the phone sheet's grid that let the
+   rows shrink and cut off everything under the picture. The picture rounds its
+   own top corners instead, and the margins match each list's card padding. */
+.event-detail-card.ec-detail>.ec-media.ec-detail-media{margin:-14px -14px 4px;min-height:164px;border-radius:15px 15px 0 0}
+.meets-quiet-event-sheet .meets-mobile-sheet-event.ec-detail{padding:12px}
+.meets-quiet-event-sheet .meets-mobile-sheet-event.ec-detail>.ec-media.ec-detail-media{margin:-12px -12px 4px;border-radius:11px 11px 0 0}
+.event-detail-card.ec-detail .ec-media h3.ec-title,
+.meets-quiet-event-sheet .meets-mobile-sheet-event.ec-detail .ec-media h3.ec-title{margin:0;color:#fff;font-size:17px;line-height:22px;font-weight:800;letter-spacing:0;-webkit-line-clamp:3}
 .ec-detail .meets-quiet-actions .meets-event-action-grid.meets-circle-actions{grid-template-columns:repeat(4,minmax(0,1fr))}
 .ec-detail .meets-quiet-actions .meets-event-action-grid.meets-circle-actions>.meets-circle-action{max-width:none}
