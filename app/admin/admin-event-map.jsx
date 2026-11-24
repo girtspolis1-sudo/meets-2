@@ -1,5 +1,7 @@
 'use client';
 
+import {rowTile} from '../../lib/event-row.js';
+import {TOPIC_PALETTES} from '../../lib/topic-art.js';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {eventDateRangeLabel,eventDateState,groupDateTone,rigaTodayIso} from '../../lib/event-date.js';
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
@@ -55,7 +57,8 @@ function popupHtml(group,now){
   const status=event.status||'';
   const rangeLabel=eventDateRangeLabel(event,dateText);
   const rowClass=state.tone==='ended-today'?' class="popup-event-ended"':'';
-  return '<li'+rowClass+'><strong>'+esc(event.title)+'</strong>'+
+  const tile=rowTile(event);
+  return '<li'+rowClass+'><span class="admin-popup-tile" style="background:'+TOPIC_PALETTES[tile.palette]+'" aria-hidden="true"><b>'+esc(tile.day)+'</b><small>'+esc(tile.month)+'</small></span><strong>'+esc(event.title)+'</strong>'+
    '<span class="popup-date-row"><span class="event-date-indicator '+esc(state.tone)+'" aria-hidden="true">●</span><span class="event-date-badge '+esc(state.tone)+'" title="'+esc(state.label)+'">'+esc(state.badge)+'</span><span>'+esc(rangeLabel)+' · '+esc(timeText(event))+'</span></span>'+
    '<small>'+esc([status,quality].filter(Boolean).join(' · '))+'</small>'+
    '<button type="button" class="admin-popup-edit" data-admin-edit="'+esc(event.id)+'">Labot</button></li>';

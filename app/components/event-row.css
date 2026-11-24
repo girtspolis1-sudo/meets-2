@@ -85,3 +85,13 @@
  .erow-map .erow-info{grid-column:2}
  .erow-map .erow-actions{grid-column:3;grid-row:1}
 }
+
+/* Admin (prompt_vienoti_pasakumi.md, step 5): the same tile, smaller, in the
+   register table and the map popup; the public picture in a submission card. */
+.admin-register-when{display:flex;align-items:center;gap:8px}
+.admin-register-when .erow-tile{flex:none;width:36px;height:36px;border-radius:9px}
+.admin-register-when .erow-tile strong{font-family:var(--font-display,Unbounded,system-ui,sans-serif);font-weight:700;font-size:13px;line-height:1;color:#fff}
+.admin-register-when .erow-tile small{margin-top:1px;font-size:8px;font-weight:800;letter-spacing:.06em}
+.admin-popup-tile{float:left;display:flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:34px;margin:2px 8px 4px 0;border-radius:9px;color:#fff;font-size:8px;font-weight:800;letter-spacing:.06em}
+.admin-popup-tile b{font-size:13px;line-height:1;letter-spacing:0}
+.admin-submission-preview{max-width:420px;margin:0 0 12px;border-radius:18px;overflow:hidden;border:1px solid #d8dee6}
