@@ -1,6 +1,7 @@
 'use client';
 import {useMemo,useState} from 'react';
 import Link from 'next/link';
+import EventRow from '../../components/event-row.jsx';
 const names=['Janvāris','Februāris','Marts','Aprīlis','Maijs','Jūnijs','Jūlijs','Augusts','Septembris','Oktobris','Novembris','Decembris'];
 const days=['P','O','T','C','P','S','Sv'];
 const format=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
@@ -26,13 +27,7 @@ export default function VenueCalendar({events=[],embedded=false}){
    .venue-month-day{min-width:0;min-height:55px;padding:5px;border:1px solid #e2e7ee;border-radius:9px;background:white;position:relative;font-size:13px}
    .venue-month-day.has-events{background:#f3f6f9;border-color:#e0babe}
    .venue-month-day small{display:block;margin-top:4px;color:#96454d;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-   .venue-event-list{display:grid;gap:10px}
-   .venue-event{display:flex;gap:14px;border:1px solid #e3dfeb;background:#fff;border-radius:13px;padding:13px;min-width:0}
-   .venue-event>img{width:90px;height:90px;object-fit:cover;border-radius:10px}
-   .venue-event h3{font-size:16px;line-height:1.3;margin:4px 0}
-   .venue-event p{color:#647084;font-size:13px;margin:4px 0}
-   .venue-event a{color:#a43e48;font-weight:700;font-size:13px;text-decoration:none}
-   @media(max-width:420px){.venue-month-day{min-height:43px;font-size:11px}.venue-month-day small{font-size:9px}.venue-event>img{width:64px;height:64px}}
+   @media(max-width:420px){.venue-month-day{min-height:43px;font-size:11px}.venue-month-day small{font-size:9px}}
   `}</style>
   <div className="venue-calendar-head"><h2>{names[current.getMonth()]} {current.getFullYear()}</h2>
    <div><button type="button" aria-label="Iepriekšējais mēnesis" onClick={()=>move(-1)}>←</button><button type="button" aria-label="Nākamais mēnesis" onClick={()=>move(1)}>→</button></div></div>
@@ -43,12 +38,9 @@ export default function VenueCalendar({events=[],embedded=false}){
     <strong>{i+1}</strong>{byDay.has(i+1)&&<small>{byDay.get(i+1)} pas.</small>}</div>)}
   </div>
   <section className="venue-event-list" aria-label="Mēneša pasākumi">
-   {entries.map(e=><article className="venue-event" key={e.id}>
-    {e.image_url&&<img src={e.image_url} alt="" loading="lazy"/>}
-    <div><small>{nice(e.date_from)}{e.time_from?' · '+String(e.time_from).slice(0,5):''}</small><h3>{e.title}</h3>
-     <p>{label(e)} · {e.category||'Pasākums'}</p>
-     <Link href={'/karte?event='+e.id} target={embedded?'_blank':undefined} rel={embedded?'noopener noreferrer':undefined}>Skatīt kartē ↗</Link>
-    </div></article>)}
+   <ul className="event-link-list elist">{entries.map(e=><EventRow key={e.id} event={{...e,primary_category:e.primary_category||e.category}} href={false}
+    title={<span className="erow-title">{e.title}</span>} place={label(e)}
+     actions={<div className="erow-actions"><Link className="button" href={'/karte?event='+e.id} target={embedded?'_blank':undefined} rel={embedded?'noopener noreferrer':undefined}>Kartē ↗</Link></div>}/>)}</ul>
    {!entries.length&&<p>Šajā mēnesī nav publicētu pasākumu.</p>}
   </section>
  </div>;

@@ -1,8 +1,9 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {countLabel} from '../../lib/map-nearby.js';
+import {countLabel,distanceLabel} from '../../lib/map-nearby.js';
+import {rowPlace} from '../../lib/event-row.js';
+import EventRow from '../components/event-row.jsx';
 import {isBackgroundLong} from '../../lib/event-duration.js';
-import EventFacts from '../components/event-facts.jsx';
 import EventDetailCard from '../components/event-detail-card.jsx';
 import EventVenueFavorite from '../components/event-venue-favorite.jsx';
 
@@ -10,18 +11,20 @@ const PAGE=40;
 // Phone sheet heights: the header only, half of the map, nearly all of it.
 const SHEET_STATES=['peek','half','full'];
 
+// One event in the map list: the shared EventRow (map variant). The title selects
+// the event on the map; the heart saves it.
 function NearbyItem({item,today,clock,saved,highlighted,onSelect,onHover,onFavorite}){
  const {event,km}=item;
- return <li className={'nearby-item'+(highlighted?' is-highlighted':'')} data-event-id={event.id}
-  onMouseEnter={()=>onHover(event)} onMouseLeave={()=>onHover(null)}>
-  <button type="button" className="nearby-item-main" onClick={()=>onSelect(event)} onFocus={()=>onHover(event)} onBlur={()=>onHover(null)}>
-   <EventFacts event={event} today={today} clock={clock} km={km} compact title={<strong className="nearby-title">{event.title}</strong>}/>
-  </button>
-  <button type="button" className={'nearby-save'+(saved?' saved':'')} aria-pressed={saved} onClick={()=>onFavorite(event.id)}
-   aria-label={saved?'Noņemt no saglabātajiem: '+event.title:'Saglabāt: '+event.title} title={saved?'Saglabāts':'Saglabāt'}>
-   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>
-  </button>
- </li>;
+ const place=[distanceLabel(km),rowPlace(event)].filter(Boolean).join(' · ')||'Vieta nav norādīta';
+ return <EventRow event={event} today={today} variant="map" highlighted={highlighted} data-event-id={event.id} place={place}
+  onMouseEnter={()=>onHover(event)} onMouseLeave={()=>onHover(null)}
+  title={<button type="button" className="erow-title" onClick={()=>onSelect(event)} onFocus={()=>onHover(event)} onBlur={()=>onHover(null)}>{event.title}</button>}
+  actions={<div className="erow-actions">
+   <button type="button" className="erow-btn" aria-pressed={saved} onClick={()=>onFavorite(event.id)}
+    aria-label={saved?'Noņemt no saglabātajiem: '+event.title:'Saglabāt: '+event.title} title={saved?'Saglabāts':'Saglabāt'}>
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+   </button>
+  </div>}/>;
 }
 
 // The events at one map place, shown in the side panel instead of a map popup.
