@@ -48,6 +48,7 @@
 .erow .erow-actions .button{min-height:40px}
 
 /* Footer line under the row, from the date tile's edge to the end. */
+.erow-footer:empty{display:none}
 .erow-footer{grid-column:2/-1;padding-top:10px;border-top:1px solid #eef1f4;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;min-width:0}
 
 /* The card's quiet action row inside a footer: small icons in one line. */

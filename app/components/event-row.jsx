@@ -24,7 +24,7 @@ export default function EventRow({event,today=rigaTodayIso(),variant='public',ti
    {heading}
    <span className="erow-facts">
     <WhenChip event={event} today={today}/>
-    {status&&<StatusChip status={status}/>}
+    {status&&(typeof status==='string'?<StatusChip status={status}/>:status)}
     <span className="erow-place">{place??rowPlace(event)}</span>
    </span>
    <span className="erow-theme">{tile.label}{badges.map(b=><span key={b} className="erow-badge">{b}</span>)}</span>
