@@ -1874,22 +1874,15 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .meets-account-tabs button{border:1px solid #e2e8f0;border-radius:999px;padding:10px 18px;cursor:pointer;background:white;color:#475569;font-weight:650}
 .meets-account-tabs button.active{background:#f0f3f7;border-color:#eec4c8;color:#a3343f}
 .meets-account-list{display:grid;gap:10px}
-.meets-account-event{display:flex;align-items:flex-start;gap:16px;background:#fff;border:1px solid #e2e8f0;border-radius:15px;padding:16px}
 .meets-account-day{flex:0 0 56px;display:grid;place-items:center;padding:10px;border-radius:10px;background:#f7f9fb;color:#a3343f}
 .meets-account-day strong{font-size:23px}.meets-account-day small{font-size:12px}
-.meets-account-event-body{flex:1;min-width:0}
-.meets-account-event h3{font-size:16px;margin:1px 0 5px;line-height:1.3}
-.meets-account-event p{color:#64748b;font-size:13px;margin:0 0 10px}
-.meets-account-event-actions{display:flex;gap:9px}
-.meets-account-event-actions button,.meets-account-event-actions a{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;border:1px solid #e2e8f0;color:#475569;background:#fff;text-decoration:none;font-size:20px;cursor:pointer}
-.meets-account-event-actions button[aria-pressed="true"]{background:#f9fafc;color:#c33e4b}
 .meets-account-empty{text-align:center;padding:45px 15px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:18px}
 .meets-account-empty>span{font-size:36px;color:#b83a46}
 .meets-account-empty h3{margin:8px 0}
 .meets-account-empty .button{margin-top:12px}
 .meets-organizer-intro{border-top:1px solid #e2e8f0;margin-top:40px;padding:24px 4px}
 .meets-organizer-intro h2{font-size:19px}.meets-organizer-intro p{color:#64748b;font-size:14px}
-@media(max-width:520px){.meets-account-page{padding:20px 14px 48px}.meets-account-login{padding:20px}.meets-account-event{gap:10px;padding:12px}.meets-account-day{flex-basis:46px;padding:7px}.meets-account-event h3{font-size:14px}}
+@media(max-width:520px){.meets-account-page{padding:20px 14px 48px}.meets-account-login{padding:20px}.meets-account-day{flex-basis:46px;padding:7px}}
 
 /* Account onboarding: compact password visibility and feedback */
 .meets-password-field{display:flex;align-items:center;position:relative}
@@ -2107,10 +2100,6 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .meets-personal-dashboard .meets-account-stats>div{min-width:0}
 .meets-personal-tabs{display:flex!important;flex-wrap:nowrap!important;align-items:stretch;gap:5px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:2px 0 9px;scrollbar-width:thin}
 .meets-personal-tabs button{flex:0 0 auto;white-space:nowrap;min-height:40px;padding:9px 13px}
-.meets-personal-event{display:flex;align-items:flex-start;gap:14px;border:1px solid #dde4ed;border-radius:17px;background:#fff;padding:16px;box-shadow:0 4px 14px rgba(28,39,53,.035)}
-.meets-personal-event-main{min-width:0;flex:1;display:grid;gap:8px}
-.meets-personal-event-main h3{font-size:17px;line-height:1.35;margin:0;color:#17202c}
-.meets-personal-event-main>p{color:#75677b;font-size:12px;line-height:1.55;margin:0}
 .meets-personal-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
 .meets-personal-actions button,.meets-personal-links a,.meets-personal-share-link button,.meets-personal-follow-row button{display:inline-flex;justify-content:center;align-items:center;gap:4px;min-height:32px;padding:6px 10px;border-radius:9px;border:1px solid #d5dee8;background:#f9fafc;color:#65393e;font-size:12px;line-height:1.3;text-decoration:none;cursor:pointer;font-weight:600}
 .meets-personal-actions button:hover,.meets-personal-links a:hover,.meets-personal-share-link button:hover,.meets-personal-follow-row button:hover{border-color:#d26b75;background:#f0f3f7}
@@ -2170,8 +2159,6 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .meets-personal-notices>div{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .meets-personal-notices button{border:1px solid #e6cacd;border-radius:9px;background:#fff;padding:7px 9px;cursor:pointer;color:#883840}
 @media(max-width:600px){
- .meets-personal-event{padding:12px;gap:9px}
- .meets-personal-event-main h3{font-size:15px}
  .meets-personal-actions button{font-size:11px;padding:6px 8px}
  .meets-personal-dashboard .meets-account-stats{gap:7px}
  .meets-personal-calendar-grid{gap:3px;padding:6px}
@@ -2299,10 +2286,6 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .nearby-group h3{position:sticky;top:0;z-index:1;display:flex;gap:6px;margin:0;padding:12px 6px 6px;background:#fff;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#475467}
 .nearby-group h3 span{color:#98a2b3;font-weight:600}
 .nearby-group ol{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-.nearby-item{display:flex;align-items:stretch;border:1px solid #eceef3;border-radius:14px;background:#fff;transition:border-color .15s ease,box-shadow .15s ease}
-.nearby-item:hover,.nearby-item.is-highlighted{border-color:var(--accent,#9e3039);box-shadow:0 0 0 2px var(--accent-soft,#f0f3f7)}
-.nearby-item-main{flex:1;min-width:0;display:grid;gap:2px;padding:10px 12px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:14px}
-.nearby-item-main:focus-visible{outline:3px solid var(--accent,#9e3039);outline-offset:-3px}
 .nearby-when{font-size:12px;font-weight:800;color:var(--accent-dark,#7a2029)}
 .nearby-title{font-size:15px;line-height:1.3}
 .nearby-place{overflow:hidden;font-size:13px;color:#5b6475;text-overflow:ellipsis;white-space:nowrap}
@@ -2384,7 +2367,6 @@ body.admin-environment .admin-page>.eyebrow{margin:0}
 .event-facts-when{font-size:12px;font-weight:800;color:var(--accent-dark,#7a2029)}
 .event-facts-place{font-size:13px;color:#5b6475}
 .event-facts-address{font-size:12px;color:#667085}
-.nearby-item-main .event-facts-place{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nearby-handle{display:none}
 .nearby-place{display:grid;gap:10px;padding:10px 2px}
 .nearby-place-head{display:grid;gap:4px;padding:0 4px}

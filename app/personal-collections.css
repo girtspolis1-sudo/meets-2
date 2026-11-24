@@ -94,8 +94,6 @@
  .meets-add-to-list,.meets-place-favorite button{padding:7px 8px;font-size:10px}
  .meets-card-list-trigger .meets-list-picker{right:auto;left:0}
 }
-
-.meets-discovery-card:has(.meets-list-picker){position:relative;z-index:25}
 .meets-card-list-trigger:has(.meets-list-picker){z-index:30}
 
 .meets-map-event-place{margin:9px 0 4px;display:flex;align-items:center}
@@ -356,25 +354,7 @@
  align-items:center;
 }
 .meets-list-picker input[type="checkbox"]{width:18px;height:18px}
-.meets-discovery-card-title-row h3{
- font-size:1rem;
- font-weight:700;
- letter-spacing:-.2px;
- overflow-wrap:anywhere;
-}
-.meets-discovery-card-facts{
- gap:8px;
- font-size:.8125rem;
- color:#697187;
-}
-.meets-discovery-card-facts>span:first-child{
- color:#424b66;
- font-weight:600;
-}
 .meets-discovery-description{font-size:.75rem;color:#697187}
-.meets-discovery-card .meets-card-main-action{
- min-height:44px;
-}
 .meets-card-secondary-actions summary,
 .meets-sheet-description-details summary,
 .meets-sheet-more-actions summary{
@@ -535,7 +515,6 @@
 .meets-collections .meets-collection-panel-head{margin-bottom:12px}
 .meets-collections .meets-collection-panel-head h2{font-size:18px}
 .meets-collections .meets-unified-collection-event{padding:9px 11px;gap:10px}
-.meets-collections .meets-unified-collection-event .meets-unified-event-date{height:46px;width:44px}
 .meets-collections .meets-unified-collection-event strong{font-weight:600}
 .meets-collections .meets-playlist-cover{width:52px;height:52px}
 .meets-collections .meets-playlist-card-copy strong{font-weight:600}
