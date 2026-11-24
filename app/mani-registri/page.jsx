@@ -2,6 +2,7 @@
 import {track} from '../../lib/analytics.js';
 import {Suspense,useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
+import EventRow from '../components/event-row.jsx';
 import PersonalCollections from './personal-collections.jsx';
 import {useSearchParams} from 'next/navigation';
 import {useEvents} from '../../lib/use-events.js';
@@ -13,7 +14,6 @@ import {refreshSession as renewToken} from '../../lib/auth-client.js';
 const KEY='meets_user_session_v1';
 const DEFAULT={title:'',description:'',filters:{period:'month'},is_published:false,included_event_ids:[],excluded_event_ids:[],organization_id:null};
 function sessionRead(){try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch{return null;}}
-function short(item){return (item.date_from||'Bez datuma')+' · '+item.title;}
 async function refreshSession(account){
  const next=await renewToken(account.refresh_token);localStorage.setItem(KEY,JSON.stringify(next));window.dispatchEvent(new Event('meets-user-changed'));return next;
 }
@@ -103,9 +103,11 @@ function ListsInner(){
     </div>
     <details><summary>Filtrs pēc attāluma</summary><div className="registry-grid"><label>Platums<input type="number" step="any" value={editing.filters.latitude??''} onChange={e=>filter('latitude',e.target.value)}/></label><label>Garums<input type="number" step="any" value={editing.filters.longitude??''} onChange={e=>filter('longitude',e.target.value)}/></label><label>Rādiuss<select value={editing.filters.radius||0} onChange={e=>filter('radius',Number(e.target.value))}><option value={0}>Bez rādiusa</option>{[5,10,25,30,50].map(v=><option key={v}>{v}</option>)}</select></label></div></details>
     <h3>Priekšskatījums ({preview.length})</h3><p className="registry-note">Izņemšana no saraksta neizdzēš pašu pasākumu.</p>
-    {preview.slice(0,30).map(item=><div className="registry-event-row" key={item.id}><span>{short(item)}</span><button type="button" className="button" onClick={()=>changeManual(item.id,'exclude')}>Izņemt</button></div>)}
-    {editing.excluded_event_ids?.length>0&&<details><summary>Izņemtie ({editing.excluded_event_ids.length})</summary>{editing.excluded_event_ids.map(id=><div className="registry-event-row" key={id}><span>{events.find(e=>e.id===id)?.title||'Pasākums vairs nav katalogā'}</span><button className="button" type="button" onClick={()=>changeManual(id,'restore')}>Atjaunot</button></div>)}</details>}
-    <h3>Manuāli pievienot</h3><input type="search" value={pickQuery} onChange={e=>setPickQuery(e.target.value)} placeholder="Meklēt MEETS pasākumu…"/>{found.map(item=><div className="registry-event-row" key={item.id}><span>{short(item)}</span><button className="button" type="button" onClick={()=>changeManual(item.id,'include')} disabled={(editing.included_event_ids||[]).includes(item.id)}>+ Pievienot</button></div>)}
+    <ul className="event-link-list elist">{preview.slice(0,30).map(item=><EventRow key={item.id} event={item} variant="organizer" actions={<div className="erow-actions"><button type="button" className="button" onClick={()=>changeManual(item.id,'exclude')}>Izņemt</button></div>}/>)}</ul>
+    {editing.excluded_event_ids?.length>0&&<details><summary>Izņemtie ({editing.excluded_event_ids.length})</summary>{<ul className="event-link-list elist">{editing.excluded_event_ids.map(id=>{const item=events.find(e=>e.id===id);
+     const restore=<div className="erow-actions"><button className="button" type="button" onClick={()=>changeManual(id,'restore')}>Atjaunot</button></div>;
+     return item?<EventRow key={id} event={item} variant="organizer" muted actions={restore}/>:<li key={id} className="erow erow-organizer is-muted"><span className="erow-info"><span className="erow-title">Pasākums vairs nav katalogā</span></span><div className="erow-end">{restore}</div></li>;})}</ul>}</details>}
+    <h3>Manuāli pievienot</h3><input type="search" value={pickQuery} onChange={e=>setPickQuery(e.target.value)} placeholder="Meklēt MEETS pasākumu…"/><ul className="event-link-list elist">{found.map(item=><EventRow key={item.id} event={item} variant="organizer" actions={<div className="erow-actions"><button className="button" type="button" onClick={()=>changeManual(item.id,'include')} disabled={(editing.included_event_ids||[]).includes(item.id)}>+ Pievienot</button></div>}/>)}</ul>
     <div className="registry-actions"><button className="button primary" disabled={busy||!canEdit}>{busy?'Saglabā…':'Saglabāt sarakstu'}</button><button className="button" type="button" onClick={()=>setEditing(null)}>Atcelt</button></div>
    </form>}
   </>}

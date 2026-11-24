@@ -47,6 +47,16 @@
 .erow .erow-actions{grid-column:3/-1;grid-row:1;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px}
 .erow .erow-actions .button{min-height:40px}
 
+/* Footer line under the row, from the date tile's edge to the end. */
+.erow-footer{grid-column:2/-1;padding-top:10px;border-top:1px solid #eef1f4;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;min-width:0}
+
+/* The card's quiet action row inside a footer: small icons in one line. */
+.erow-footer .meets-quiet-actions.meets-event-actions-wrapper{margin:0}
+.erow-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions{margin:0;display:flex;gap:4px}
+.erow-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions>.meets-circle-action{width:40px;height:40px;min-height:40px;max-width:none;border:1px solid #d8dee6;border-radius:12px;background:#fff;color:#1b2430;padding:0}
+.erow-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions>.meets-circle-action:is(:hover,:focus-visible,[aria-pressed="true"],[aria-expanded="true"]){background:#f6e8ea;color:#7a2029;border-color:#ecd3d6}
+.erow-footer .meets-event-action-grid.meets-circle-actions .meets-quiet-label{display:none}
+
 /* Map list: a lower row with only the heart. */
 .erow-map{grid-template-columns:48px minmax(0,1fr) auto;padding:10px 12px;column-gap:12px}
 .erow-map .erow-tile{width:48px;height:48px;border-radius:12px}
@@ -70,6 +80,7 @@
  .erow .elist-status{grid-column:1/-1}
  .erow .erow-actions{grid-column:1/-1;grid-row:2;justify-content:flex-start}
  .event-link-list li.erow{column-gap:12px;padding:12px}
+ .erow-footer{grid-column:1/-1}
  .erow-map .erow-info{grid-column:2}
  .erow-map .erow-actions{grid-column:3;grid-row:1}
 }

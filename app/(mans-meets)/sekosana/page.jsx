@@ -1,6 +1,7 @@
 'use client';
 import {useMemo,useState} from 'react';
 import Link from 'next/link';
+import EventLinkList from '../../components/event-link-list.jsx';
 import {useEvents} from '../../../lib/use-events.js';
 import {eventsAtPlace} from '../../../lib/location-follow.js';
 import {accountRequest,useAccountData} from '../../../lib/account-store.js';
@@ -45,7 +46,7 @@ export default function FollowingPage(){
    </section>
    {sources.length>0&&<section className="org-panel"><h2>Citi avoti</h2><p className="meets-muted">Saglabātas iepriekšējās sekošanas no MEETS datu avotiem.</p><div className="org-list">{sources.map(x=><div className="org-row" key={x.id}><strong>{x.name}</strong><button className="button" onClick={()=>unfollow('source',x.id)}>Nesekot</button></div>)}</div></section>}
    <section className="org-panel"><div className="org-panel-head"><div><h2>Gaidāmie pasākumi no sekošanas</h2><p>Šeit ir tikai jau publicētie MEETS pasākumi. E-pasta vai push paziņojumi netiek solīti.</p></div></div>
-    {eventsLoading?<p>Ielādē pasākumus…</p>:<div className="following-event-grid">{upcoming.map(e=><article key={e.id}><span>{e.date_from||'Bez datuma'}</span><h3>{e.title}</h3><p>{e.venue_name||e.municipality||'Vieta nav norādīta'}</p><Link href={'/karte?event='+e.id}>Atvērt kartē →</Link></article>)}</div>}{!eventsLoading&&!upcoming.length&&<p className="org-empty">Sekošanas vienībām pašlaik nav gaidāmu publicētu pasākumu.</p>}
+    {eventsLoading?<p>Ielādē pasākumus…</p>:<EventLinkList events={upcoming}/>}{!eventsLoading&&!upcoming.length&&<p className="org-empty">Sekošanas vienībām pašlaik nav gaidāmu publicētu pasākumu.</p>}
    </section>
   </>}
  </section>;
