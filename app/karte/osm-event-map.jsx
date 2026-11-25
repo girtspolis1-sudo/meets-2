@@ -22,6 +22,7 @@ import {useEvents} from '../../lib/use-events.js';
 import {eventDateState,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 import {eventPath} from '../../lib/seo.js';
+import {suggestionAction} from '../../lib/map-search.js';
 
 const MAP_STYLES={
  positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
@@ -723,11 +724,18 @@ export default function OsmEventMap(){
   );
  }
  function selectLocation(place){
-  const chosen={lat:Number(place.latitude),lon:Number(place.longitude),label:place.label||place.displayName,source:place.local?'events':'search'};
-  setUserLocation(chosen);
-  if(place.eventTitle)setEventSearch(place.eventTitle);
-  else try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(chosen));}catch{}
-  setRadiusKm(DEFAULT_RADIUS);setLocationQuery(place.eventTitle||place.label||place.displayName);setLocationResults([]);setLocationMessage('');setLocationPrompt(false);
+  const action=suggestionAction(place);
+  setLocationResults([]);setLocationMessage('');setLocationPrompt(false);
+  // An event only searches for itself; the place distances are counted from stays as it was.
+  if(action.kind==='event'){
+   setEventSearch(action.search);setLocationQuery('');
+   if(action.view&&mapRef.current)mapRef.current.setView(action.view,Math.max(mapRef.current.getZoom(),CLUSTER_MAX_ZOOM),{animate:false});
+   return;
+  }
+  if(action.kind!=='place')return;
+  setUserLocation(action.location);
+  try{localStorage.setItem(LOCATION_CHOICE_KEY,JSON.stringify(action.location));}catch{}
+  setRadiusKm(DEFAULT_RADIUS);setLocationQuery(action.location.label);
  }
  async function searchLocation(){
   const q=locationQuery.trim();
