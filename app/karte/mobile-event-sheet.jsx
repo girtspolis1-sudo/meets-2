@@ -2,6 +2,7 @@
 import {useEffect,useRef} from 'react';
 import EventDetailCard from '../components/event-detail-card.jsx';
 import EventVenueFavorite from '../components/event-venue-favorite.jsx';
+import ScheduleStrip from './schedule-strip.jsx';
 
 // Events at one place on a phone, as the same cards the desktop place panel uses.
 export default function MobileEventSheet({group,activeIds,favorites,onFavorite,onCalendar,onClose,today,clock,distance,isAdmin=false}){
@@ -87,6 +88,7 @@ export default function MobileEventSheet({group,activeIds,favorites,onFavorite,o
     </div>
     <button type="button" ref={closeRef} onClick={onClose} aria-label="Aizvērt pasākumu informāciju">✕</button>
    </header>
+   <div className="meets-sheet-schedule"><ScheduleStrip events={events.filter(e=>activeIds.has(e.id))} order={events} today={today} listRef={listRef} itemSelector=".meets-mobile-sheet-event"/></div>
    <div className="meets-mobile-sheet-events" ref={listRef}>
     {events.map(event=><EventDetailCard key={event.id} event={event} today={today} clock={clock} km={distance?.(event)}
      className="meets-mobile-sheet-event" highlighted={activeIds.has(event.id)} outside={!activeIds.has(event.id)} isAdmin={isAdmin}

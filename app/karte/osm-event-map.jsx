@@ -23,6 +23,7 @@ import {useEvents} from '../../lib/use-events.js';
 import {eventDateState,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 import {eventPath} from '../../lib/seo.js';
+import {scheduleDots,scheduleText} from '../../lib/pin-schedule.js';
 import {suggestionAction,matchesText,eventSuggestions,placeSuggestions,whatFilterCount,shortWhen} from '../../lib/map-search.js';
 import {SearchBar,WhatPanel,WherePanel,NovadsCard,usePanelDismiss} from './map-search.jsx';
 import MunicipalityHeatmap from './municipality-heatmap.jsx';
@@ -63,6 +64,11 @@ function locationKey(e){
  const lat=Number(e.latitude),lon=Number(e.longitude);
  const place=norm(e.venue_name||e.address_raw||e.settlement||e.municipality||'unknown');
  return place+'|'+lat.toFixed(5)+'|'+lon.toFixed(5);
+}
+// The dots under a pin for a place with several events; "+N" when there are more than five.
+function pinDots(events,today){
+ const {dots,more}=scheduleDots(events,today);
+ return '<span class="c3-pin-dots" aria-hidden="true">'+dots.map(t=>'<i class="dot-'+t+'"></i>').join('')+(more?'<b>+'+more+'</b>':'')+'</span>';
 }
 function groupEvents(events){
  const groups=new Map();
@@ -609,11 +615,12 @@ export default function OsmEventMap(){
      '<span class="c3-pin-icon">'+pinIcon+'</span>'+
      (badge!==null?badge:term.days===0?'<span class="c3-pin-days c3-pin-now'+(term.tone==='ended'?' ended':'')+'" aria-hidden="true"></span>':'<span class="c3-pin-days">'+esc(term.badge)+'</span>')+
      (saved?'<span class="c3-pin-saved" title="Saglabāts"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.8a5.3 5.3 0 0 0-7.5 0L12 6.1l-1.3-1.3a5.3 5.3 0 0 0-7.5 7.5L12 21l8.8-8.7a5.3 5.3 0 0 0 0-7.5Z"/></svg></span>':'')+
-     (shownCount>1?'<span class="c3-pin-count">'+shownCount+'</span>':'')+
+     // Several events here: dots under the pin, one per event from the soonest, coloured like the legend.
+     (shownCount>1&&!dimmed?pinDots(chosenEvents,todayIso):shownCount>1?'<span class="c3-pin-count">'+shownCount+'</span>':'')+
    '</span>';
    const size=dimmed?[34,44]:[44,56];
    const icon=L.divIcon({className:'c3-pin-wrap',html,iconSize:size,iconAnchor:[size[0]/2,size[1]-2],tooltipAnchor:[size[0]/2,-size[1]/2]});
-   const label=nearest.title+', '+term.label+(shownCount>1?', vēl '+(shownCount-1)+' šajā vietā':'');
+   const label=nearest.title+', '+term.label+(shownCount>1?', šajā vietā '+shownCount+' pasākumi: '+scheduleText(chosenEvents,todayIso):'');
    const marker=L.marker([displayLat,displayLon],{icon,pane:!isActive?'backgroundMarkers':far||longPin?'farMarkers':'activeMarkers',keyboard:isActive,title:label,alt:label,riseOnHover:true});
    if(canHover){
     const place=[nearest.venue_name,nearest.settlement||nearest.municipality].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ');
