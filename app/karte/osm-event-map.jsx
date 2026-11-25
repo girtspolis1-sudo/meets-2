@@ -24,6 +24,8 @@ import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,reque
 import {eventPath} from '../../lib/seo.js';
 import {suggestionAction,matchesText,eventSuggestions,placeSuggestions,whatFilterCount,shortWhen} from '../../lib/map-search.js';
 import {SearchBar,WhatPanel,WherePanel,usePanelDismiss} from './map-search.jsx';
+import MunicipalityHeatmap from './municipality-heatmap.jsx';
+import {municipalityCounts,parseMunicipalityParam,municipalityParam} from '../../lib/lv-municipalities.js';
 
 const MAP_STYLES={
  positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
@@ -155,7 +157,11 @@ export default function OsmEventMap(){
  useEffect(()=>{const t=setTimeout(()=>setEventSearch(current=>current===whatQuery.trim()?current:whatQuery.trim()),220);return()=>clearTimeout(t);},[whatQuery]);
  useEffect(()=>{setWhatQuery(current=>current.trim()===eventSearch?current:eventSearch);},[eventSearch]);
  const [price,setPrice]=useState(searchParams.get('price')||'');
- const [municipality,setMunicipality]=useState(searchParams.get('municipality')||'');
+ // ?municipality= holds one local government or several, separated by commas.
+ const [placeList,setPlaceList]=useState(()=>parseMunicipalityParam(searchParams.get('municipality')));
+ const municipality=municipalityParam(placeList);
+ const setMunicipality=useCallback(value=>setPlaceList(parseMunicipalityParam(value)),[]);
+ const placeSet=useMemo(()=>new Set(placeList),[municipality]);
  const [country,setCountry]=useState(searchParams.get('country')||'');
  const [from,setFrom]=useState(searchParams.get('from')||'');
  const [to,setTo]=useState(searchParams.get('to')||'');
@@ -328,7 +334,6 @@ export default function OsmEventMap(){
 
  const scopedEvents=useMemo(()=>competition?typedEvents.filter(e=>e.competition_key===competition):typedEvents,[typedEvents,competition]);
  const categories=useMemo(()=>[...new Set(scopedEvents.map(e=>e.primary_category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);
- const municipalities=useMemo(()=>[...new Set(scopedEvents.filter(e=>!country||e.country_code===country).map(e=>e.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents,country]);
  const countries=useMemo(()=>[...new Set(scopedEvents.map(e=>e.country_code).filter(Boolean))],[scopedEvents]);
  const sourceCounts=useMemo(()=>events.reduce((acc,e)=>{const type=sourceType(e);acc[type]=(acc[type]||0)+1;return acc;},Object.fromEntries(SOURCE_TYPES.map(t=>[t,0]))),[events]);
 
@@ -351,7 +356,7 @@ export default function OsmEventMap(){
   return [...map.values()].sort((a,b)=>a.label.localeCompare(b.label,'lv'));
  },[events]);
 
- const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to,anyPrice=false,anyOnline=false}={})=>{
+ const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to,anyPrice=false,anyOnline=false,anyPlace=false}={})=>{
   if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
   if(placeFilter&&placeFromEvent(e)?.key!==placeFilter)return false;
   if(orgFilter&&e.organization_id!==orgFilter)return false;
@@ -364,7 +369,7 @@ export default function OsmEventMap(){
   if(eventSearch&&!matchesText(e,eventSearch))return false;
   // The quick "Maksas" choice also covers partly paid events.
   if(!anyPrice&&price&&e.price_status!==price&&!(price==='paid'&&e.price_status==='mixed'))return false;
-  if(municipality&&e.municipality!==municipality)return false;
+  if(!anyPlace&&placeSet.size&&!placeSet.has(e.municipality))return false;
   if(country&&e.country_code!==country)return false;
   if(start&&(e.date_to||e.date_from)<start)return false;
   if(end&&e.date_from>end)return false;
@@ -396,7 +401,7 @@ export default function OsmEventMap(){
   if(category)params.set('subcategory',category);
   if(eventSearch)params.set('q',eventSearch);
   if(price)params.set('price',price);
-  if(municipality)params.set('municipality',municipality);
+  if(placeList.length===1)params.set('municipality',placeList[0]);
   if(country)params.set('country',country);
   if(radiusKm)params.set('radius',String(radiusKm));
   params.set('period','manual');
@@ -792,7 +797,7 @@ export default function OsmEventMap(){
   category&&{key:'subcategory',label:category,clear:()=>setCategory('')},
   eventSearch&&{key:'q',label:'„'+eventSearch+'”',clear:()=>setEventSearch('')},
   price&&price!=='paid'&&{key:'price',label:{free:'Bezmaksas',paid:'Maksas',mixed:'Daļēji maksas',unknown:'Maksa nav zināma'}[price]||price,clear:()=>setPrice('')},
-  municipality&&{key:'municipality',label:municipality,clear:()=>setMunicipality('')},
+  municipality&&{key:'municipality',label:placeList.join(', '),clear:()=>setMunicipality('')},
   country&&{key:'country',label:countryLabel(country),clear:()=>setCountry('')},
   orgFilter&&{key:'org',label:'Rīkotājs: '+(orgName||'izvēlētais'),clear:()=>setOrgFilter('')}
  ].filter(Boolean);
@@ -828,12 +833,22 @@ export default function OsmEventMap(){
 
  // "Kur": a chosen local government wins over a centre point; nothing chosen means all of Latvia.
  const whereActive=Boolean(municipality||origin);
- const whereLabel=municipality?municipality:origin?(userLocation.label+(radiusKm>0?' · '+radiusKm+' km':'')):'Visa Latvija';
+ const whereLabel=placeList.length?placeList[0]+(placeList.length>1?' +'+(placeList.length-1):''):origin?(userLocation.label+(radiusKm>0?' · '+radiusKm+' km':'')):'Visa Latvija';
  function clearWhere(){if(municipality)setMunicipality('');else chooseRiga();}
  function submitWhat(){setEventSearch(whatQuery.trim());setPanel('');}
  function pickSuggestedEvent(event){setPanel('');showOnMap(event);}
  const whatSuggestions=useMemo(()=>eventSuggestions(events,whatQuery),[events,whatQuery]);
  const closePanel=useCallback(()=>setPanel(''),[]);
+ // The heat map counts events under the current "Ko" filters, whatever place is chosen.
+ const placeScopeEvents=useMemo(()=>panel==='where'?events.filter(e=>matchesWith(e,{radius:0,anyPlace:true})):[],[panel,events,matchesWith]);
+ const heatCounts=useMemo(()=>municipalityCounts(placeScopeEvents),[placeScopeEvents]);
+ const heatTopics=useMemo(()=>{
+  const by=new Map();
+  for(const e of placeScopeEvents){const g=eventGroup(e);if(!g||!HOME_CATEGORY_FILTERS[g])continue;const m=by.get(e.municipality)||new Map();m.set(g,(m.get(g)||0)+1);by.set(e.municipality,m);}
+  return new Map([...by].map(([name,m])=>[name,[...m].sort((a,b)=>b[1]-a[1]).slice(0,2).map(([g])=>HOME_CATEGORY_FILTERS[g].title)]));
+ },[placeScopeEvents]);
+ function openMunicipality(name){setMunicipality(name);setRadiusKm(0);setPanel('');}
+ function toggleMunicipality(name){setPlaceList(list=>list.includes(name)?list.filter(x=>x!==name):[...list,name]);setRadiusKm(0);}
  usePanelDismiss(panel==='what',closePanel,whatPanelRef,whatButtonRef);
  usePanelDismiss(panel==='where',closePanel,wherePanelRef,whereButtonRef);
 
@@ -870,11 +885,9 @@ export default function OsmEventMap(){
     {panel==='where'&&<WherePanel panelRef={wherePanelRef} onClose={()=>setPanel('')} query={locationQuery} setQuery={v=>{setLocationQuery(v);setLocationResults([]);}}
      onSearch={searchLocation} searching={locationSearching} places={placeSuggestions(locationChoices,locationQuery)} results={locationResults}
      onPick={place=>{selectLocation(place);setPanel('');}} message={locationMessage} onLocate={()=>{useCurrentLocation();setPanel('');}}
-     onWholeCountry={()=>{chooseRiga();setMunicipality('');setPanel('');}} origin={origin} radiusKm={radiusKm} setRadius={setRadiusKm} count={countLabel(activeEvents.length)}>
-     {municipalities.length>0&&<div className="msearch-selects"><label><span>Novads vai valstspilsēta</span>
-      <select value={municipality} onChange={e=>setMunicipality(e.target.value)}>
-       <option value="">Visi novadi</option>{municipalities.map(v=><option key={v}>{v}</option>)}
-      </select></label></div>}
+     onWholeCountry={()=>{chooseRiga();setMunicipality('');setPanel('');}} origin={placeList.length?null:origin} radiusKm={radiusKm} setRadius={setRadiusKm} count={countLabel(activeEvents.length)}>
+     {!locationQuery.trim()&&!locationResults.length&&<MunicipalityHeatmap counts={heatCounts} topics={heatTopics} selected={placeList}
+      onOpen={openMunicipality} onToggle={toggleMunicipality} tapFirst={!canHover}/>}
     </WherePanel>}
 
     {!panel&&<ChipScroller label="Kad" className="map-quick-scroller msearch-quick">
@@ -888,8 +901,8 @@ export default function OsmEventMap(){
      <span aria-hidden="true">–</span>
      <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||today} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
     </div>}
-    {!panel&&activeChips.filter(c=>c.key!=='q').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
-     {activeChips.filter(c=>c.key!=='q').map(chip=><span key={chip.key} className="map-inline-filter-chip"><span>{chip.label}</span><button type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>×</button></span>)}
+    {!panel&&activeChips.filter(c=>c.key!=='q'&&c.key!=='municipality').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
+     {activeChips.filter(c=>c.key!=='q'&&c.key!=='municipality').map(chip=><span key={chip.key} className="map-inline-filter-chip"><span>{chip.label}</span><button type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>×</button></span>)}
      <button type="button" className="text-button" onClick={resetFilters}>Notīrīt visu</button>
     </div>}
    </div>
