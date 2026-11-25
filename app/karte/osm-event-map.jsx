@@ -24,7 +24,7 @@ import {eventDateState,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 import {eventPath} from '../../lib/seo.js';
 import {suggestionAction,matchesText,eventSuggestions,placeSuggestions,whatFilterCount,shortWhen} from '../../lib/map-search.js';
-import {SearchBar,WhatPanel,WherePanel,NovadsCard,usePanelDismiss} from './map-search.jsx';
+import {SearchBar,WhatPanel,WherePanel,NovadsCard,AreaChips,CompactBar,usePanelDismiss} from './map-search.jsx';
 import MunicipalityHeatmap from './municipality-heatmap.jsx';
 import {municipalityCounts,parseMunicipalityParam,municipalityParam,municipalityByName,regionTitle,areaOf,areaGroups} from '../../lib/lv-municipalities.js';
 
@@ -695,7 +695,7 @@ export default function OsmEventMap(){
    .map(e=>[Number(e.latitude),Number(e.longitude)]).filter(([a,b])=>Number.isFinite(a)&&Number.isFinite(b)&&insideBalticView(a,b));
   if(!points.length)return;
   const height=mapRef.current.getSize().y;
-  const top=Math.min(isPhone?170:250,Math.round(height*0.42));
+  const top=Math.min(isPhone?90:250,Math.round(height*0.42));
   mapRef.current.fitBounds(points.length===1?[points[0],points[0]]:points,{animate:false,paddingTopLeft:[40,top],paddingBottomRight:[40,50],maxZoom:areaFilter?14:AREA_ZOOM-1});
   setMapZoom(mapRef.current.getZoom());
  },[mapReady,municipality,areaFilter]);
@@ -885,11 +885,17 @@ export default function OsmEventMap(){
  const whereActive=Boolean(municipality||origin);
  const whereLabel=placeList.length?placeList[0]+(placeList.length>1?' +'+(placeList.length-1):''):origin?(userLocation.label+(radiusKm>0?' · '+radiusKm+' km':'')):'Visa Latvija';
  function clearWhere(){if(municipality)setMunicipality('');else chooseRiga();}
- function submitWhat(){setEventSearch(whatQuery.trim());setPanel('');}
- function pickSuggestedEvent(event){setPanel('');showOnMap(event);}
+ function submitWhat(){setEventSearch(whatQuery.trim());setPanel('');setBarOpen(false);}
+ function pickSuggestedEvent(event){setPanel('');setBarOpen(false);showOnMap(event);}
  // Suggestions stay inside the chosen local government, if there is one.
  const whatSuggestions=useMemo(()=>eventSuggestions(placeSet.size?events.filter(e=>placeSet.has(e.municipality)):events,whatQuery),[events,whatQuery,placeSet]);
  const closePanel=useCallback(()=>setPanel(''),[]);
+ // Phones with a local government open fold the bar into one line; the magnifier unfolds it.
+ const [barOpen,setBarOpen]=useState(false);
+ useEffect(()=>{setBarOpen(false);},[municipality]);
+ const compactNovads=isPhone&&placeList.length>0&&!panel&&!barOpen;
+ const periodShort=SHORT_PERIOD[periodMode]||PERIODS.find(p=>p.key===periodMode)?.label||'';
+ const compactMeta=[periodShort,eventSearch?'„'+eventSearch+'”':'',filterCount?filterCount+(filterCount===1?' filtrs':' filtri'):'visi pasākumi'].filter(Boolean).join(' · ');
  // On phones a panel covers the whole screen, above the list sheet and the bottom navigation.
  const onTop=node=>isPhone&&typeof document!=='undefined'?createPortal(node,document.body):node;
  // The heat map counts events under the current "Ko" filters, whatever place is chosen.
@@ -919,15 +925,19 @@ export default function OsmEventMap(){
   <NearbyList groups={nearby} total={activeEvents.length} today={today} clock={rigaClockMinutes(clockNow)} summary={summary} loading={loading&&!events.length}
    favorites={favorites} highlightedId={highlightedId} onSelect={showOnMap} onHover={hoverEvent} onFavorite={toggleFavorite}
    onCalendar={calendarDownload} empty={emptyState} listRef={listRef} activeIds={activeIds} distance={distanceFrom} isAdmin={isAdminSession}
-   place={!isPhone?openPlace:null} onClosePlace={()=>setPlaceKey('')} collapsed={locationPrompt}/>
+   place={!isPhone?openPlace:null} onClosePlace={()=>setPlaceKey('')} collapsed={locationPrompt}
+   headExtra={isPhone&&placeList.length===1?<AreaChips areas={novadsAreas.filter(g=>g.name!=='Citur').slice(0,8)} area={areaFilter} onArea={chooseArea}/>:null}/>
   <div className="map-shell">
    <div className="map-controls map-controls-overlay msearch" aria-label="Meklēšana un filtri">
-    <SearchBar whereLabel={whereLabel} whereActive={whereActive} onClearWhere={clearWhere} panel={panel} setPanel={setPanel}
+    {compactNovads?<CompactBar label={whereLabel} meta={compactMeta} filterCount={filterCount}
+     onWhere={()=>setPanel('where')} onSearch={()=>setBarOpen(true)} onFilters={()=>setPanel('what')}/>
+    :<SearchBar whereLabel={whereLabel} whereActive={whereActive} onClearWhere={clearWhere} panel={panel} setPanel={setPanel}
      whatQuery={whatQuery} setWhatQuery={setWhatQuery} filterCount={filterCount} onSubmit={submitWhat}
      whereRef={whereButtonRef} whatRef={whatButtonRef} suggestions={whatSuggestions} onPickEvent={pickSuggestedEvent}
-     formatWhen={e=>shortWhen(e,today)}/>
+     formatWhen={e=>shortWhen(e,today)}/>}
+    {isPhone&&barOpen&&!panel&&placeList.length>0&&<button type="button" className="mcompact-fold" onClick={()=>setBarOpen(false)}>Sakļaut meklētāju</button>}
 
-    {!panel&&placeList.length===1&&<NovadsCard name={placeList[0]} region={regionTitle(municipalityByName(placeList[0])?.region)}
+    {!panel&&!isPhone&&placeList.length===1&&<NovadsCard name={placeList[0]} region={regionTitle(municipalityByName(placeList[0])?.region)}
      count={countLabel(novadsAreas.reduce((sum,g)=>sum+g.count,0))} areas={novadsAreas.filter(g=>g.name!=='Citur').slice(0,6)} area={areaFilter}
      onArea={chooseArea} onBack={()=>setPanel('where')} onClear={()=>setMunicipality('')}/>}
 
@@ -944,21 +954,21 @@ export default function OsmEventMap(){
      onPick={place=>{selectLocation(place);setPanel('');}} message={locationMessage} onLocate={()=>{useCurrentLocation();setPanel('');}}
      onWholeCountry={()=>{chooseRiga();setMunicipality('');setPanel('');}} origin={placeList.length?null:origin} radiusKm={radiusKm} setRadius={setRadiusKm} count={countLabel(activeEvents.length)}>
      {!locationQuery.trim()&&!locationResults.length&&<MunicipalityHeatmap counts={heatCounts} topics={heatTopics} selected={placeList}
-      onOpen={openMunicipality} onToggle={toggleMunicipality} tapFirst={!canHover}/>}
+      onOpen={openMunicipality} onToggle={toggleMunicipality} tapFirst={!canHover} compact={isPhone}/>}
     </WherePanel>)}
 
-    {!panel&&<ChipScroller label="Kad" className="map-quick-scroller msearch-quick">
+    {!panel&&!compactNovads&&<ChipScroller label="Kad" className="map-quick-scroller msearch-quick">
      <div className="map-segment map-segment-when" role="group" aria-label="Kad">
       {PERIODS.map(p=><button key={p.key} type="button" aria-pressed={periodMode===p.key} className={periodMode===p.key?'active':''} onClick={()=>changePeriod(p.key)}
        title={p.label}><span className="long">{p.label}</span><span className="short">{SHORT_PERIOD[p.key]||p.label}</span></button>)}
      </div>
     </ChipScroller>}
-    {!panel&&periodMode==='manual'&&<div className="map-primary-manual-period">
+    {!panel&&!compactNovads&&periodMode==='manual'&&<div className="map-primary-manual-period">
      <input aria-label="Datums no" title="Datums no" type="date" min={today} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setPeriodMode('manual');setFrom(value);if(!to||value>to)setTo(value);}}/>
      <span aria-hidden="true">–</span>
      <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||today} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
     </div>}
-    {!panel&&activeChips.filter(c=>c.key!=='q'&&c.key!=='municipality').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
+    {!panel&&!compactNovads&&activeChips.filter(c=>c.key!=='q'&&c.key!=='municipality').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
      {activeChips.filter(c=>c.key!=='q'&&c.key!=='municipality').map(chip=><span key={chip.key} className="map-inline-filter-chip"><span>{chip.label}</span><button type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>×</button></span>)}
      <button type="button" className="text-button" onClick={resetFilters}>Notīrīt visu</button>
     </div>}

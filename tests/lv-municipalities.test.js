@@ -61,3 +61,14 @@ test('municipality URL parameter keeps one or several names', ()=>{
  assert.deepEqual(parseMunicipalityParam(''),[]);
  assert.equal(municipalityParam(['Cēsu novads','Smiltenes novads']),'Cēsu novads,Smiltenes novads');
 });
+
+import {LV_VIEWBOX,LV_OUTLINE,lvPoint} from '../lib/lv-outline.js';
+test('every local government has a centre inside the phone map, eight in the Rīga row', ()=>{
+ for(const m of MUNICIPALITIES){
+  const p=lvPoint(m.lon,m.lat);
+  assert.ok(p.x>0&&p.x<LV_VIEWBOX.width&&p.y>0&&p.y<LV_VIEWBOX.height,m.name);
+ }
+ assert.equal(MUNICIPALITIES.filter(m=>m.inset).length,8);
+ assert.ok(MUNICIPALITIES.find(m=>m.name==='Rīgas valstspilsēta').inset);
+ assert.ok(LV_OUTLINE.startsWith('M')&&LV_OUTLINE.endsWith('Z'));
+});

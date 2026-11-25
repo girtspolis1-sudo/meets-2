@@ -163,11 +163,31 @@ export function NovadsCard({name,region,count,areas,area,onArea,onBack,onClear})
  return <section className="mnovads" aria-label={'Izvēlētais novads: '+name}>
   <button type="button" className="mnovads-back" onClick={onBack} aria-label="Atpakaļ uz novadu karti" title="Novadu karte">{I.map}</button>
   <div className="mnovads-title"><small>Latvija{region?' › '+region:''}</small><strong>{name}</strong><span>{count}</span></div>
-  {areas.length>1&&<div className="mnovads-areas" role="group" aria-label="Pilsēta vai pagasts">
-   <button type="button" className={!area?'on':''} aria-pressed={!area} onClick={()=>area&&onArea(area)}>Visur</button>
-   {areas.map(g=><button key={g.name} type="button" className={area===g.name?'on':''} aria-pressed={area===g.name} onClick={()=>onArea(g.name)}>
-    {g.name.replace(/ pagasts$/,' pag.')}<small>{g.count}</small></button>)}
-  </div>}
+  <AreaChips areas={areas} area={area} onArea={onArea}/>
   <button type="button" className="mnovads-clear" onClick={onClear} aria-label={'Noņemt novadu: '+name}>{I.close}</button>
  </section>;
+}
+
+// Town and parish chips of the chosen local government ("Visur" = all of it).
+export function AreaChips({areas,area,onArea}){
+ if(areas.length<2)return null;
+ return <div className="mnovads-areas" role="group" aria-label="Pilsēta vai pagasts">
+  <button type="button" className={!area?'on':''} aria-pressed={!area} onClick={()=>area&&onArea(area)}>Visur</button>
+  {areas.map(g=><button key={g.name} type="button" className={area===g.name?'on':''} aria-pressed={area===g.name} onClick={()=>onArea(g.name)}>
+   {g.name.replace(/ pagasts$/,' pag.')}<small>{g.count}</small></button>)}
+ </div>;
+}
+
+// Phones with a local government open: Kur, Ko, Kad and filters folded into one line, so the map
+// keeps the screen. The place opens the Kur panel, the magnifier the full bar, the sliders Ko.
+export function CompactBar({label,meta,filterCount,onWhere,onSearch,onFilters}){
+ return <div className="mcompact">
+  <button type="button" className="mcompact-main" onClick={onWhere} aria-label={'Mainīt vietu: '+label}>
+   {I.pin}<span><strong>{label}</strong><small>{meta}</small></span>
+  </button>
+  <button type="button" className="mcompact-icon" onClick={onSearch} aria-label="Meklēt pasākumu">{I.search}</button>
+  <button type="button" className="mcompact-icon" onClick={onFilters} aria-label={'Filtri'+(filterCount?', ieslēgti '+filterCount:'')}>
+   {I.sliders}{filterCount>0&&<span className="msearch-count">{filterCount}</span>}
+  </button>
+ </div>;
 }

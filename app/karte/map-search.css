@@ -200,3 +200,46 @@
  .mheat-side h3{display:none}
 }
 @media(max-width:760px){.marea:not(.top) .marea-name{display:none}}
+
+/* Phones: Latvia map with circles */
+.mlv{display:flex;flex-direction:column;gap:12px}
+.mlv-map{position:relative;width:100%}
+.mlv-map svg{position:absolute;inset:0;width:100%;height:100%}
+.mlv-map path{fill:#f3f5f8;stroke:#c4ccd6;stroke-width:1.2;stroke-linejoin:round}
+.mlv-dot{position:absolute;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid #fff;padding:0;display:grid;place-items:center;font:700 10px var(--font-display,Unbounded,sans-serif);color:var(--tinte,#1b2430);cursor:pointer;box-shadow:0 1px 3px rgba(27,36,48,.18)}
+.mlv-dot::before{content:"";position:absolute;inset:-9px;border-radius:50%}
+.mlv-dot.lvl-0{background:#e3e8ee}
+.mlv-dot.lvl-4{color:#fff}
+.mlv-dot.focus{border:3px solid var(--tinte,#1b2430);z-index:2}
+.mlv-dot.on{box-shadow:0 0 0 3px var(--karmins,#9e3039)}
+.mlv-riga{position:absolute;transform:translate(-50%,-50%);padding:2px 6px;border:1.5px dashed var(--tinte,#1b2430);border-radius:8px;background:rgba(255,255,255,.85);font:800 10.5px var(--font-body,Manrope,sans-serif);color:var(--tinte,#1b2430);pointer-events:none;white-space:nowrap}
+.mlv-inset h3{margin:0 0 6px;font:800 11.5px var(--font-body,Manrope,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:#4a5565}
+.mlv-inset>div{display:flex;flex-wrap:wrap;gap:6px}
+.mlv-inset button{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 10px 0 4px;border:1px solid var(--migla,#d8dee6);border-radius:999px;background:#fff;color:var(--tinte,#1b2430);font:700 13px var(--font-body,Manrope,sans-serif);cursor:pointer}
+.mlv-inset button span{min-width:28px;height:28px;padding:0 4px;box-sizing:border-box;border-radius:999px;display:grid;place-items:center;font:700 10.5px var(--font-display,Unbounded,sans-serif)}
+.mlv-inset button span.lvl-4{color:#fff}
+.mlv-inset button.focus{border:2px solid var(--tinte,#1b2430)}
+.mlv-inset button.on{box-shadow:0 0 0 2px var(--karmins,#9e3039)}
+.mlv-card{position:sticky;bottom:0;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-radius:16px;background:var(--tinte,#1b2430);color:#fff;box-shadow:0 -6px 18px rgba(27,36,48,.12)}
+.mlv-card>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mlv-card strong{font-size:15px}
+.mlv-card small{font-size:12.5px;color:rgba(255,255,255,.82)}
+.mlv-add{width:44px;height:44px;flex:none;border:1px solid rgba(255,255,255,.4);border-radius:12px;background:transparent;color:#fff;font:800 18px var(--font-body,Manrope,sans-serif);cursor:pointer}
+.mlv-add[aria-pressed="true"]{background:#fff;color:var(--tinte,#1b2430)}
+.mlv-open{height:44px;flex:none;padding:0 16px;border:0;border-radius:12px;background:var(--karmins,#9e3039);color:#fff;font:800 14px var(--font-body,Manrope,sans-serif);cursor:pointer}
+.mlv-open:disabled{opacity:.5}
+
+/* Phones, local government open: one compact line instead of the bar, card and time row */
+.mcompact{display:flex;align-items:center;gap:6px;height:56px;padding:0 6px 0 4px;background:#fff;border:1px solid var(--migla,#d8dee6);border-radius:16px;box-shadow:0 8px 22px rgba(27,36,48,.16);font-family:var(--font-body,Manrope,sans-serif)}
+.mcompact-main{flex:1;min-width:0;height:100%;display:flex;align-items:center;gap:8px;padding:0 6px 0 10px;border:0;background:transparent;text-align:left;color:var(--tinte,#1b2430);cursor:pointer}
+.mcompact-main svg{flex:none;width:18px;height:18px;fill:none;stroke:var(--karmins,#9e3039);stroke-width:2.2}
+.mcompact-main>span{min-width:0;display:flex;flex-direction:column;gap:1px}
+.mcompact-main strong{font-size:15px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcompact-main small{font-size:12px;color:#4a5565;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcompact-icon{position:relative;flex:none;width:44px;height:44px;border:0;border-radius:12px;background:#eef1f5;color:var(--tinte,#1b2430);display:grid;place-items:center;cursor:pointer}
+.mcompact-icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mcompact-icon .msearch-count{position:absolute;top:-4px;right:-4px}
+.mcompact-fold{align-self:flex-end;margin-top:6px;min-height:36px;padding:0 12px;border:0;border-radius:999px;background:rgba(255,255,255,.95);box-shadow:0 4px 12px rgba(27,36,48,.12);font:700 12.5px var(--font-body,Manrope,sans-serif);color:var(--tinte,#1b2430);cursor:pointer}
+.map-shell .map-controls-overlay.msearch>.mcompact-fold{margin-top:6px}
+.nearby-head .mnovads-areas{margin-top:8px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.nearby-head .mnovads-areas button{flex:none}
