@@ -25,3 +25,16 @@ test('municipality overview: problems first, missing sources last',()=>{
  assert.equal(kindTone('Nav avota'),'bad');
  assert.equal(kindTone('RSS + HTML'),'ok');
 });
+
+import {matchesMunicipalityFilter,municipalityFilterCounts} from '../lib/admin-sources.js';
+test('municipality filters: RSS, ICS, HTML only, own site, none, problem', ()=>{
+ const rows=[
+  {name:'Talsu novads',source_kind:'RSS + HTML',feeds:[{format:'rss',url:'https://www.talsunovads.lv/lv/rss/events'}]},
+  {name:'Rēzeknes valstspilsēta',source_kind:'ICS',feeds:[{format:'ics'}],problem:'ICS: kļūda'},
+  {name:'Cēsu novads',source_kind:'HTML',feeds:null},
+  {name:'Siguldas novads',source_kind:'Sava lapa'},
+  {name:'Alūksnes novads',source_kind:'Nav avota'}
+ ];
+ assert.deepEqual(rows.filter(r=>matchesMunicipalityFilter(r,'rss')).map(r=>r.name),['Talsu novads']);
+ assert.deepEqual(municipalityFilterCounts(rows),{'':5,rss:1,ics:1,html:1,own:1,none:1,problem:1});
+});

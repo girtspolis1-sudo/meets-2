@@ -2,7 +2,7 @@
 
 import {useEffect,useState} from 'react';
 import {adminRpc} from '../../lib/admin-auth.js';
-import {kindTone,sortMunicipalities} from '../../lib/admin-sources.js';
+import {kindTone,sortMunicipalities,MUNICIPALITY_FILTERS,matchesMunicipalityFilter,municipalityFilterCounts} from '../../lib/admin-sources.js';
 
 function day(value){
  if(!value)return '—';
@@ -16,6 +16,8 @@ export default function AdminMunicipalitySources({supabaseUrl,publishableKey}){
  const [rows,setRows]=useState([]);
  const [error,setError]=useState('');
  const [open,setOpen]=useState(false);
+ const [filter,setFilter]=useState('');
+ const [query,setQuery]=useState('');
 
  async function load(){
   setError('');
@@ -24,8 +26,11 @@ export default function AdminMunicipalitySources({supabaseUrl,publishableKey}){
  }
  useEffect(()=>{load();},[]);
 
- const counts=rows.reduce((acc,r)=>{acc[r.source_kind]=(acc[r.source_kind]||0)+1;return acc;},{});
- const sorted=sortMunicipalities(rows);
+ const filterCounts=municipalityFilterCounts(rows);
+ const q=query.trim().toLocaleLowerCase('lv');
+ const sorted=sortMunicipalities(rows).filter(r=>matchesMunicipalityFilter(r,filter)&&(!q||[r.name,r.domains].some(v=>String(v||'').toLocaleLowerCase('lv').includes(q))));
+ // Choosing a filter opens the table, so the result is visible straight away.
+ function choose(key){setFilter(key);if(key)setOpen(true);}
 
  return <section className="admin-import-health admin-municipality-sources" aria-labelledby="municipality-sources-title">
   <div className="admin-overview-panel-head">
@@ -33,9 +38,16 @@ export default function AdminMunicipalitySources({supabaseUrl,publishableKey}){
    <button type="button" className="button compact" onClick={load}>Atjaunot</button>
   </div>
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}
-  <p className="sync-text calendar-feeds-help">{Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`${k}: ${n}`).join(' · ')||'Ielādē…'}</p>
+  {!rows.length&&!error&&<p className="sync-text calendar-feeds-help">Ielādē…</p>}
+  <div className="admin-toolbar municipality-sources-toolbar">
+   <label>Meklēt<input type="search" value={query} onChange={e=>{setQuery(e.target.value);if(e.target.value)setOpen(true);}} placeholder="Pašvaldība vai domēns"/></label>
+   <div className="admin-bucket-tabs" role="group" aria-label="Pašvaldību filtrs pēc avota">
+    {MUNICIPALITY_FILTERS.map(f=><button key={f.key} type="button" aria-pressed={filter===f.key} className={filter===f.key?'active':''} onClick={()=>choose(f.key)}>
+     {f.label} <span>{filterCounts[f.key]??0}</span></button>)}
+   </div>
+  </div>
   <details open={open} onToggle={e=>setOpen(e.currentTarget.open)}>
-   <summary>Rādīt visas {rows.length} pašvaldības</summary>
+   <summary>{filter||q?'Rādīt atlasītās '+sorted.length+' pašvaldības':'Rādīt visas '+rows.length+' pašvaldības'}</summary>
    <div className="municipality-sources-table-wrap">
     <table className="municipality-sources-table">
      <thead><tr><th>Pašvaldība</th><th>Avots</th><th>Pēdējā ielāde</th><th>Nākotnes</th><th>Publicēti</th><th>Gaida vietu</th><th>Kategorijas bez sasaistes</th></tr></thead>
@@ -43,7 +55,10 @@ export default function AdminMunicipalitySources({supabaseUrl,publishableKey}){
       <td><strong>{r.name}</strong>{r.domains&&<small className="table-subline">{r.domains}</small>}</td>
       <td><span className={'quality-badge '+kindTone(r.source_kind)}>{r.source_kind}</span>
        {r.frequency&&<small className="table-subline">{r.frequency}</small>}
-       {r.problem&&<small className="table-subline import-error">{r.problem}</small>}</td>
+       {r.problem&&<small className="table-subline import-error">{r.problem}</small>}
+       {(r.feeds||[]).filter(f=>f.format==='rss').map(f=><small key={f.url} className="table-subline">
+        RSS: <a href={f.url} target="_blank" rel="noopener noreferrer">{f.url.replace(/^https?:\/\/(www\.)?/,'')}</a> · {f.last_status==='success'?'strādā':f.last_status==='failed'?'kļūda':'nav nolasīta'}{f.last_success_at?' ('+day(f.last_success_at)+')':''}
+       </small>)}</td>
       <td>{day(r.last_success_at)}</td>
       <td>{r.future_events}</td>
       <td>{r.published_events}</td>
@@ -51,6 +66,7 @@ export default function AdminMunicipalitySources({supabaseUrl,publishableKey}){
       <td>{r.unmapped_categories||'—'}</td>
      </tr>)}</tbody>
     </table>
+    {sorted.length===0&&<p className="admin-empty-inline">Nav pašvaldību pēc šī filtra.</p>}
    </div>
   </details>
  </section>;
