@@ -98,3 +98,56 @@
  .msearch-suggest{left:0;right:0}
  .msearch-two{grid-template-columns:1fr}
 }
+
+/* "Kur" heat map of local governments */
+.mheat{display:flex;flex-direction:column;gap:10px}
+.mheat-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.mheat-tabs{display:flex;gap:2px;padding:3px;background:#eef1f5;border-radius:12px}
+.mheat-tabs button{min-height:38px;padding:0 14px;border:0;border-radius:9px;background:transparent;color:var(--tinte,#1b2430);font:700 13px var(--font-body,Manrope,sans-serif);cursor:pointer}
+.mheat-tabs button[aria-selected="true"]{background:var(--tinte,#1b2430);color:#fff}
+.mheat-legend{display:flex;align-items:center;gap:4px;font-size:12px;color:#4a5565}
+.mheat-legend i{display:inline-block;width:22px;height:10px;border-radius:3px}
+.mheat-body{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;align-items:start}
+.mheat-grid{display:grid;gap:5px}
+.mheat-tile{position:relative;aspect-ratio:1/.82;min-width:0;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;padding:5px 6px;border:0;border-radius:9px;text-align:left;cursor:pointer;font-family:var(--font-body,Manrope,sans-serif);color:var(--tinte,#1b2430);transition:transform .12s}
+.mheat-tile:hover,.mheat-tile.focus{transform:scale(1.06);z-index:1;box-shadow:0 6px 16px rgba(27,36,48,.22)}
+.mheat-tile.on{outline:3px solid var(--tinte,#1b2430);outline-offset:2px}
+.mheat-name{font-size:10.5px;font-weight:700;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.mheat-n{align-self:flex-end;font:700 12px var(--font-display,Unbounded,sans-serif)}
+.lvl-0{background:#eef1f5;color:#4a5565}
+.lvl-1{background:#f6e8ea}
+.lvl-2{background:#ebc6cb}
+.lvl-3{background:#d6929a}
+.lvl-4{background:#9e3039;color:#fff}
+.mheat-tile.lvl-4{color:#fff}
+.mheat-side{display:flex;flex-direction:column;gap:10px}
+.mheat-side h3{margin:4px 0 0;font:800 11.5px var(--font-body,Manrope,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:#4a5565}
+.mheat-card{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:14px;background:var(--tinte,#1b2430);color:#fff}
+.mheat-card strong{font-size:15px}
+.mheat-card span{font-size:12.5px;color:rgba(255,255,255,.82)}
+.mheat-card-actions{display:flex;gap:6px;margin-top:4px}
+.mheat-open,.mheat-add{min-height:40px;padding:0 12px;border-radius:10px;font:800 13px var(--font-body,Manrope,sans-serif);cursor:pointer}
+.mheat-open{flex:1;border:0;background:var(--karmins,#9e3039);color:#fff}
+.mheat-open:disabled{opacity:.5;cursor:default}
+.mheat-add{border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff}
+.mheat-add[aria-pressed="true"]{background:#fff;color:var(--tinte,#1b2430)}
+.mheat-hint{margin:0;font-size:13px;color:#4a5565;line-height:1.45}
+.mheat-top{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
+.mheat-top button{width:100%;min-height:36px;display:flex;justify-content:space-between;gap:8px;align-items:center;padding:0 8px;border:0;border-radius:8px;background:transparent;font:600 13px var(--font-body,Manrope,sans-serif);color:var(--tinte,#1b2430);cursor:pointer;text-align:left}
+.mheat-top button:hover,.mheat-top button.on{background:#f6e8ea}
+.mheat-top b{color:#4a5565;font-size:12.5px}
+.mheat-regions{display:flex;flex-direction:column;gap:12px}
+.mheat-regions h3{margin:0 0 6px;font:800 13px var(--font-body,Manrope,sans-serif);color:var(--tinte,#1b2430)}
+.mheat-regions h3 small{font-weight:700;color:#2f5d50;background:#eaf1ee;border-radius:999px;padding:1px 8px;margin-left:4px}
+.mheat-chips{display:flex;flex-wrap:wrap;gap:6px}
+.mheat-chips button{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:1px solid var(--migla,#d8dee6);border-radius:999px;background:#fff;color:var(--tinte,#1b2430);font:700 13px var(--font-body,Manrope,sans-serif);cursor:pointer}
+.mheat-chips button small{font-size:11.5px;opacity:.7}
+.mheat-chips button.on{background:var(--karmins,#9e3039);border-color:var(--karmins,#9e3039);color:#fff}
+.mheat-chips button:disabled{opacity:.45;cursor:default}
+@media(max-width:760px){
+ .mheat-body{grid-template-columns:1fr}
+ .mheat-grid{gap:3px}
+ .mheat-tile{border-radius:6px;padding:2px}
+ .mheat-name{display:none}
+ .mheat-n{align-self:center;margin:auto;font-size:10px}
+}
