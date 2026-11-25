@@ -45,7 +45,7 @@
 .msearch-close{width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--tinte,#1b2430);display:grid;place-items:center;cursor:pointer}
 .msearch-close:hover{background:#eef1f5}
 .msearch-close svg{width:18px;height:18px}
-.msearch-panel-body{overflow:auto;padding:4px 18px 12px;display:flex;flex-direction:column;gap:14px}
+.msearch-panel-body{overflow:auto;min-height:0;padding:4px 18px 12px;display:flex;flex-direction:column;gap:14px}
 .msearch-panel-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px;border-top:1px solid var(--migla,#d8dee6)}
 .msearch-reset{height:44px;padding:0 10px;border:0;background:transparent;color:var(--karmins,#9e3039);font:700 14px var(--font-body,Manrope,sans-serif);cursor:pointer}
 .msearch-show{height:46px;padding:0 20px;border:0;border-radius:12px;background:var(--karmins,#9e3039);color:#fff;font:800 14.5px var(--font-body,Manrope,sans-serif);cursor:pointer}
@@ -178,3 +178,25 @@
  .mnovads-areas{width:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
  .mnovads-areas button{flex:none}
 }
+
+/* Phones: a panel takes the whole screen, above the list sheet and the bottom navigation. */
+.msearch-panel.msearch-portal{position:fixed;top:0;left:0;right:0;bottom:auto;height:100vh;height:100dvh;box-sizing:border-box;z-index:10000;margin:0;width:auto;max-width:none;max-height:none;border:0;border-radius:0;box-shadow:none;
+ padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.msearch-portal .msearch-panel-head{padding:10px 8px 6px 16px;border-bottom:1px solid var(--migla,#d8dee6)}
+.msearch-portal .msearch-panel-body{flex:1;padding:12px 16px 16px}
+.msearch-portal .msearch-panel-foot{padding:10px 16px}
+.msearch-portal .msearch-show{flex:1}
+@media(max-width:760px){
+ .msearch-panel-head{padding:10px 8px 6px 16px;border-bottom:1px solid var(--migla,#d8dee6)}
+ .msearch-panel-head strong{font-size:17px}
+ .msearch-panel-body{flex:1;padding:12px 16px 16px}
+ .msearch-panel-foot{padding:10px 16px}
+ .msearch-show{flex:1}
+ .msearch-where-tools{display:grid;grid-template-columns:1fr 1fr}
+ .msearch-place-field{grid-column:1/-1;flex:none}
+ .msearch-near,.msearch-all{justify-content:center}
+ .mheat-side{order:-1}
+ .mheat-top{display:none}
+ .mheat-side h3{display:none}
+}
+@media(max-width:760px){.marea:not(.top) .marea-name{display:none}}

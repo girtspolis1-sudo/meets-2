@@ -80,8 +80,8 @@ function Pill({on,onClick,children,title}){
  return <button type="button" className={'msearch-pill'+(on?' on':'')} aria-pressed={!!on} onClick={onClick} title={title}>{children}</button>;
 }
 
-export function WhatPanel({panelRef,onClose,count,f,set,periodMode,changePeriod,from,to,today,publicTo,setFrom,setTo,setPeriodMode,audienceOptions,quickTypes,sourceCounts,singleEventType,competitionOptions,categories,countries,countryLabel,onReset,onlineCount}){
- return <div id="msearch-what-panel" ref={panelRef} className="msearch-panel msearch-panel-what" role="dialog" aria-label="Ko meklēt">
+export function WhatPanel({portal=false,panelRef,onClose,count,f,set,periodMode,changePeriod,from,to,today,publicTo,setFrom,setTo,setPeriodMode,audienceOptions,quickTypes,sourceCounts,singleEventType,competitionOptions,categories,countries,countryLabel,onReset,onlineCount}){
+ return <div id="msearch-what-panel" ref={panelRef} className={'msearch-panel msearch-panel-what'+(portal?' msearch-portal':'')} role="dialog" aria-label="Ko meklēt">
   <div className="msearch-panel-head"><strong>Filtri</strong><button type="button" className="msearch-close" onClick={onClose} aria-label="Aizvērt filtrus">{I.close}</button></div>
   <div className="msearch-panel-body">
    <Pills label="Kad">
@@ -129,9 +129,9 @@ export function WhatPanel({panelRef,onClose,count,f,set,periodMode,changePeriod,
  </div>;
 }
 
-export function WherePanel({panelRef,onClose,query,setQuery,onSearch,searching,places,results,onPick,message,onLocate,onWholeCountry,origin,radiusKm,setRadius,count,children}){
+export function WherePanel({portal=false,panelRef,onClose,query,setQuery,onSearch,searching,places,results,onPick,message,onLocate,onWholeCountry,origin,radiusKm,setRadius,count,children}){
  const list=results.length?results:places;
- return <div id="msearch-where-panel" ref={panelRef} className="msearch-panel msearch-panel-where" role="dialog" aria-label="Kur meklēt">
+ return <div id="msearch-where-panel" ref={panelRef} className={'msearch-panel msearch-panel-where'+(portal?' msearch-portal':'')} role="dialog" aria-label="Kur meklēt">
   <div className="msearch-panel-head"><strong>Kur meklēt</strong><button type="button" className="msearch-close" onClick={onClose} aria-label="Aizvērt vietas izvēli">{I.close}</button></div>
   <div className="msearch-panel-body">
    <div className="msearch-where-tools">

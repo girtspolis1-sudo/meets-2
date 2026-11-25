@@ -1,6 +1,7 @@
 'use client';
 import {track} from '../../lib/analytics.js';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import MobileEventSheet from './mobile-event-sheet.jsx';
 import NearbyList from './nearby-list.jsx';
 import CategoryIcon from '../components/category-icon.jsx';
@@ -886,8 +887,11 @@ export default function OsmEventMap(){
  function clearWhere(){if(municipality)setMunicipality('');else chooseRiga();}
  function submitWhat(){setEventSearch(whatQuery.trim());setPanel('');}
  function pickSuggestedEvent(event){setPanel('');showOnMap(event);}
- const whatSuggestions=useMemo(()=>eventSuggestions(events,whatQuery),[events,whatQuery]);
+ // Suggestions stay inside the chosen local government, if there is one.
+ const whatSuggestions=useMemo(()=>eventSuggestions(placeSet.size?events.filter(e=>placeSet.has(e.municipality)):events,whatQuery),[events,whatQuery,placeSet]);
  const closePanel=useCallback(()=>setPanel(''),[]);
+ // On phones a panel covers the whole screen, above the list sheet and the bottom navigation.
+ const onTop=node=>isPhone&&typeof document!=='undefined'?createPortal(node,document.body):node;
  // The heat map counts events under the current "Ko" filters, whatever place is chosen.
  const placeScopeEvents=useMemo(()=>panel==='where'?events.filter(e=>matchesWith(e,{radius:0,anyPlace:true})):[],[panel,events,matchesWith]);
  const heatCounts=useMemo(()=>municipalityCounts(placeScopeEvents),[placeScopeEvents]);
@@ -927,21 +931,21 @@ export default function OsmEventMap(){
      count={countLabel(novadsAreas.reduce((sum,g)=>sum+g.count,0))} areas={novadsAreas.filter(g=>g.name!=='Citur').slice(0,6)} area={areaFilter}
      onArea={chooseArea} onBack={()=>setPanel('where')} onClear={()=>setMunicipality('')}/>}
 
-    {panel==='what'&&<WhatPanel panelRef={whatPanelRef} onClose={()=>setPanel('')} count={countLabel(activeEvents.length)}
+    {panel==='what'&&onTop(<WhatPanel portal={isPhone} panelRef={whatPanelRef} onClose={()=>setPanel('')} count={countLabel(activeEvents.length)}
      f={{category:homeCategory,audience,price,onlineOnly,showLong,eventTypes,competition,subcategory:category,country}}
      set={{category:v=>setDiscoveryFilter('category',v),audience:v=>setDiscoveryFilter('audience',v),price:setPrice,onlineOnly:setOnlineOnly,showLong:setShowLong,
       toggleType:toggleEventType,competition:v=>{setCompetition(v);setCategory('');},subcategory:setCategory,country:v=>{setCountry(v);setMunicipality('');}}}
      periodMode={periodMode} changePeriod={changePeriod} from={from} to={to} today={today} publicTo={publicTo} setFrom={setFrom} setTo={setTo} setPeriodMode={setPeriodMode}
      audienceOptions={audienceOptions} quickTypes={quickTypes} sourceCounts={sourceCounts} singleEventType={singleEventType} competitionOptions={competitionOptions}
-     categories={categories} countries={countries} countryLabel={countryLabel} onReset={resetFilters} onlineCount={onlineCount}/>}
+     categories={categories} countries={countries} countryLabel={countryLabel} onReset={resetFilters} onlineCount={onlineCount}/>)}
 
-    {panel==='where'&&<WherePanel panelRef={wherePanelRef} onClose={()=>setPanel('')} query={locationQuery} setQuery={v=>{setLocationQuery(v);setLocationResults([]);}}
+    {panel==='where'&&onTop(<WherePanel portal={isPhone} panelRef={wherePanelRef} onClose={()=>setPanel('')} query={locationQuery} setQuery={v=>{setLocationQuery(v);setLocationResults([]);}}
      onSearch={searchLocation} searching={locationSearching} places={placeSuggestions(locationChoices,locationQuery)} results={locationResults}
      onPick={place=>{selectLocation(place);setPanel('');}} message={locationMessage} onLocate={()=>{useCurrentLocation();setPanel('');}}
      onWholeCountry={()=>{chooseRiga();setMunicipality('');setPanel('');}} origin={placeList.length?null:origin} radiusKm={radiusKm} setRadius={setRadiusKm} count={countLabel(activeEvents.length)}>
      {!locationQuery.trim()&&!locationResults.length&&<MunicipalityHeatmap counts={heatCounts} topics={heatTopics} selected={placeList}
       onOpen={openMunicipality} onToggle={toggleMunicipality} tapFirst={!canHover}/>}
-    </WherePanel>}
+    </WherePanel>)}
 
     {!panel&&<ChipScroller label="Kad" className="map-quick-scroller msearch-quick">
      <div className="map-segment map-segment-when" role="group" aria-label="Kad">

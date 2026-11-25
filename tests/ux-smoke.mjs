@@ -67,7 +67,7 @@ for(const width of cases){
   await prompt.waitFor({timeout:15000});
   if(!(await prompt.getByRole('button',{name:'Mana atrašanās vieta'}).count())){fails++;console.error('Location prompt lacks the locate button',width);}
   await prompt.getByRole('button',{name:'Rādīt visu Latviju'}).click();
-  if(!(await page.locator('.nearby-item').filter({hasText:mockEvent.title}).count())){fails++;console.error('Nearby list does not show the event',width);}
+  if(!(await page.locator('.nearby-panel .erow').filter({hasText:mockEvent.title}).count())){fails++;console.error('Nearby list does not show the event',width);}
   const button=page.locator('.msearch-filters');
   await button.click();
   await page.locator('.msearch-panel-what').waitFor();
@@ -101,15 +101,16 @@ for(const width of cases){
     tops:rects.map(r=>r.top),right:Math.max(...rects.map(r=>r.right)),
     parentRight:wrap.right,icons:tiles.map(x=>x.querySelector('svg')?.getBoundingClientRect().width)};
   });
-  if((await actions.locator('.meets-quiet-label').count())!==5){
+  // The favourite sits on the card picture, so the action row has four actions.
+  if((await actions.locator('.meets-quiet-label').count())!==4){
    fails++;console.error('Quiet actions missing visible descriptions',width);
   }
-  if(layout.count!==5||Math.max(...layout.widths)-Math.min(...layout.widths)>1||
+  if(layout.count!==4||Math.max(...layout.widths)-Math.min(...layout.widths)>1||
    Math.max(...layout.heights)-Math.min(...layout.heights)>1||
    Math.max(...layout.tops)-Math.min(...layout.tops)>1||
    layout.right>layout.parentRight+1||layout.icons.some(size=>size!==18)||Math.min(...layout.widths)<44||Math.min(...layout.heights)<44){
-   fails++;console.error('Five circular actions do not fit a single row',width,layout);
-  }else console.log('PASS five circular event actions',width,layout.widths);
+   fails++;console.error('Four circular actions do not fit a single row',width,layout);
+  }else console.log('PASS four circular event actions',width,layout.widths);
   await actions.getByRole('button',{name:'Maršruts'}).click();
   const navigationChoices=await page.locator('.meets-mobile-sheet-event').first().locator('.meets-circle-options a').allTextContents();
   if(!navigationChoices.some(x=>x.includes('Google Maps'))||!navigationChoices.some(x=>x.includes('Waze'))){
@@ -129,8 +130,9 @@ for(const width of cases){
    fails++;console.error('Share URL missing event address',width,whatsapp);
   }
   await actions.getByRole('button',{name:'Dalīties ar pasākumu'}).click();
-  await actions.getByRole('button',{name:'Saglabāt pasākumu'}).click();
-  if((await actions.getByRole('button',{name:'Noņemt no saglabātajiem'}).count())!==1){
+  const sheetEvent=page.locator('.meets-mobile-sheet-event').first();
+  await sheetEvent.getByRole('button',{name:'Saglabāt pasākumu'}).click();
+  if((await sheetEvent.getByRole('button',{name:'Noņemt no saglabātajiem'}).count())!==1){
    fails++;console.error('Favorite save state not reflected',width);
   }
   await page.getByRole('button',{name:'Aizvērt pasākumu informāciju'}).click();
@@ -241,9 +243,9 @@ try{
  const popup=desktop.locator('.nearby-place .meets-circle-actions').first();
  await popup.waitFor({timeout:15000});
  const count=await popup.locator(':scope > *').count();
- if(count!==5){fails++;console.error('Desktop popup requires five action icons, got',count);}
+ if(count!==4){fails++;console.error('Desktop popup requires four action icons, got',count);}
  const icons=await popup.locator('svg').count();
- if(icons!==5){fails++;console.error('Desktop popup requires five SVG icons, got',icons);}
+ if(icons!==4){fails++;console.error('Desktop popup requires four SVG icons, got',icons);}
  await popup.getByRole('button',{name:'Dalīties ar pasākumu'}).click();
  const panel=desktop.locator('.nearby-place .meets-circle-options').first();
  if(await panel.isHidden()){fails++;console.error('Desktop sharing fallback did not open');}
