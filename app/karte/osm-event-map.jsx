@@ -23,9 +23,9 @@ import {eventDateState,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 import {eventPath} from '../../lib/seo.js';
 import {suggestionAction,matchesText,eventSuggestions,placeSuggestions,whatFilterCount,shortWhen} from '../../lib/map-search.js';
-import {SearchBar,WhatPanel,WherePanel,usePanelDismiss} from './map-search.jsx';
+import {SearchBar,WhatPanel,WherePanel,NovadsCard,usePanelDismiss} from './map-search.jsx';
 import MunicipalityHeatmap from './municipality-heatmap.jsx';
-import {municipalityCounts,parseMunicipalityParam,municipalityParam} from '../../lib/lv-municipalities.js';
+import {municipalityCounts,parseMunicipalityParam,municipalityParam,municipalityByName,regionTitle,areaOf,areaGroups} from '../../lib/lv-municipalities.js';
 
 const MAP_STYLES={
  positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
@@ -162,6 +162,11 @@ export default function OsmEventMap(){
  const municipality=municipalityParam(placeList);
  const setMunicipality=useCallback(value=>setPlaceList(parseMunicipalityParam(value)),[]);
  const placeSet=useMemo(()=>new Set(placeList),[municipality]);
+ // ?area=: one town or parish inside the single chosen local government ("Citur" = no known place).
+ const [areaFilter,setAreaFilter]=useState(()=>searchParams.get('area')||'');
+ useEffect(()=>{if(placeList.length!==1)setAreaFilter('');},[municipality]);
+ const [mapZoom,setMapZoom]=useState(0);
+ const hidePinsRef=useRef(false),areaLayerRef=useRef(null);
  const [country,setCountry]=useState(searchParams.get('country')||'');
  const [from,setFrom]=useState(searchParams.get('from')||'');
  const [to,setTo]=useState(searchParams.get('to')||'');
@@ -275,7 +280,7 @@ export default function OsmEventMap(){
   const params=url.searchParams;
   const state={radius:radiusKm>0?String(radiusKm):radiusKm===0&&userLocation.source!=='fallback'?'0':'',period:periodMode===DEFAULT_PERIOD?'':periodMode,
    types:eventTypes.join(','),competition,subcategory:category,q:eventSearch,price,municipality,country,
-   from:periodMode==='manual'?from:'',to:periodMode==='manual'?to:'',style:mapStyle==='positron'?'':mapStyle,org:orgFilter,long:showLong?'':'0',online:onlineOnly?'1':''};
+   from:periodMode==='manual'?from:'',to:periodMode==='manual'?to:'',style:mapStyle==='positron'?'':mapStyle,org:orgFilter,long:showLong?'':'0',online:onlineOnly?'1':'',area:areaFilter};
   for(const [key,value] of Object.entries(state)){if(value)params.set(key,value);else params.delete(key);}
   if(['search','events','shared'].includes(userLocation?.source)&&insideBalticView(userLocation.lat,userLocation.lon)){
    params.set('lat',String(Number(userLocation.lat.toFixed(4))));
@@ -283,7 +288,7 @@ export default function OsmEventMap(){
   }else{params.delete('lat');params.delete('lon');}
   const next=url.pathname+(params.size?'?'+params.toString():'')+url.hash;
   if(next!==window.location.pathname+window.location.search+window.location.hash)window.history.replaceState(null,'',next);
- },[radiusKm,periodMode,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,mapStyle,userLocation,orgFilter,showLong,onlineOnly]);
+ },[radiusKm,periodMode,eventTypes,competition,category,eventSearch,price,municipality,areaFilter,country,from,to,mapStyle,userLocation,orgFilter,showLong,onlineOnly]);
 
 
  useEffect(()=>{
@@ -356,7 +361,7 @@ export default function OsmEventMap(){
   return [...map.values()].sort((a,b)=>a.label.localeCompare(b.label,'lv'));
  },[events]);
 
- const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to,anyPrice=false,anyOnline=false,anyPlace=false}={})=>{
+ const matchesWith=useMemo(()=>(e,{radius=radiusKm,from:start=from,to:end=to,anyPrice=false,anyOnline=false,anyPlace=false,anyArea=false}={})=>{
   if(!matchesHomeCategory(e,homeCategory)||!matchesAudience(e,audience))return false;
   if(placeFilter&&placeFromEvent(e)?.key!==placeFilter)return false;
   if(orgFilter&&e.organization_id!==orgFilter)return false;
@@ -370,6 +375,7 @@ export default function OsmEventMap(){
   // The quick "Maksas" choice also covers partly paid events.
   if(!anyPrice&&price&&e.price_status!==price&&!(price==='paid'&&e.price_status==='mixed'))return false;
   if(!anyPlace&&placeSet.size&&!placeSet.has(e.municipality))return false;
+  if(!anyPlace&&!anyArea&&areaFilter&&(areaOf(e)||'Citur')!==areaFilter)return false;
   if(country&&e.country_code!==country)return false;
   if(start&&(e.date_to||e.date_from)<start)return false;
   if(end&&e.date_from>end)return false;
@@ -379,7 +385,7 @@ export default function OsmEventMap(){
    if(distanceKm(userLocation.lat,userLocation.lon,lat,lon)>radius)return false;
   }
   return true;
- },[homeCategory,audience,placeFilter,orgFilter,showLong,onlineOnly,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,country,from,to,userLocation,radiusKm]);
+ },[homeCategory,audience,placeFilter,orgFilter,showLong,onlineOnly,eventTypeFilter,eventTypes,competition,category,eventSearch,price,municipality,areaFilter,country,from,to,userLocation,radiusKm]);
  const matchesEvent=useMemo(()=>e=>matchesWith(e),[matchesWith]);
  // How many events each price choice leaves; most sources do not state a price.
  const priceCounts=useMemo(()=>{
@@ -460,8 +466,10 @@ export default function OsmEventMap(){
     if(map.getPane('popupPane'))map.getPane('popupPane').style.zIndex='920';
     leafletRef.current=L;
     mapRef.current=map;
+    setMapZoom(map.getZoom());
     // Only a drag by the visitor offers "Meklēt šajā apgabalā", not our own zooming.
     map.on('dragend',()=>setAreaMoved(true));
+    map.on('zoomend',()=>setMapZoom(map.getZoom()));
 
     const requested=requestedMapMode();
     let vectorError=null;
@@ -561,7 +569,8 @@ export default function OsmEventMap(){
   if(!mapReady||!mapRef.current)return;
   const L=leafletRef.current,map=mapRef.current;
   backgroundLayerRef.current?.remove();activeLayerRef.current?.remove();
-  const bg=L.layerGroup().addTo(map),active=L.layerGroup().addTo(map);
+  const bg=L.layerGroup(),active=L.layerGroup();
+  if(!hidePinsRef.current){bg.addTo(map);active.addTo(map);}
   backgroundLayerRef.current=bg;activeLayerRef.current=active;
 
   const indexByCoordinate=new Map();
@@ -650,6 +659,7 @@ export default function OsmEventMap(){
   if(!userLocation)return;
   const center=[userLocation.lat,userLocation.lon];
   L.circleMarker(center,{pane:'centerPane',radius:5,color:'#9e3039',weight:1.5,opacity:.9,fillColor:'#fff',fillOpacity:.96,interactive:false}).addTo(focus);
+  if(placeSet.size&&radiusKm===0)return;
   if(radiusKm>0){
    const circle=L.circle(center,{pane:'centerPane',radius:radiusKm*1000,color:'#9e3039',weight:1.1,opacity:.62,fillColor:'#de8d95',fillOpacity:.018,interactive:false}).addTo(focus);
    map.fitBounds(circle.getBounds(),{padding:[45,45],maxZoom:13,animate:false});
@@ -657,7 +667,7 @@ export default function OsmEventMap(){
    if(userLocation.source==='fallback')map.fitBounds([[54.5,19.5],[59.5,29.5]],{animate:false,padding:[25,25]});
    else map.setView(center,11,{animate:false});
   }
- },[mapReady,userLocation,radiusKm]);
+ },[mapReady,userLocation,radiusKm,placeSet]);
 
  // Organizer view: show straight away where the organizer's events are.
  useEffect(()=>{
@@ -670,6 +680,45 @@ export default function OsmEventMap(){
   const top=Math.min(340,Math.round(height*0.45));
   mapRef.current.fitBounds(points.length===1?[points[0],points[0]]:points,{animate:false,paddingTopLeft:[50,top],paddingBottomRight:[50,60],maxZoom:14});
  },[mapReady,orgEvents,orgFilter,userLocation,radiusKm]);
+
+ // One chosen local government: its events grouped by town or parish.
+ const novadsAreas=useMemo(()=>placeList.length===1?areaGroups(events.filter(e=>matchesWith(e,{anyArea:true}))):[],[placeList,events,matchesWith]);
+ const AREA_ZOOM=12;
+ const showAreas=placeList.length===1&&!areaFilter&&mapZoom>0&&mapZoom<AREA_ZOOM&&novadsAreas.filter(g=>g.lat!=null).length>1;
+ hidePinsRef.current=showAreas;
+ function chooseArea(name){setAreaFilter(current=>current===name?'':name);}
+ // Fit the map to the chosen local government (or the chosen town in it).
+ useEffect(()=>{
+  if(!mapReady||!mapRef.current||!placeSet.size)return;
+  const points=events.filter(e=>placeSet.has(e.municipality)&&(!areaFilter||(areaOf(e)||'Citur')===areaFilter))
+   .map(e=>[Number(e.latitude),Number(e.longitude)]).filter(([a,b])=>Number.isFinite(a)&&Number.isFinite(b)&&insideBalticView(a,b));
+  if(!points.length)return;
+  const height=mapRef.current.getSize().y;
+  const top=Math.min(isPhone?170:250,Math.round(height*0.42));
+  mapRef.current.fitBounds(points.length===1?[points[0],points[0]]:points,{animate:false,paddingTopLeft:[40,top],paddingBottomRight:[40,50],maxZoom:areaFilter?14:AREA_ZOOM-1});
+  setMapZoom(mapRef.current.getZoom());
+ },[mapReady,municipality,areaFilter]);
+ // Zoomed out over one local government: circles per town or parish instead of single pins.
+ useEffect(()=>{
+  if(!mapReady||!mapRef.current)return;
+  const L=leafletRef.current,map=mapRef.current;
+  areaLayerRef.current?.remove();areaLayerRef.current=null;
+  for(const layer of [backgroundLayerRef.current,activeLayerRef.current]){
+   if(!layer)continue;
+   if(showAreas)map.removeLayer(layer);else if(!map.hasLayer(layer))layer.addTo(map);
+  }
+  if(!showAreas)return;
+  const layer=L.layerGroup().addTo(map);areaLayerRef.current=layer;
+  const max=Math.max(...novadsAreas.map(g=>g.count),1);
+  novadsAreas.forEach((g,i)=>{
+   if(g.lat==null)return;
+   const size=Math.round(36+20*Math.sqrt(g.count/max));
+   const name=g.name.replace(/ pagasts$/,' pag.');
+   const html='<span class="marea'+(i===0?' top':'')+'" style="width:'+size+'px;height:'+size+'px"><b>'+g.count+'</b><span class="marea-name">'+esc(name)+'</span></span>';
+   const icon=L.divIcon({className:'marea-wrap',html,iconSize:[size,size],iconAnchor:[size/2,size/2]});
+   L.marker([g.lat,g.lon],{icon,pane:'activeMarkers',title:g.name+', '+countLabel(g.count),alt:g.name,keyboard:true,riseOnHover:true}).on('click',()=>chooseArea(g.name)).addTo(layer);
+  });
+ },[mapReady,showAreas,novadsAreas,locationGroups,activeIds,clockNow,favorites,canHover]);
 
  useEffect(()=>{
   if(focusOpenedRef.current||!focusEventId||!mapReady||!mapRef.current)return;
@@ -779,7 +828,7 @@ export default function OsmEventMap(){
  const placeName=origin?(userLocation.label||'izvēlētā vieta'):'';
  const periodText=periodPhrase(periodMode,from,to);
  const summary=(periodText.charAt(0).toUpperCase()+periodText.slice(1))+
-  (radiusKm>0&&origin?' · līdz '+radiusKm+' km no: '+placeName:origin?' · visa Latvija, attālums no: '+placeName:' · visa Latvija');
+  (placeList.length?' · '+(areaFilter&&areaFilter!=='Citur'?areaFilter+', ':'')+placeList.join(', '):radiusKm>0&&origin?' · līdz '+radiusKm+' km no: '+placeName:origin?' · visa Latvija, attālums no: '+placeName:' · visa Latvija');
  // When nothing matches, offer the next wider search together with how many it would show.
  const wider=useMemo(()=>{
   if(activeEvents.length)return [];
@@ -873,6 +922,10 @@ export default function OsmEventMap(){
      whatQuery={whatQuery} setWhatQuery={setWhatQuery} filterCount={filterCount} onSubmit={submitWhat}
      whereRef={whereButtonRef} whatRef={whatButtonRef} suggestions={whatSuggestions} onPickEvent={pickSuggestedEvent}
      formatWhen={e=>shortWhen(e,today)}/>
+
+    {!panel&&placeList.length===1&&<NovadsCard name={placeList[0]} region={regionTitle(municipalityByName(placeList[0])?.region)}
+     count={countLabel(novadsAreas.reduce((sum,g)=>sum+g.count,0))} areas={novadsAreas.filter(g=>g.name!=='Citur').slice(0,6)} area={areaFilter}
+     onArea={chooseArea} onBack={()=>setPanel('where')} onClear={()=>setMunicipality('')}/>}
 
     {panel==='what'&&<WhatPanel panelRef={whatPanelRef} onClose={()=>setPanel('')} count={countLabel(activeEvents.length)}
      f={{category:homeCategory,audience,price,onlineOnly,showLong,eventTypes,competition,subcategory:category,country}}

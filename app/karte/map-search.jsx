@@ -157,3 +157,17 @@ export function WherePanel({panelRef,onClose,query,setQuery,onSearch,searching,p
   <div className="msearch-panel-foot"><span/><button type="button" className="msearch-show" onClick={onClose}>Rādīt {count}</button></div>
  </div>;
 }
+
+// The chosen local government: where it is, how many events, and its towns and parishes.
+export function NovadsCard({name,region,count,areas,area,onArea,onBack,onClear}){
+ return <section className="mnovads" aria-label={'Izvēlētais novads: '+name}>
+  <button type="button" className="mnovads-back" onClick={onBack} aria-label="Atpakaļ uz novadu karti" title="Novadu karte">{I.map}</button>
+  <div className="mnovads-title"><small>Latvija{region?' › '+region:''}</small><strong>{name}</strong><span>{count}</span></div>
+  {areas.length>1&&<div className="mnovads-areas" role="group" aria-label="Pilsēta vai pagasts">
+   <button type="button" className={!area?'on':''} aria-pressed={!area} onClick={()=>area&&onArea(area)}>Visur</button>
+   {areas.map(g=><button key={g.name} type="button" className={area===g.name?'on':''} aria-pressed={area===g.name} onClick={()=>onArea(g.name)}>
+    {g.name.replace(/ pagasts$/,' pag.')}<small>{g.count}</small></button>)}
+  </div>}
+  <button type="button" className="mnovads-clear" onClick={onClear} aria-label={'Noņemt novadu: '+name}>{I.close}</button>
+ </section>;
+}
