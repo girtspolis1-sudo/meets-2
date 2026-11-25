@@ -50,7 +50,7 @@ function PlaceView({place,today,clock,distance,activeIds,favorites,onFavorite,on
 // Upcoming events near the chosen place, grouped Šodien → Rīt → Nedēļas nogalē → Vēlāk.
 // On phones the panel is a sheet over the map that can be dragged between three heights.
 export default function NearbyList({groups,total,today,clock,summary,loading,favorites,highlightedId,onSelect,onHover,onFavorite,
- onCalendar,empty,listRef,place=null,onClosePlace,activeIds,distance,isAdmin=false,collapsed=false}){
+ onCalendar,empty,listRef,place=null,onClosePlace,activeIds,distance,isAdmin=false,collapsed=false,headExtra=null}){
  const [shown,setShown]=useState(PAGE);
  const [sheet,setSheet]=useState('peek');
  const scrollRef=useRef(null),panelRef=useRef(null),drag=useRef(null);
@@ -101,6 +101,7 @@ export default function NearbyList({groups,total,today,clock,summary,loading,fav
    <button type="button" className="nearby-handle" onClick={step} aria-label={sheet==='full'?'Samazināt sarakstu':'Paplašināt sarakstu'}><span aria-hidden="true"/></button>
    <h2 id="nearby-title">{loading?'Ielādē pasākumus…':countLabel(total-longCount)}{!loading&&longCount>0&&<small className="nearby-long-count"> + {longCount} ilgstoši</small>}</h2>
    {summary&&<p>{summary}</p>}
+   {headExtra}
   </header>
   <div className="nearby-scroll" ref={scrollRef}>
    {place?<PlaceView place={place} today={today} clock={clock} distance={distance} activeIds={activeIds} favorites={favorites}
