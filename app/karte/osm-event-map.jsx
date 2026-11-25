@@ -1,6 +1,6 @@
 'use client';
 import {track} from '../../lib/analytics.js';
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import MobileEventSheet from './mobile-event-sheet.jsx';
 import NearbyList from './nearby-list.jsx';
 import CategoryIcon from '../components/category-icon.jsx';
@@ -22,7 +22,8 @@ import {useEvents} from '../../lib/use-events.js';
 import {eventDateState,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 import {eventPath} from '../../lib/seo.js';
-import {suggestionAction} from '../../lib/map-search.js';
+import {suggestionAction,matchesText,eventSuggestions,placeSuggestions,whatFilterCount,shortWhen} from '../../lib/map-search.js';
+import {SearchBar,WhatPanel,WherePanel,usePanelDismiss} from './map-search.jsx';
 
 const MAP_STYLES={
  positron:{label:'Positron',url:'https://tiles.openfreemap.org/styles/positron'},
@@ -149,6 +150,10 @@ export default function OsmEventMap(){
  const [competition,setCompetition]=useState(searchParams.get('competition')||'');
  const [category,setCategory]=useState(searchParams.get('subcategory')||'');
  const [eventSearch,setEventSearch]=useState(searchParams.get('q')||'');
+ // What is typed in "Ko"; it filters the map a moment after typing stops.
+ const [whatQuery,setWhatQuery]=useState(()=>searchParams.get('q')||'');
+ useEffect(()=>{const t=setTimeout(()=>setEventSearch(current=>current===whatQuery.trim()?current:whatQuery.trim()),220);return()=>clearTimeout(t);},[whatQuery]);
+ useEffect(()=>{setWhatQuery(current=>current.trim()===eventSearch?current:eventSearch);},[eventSearch]);
  const [price,setPrice]=useState(searchParams.get('price')||'');
  const [municipality,setMunicipality]=useState(searchParams.get('municipality')||'');
  const [country,setCountry]=useState(searchParams.get('country')||'');
@@ -162,7 +167,9 @@ export default function OsmEventMap(){
  const [styleMenuOpen,setStyleMenuOpen]=useState(false);
  const listRef=useRef(null),hoveredMarkerRef=useRef(null),shownMarkerRef=useRef(new Map());
  const [areaMoved,setAreaMoved]=useState(false);
- const [filtersOpen,setFiltersOpen]=useState(false);
+ // Open search panel: 'where' (Kur), 'what' (Ko filters) or none.
+ const [panel,setPanel]=useState('');
+ const whereButtonRef=useRef(null),whatButtonRef=useRef(null),wherePanelRef=useRef(null),whatPanelRef=useRef(null);
  const [mapStyle,setMapStyle]=useState(()=>Object.hasOwn(MAP_STYLES,searchParams.get('style'))?searchParams.get('style'):'positron');
  const [userLocation,setUserLocation]=useState(DEFAULT_LOCATION);
 
@@ -354,7 +361,7 @@ export default function OsmEventMap(){
   if(eventTypes.length&&!eventTypes.includes(sourceType(e)))return false;
   if(competition&&e.competition_key!==competition)return false;
   if(category&&e.primary_category!==category)return false;
-  if(eventSearch&& !norm(e.title).includes(norm(eventSearch)))return false;
+  if(eventSearch&&!matchesText(e,eventSearch))return false;
   // The quick "Maksas" choice also covers partly paid events.
   if(!anyPrice&&price&&e.price_status!==price&&!(price==='paid'&&e.price_status==='mixed'))return false;
   if(municipality&&e.municipality!==municipality)return false;
@@ -612,7 +619,7 @@ export default function OsmEventMap(){
     setHighlightedId(String(nearest?.id||''));
     setPlaceKey(group.key);
     setLocationPrompt(false);
-    setFiltersOpen(false);
+    setPanel('');
     setLocationResults([]);
     setLocationMessage('');
    });
@@ -675,7 +682,7 @@ export default function OsmEventMap(){
 
  // Radius, period, group and audience are visible outside the panel, so the badge skips them.
  // Everything inside "Vairāk filtru"; time, distance and the chip rows are visible outside it.
- const advancedFilterCount=[placeFilter,audience,eventTypes.length>0,competition,category,eventSearch,price&&price!=='paid',country,municipality].filter(Boolean).length;
+ const filterCount=whatFilterCount({category:homeCategory,audience,eventTypes,competition,subcategory:category,price,onlineOnly,showLong,country});
  const audienceOptions=Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key)));
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
@@ -740,7 +747,6 @@ export default function OsmEventMap(){
  async function searchLocation(){
   const q=locationQuery.trim();
   if(q.length<2){setLocationMessage('Ievadi vismaz 2 rakstzīmes.');return;}
-  setFiltersOpen(false);
   const local=locationChoices.filter(x=>norm(x.label).includes(norm(q))).slice(0,5);
   const eventMatches=events.filter(e=>norm(e.title).includes(norm(q))&&Number.isFinite(Number(e.latitude))&&Number.isFinite(Number(e.longitude))).slice(0,4).map(e=>({id:'event-search:'+e.id,label:e.title,displayName:e.venue_name||e.address_raw||e.settlement||e.municipality||e.title,latitude:Number(e.latitude),longitude:Number(e.longitude),local:true,eventTitle:e.title}));
   if(local.length===1&&norm(local[0].label)===norm(q)){selectLocation(local[0]);return;}
@@ -820,6 +826,17 @@ export default function OsmEventMap(){
   hoveredMarkerRef.current=marker||null;
  }
 
+ // "Kur": a chosen local government wins over a centre point; nothing chosen means all of Latvia.
+ const whereActive=Boolean(municipality||origin);
+ const whereLabel=municipality?municipality:origin?(userLocation.label+(radiusKm>0?' · '+radiusKm+' km':'')):'Visa Latvija';
+ function clearWhere(){if(municipality)setMunicipality('');else chooseRiga();}
+ function submitWhat(){setEventSearch(whatQuery.trim());setPanel('');}
+ function pickSuggestedEvent(event){setPanel('');showOnMap(event);}
+ const whatSuggestions=useMemo(()=>eventSuggestions(events,whatQuery),[events,whatQuery]);
+ const closePanel=useCallback(()=>setPanel(''),[]);
+ usePanelDismiss(panel==='what',closePanel,whatPanelRef,whatButtonRef);
+ usePanelDismiss(panel==='where',closePanel,wherePanelRef,whereButtonRef);
+
  const emptyState=<div className="nearby-empty" role="status">
   <strong>{radiusKm>0&&origin?'Šajā laikā līdz '+radiusKm+' km pasākumu nav.':'Šajos filtros pasākumu nav.'}</strong>
   {wider.length>0?<div className="nearby-empty-actions">{wider.map(option=><button key={option.label} type="button" className="button compact"
@@ -836,139 +853,47 @@ export default function OsmEventMap(){
    onCalendar={calendarDownload} empty={emptyState} listRef={listRef} activeIds={activeIds} distance={distanceFrom} isAdmin={isAdminSession}
    place={!isPhone?openPlace:null} onClosePlace={()=>setPlaceKey('')} collapsed={locationPrompt}/>
   <div className="map-shell">
-   <div className="map-controls map-controls-overlay" aria-label="Kartes filtri">
-    <div className="map-primary-controls">
-     <button type="button" className="map-control-button locate-primary" onClick={useCurrentLocation} title="Mana atrašanās vieta" aria-label="Izmantot manu atrašanās vietu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
-     </button>
+   <div className="map-controls map-controls-overlay msearch" aria-label="Meklēšana un filtri">
+    <SearchBar whereLabel={whereLabel} whereActive={whereActive} onClearWhere={clearWhere} panel={panel} setPanel={setPanel}
+     whatQuery={whatQuery} setWhatQuery={setWhatQuery} filterCount={filterCount} onSubmit={submitWhat}
+     whereRef={whereButtonRef} whatRef={whatButtonRef} suggestions={whatSuggestions} onPickEvent={pickSuggestedEvent}
+     formatWhen={e=>shortWhen(e,today)}/>
 
-     <div className="map-location-control">
-      <span className="map-search-leading" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg></span>
-      <input
-       list="meets-location-options"
-       value={locationQuery}
-       onFocus={()=>setFiltersOpen(false)}
-       onChange={e=>setLocationQuery(e.target.value)}
-       onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();searchLocation();}}}
-       placeholder={userLocation.source==='fallback'?'Pilsēta, adrese vai pasākums…':'Meklēt vietu vai pasākumu…'}
-       aria-label="Meklēt vietu vai pasākumu"
-      />
-      <button type="button" className="map-search-button" onClick={searchLocation} disabled={locationSearching} title="Meklēt" aria-label="Meklēt">
-       {locationSearching?'…':<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>}
-      </button>
-      <button type="button" className={'map-control-button filters-button'+(filtersOpen?' active':'')} onClick={()=>setFiltersOpen(v=>!v)} aria-expanded={filtersOpen} aria-label="Vairāk filtru" title="Vairāk filtru">
-       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h6M14 18h6"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg>
-       {advancedFilterCount>0&&<span className="filter-count">{advancedFilterCount}</span>}
-      </button>
-      <datalist id="meets-location-options">{locationChoices.map(x=><option key={x.id} value={x.label}/>)}</datalist>
-     </div>
-    </div>
+    {panel==='what'&&<WhatPanel panelRef={whatPanelRef} onClose={()=>setPanel('')} count={countLabel(activeEvents.length)}
+     f={{category:homeCategory,audience,price,onlineOnly,showLong,eventTypes,competition,subcategory:category,country}}
+     set={{category:v=>setDiscoveryFilter('category',v),audience:v=>setDiscoveryFilter('audience',v),price:setPrice,onlineOnly:setOnlineOnly,showLong:setShowLong,
+      toggleType:toggleEventType,competition:v=>{setCompetition(v);setCategory('');},subcategory:setCategory,country:v=>{setCountry(v);setMunicipality('');}}}
+     periodMode={periodMode} changePeriod={changePeriod} from={from} to={to} today={today} publicTo={publicTo} setFrom={setFrom} setTo={setTo} setPeriodMode={setPeriodMode}
+     audienceOptions={audienceOptions} quickTypes={quickTypes} sourceCounts={sourceCounts} singleEventType={singleEventType} competitionOptions={competitionOptions}
+     categories={categories} countries={countries} countryLabel={countryLabel} onReset={resetFilters} onlineCount={onlineCount}/>}
 
-    {/* When and how far share one line of two joined button groups; the topic row scrolls sideways. */}
-    <ChipScroller label="Kad un cik tālu" className="map-quick-scroller">
+    {panel==='where'&&<WherePanel panelRef={wherePanelRef} onClose={()=>setPanel('')} query={locationQuery} setQuery={v=>{setLocationQuery(v);setLocationResults([]);}}
+     onSearch={searchLocation} searching={locationSearching} places={placeSuggestions(locationChoices,locationQuery)} results={locationResults}
+     onPick={place=>{selectLocation(place);setPanel('');}} message={locationMessage} onLocate={()=>{useCurrentLocation();setPanel('');}}
+     onWholeCountry={()=>{chooseRiga();setMunicipality('');setPanel('');}} origin={origin} radiusKm={radiusKm} setRadius={setRadiusKm} count={countLabel(activeEvents.length)}>
+     {municipalities.length>0&&<div className="msearch-selects"><label><span>Novads vai valstspilsēta</span>
+      <select value={municipality} onChange={e=>setMunicipality(e.target.value)}>
+       <option value="">Visi novadi</option>{municipalities.map(v=><option key={v}>{v}</option>)}
+      </select></label></div>}
+    </WherePanel>}
+
+    {!panel&&<ChipScroller label="Kad" className="map-quick-scroller msearch-quick">
      <div className="map-segment map-segment-when" role="group" aria-label="Kad">
       {PERIODS.map(p=><button key={p.key} type="button" aria-pressed={periodMode===p.key} className={periodMode===p.key?'active':''} onClick={()=>changePeriod(p.key)}
        title={p.label}><span className="long">{p.label}</span><span className="short">{SHORT_PERIOD[p.key]||p.label}</span></button>)}
      </div>
-     <div className="map-segment map-segment-radius" role="group" aria-label="Cik tālu">
-      {RADII.map(km=><button key={km} type="button" aria-pressed={radiusKm===km} className={radiusKm===km?'active':''} title={radiusLabel(km)}
-       onClick={()=>{if(km>0&&!origin){setLocationPrompt(true);setLocationMessage('Vispirms izvēlies vietu, no kuras skaitīt attālumu.');return;}setRadiusKm(km);}}>{km?km:'LV'}</button>)}
-      <span className="map-segment-unit" aria-hidden="true">km</span>
-     </div>
-    </ChipScroller>
-    {periodMode==='manual'&&<div className="map-primary-manual-period">
+    </ChipScroller>}
+    {!panel&&periodMode==='manual'&&<div className="map-primary-manual-period">
      <input aria-label="Datums no" title="Datums no" type="date" min={today} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setPeriodMode('manual');setFrom(value);if(!to||value>to)setTo(value);}}/>
      <span aria-hidden="true">–</span>
      <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||today} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
     </div>}
-    <ChipScroller label="Ko darīt" className="map-what-scroller">
-     <span className="map-segment map-segment-price" role="group" aria-label="Maksa">
-      {[['','Visi'],['paid','Maksas']].map(([value,text])=><button key={text} type="button" aria-pressed={price===value}
-       className={price===value?'active':''} onClick={()=>setPrice(value)}
-       title={value?'Pasākumi, kuriem avotā norādīta maksa vai biļetes: '+priceCounts[value]+' no '+priceCounts['']:undefined}>
-       {value==='paid'&&<span className="map-euro" aria-hidden="true">€</span>}{text}{value&&<span className="map-segment-count">{priceCounts[value]}</span>}</button>)}
-     </span>
-     <button type="button" className={'map-topic map-online-toggle'+(onlineOnly?' active':'')} aria-pressed={onlineOnly} onClick={()=>setOnlineOnly(v=>!v)}
-      title="Pasākumi, kuros var piedalīties tiešsaistē">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><rect x="3" y="5" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>
-      Tiešsaistē<span className="map-segment-count">{onlineCount}</span></button>
-     <span className="map-what-divider" aria-hidden="true"/>
-     {HOME_GROUP_KEYS.map(key=><button key={key} type="button" className={'map-topic'+(homeCategory===key?' active':'')} aria-pressed={homeCategory===key}
-      onClick={()=>setDiscoveryFilter('category',homeCategory===key?'':key)}><CategoryIcon name={key}/>{HOME_CATEGORY_FILTERS[key].title}</button>)}
-     <button type="button" aria-pressed={showLong} className="map-topic map-long-toggle" onClick={()=>setShowLong(v=>!v)}
-      title="Izstādes un citi pasākumi, kas ilgst vairāk nekā 2 nedēļas">{showLong?'✓ ':''}Izstādes un ilgstošie</button>
-    </ChipScroller>
-    {activeChips.filter(c=>c.key!=='category').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
-     {activeChips.filter(c=>c.key!=='category').map(chip=><span key={chip.key} className="map-inline-filter-chip"><span>{chip.label}</span><button type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>×</button></span>)}
+    {!panel&&activeChips.filter(c=>c.key!=='q').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
+     {activeChips.filter(c=>c.key!=='q').map(chip=><span key={chip.key} className="map-inline-filter-chip"><span>{chip.label}</span><button type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>×</button></span>)}
      <button type="button" className="text-button" onClick={resetFilters}>Notīrīt visu</button>
-    </div>}
-
-    {filtersOpen&&<div className="map-advanced-panel" role="dialog" aria-label="Vairāk filtru">
-     <div className="map-filter-head">
-      <strong>Vairāk filtru</strong>
-      <button type="button" className="map-filter-close" onClick={()=>setFiltersOpen(false)} aria-label="Aizvērt filtrus">×</button>
-     </div>
-
-     {audienceOptions.length>0&&<label className="map-filter-field"><span>Kam piemērots?</span><select aria-label="Auditorija" value={audience} onChange={e=>setDiscoveryFilter('audience',e.target.value)}>
-      <option value="">Jebkura auditorija</option>
-      {audienceOptions.map(([key,title])=><option key={key} value={key}>{title}</option>)}
-     </select></label>}
-
-     <fieldset className="map-type-options">
-      <legend>Sporta līgas un avoti</legend>
-      {quickTypes.map(item=><label key={item.value} className={eventTypes.includes(item.value)?'active':''}>
-       <input type="checkbox" checked={eventTypes.includes(item.value)} onChange={()=>toggleEventType(item.value)}/>
-       <span aria-hidden="true">{item.glyph}</span>{item.label} <small>({sourceCounts[item.value]||0})</small>
-      </label>)}
-     </fieldset>
-
-     {(singleEventType==='basketball'||SOURCE_TYPE_BODY[singleEventType])&&<label className="map-filter-field"><span>Turnīrs</span>
-      <select value={competition} onChange={e=>{setCompetition(e.target.value);setCategory('');setMunicipality('');}} aria-label="Turnīrs">
-       <option value="">{({lff:'Visi LFF turnīri',basketball:'Visi basketbola turnīri',hockey:'Visi hokeja turnīri',volleyball:'Visi volejbola turnīri',floorball:'Visi florbola turnīri'})[singleEventType]}</option>
-       {competitionOptions.map(v=><option key={v.key} value={v.key}>{v.name} ({v.count})</option>)}
-      </select>
-     </label>}
-
-     <label className="map-filter-field"><span>Kategorija</span>
-      <select value={category} onChange={e=>setCategory(e.target.value)} aria-label="Kategorija">
-       <option value="">Visas kategorijas</option>{categories.map(v=><option key={v}>{v}</option>)}
-      </select>
-     </label>
-
-     <label className="map-filter-field"><span>Pasākums</span>
-      <input className="map-event-search" type="search" value={eventSearch} onChange={e=>setEventSearch(e.target.value)} placeholder="Meklēt pasākumu…" aria-label="Meklēt pēc pasākuma nosaukuma"/>
-     </label>
-
-     <label className="map-filter-field"><span>Maksa</span>
-      <select value={price} onChange={e=>setPrice(e.target.value)} aria-label="Maksas statuss">
-       <option value="">Visas maksas</option><option value="free">Bezmaksas</option><option value="paid">Maksas</option><option value="mixed">Daļēji maksas</option><option value="unknown">Nav zināms</option>
-      </select>
-     </label>
-
-     <label className="map-filter-field"><span>Valsts</span>
-      <select value={country} onChange={e=>{setCountry(e.target.value);setMunicipality('');}} aria-label="Valsts">
-       <option value="">Visas valstis</option>{countries.map(code=><option key={code} value={code}>{countryLabel(code)}</option>)}
-      </select>
-     </label>
-
-     <label className="map-filter-field"><span>Pašvaldība</span>
-      <select value={municipality} onChange={e=>setMunicipality(e.target.value)} aria-label="Pašvaldība">
-       <option value="">Visas pašvaldības</option>{municipalities.map(v=><option key={v}>{v}</option>)}
-      </select>
-     </label>
-
-     <button className="map-reset-button" type="button" onClick={resetFilters}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6"/><path d="M5.5 15a8 8 0 1 0 1-8.5L4 10"/></svg>
-      Atiestatīt filtrus
-     </button>
     </div>}
    </div>
 
-   {locationResults.length>0&&<div className="map-location-results" role="group" aria-label="Atrastas vietas">
-    {locationResults.map(place=><button key={place.id||place.displayName} type="button" onClick={()=>selectLocation(place)}>
-     <strong>{place.label||place.displayName}</strong><span>{place.displayName||place.label}</span>
-    </button>)}
-   </div>}
    {locationMessage&&!locationPrompt&&<div className="map-location-message" role="status">{locationMessage}</div>}
 
    {locationPrompt&&locationResults.length===0&&<section className="map-location-prompt" aria-labelledby="map-location-prompt-title">
@@ -982,7 +907,7 @@ export default function OsmEventMap(){
     <div className="map-city-chips" role="group" aria-label="Pilsētas">
      {CITIES.map(city=><button key={city.label} type="button" onClick={()=>selectLocation({...city,displayName:city.label})}>{city.label}</button>)}
     </div>
-    <small>Cita vieta? Ieraksti to meklēšanas laukā augšā.</small>
+    <small>Cita vieta? Spied „Kur” meklētājā augšā.</small>
     <button type="button" className="text-button" onClick={chooseRiga}>Rādīt visu Latviju</button>
    </section>}
 

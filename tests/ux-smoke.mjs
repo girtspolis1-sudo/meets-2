@@ -68,10 +68,10 @@ for(const width of cases){
   if(!(await prompt.getByRole('button',{name:'Mana atrašanās vieta'}).count())){fails++;console.error('Location prompt lacks the locate button',width);}
   await prompt.getByRole('button',{name:'Rādīt visu Latviju'}).click();
   if(!(await page.locator('.nearby-item').filter({hasText:mockEvent.title}).count())){fails++;console.error('Nearby list does not show the event',width);}
-  const button=page.getByRole('button',{name:'Vairāk filtru'});
+  const button=page.locator('.msearch-filters');
   await button.click();
-  await page.locator('.map-advanced-panel').waitFor();
-  const panelBounds=await page.locator('.map-advanced-panel').boundingBox();
+  await page.locator('.msearch-panel-what').waitFor();
+  const panelBounds=await page.locator('.msearch-panel-what').boundingBox();
   if(!panelBounds||panelBounds.x<-3||panelBounds.x+panelBounds.width>width+3){fails++;console.error('Filter panel clips viewport',width,panelBounds);}
   await page.getByRole('button',{name:'Aizvērt filtrus'}).click();
   const marker=page.locator('.c3-pin-wrap').first();
