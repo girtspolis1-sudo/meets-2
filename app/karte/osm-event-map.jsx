@@ -27,6 +27,8 @@ import {scheduleDots,scheduleText} from '../../lib/pin-schedule.js';
 import {suggestionAction,matchesText,eventSuggestions,placeSuggestions,whatFilterCount,shortWhen} from '../../lib/map-search.js';
 import {SearchBar,WhatPanel,WherePanel,NovadsCard,AreaChips,CompactBar,RadiusChip,RadiusPopover,usePanelDismiss} from './map-search.jsx';
 import MunicipalityHeatmap from './municipality-heatmap.jsx';
+import DayHistogram from './day-histogram.jsx';
+import {dailyCounts} from '../../lib/day-histogram.js';
 import {municipalityCounts,parseMunicipalityParam,municipalityParam,municipalityByName,regionTitle,areaOf,areaGroups} from '../../lib/lv-municipalities.js';
 
 const MAP_STYLES={
@@ -917,6 +919,9 @@ export default function OsmEventMap(){
  // The heat map counts events under the current "Ko" filters, whatever place is chosen.
  const placeScopeEvents=useMemo(()=>panel==='where'?events.filter(e=>matchesWith(e,{radius:0,anyPlace:true})):[],[panel,events,matchesWith]);
  const heatCounts=useMemo(()=>municipalityCounts(placeScopeEvents),[placeScopeEvents]);
+ // The day chart counts the same events on any day, so it shows when there is most to choose from.
+ const dayBars=useMemo(()=>panel==='where'?dailyCounts(events.filter(e=>matchesWith(e,{radius:0,anyPlace:true,from:'',to:''})),rigaTodayIso(clockNow),30,publicTo):[],[panel,events,matchesWith,clockNow,publicTo]);
+ function chooseDays(start,end){setPeriodMode('manual');setFrom(start);setTo(end);}
  const heatTopics=useMemo(()=>{
   const by=new Map();
   for(const e of placeScopeEvents){const g=eventGroup(e);if(!g||!HOME_CATEGORY_FILTERS[g])continue;const m=by.get(e.municipality)||new Map();m.set(g,(m.get(g)||0)+1);by.set(e.municipality,m);}
@@ -974,6 +979,9 @@ export default function OsmEventMap(){
      onSearch={searchLocation} searching={locationSearching} places={placeSuggestions(locationChoices,locationQuery)} results={locationResults}
      onPick={place=>{selectLocation(place);setPanel('');}} message={locationMessage} onLocate={()=>{useCurrentLocation();setPanel('');}}
      onWholeCountry={()=>{chooseRiga();setMunicipality('');setPanel('');}} origin={placeList.length?null:origin} radiusKm={radiusKm} setRadius={setRadiusKm} count={countLabel(activeEvents.length)}>
+     {!locationQuery.trim()&&!locationResults.length&&<DayHistogram bars={dayBars} from={from} to={to}
+      count={countLabel(placeScopeEvents.length)} onRange={chooseDays} period={periodMode} onQuick={changePeriod}
+      quick={[{key:'today',label:'Šodien'},{key:'weekend',label:'Brīvdienās'},{key:'7days',label:'7 d.'},{key:'30days',label:'30 d.'}]}/>}
      {!locationQuery.trim()&&!locationResults.length&&<MunicipalityHeatmap counts={heatCounts} topics={heatTopics} selected={placeList}
       onOpen={openMunicipality} onToggle={toggleMunicipality} tapFirst={!canHover} compact={isPhone}/>}
     </WherePanel>)}
