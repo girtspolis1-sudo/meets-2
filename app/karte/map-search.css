@@ -336,3 +336,55 @@
  .mhist-quick{flex-wrap:wrap;justify-content:flex-end}
  .mhist-head span{display:none}
 }
+
+/* Desktop Kur panel (K1): one window — controls on the left, the map of local governments on the right */
+.map-shell .map-controls-overlay.msearch>.msearch-panel.mwhere{flex-direction:row;padding:0;overflow:hidden;height:min(600px,calc(100vh - 220px));min-height:480px;max-height:none}
+.mwhere-left{width:350px;flex:none;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;padding:16px;background:#fafbfc;border-right:1px solid var(--migla,#d8dee6);overflow:auto}
+.mwhere-title{font-size:16px}
+.mwhere-search{display:flex;gap:6px}
+.mwhere-search .msearch-place-field{flex:1;height:44px;min-width:0}
+.mwhere-locate{width:44px;height:44px;flex:none;border:0;border-radius:12px;background:#f6e8ea;color:#7a2029;display:grid;place-items:center;cursor:pointer}
+.mwhere-locate svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.mwhere-block{display:flex;flex-direction:column;gap:6px}
+.mwhere-block h3{margin:0;font:800 11px var(--font-body,Manrope,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:#4a5565;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwhere-seg{display:flex;gap:2px;padding:3px;background:#eef1f5;border-radius:11px}
+.mwhere-seg button{flex:1;min-height:36px;padding:0 6px;border:0;border-radius:8px;background:transparent;color:var(--tinte,#1b2430);font:700 12.5px var(--font-body,Manrope,sans-serif);white-space:nowrap;cursor:pointer}
+.mwhere-seg button.on{background:var(--tinte,#1b2430);color:#fff}
+.mwhere-all{align-self:flex-start;min-height:38px;padding:0 14px;border:1px solid var(--migla,#d8dee6);border-radius:999px;background:#fff;font:700 13px var(--font-body,Manrope,sans-serif);color:var(--tinte,#1b2430);cursor:pointer}
+.mwhere-left>*{flex:none}
+.mwhere-bottom{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+.mwhere-bottom .msearch-show{width:100%}
+.mwhere-bottom .mheat-card{padding:12px;gap:8px}
+.mwhere-bottom .mheat-card p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwhere-bottom .mheat-card-actions .mheat-open{min-height:40px}
+.mwhere-bottom .mheat-card-actions .mheat-add{width:44px;padding:0;font-size:16px}
+.mwhere-right{position:relative;flex:1;min-width:0;box-sizing:border-box;padding:16px 18px;overflow:auto;display:flex;flex-direction:column}
+.mwhere-right>.mheat{flex:1;min-height:0;display:flex;flex-direction:column}
+.mwhere-close{position:absolute;top:10px;right:10px;z-index:1}
+.mwhere-right .mheat-head{padding-right:48px}
+.mwhere-right .msearch-places{margin-top:44px}
+.mhist.stacked{padding:0;background:transparent;gap:6px}
+.mhist.stacked .mhist-head strong{font:800 11px var(--font-body,Manrope,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:#4a5565}
+.mhist.stacked .mhist-head span{display:none}
+.mhist.stacked .mhist-body{flex-direction:column;align-items:stretch;gap:8px}
+.mhist.stacked .mhist-bars{height:50px}
+.mhist.stacked .mhist-side{align-items:stretch}
+.mhist.stacked .mhist-range{flex-direction:row;justify-content:space-between;align-items:baseline;text-align:left;gap:8px;font-size:12.5px}
+.mhist.stacked .mhist-quick{flex-wrap:wrap}
+.mheat-wide{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+.mheat-wide .mheat-grid{flex:1;min-height:250px;grid-template-rows:repeat(5,minmax(44px,1fr))!important}
+.mheat-wide .mheat-tile{aspect-ratio:auto;height:auto}
+.mheat-topwide{display:flex;gap:14px;align-items:flex-start}
+.mheat-topwide h3{margin:8px 0 0;font:800 11px var(--font-body,Manrope,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:#4a5565}
+.mheat-topwide ol{flex:1;margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:14px}
+.mheat-topwide button span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mheat-topwide button{width:100%;min-height:34px;display:flex;justify-content:space-between;gap:8px;align-items:center;padding:0 8px;border:0;border-radius:8px;background:transparent;font:600 12.5px var(--font-body,Manrope,sans-serif);color:var(--tinte,#1b2430);cursor:pointer;text-align:left}
+.mheat-topwide button:hover,.mheat-topwide button.on{background:#f6e8ea}
+.mheat-topwide b{color:#4a5565}
+@media (max-height:780px){
+ .mwhere-left{gap:8px;padding:12px 14px}
+ .mwhere-title{display:none}
+ .mhist.stacked .mhist-bars{height:38px}
+ .map-shell .map-controls-overlay.msearch>.msearch-panel.mwhere{height:calc(100vh - 220px)}
+}
+.map-shell:has(.mwhere) .leaflet-control-zoom,.map-shell:has(.mwhere) .leaflet-control-attribution{visibility:hidden}

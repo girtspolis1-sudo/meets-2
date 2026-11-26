@@ -131,8 +131,39 @@ export function WhatPanel({portal=false,panelRef,onClose,count,f,set,periodMode,
  </div>;
 }
 
-export function WherePanel({portal=false,panelRef,onClose,query,setQuery,onSearch,searching,places,results,onPick,message,onLocate,onWholeCountry,origin,radiusKm,setRadius,count,children}){
+export function WherePanel({portal=false,wide=false,histogram=null,card=null,panelRef,onClose,query,setQuery,onSearch,searching,places,results,onPick,message,onLocate,onWholeCountry,origin,radiusKm,setRadius,count,children}){
  const list=results.length?results:places;
+ const placeList=list.length>0&&<ul className="msearch-places" aria-label="Atrastās vietas">
+  {list.map(place=><li key={place.id||place.displayName||place.label}><button type="button" onClick={()=>onPick(place)}>
+   {I.pin}<span><strong>{place.label||place.displayName}</strong>{place.displayName&&place.displayName!==place.label&&<small>{place.displayName}</small>}</span>
+  </button></li>)}
+ </ul>;
+ // Desktop (K1): everything in one window — controls on the left, the map of local governments on the right.
+ if(wide)return <div id="msearch-where-panel" ref={panelRef} className="msearch-panel msearch-panel-where mwhere" role="dialog" aria-label="Kur meklēt">
+  <div className="mwhere-left">
+   <strong className="mwhere-title">Kur meklēt</strong>
+   <div className="mwhere-search">
+    <label className="msearch-place-field">{I.search}
+     <input type="search" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();onSearch();}}}
+      placeholder="Pilsēta, novads, pagasts vai adrese" aria-label="Meklēt vietu" autoComplete="off"/>
+     <button type="button" onClick={onSearch} disabled={searching} aria-label="Meklēt vietu">{searching?'…':I.search}</button>
+    </label>
+    <button type="button" className="mwhere-locate" onClick={onLocate} aria-label="Tuvumā man" title="Tuvumā man">{I.locate}</button>
+   </div>
+   {message&&<p className="msearch-message" role="status">{message}</p>}
+   <section className="mwhere-block"><h3>{origin?'Cik tālu no: '+origin.label:'Kur'}</h3>
+    {origin?<div className="mwhere-seg" role="group" aria-label="Cik tālu">
+     {RADII.map(km=><button key={km} type="button" aria-pressed={radiusKm===km} className={radiusKm===km?'on':''} onClick={()=>setRadius(km)} title={radiusLabel(km)}>{km?(km===50?'50 km':km):'LV'}</button>)}
+    </div>:<button type="button" className="mwhere-all" onClick={onWholeCountry}>Visa Latvija</button>}
+   </section>
+   {histogram}
+   <div className="mwhere-bottom">{card}<button type="button" className="msearch-show" onClick={onClose}>Rādīt {count}</button></div>
+  </div>
+  <div className="mwhere-right">
+   <button type="button" className="msearch-close mwhere-close" onClick={onClose} aria-label="Aizvērt vietas izvēli">{I.close}</button>
+   {placeList||children}
+  </div>
+ </div>;
  return <div id="msearch-where-panel" ref={panelRef} className={'msearch-panel msearch-panel-where'+(portal?' msearch-portal':'')} role="dialog" aria-label="Kur meklēt">
   <div className="msearch-panel-head"><strong>Kur meklēt</strong><button type="button" className="msearch-close" onClick={onClose} aria-label="Aizvērt vietas izvēli">{I.close}</button></div>
   <div className="msearch-panel-body">
@@ -145,11 +176,7 @@ export function WherePanel({portal=false,panelRef,onClose,query,setQuery,onSearc
     <button type="button" className="msearch-near" onClick={onLocate}>{I.locate}Tuvumā man</button>
     <button type="button" className="msearch-all" onClick={onWholeCountry}>Visa Latvija</button>
    </div>
-   {list.length>0&&<ul className="msearch-places" aria-label="Atrastās vietas">
-    {list.map(place=><li key={place.id||place.displayName||place.label}><button type="button" onClick={()=>onPick(place)}>
-     {I.pin}<span><strong>{place.label||place.displayName}</strong>{place.displayName&&place.displayName!==place.label&&<small>{place.displayName}</small>}</span>
-    </button></li>)}
-   </ul>}
+   {placeList}
    {message&&<p className="msearch-message" role="status">{message}</p>}
    {origin&&<section className="msearch-section"><h3>Cik tālu no: {origin.label}</h3><div className="msearch-pills" role="group" aria-label="Cik tālu">
     {RADII.map(km=><Pill key={km} on={radiusKm===km} onClick={()=>setRadius(km)} title={radiusLabel(km)}>{km?km+' km':'Visa Latvija'}</Pill>)}
