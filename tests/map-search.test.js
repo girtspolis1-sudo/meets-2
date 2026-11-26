@@ -63,3 +63,11 @@ test('short dates for suggestions', ()=>{
  assert.equal(shortWhen({date_from:'2026-11-01',date_to:'2026-12-31',time_from:'10:00'},'2026-11-25'),'Notiek');
  assert.equal(shortWhen({date_from:''},'2026-11-25'),'');
 });
+
+import {RADIUS_STOPS,radiusStopIndex} from '../lib/map-search.js';
+test('radius slider stops', ()=>{
+ assert.deepEqual(RADIUS_STOPS,[5,10,20,30,50]);
+ assert.equal(radiusStopIndex(30),3);
+ assert.equal(radiusStopIndex(25),2);
+ assert.equal(radiusStopIndex(0),0);
+});

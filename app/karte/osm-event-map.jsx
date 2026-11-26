@@ -25,7 +25,7 @@ import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,reque
 import {eventPath} from '../../lib/seo.js';
 import {scheduleDots,scheduleText} from '../../lib/pin-schedule.js';
 import {suggestionAction,matchesText,eventSuggestions,placeSuggestions,whatFilterCount,shortWhen} from '../../lib/map-search.js';
-import {SearchBar,WhatPanel,WherePanel,NovadsCard,AreaChips,CompactBar,usePanelDismiss} from './map-search.jsx';
+import {SearchBar,WhatPanel,WherePanel,NovadsCard,AreaChips,CompactBar,RadiusChip,RadiusPopover,usePanelDismiss} from './map-search.jsx';
 import MunicipalityHeatmap from './municipality-heatmap.jsx';
 import {municipalityCounts,parseMunicipalityParam,municipalityParam,municipalityByName,regionTitle,areaOf,areaGroups} from '../../lib/lv-municipalities.js';
 
@@ -187,7 +187,7 @@ export default function OsmEventMap(){
  const [areaMoved,setAreaMoved]=useState(false);
  // Open search panel: 'where' (Kur), 'what' (Ko filters) or none.
  const [panel,setPanel]=useState('');
- const whereButtonRef=useRef(null),whatButtonRef=useRef(null),wherePanelRef=useRef(null),whatPanelRef=useRef(null);
+ const whereButtonRef=useRef(null),whatButtonRef=useRef(null),wherePanelRef=useRef(null),whatPanelRef=useRef(null),radiusChipRef=useRef(null),radiusPanelRef=useRef(null);
  const [mapStyle,setMapStyle]=useState(()=>Object.hasOwn(MAP_STYLES,searchParams.get('style'))?searchParams.get('style'):'positron');
  const [userLocation,setUserLocation]=useState(DEFAULT_LOCATION);
 
@@ -670,12 +670,19 @@ export default function OsmEventMap(){
   if(placeSet.size&&radiusKm===0)return;
   if(radiusKm>0){
    const circle=L.circle(center,{pane:'centerPane',radius:radiusKm*1000,color:'#9e3039',weight:1.1,opacity:.62,fillColor:'#de8d95',fillOpacity:.018,interactive:false}).addTo(focus);
+   // "↔ 30 km" on the circle's east edge opens the radius slider (Kur panel on phones).
+   const edge=[userLocation.lat,userLocation.lon+radiusKm/(111.32*Math.cos(userLocation.lat*Math.PI/180))];
+   const handle=L.marker(edge,{pane:'activeMarkers',keyboard:true,title:'Mainīt rādiusu: '+radiusKm+' km',alt:'Mainīt rādiusu',
+    icon:L.divIcon({className:'mradius-handle-wrap',html:'<span class="mradius-handle">↔ '+radiusKm+' km</span>',iconSize:[84,32],iconAnchor:[42,16]})}).addTo(focus);
+   handle.on('click',()=>setPanel(isPhoneRef.current?'where':'radius'));
    map.fitBounds(circle.getBounds(),{padding:[45,45],maxZoom:13,animate:false});
   }else{
    if(userLocation.source==='fallback')map.fitBounds([[54.5,19.5],[59.5,29.5]],{animate:false,padding:[25,25]});
    else map.setView(center,11,{animate:false});
   }
  },[mapReady,userLocation,radiusKm,placeSet]);
+ const isPhoneRef=useRef(false);
+ useEffect(()=>{isPhoneRef.current=isPhone;},[isPhone]);
 
  // Organizer view: show straight away where the organizer's events are.
  useEffect(()=>{
@@ -890,7 +897,9 @@ export default function OsmEventMap(){
 
  // "Kur": a chosen local government wins over a centre point; nothing chosen means all of Latvia.
  const whereActive=Boolean(municipality||origin);
- const whereLabel=placeList.length?placeList[0]+(placeList.length>1?' +'+(placeList.length-1):''):origin?(userLocation.label+(radiusKm>0?' · '+radiusKm+' km':'')):'Visa Latvija';
+ // Desktop shows the radius in its own chip next to the place; phones keep it in the label.
+ const radiusChip=!isPhone&&Boolean(origin)&&!placeList.length;
+ const whereLabel=placeList.length?placeList[0]+(placeList.length>1?' +'+(placeList.length-1):''):origin?(userLocation.label+(radiusKm>0&&!radiusChip?' · '+radiusKm+' km':'')):'Visa Latvija';
  function clearWhere(){if(municipality)setMunicipality('');else chooseRiga();}
  function submitWhat(){setEventSearch(whatQuery.trim());setPanel('');setBarOpen(false);}
  function pickSuggestedEvent(event){setPanel('');setBarOpen(false);showOnMap(event);}
@@ -917,6 +926,7 @@ export default function OsmEventMap(){
  function toggleMunicipality(name){setPlaceList(list=>list.includes(name)?list.filter(x=>x!==name):[...list,name]);setRadiusKm(0);}
  usePanelDismiss(panel==='what',closePanel,whatPanelRef,whatButtonRef);
  usePanelDismiss(panel==='where',closePanel,wherePanelRef,whereButtonRef);
+ usePanelDismiss(panel==='radius',closePanel,radiusPanelRef,radiusChipRef);
 
  const emptyState=<div className="nearby-empty" role="status">
   <strong>{radiusKm>0&&origin?'Šajā laikā līdz '+radiusKm+' km pasākumu nav.':'Šajos filtros pasākumu nav.'}</strong>
@@ -938,7 +948,11 @@ export default function OsmEventMap(){
    <div className="map-controls map-controls-overlay msearch" aria-label="Meklēšana un filtri">
     {compactNovads?<CompactBar label={whereLabel} meta={compactMeta} filterCount={filterCount}
      onWhere={()=>setPanel('where')} onSearch={()=>setBarOpen(true)} onFilters={()=>setPanel('what')}/>
-    :<SearchBar whereLabel={whereLabel} whereActive={whereActive} onClearWhere={clearWhere} panel={panel} setPanel={setPanel}
+    :<SearchBar radiusControl={radiusChip?<>
+      <RadiusChip km={radiusKm} open={panel==='radius'} onToggle={()=>setPanel(panel==='radius'?'':'radius')} chipRef={radiusChipRef}/>
+      {panel==='radius'&&<RadiusPopover panelRef={radiusPanelRef} km={radiusKm} onChange={setRadiusKm} onAll={()=>setRadiusKm(0)}
+       count={countLabel(activeEvents.length)} onClose={()=>setPanel('')}/>}</>:null}
+     whereLabel={whereLabel} whereActive={whereActive} onClearWhere={clearWhere} panel={panel} setPanel={setPanel}
      whatQuery={whatQuery} setWhatQuery={setWhatQuery} filterCount={filterCount} onSubmit={submitWhat}
      whereRef={whereButtonRef} whatRef={whatButtonRef} suggestions={whatSuggestions} onPickEvent={pickSuggestedEvent}
      formatWhen={e=>shortWhen(e,today)}/>}
@@ -964,18 +978,18 @@ export default function OsmEventMap(){
       onOpen={openMunicipality} onToggle={toggleMunicipality} tapFirst={!canHover} compact={isPhone}/>}
     </WherePanel>)}
 
-    {!panel&&!compactNovads&&<ChipScroller label="Kad" className="map-quick-scroller msearch-quick">
+    {(!panel||panel==='radius')&&!compactNovads&&<ChipScroller label="Kad" className="map-quick-scroller msearch-quick">
      <div className="map-segment map-segment-when" role="group" aria-label="Kad">
       {PERIODS.map(p=><button key={p.key} type="button" aria-pressed={periodMode===p.key} className={periodMode===p.key?'active':''} onClick={()=>changePeriod(p.key)}
        title={p.label}><span className="long">{p.label}</span><span className="short">{SHORT_PERIOD[p.key]||p.label}</span></button>)}
      </div>
     </ChipScroller>}
-    {!panel&&!compactNovads&&periodMode==='manual'&&<div className="map-primary-manual-period">
+    {(!panel||panel==='radius')&&!compactNovads&&periodMode==='manual'&&<div className="map-primary-manual-period">
      <input aria-label="Datums no" title="Datums no" type="date" min={today} max={to||publicTo||undefined} value={from} onChange={e=>{const value=e.target.value;setPeriodMode('manual');setFrom(value);if(!to||value>to)setTo(value);}}/>
      <span aria-hidden="true">–</span>
      <input aria-label="Datums līdz" title="Datums līdz" type="date" min={from||today} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
     </div>}
-    {!panel&&!compactNovads&&activeChips.filter(c=>c.key!=='q'&&c.key!=='municipality').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
+    {(!panel||panel==='radius')&&!compactNovads&&activeChips.filter(c=>c.key!=='q'&&c.key!=='municipality').length>0&&<div className="map-active-filters" aria-label="Aktīvie filtri">
      {activeChips.filter(c=>c.key!=='q'&&c.key!=='municipality').map(chip=><span key={chip.key} className="map-inline-filter-chip"><span>{chip.label}</span><button type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>×</button></span>)}
      <button type="button" className="text-button" onClick={resetFilters}>Notīrīt visu</button>
     </div>}

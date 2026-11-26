@@ -32,3 +32,19 @@ test('date strip: one chip per day, running events on today', ()=>{
 test('spoken summary by colour', ()=>{
  assert.equal(scheduleText([ev(1,'2026-11-27'),ev(2,'2026-11-28'),ev(3,'2027-01-10')],today),'2 2–15 d, 1 pēc 15 d');
 });
+
+import {occursOn,lastEventDay,weekDays,weekNav,weekTitle} from '../lib/pin-schedule.js';
+test('week calendar starts today and stops at the last event of the place', ()=>{
+ const events=[ev(1,'2026-11-26'),ev(2,'2026-11-28'),ev(3,'2026-11-01','','2026-12-31'),ev(4,'2026-12-09')];
+ assert.ok(occursOn(events[2],'2026-11-26'));
+ assert.ok(!occursOn(events[0],'2026-11-27'));
+ assert.equal(lastEventDay(events,'2026-11-26'),'2026-12-09');
+ const week=weekDays(events.slice(0,2),'2026-11-26');
+ assert.deepEqual(week.map(d=>[d.dow,d.day,d.count]),[['C','26',1],['Pk','27',0],['S','28',1],['Sv','29',0],['P','30',0],['O','1',0],['T','2',0]]);
+ assert.equal(week[0].tone,'today');
+ assert.deepEqual(weekNav(events,'2026-11-26'),{prev:null,next:'2026-12-03'});
+ assert.deepEqual(weekNav(events,'2026-11-26','2026-12-03'),{prev:'2026-11-26',next:null});
+ assert.deepEqual(weekNav(events.slice(0,2),'2026-11-26'),{prev:null,next:null});
+ assert.equal(weekDays(events,'2026-11-26','2026-11-01')[0].date,'2026-11-26');
+ assert.equal(weekTitle(week),'26. nov. – 2. dec.');
+});

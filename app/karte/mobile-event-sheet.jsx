@@ -1,8 +1,8 @@
 'use client';
-import {useEffect,useRef} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import EventDetailCard from '../components/event-detail-card.jsx';
 import EventVenueFavorite from '../components/event-venue-favorite.jsx';
-import ScheduleStrip from './schedule-strip.jsx';
+import WeekStrip,{eventsOnDay} from './week-strip.jsx';
 
 // Events at one place on a phone, as the same cards the desktop place panel uses.
 export default function MobileEventSheet({group,activeIds,favorites,onFavorite,onCalendar,onClose,today,clock,distance,isAdmin=false}){
@@ -74,6 +74,11 @@ export default function MobileEventSheet({group,activeIds,favorites,onFavorite,o
    String(a.time_from||'').localeCompare(String(b.time_from||''));
  });
  const selectedCount=events.filter(e=>activeIds.has(e.id)).length;
+ const active=events.filter(e=>activeIds.has(e.id));
+ // One day of the week calendar, or '' for all; both start again for every place.
+ const [day,setDay]=useState('');
+ const [start,setStart]=useState(today);
+ useEffect(()=>{setDay('');setStart(today);},[group.key,today]);
  return <div className="meets-mobile-sheet-layer">
   <div className="meets-mobile-sheet-backdrop" onClick={onClose} aria-hidden="true"/>
   <section ref={sheetRef} role="dialog" aria-modal="true" aria-label={'Pasākumi vietā '+group.label} className="meets-mobile-event-sheet meets-quiet-event-sheet">
@@ -88,9 +93,9 @@ export default function MobileEventSheet({group,activeIds,favorites,onFavorite,o
     </div>
     <button type="button" ref={closeRef} onClick={onClose} aria-label="Aizvērt pasākumu informāciju">✕</button>
    </header>
-   <div className="meets-sheet-schedule"><ScheduleStrip events={events.filter(e=>activeIds.has(e.id))} order={events} today={today} listRef={listRef} itemSelector=".meets-mobile-sheet-event"/></div>
+   {active.length>1&&<div className="meets-sheet-schedule"><WeekStrip events={active} today={today} day={day} onDay={setDay} start={start} onStart={setStart}/></div>}
    <div className="meets-mobile-sheet-events" ref={listRef}>
-    {events.map(event=><EventDetailCard key={event.id} event={event} today={today} clock={clock} km={distance?.(event)}
+    {eventsOnDay(events,day).map(event=><EventDetailCard key={event.id} event={event} today={today} clock={clock} km={distance?.(event)}
      className="meets-mobile-sheet-event" highlighted={activeIds.has(event.id)} outside={!activeIds.has(event.id)} isAdmin={isAdmin}
      saved={favorites.has(String(event.id))} onSave={onFavorite} onCalendar={onCalendar}/>)}
    </div>
