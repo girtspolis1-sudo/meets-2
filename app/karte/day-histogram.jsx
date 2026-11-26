@@ -4,7 +4,7 @@ import {rangeIndexes,rangeLabel,dayLabel} from '../../lib/day-histogram.js';
 
 // Events per day for the coming weeks, with the chosen stretch of days framed. Drag the frame's
 // edges (or across the bars) to choose other days; the arrow keys move an edge by a day.
-export default function DayHistogram({bars,from,to,count,onRange,quick,period,onQuick}){
+export default function DayHistogram({bars,from,to,count,onRange,quick,period,onQuick,stacked=false}){
  const box=useRef(null),drag=useRef(null);
  const [live,setLive]=useState(null);
  const chosen=live||rangeIndexes(bars,from,to);
@@ -45,9 +45,9 @@ export default function DayHistogram({bars,from,to,count,onRange,quick,period,on
  }
  const left=chosen.a/n*100,width=(chosen.b-chosen.a+1)/n*100;
  const ticks=bars.map((b,i)=>i%7===0?{i,label:i===0?'Šodien':dayLabel(b.date)}:null).filter(Boolean);
- return <section className="mhist" aria-label="Pasākumi pa dienām">
+ return <section className={'mhist'+(stacked?' stacked':'')} aria-label="Pasākumi pa dienām">
   <div className="mhist-head">
-   <strong>Pasākumi pa dienām · nākamās {n} dienas</strong>
+   <strong>{stacked?'Kad':'Pasākumi pa dienām · nākamās '+n+' dienas'}</strong>
    <span>Velc rāmja malas vai pāri stabiņiem</span>
   </div>
   <div className="mhist-body">

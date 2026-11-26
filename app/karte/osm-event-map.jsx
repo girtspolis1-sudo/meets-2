@@ -26,7 +26,7 @@ import {eventPath} from '../../lib/seo.js';
 import {scheduleDots,scheduleText} from '../../lib/pin-schedule.js';
 import {suggestionAction,matchesText,eventSuggestions,placeSuggestions,whatFilterCount,shortWhen} from '../../lib/map-search.js';
 import {SearchBar,WhatPanel,WherePanel,NovadsCard,AreaChips,CompactBar,RadiusChip,RadiusPopover,usePanelDismiss} from './map-search.jsx';
-import MunicipalityHeatmap from './municipality-heatmap.jsx';
+import MunicipalityHeatmap,{MunicipalityCard} from './municipality-heatmap.jsx';
 import DayHistogram from './day-histogram.jsx';
 import {dailyCounts} from '../../lib/day-histogram.js';
 import {municipalityCounts,parseMunicipalityParam,municipalityParam,municipalityByName,regionTitle,areaOf,areaGroups} from '../../lib/lv-municipalities.js';
@@ -922,6 +922,12 @@ export default function OsmEventMap(){
  // The day chart counts the same events on any day, so it shows when there is most to choose from.
  const dayBars=useMemo(()=>panel==='where'?dailyCounts(events.filter(e=>matchesWith(e,{radius:0,anyPlace:true,from:'',to:''})),rigaTodayIso(clockNow),30,publicTo):[],[panel,events,matchesWith,clockNow,publicTo]);
  function chooseDays(start,end){setPeriodMode('manual');setFrom(start);setTo(end);}
+ const dayChart=stacked=><DayHistogram stacked={stacked} bars={dayBars} from={from} to={to}
+  count={countLabel(placeScopeEvents.length)} onRange={chooseDays} period={periodMode} onQuick={changePeriod}
+  quick={[{key:'today',label:'Šodien'},{key:'weekend',label:'Brīvdienās'},{key:'7days',label:'7 d.'},{key:'30days',label:'30 d.'}]}/>;
+ // The local government the pointer is on in the desktop Kur panel; its card sits in the left column.
+ const [heatFocus,setHeatFocus]=useState('');
+ useEffect(()=>{if(panel==='where')setHeatFocus(placeList[0]||'');},[panel]);
  const heatTopics=useMemo(()=>{
   const by=new Map();
   for(const e of placeScopeEvents){const g=eventGroup(e);if(!g||!HOME_CATEGORY_FILTERS[g])continue;const m=by.get(e.municipality)||new Map();m.set(g,(m.get(g)||0)+1);by.set(e.municipality,m);}
@@ -978,12 +984,13 @@ export default function OsmEventMap(){
     {panel==='where'&&onTop(<WherePanel portal={isPhone} panelRef={wherePanelRef} onClose={()=>setPanel('')} query={locationQuery} setQuery={v=>{setLocationQuery(v);setLocationResults([]);}}
      onSearch={searchLocation} searching={locationSearching} places={placeSuggestions(locationChoices,locationQuery)} results={locationResults}
      onPick={place=>{selectLocation(place);setPanel('');}} message={locationMessage} onLocate={()=>{useCurrentLocation();setPanel('');}}
-     onWholeCountry={()=>{chooseRiga();setMunicipality('');setPanel('');}} origin={placeList.length?null:origin} radiusKm={radiusKm} setRadius={setRadiusKm} count={countLabel(activeEvents.length)}>
-     {!locationQuery.trim()&&!locationResults.length&&<DayHistogram bars={dayBars} from={from} to={to}
-      count={countLabel(placeScopeEvents.length)} onRange={chooseDays} period={periodMode} onQuick={changePeriod}
-      quick={[{key:'today',label:'Šodien'},{key:'weekend',label:'Brīvdienās'},{key:'7days',label:'7 d.'},{key:'30days',label:'30 d.'}]}/>}
+     onWholeCountry={()=>{chooseRiga();setMunicipality('');setPanel('');}} origin={placeList.length?null:origin} radiusKm={radiusKm} setRadius={setRadiusKm} count={countLabel(activeEvents.length)}
+     wide={!isPhone} histogram={!isPhone?dayChart(true):null}
+     card={!isPhone?<MunicipalityCard name={heatFocus} counts={heatCounts} topics={heatTopics} selected={placeList} onOpen={openMunicipality} onToggle={toggleMunicipality}/>:null}>
+     {isPhone&&!locationQuery.trim()&&!locationResults.length&&dayChart(false)}
      {!locationQuery.trim()&&!locationResults.length&&<MunicipalityHeatmap counts={heatCounts} topics={heatTopics} selected={placeList}
-      onOpen={openMunicipality} onToggle={toggleMunicipality} tapFirst={!canHover} compact={isPhone}/>}
+      onOpen={openMunicipality} onToggle={toggleMunicipality} tapFirst={!canHover} compact={isPhone}
+      wide={!isPhone} focus={isPhone?undefined:heatFocus} onFocus={isPhone?undefined:setHeatFocus}/>}
     </WherePanel>)}
 
     {(!panel||panel==='radius')&&!compactNovads&&<ChipScroller label="Kad" className="map-quick-scroller msearch-quick">
