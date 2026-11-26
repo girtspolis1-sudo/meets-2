@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import CategoryIcon from '../components/category-icon.jsx';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS} from '../../lib/home-category-filters.js';
 import {PERIODS,RADII,radiusLabel} from '../../lib/map-nearby.js';
+import {RADIUS_STOPS,radiusStopIndex} from '../../lib/map-search.js';
 import './map-search.css';
 
 const I={
@@ -31,7 +32,7 @@ export function usePanelDismiss(open,onClose,panelRef,openerRef){
  },[open,onClose,panelRef,openerRef]);
 }
 
-export function SearchBar({whereLabel,whereActive,onClearWhere,panel,setPanel,whatQuery,setWhatQuery,filterCount,onSubmit,whereRef,whatRef,suggestions,onPickEvent,formatWhen}){
+export function SearchBar({radiusControl=null,whereLabel,whereActive,onClearWhere,panel,setPanel,whatQuery,setWhatQuery,filterCount,onSubmit,whereRef,whatRef,suggestions,onPickEvent,formatWhen}){
  const [suggestOpen,setSuggestOpen]=useState(false);
  const barRef=useRef(null);
  useEffect(()=>{
@@ -50,6 +51,7 @@ export function SearchBar({whereLabel,whereActive,onClearWhere,panel,setPanel,wh
     <span className={'msearch-where-value'+(whereActive?' chosen':'')}>{whereActive&&I.pin}<span>{whereLabel}</span></span>
     <span className="msearch-where-icon">{I.map}</span>
    </button>
+   {radiusControl}
    {whereActive&&<button type="button" className="msearch-clear" onClick={onClearWhere} aria-label={'Noņemt vietu: '+whereLabel}>{I.close}</button>}
   </div>
   <div className={'msearch-what'+(panel==='what'?' open':'')}>
@@ -189,5 +191,24 @@ export function CompactBar({label,meta,filterCount,onWhere,onSearch,onFilters}){
   <button type="button" className="mcompact-icon" onClick={onFilters} aria-label={'Filtri'+(filterCount?', ieslēgti '+filterCount:'')}>
    {I.sliders}{filterCount>0&&<span className="msearch-count">{filterCount}</span>}
   </button>
+ </div>;
+}
+
+// "30 km ▾" next to the place, and its slider: 5–50 km, or all of Latvia.
+export function RadiusChip({km,open,onToggle,chipRef}){
+ return <button type="button" ref={chipRef} className="msearch-radius" aria-expanded={open} aria-controls="msearch-radius-panel" onClick={onToggle}
+  aria-label={'Cik tālu: '+(km?km+' km':'visa Latvija')}>{km?km+' km':'Visa LV'}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>;
+}
+export function RadiusPopover({panelRef,km,onChange,onAll,count,onClose}){
+ const index=radiusStopIndex(km||30);
+ return <div id="msearch-radius-panel" ref={panelRef} className="mradius" role="dialog" aria-label="Cik tālu">
+  <div className="mradius-head"><strong>Cik tālu</strong><b>{km?km+' km':'Visa Latvija'}</b></div>
+  <input type="range" min={0} max={RADIUS_STOPS.length-1} step={1} value={km?index:RADIUS_STOPS.length-1}
+   onChange={e=>onChange(RADIUS_STOPS[Number(e.target.value)])} aria-label="Attālums kilometros" aria-valuetext={RADIUS_STOPS[index]+' km'}/>
+  <div className="mradius-ticks" aria-hidden="true">{RADIUS_STOPS.map(s=><span key={s}>{s}</span>)}</div>
+  <div className="mradius-actions">
+   <button type="button" className={'mradius-all'+(km?'':' on')} aria-pressed={!km} onClick={onAll}>Visa Latvija</button>
+   <button type="button" className="msearch-show" onClick={onClose}>Rādīt {count}</button>
+  </div>
  </div>;
 }

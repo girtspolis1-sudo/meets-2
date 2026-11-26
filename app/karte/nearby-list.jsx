@@ -1,5 +1,5 @@
 'use client';
-import ScheduleStrip from './schedule-strip.jsx';
+import WeekStrip,{eventsOnDay} from './week-strip.jsx';
 import {useEffect,useRef,useState} from 'react';
 import {countLabel,distanceLabel} from '../../lib/map-nearby.js';
 import {rowPlace} from '../../lib/event-row.js';
@@ -33,15 +33,19 @@ function PlaceView({place,today,clock,distance,activeIds,favorites,onFavorite,on
  const events=[...place.events].sort((a,b)=>Number(activeIds.has(b.id))-Number(activeIds.has(a.id))||
   String(a.date_from).localeCompare(String(b.date_from))||String(a.time_from||'').localeCompare(String(b.time_from||'')));
  const selected=events.filter(e=>activeIds.has(e.id)).length;
- const boxRef=useRef(null);
- return <div className="nearby-place" ref={boxRef} aria-label={'Pasākumi vietā '+place.label}>
+ const active=events.filter(e=>activeIds.has(e.id));
+ // One day of the week calendar, or '' for all; both start again for every place.
+ const [day,setDay]=useState('');
+ const [start,setStart]=useState(today);
+ useEffect(()=>{setDay('');setStart(today);},[place.key,today]);
+ return <div className="nearby-place" aria-label={'Pasākumi vietā '+place.label}>
   <div className="nearby-place-head">
    <button type="button" className="text-button" onClick={onClose}>← Atpakaļ uz sarakstu</button>
    <div className="nearby-place-title"><h3>{place.label}</h3>{events[0]&&<EventVenueFavorite event={events[0]} compact/>}</div>
    <small>{countLabel(selected)} atbilst filtriem{events.length>selected?' · '+(events.length-selected)+' citi šajā vietā':''}</small>
-   <ScheduleStrip events={events.filter(e=>activeIds.has(e.id))} order={events} today={today} listRef={boxRef}/>
   </div>
-  {events.map(event=><EventDetailCard key={event.id} event={event} today={today} clock={clock} km={distance(event)}
+  {active.length>1&&<div className="mweek-sticky"><WeekStrip events={active} today={today} day={day} onDay={setDay} start={start} onStart={setStart}/></div>}
+  {eventsOnDay(events,day).map(event=><EventDetailCard key={event.id} event={event} today={today} clock={clock} km={distance(event)}
    highlighted={String(event.id)===String(highlightedId)} outside={!activeIds.has(event.id)} isAdmin={isAdmin}
    saved={favorites.has(String(event.id))} onSave={onFavorite} onCalendar={onCalendar}/>)}
  </div>;
