@@ -343,12 +343,14 @@ export default function OsmEventMap(){
   for(const e of typedEvents)if(e.competition_key&&e.competition_name)counts.set(e.competition_key,(counts.get(e.competition_key)||0)+1);
   const registry=Array.isArray(data?.competitions)?data.competitions:[];
   const singleType=eventTypes.length===1?eventTypes[0]:'';
-  const relevantRegistry=registry.filter(c=>singleType==='basketball'?String(c.sport_format||'').toLowerCase()==='basketball':SOURCE_TYPE_BODY[singleType]?String(c.governing_body||'').toUpperCase()===SOURCE_TYPE_BODY[singleType]:false);
+  // Competitions of the other level (youth leagues under the default view) are left out.
+  const ofLevel=c=>matchesLevel({event_type:'sports_match',competition_name:c.name,sport_level:c.level},level);
+  const relevantRegistry=registry.filter(ofLevel).filter(c=>singleType==='basketball'?String(c.sport_format||'').toLowerCase()==='basketball':SOURCE_TYPE_BODY[singleType]?String(c.governing_body||'').toUpperCase()===SOURCE_TYPE_BODY[singleType]:false);
   const options=new Map();
   for(const c of relevantRegistry)if(c.competition_key&&c.name)options.set(c.competition_key,{key:c.competition_key,name:c.name,count:counts.get(c.competition_key)||0});
   for(const e of typedEvents)if(e.competition_key&&e.competition_name&&!options.has(e.competition_key))options.set(e.competition_key,{key:e.competition_key,name:e.competition_name,count:counts.get(e.competition_key)||0});
   return [...options.values()].sort((a,b)=>a.name.localeCompare(b.name,'lv'));
- },[typedEvents,data?.competitions,eventTypes]);
+ },[typedEvents,data?.competitions,eventTypes,level]);
 
  const scopedEvents=useMemo(()=>competition?typedEvents.filter(e=>e.competition_key===competition):typedEvents,[typedEvents,competition]);
  const categories=useMemo(()=>[...new Set(scopedEvents.map(e=>e.primary_category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),[scopedEvents]);

@@ -119,6 +119,54 @@ async function regionalFeeds(){
  return rows.map((r:any)=>({websiteId:String(r.website_id),key:"lbs-regional-"+r.website_id,name:"",season:"",
   domain:"regionalie.basket.lv",url:r.calendar_url,regional:true}));
 }
+// Latvian Youth Basketball League (LJBL): one Sportradar website id per age group and
+// division, listed in basketball_sources (section LJBL). Its games are youth
+// competitions: the competition rows carry level='youth' and the age group, so the map
+// shows them only under "Sacensību līmenis: Jaunieši" (lib/sport-level.js).
+// "U12 Puiši," → "U12 Puiši"; "U16, nacionālais līgas kauss -" → "U16, nacionālais līgas kauss".
+export const ljblName=(s:string)=>String(s||"").replace(/[\s,–-]+$/,"").trim();
+async function ljblFeeds(){
+ const rows=await rest("basketball_sources?section=eq.LJBL&parser_type=eq.sportradar&active=is.true&website_id=not.is.null&select=website_id,calendar_url,competition,age_group");
+ return rows.map((r:any)=>({websiteId:String(r.website_id),key:"ljbl:"+r.website_id,name:ljblName(r.competition),season:"",
+  domain:"ljbl.basket.lv",url:r.calendar_url,ljbl:true,age_group:r.age_group||null}));
+}
+// New LJBL groups are added as youth competitions; existing rows (and whether they are
+// switched on) are left as they are.
+async function registerLjblCompetitions(list:any[],season:string){
+ if(!list.length)return;
+ await rest("sports_competitions?on_conflict=competition_key",{method:"POST",headers:{Prefer:"resolution=ignore-duplicates"},
+  body:JSON.stringify(list.map(f=>({governing_body:"LBS / LJBL",competition_key:f.key,name:f.name,season,competition_type:"league",
+   sport_format:"basketball",default_age_group:f.age_group,level:"youth",source_url:f.url,active:true})))});
+}
+const LJBL_NOTE="LJBL: spēle vairs nav oficiālajā kalendārā";
+const LJBL_CANCELLED="LJBL: spēle oficiālajā kalendārā atcelta";
+// Coming LJBL games that left the official calendar (moved to another id, withdrawn) or
+// were cancelled there are taken off the map; one that comes back is published again.
+// A feed that suddenly lists far fewer games is reported, not trusted.
+async function reconcileLjbl(feeds:{feed:any,data:any}[],today:string){
+ const out={archived:0,cancelled:0,restored:0,skipped:[] as string[]};
+ for(const {feed,data} of feeds){
+  const fixtures=Array.isArray(data.fixtures)?data.fixtures:[];
+  if(!fixtures.length){out.skipped.push(feed.websiteId+": tukšs kalendārs");continue;}
+  const listed=new Map<string,string>();
+  for(const f of fixtures)if(f.fixtureId)listed.set("sportradar:"+feed.websiteId+":"+f.fixtureId,String(f?.status?.value||"").toUpperCase());
+  const stored=await rest("events?import_key=like."+encodeURIComponent("sportradar:"+feed.websiteId+":*")+"&date_from=gte."+today+"&select=id,import_key,status,last_change_summary");
+  const gone=stored.filter((e:any)=>e.status!=="archived"&&e.status!=="cancelled"&&!listed.has(e.import_key));
+  const cancelled=stored.filter((e:any)=>e.status!=="cancelled"&&["CANCELLED","ABANDONED"].includes(listed.get(e.import_key)||""));
+  const back=stored.filter((e:any)=>["archived","cancelled"].includes(e.status)&&[LJBL_NOTE,LJBL_CANCELLED].includes(e.last_change_summary)
+   &&listed.has(e.import_key)&&!["CANCELLED","ABANDONED"].includes(listed.get(e.import_key)||""));
+  const live=stored.filter((e:any)=>e.status!=="archived"&&e.status!=="cancelled").length;
+  if(gone.length+cancelled.length>Math.max(5,live/2)){out.skipped.push(feed.websiteId+": pazustu "+(gone.length+cancelled.length)+" no "+live);continue;}
+  const patch=async(ids:string[],body:any)=>{if(ids.length)await rest("events?id=in.("+ids.join(",")+")",{method:"PATCH",body:JSON.stringify({...body,updated_at:new Date().toISOString()})});};
+  await patch(gone.map((e:any)=>e.id),{status:"archived",last_change_summary:LJBL_NOTE});
+  await patch(cancelled.map((e:any)=>e.id),{status:"cancelled",last_change_summary:LJBL_CANCELLED});
+  // Back to review; the import below publishes it again when it is ready.
+  await patch(back.map((e:any)=>e.id),{status:"pending_review",last_change_summary:"LJBL: spēle atkal oficiālajā kalendārā"});
+  out.archived+=gone.length;out.cancelled+=cancelled.length;out.restored+=back.length;
+ }
+ return out;
+}
+
 // "Tukuma čempionāts 2026/2027" → "Tukuma čempionāts".
 const seasonless=(s:string)=>String(s||"").replace(/[,\s-]*\d{4}\.?\/\s?\d{2,4}\.?\s*$/,"").replace(/[,\s-]*\d{4}\s*$/,"").trim();
 async function registerCompetitions(list:{key:string,name:string,season:string,url:string}[]){
@@ -128,7 +176,7 @@ async function registerCompetitions(list:{key:string,name:string,season:string,u
    competition_type:"regional",sport_format:"basketball",source_url:c.url,active:true})))});
 }
 
-async function rpc(items:any[]){
+async function rpc(items:any[],commit="lbs-sportradar-v1-3month"){
  const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/meets_import_sportradar_basketball",{
   method:"POST",
   headers:{
@@ -136,7 +184,7 @@ async function rpc(items:any[]){
    Authorization:"Bearer "+SERVICE_KEY,
    "Content-Type":"application/json"
   },
-  body:JSON.stringify({p_items:items,p_source_commit:"lbs-sportradar-v1-3month"}),
+  body:JSON.stringify({p_items:items,p_source_commit:commit}),
   signal:AbortSignal.timeout(120000)
  });
  const text=await r.text();
@@ -144,18 +192,27 @@ async function rpc(items:any[]){
  return text?JSON.parse(text):null;
 }
 
-Deno.serve(async()=>{
+Deno.serve(async(req)=>{
  try{
   const today=rigaToday();
   const windowTo=addMonthsIso(today,3);
-  const fetched:any[]=await Promise.all(feeds.map(fetchFeed));
-  // Regional feeds are many and small: read them a few at a time; one that fails
-  // is reported and skipped rather than failing the national leagues.
-  const regional=await regionalFeeds();
-  const regionalFailed:string[]=[];
-  for(let i=0;i<regional.length;i+=8){
-   const batch=await Promise.all(regional.slice(i,i+8).map((f:any)=>fetchFeed(f).catch(()=>{regionalFailed.push(f.websiteId);return null;})));
-   for(const r of batch)if(r)fetched.push(r);
+  // ?dry=1 reads and reports without writing; {"only":"ljbl"} (the daily run) reads the
+  // youth league alone, the weekly run reads everything.
+  const url=new URL(req.url);
+  let body:any={};try{body=await req.json();}catch{body={};}
+  const dry=url.searchParams.get("dry")==="1"||body?.dry===true;
+  const onlyLjbl=(url.searchParams.get("only")||body?.only)==="ljbl";
+  const fetched:any[]=onlyLjbl?[]:await Promise.all(feeds.map(fetchFeed));
+  // Regional and LJBL feeds are many and small: read them a few at a time; one that
+  // fails is reported and skipped rather than failing the national leagues.
+  const regional=onlyLjbl?[]:await regionalFeeds();
+  const ljbl=await ljblFeeds();
+  const regionalFailed:string[]=[],ljblFailed:string[]=[];
+  for(const [list,failed] of [[regional,regionalFailed],[ljbl,ljblFailed]] as [any[],string[]][]){
+   for(let i=0;i<list.length;i+=8){
+    const batch=await Promise.all(list.slice(i,i+8).map((f:any)=>fetchFeed(f).catch(()=>{failed.push(f.websiteId);return null;})));
+    for(const r of batch)if(r)fetched.push(r);
+   }
   }
   const regionalCompetitions:any[]=[];
   const items:any[]=[];
@@ -191,6 +248,7 @@ Deno.serve(async()=>{
     const group=String(f.pool||series?.pool||"").trim()||null;
 
     items.push({
+     ljbl:feed.ljbl===true,
      import_key:`sportradar:${feed.websiteId}:${f.fixtureId}`,
      title:`${home} – ${away}`,
      description:[feed.name,feed.season].filter(Boolean).join(" · "),
@@ -226,7 +284,12 @@ Deno.serve(async()=>{
   }
 
   // The import RPC needs a competition row per key; regional ones are named from the feed.
-  await registerCompetitions(regionalCompetitions);
+  const season=Number(today.slice(5,7))>=7?today.slice(0,4)+"/"+(Number(today.slice(0,4))+1):(Number(today.slice(0,4))-1)+"/"+today.slice(0,4);
+  const ljblFetched=fetched.filter(x=>x.feed.ljbl);
+  if(!dry){
+   await registerCompetitions(regionalCompetitions);
+   await registerLjblCompetitions(ljblFetched.map(x=>x.feed),season);
+  }
   // Regional feeds carry a venue id without a name; the national feeds name the same halls.
   const unnamed=[...new Set(items.filter(i=>!i.venue_name&&i.source_venue_id).map(i=>i.source_venue_id))];
   if(unnamed.length){
@@ -262,10 +325,20 @@ Deno.serve(async()=>{
    if(place&&!i.locality_text)Object.assign(i,{country_code:place.country_code,locality_text:place.locality_text,fallback_lat:place.fallback_lat,fallback_lon:place.fallback_lon});
   }
   const dedup=[...new Map(items.map(i=>[i.import_key,i])).values()];
-  const result=await rpc(dedup);
+  const youth=dedup.filter(i=>i.ljbl).map(({ljbl,...i})=>i);
+  const adult=dedup.filter(i=>!i.ljbl).map(({ljbl,...i})=>i);
+  const ljblStats={feeds:ljbl.length,read:ljblFetched.length,failed:ljblFailed,games:youth.length,
+   no_venue:youth.filter(i=>!i.venue_name).length,no_place:youth.filter(i=>!i.locality_text).length};
+  if(dry)return Response.json({ok:true,dry:true,window_from:today,window_to:windowTo,found:dedup.length,ljbl:ljblStats,stats,
+   sample:youth.slice(0,5)});
+  // LJBL is its own import run ("Basketbols (LJBL)" in the import health list).
+  const reconcile=ljblFetched.length?await reconcileLjbl(ljblFetched,today):null;
+  const result=adult.length?await rpc(adult):null;
+  const youthResult=youth.length?await rpc(youth,"ljbl-sportradar-v1-3month"):null;
   return Response.json({ok:true,window_from:today,window_to:windowTo,found:dedup.length,
+   ljbl:{...ljblStats,reconcile,result:youthResult},
    regional:{feeds:regional.length,with_games:regionalCompetitions.length,failed:regionalFailed},
-   venues:{looked_up:lookups.length,named:found.size,events_named:fromGamePages,still_unnamed:dedup.filter(i=>!i.venue_name).length},stats,...result});
+   venues:{looked_up:lookups.length,named:found.size,events_named:fromGamePages,still_unnamed:dedup.filter(i=>!i.venue_name).length},stats,...(result||{})});
  }catch(error){
   console.error("sync_lbs_basketball_failed",{message:error?.message||String(error)});
   return Response.json({ok:false,error:error?.message||String(error)},{status:500});

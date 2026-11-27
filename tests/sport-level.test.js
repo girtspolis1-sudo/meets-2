@@ -102,3 +102,11 @@ test('town and topic pages leave youth games out; a youth league page keeps them
  assert.equal(listing(events,{league:'u12-puisi'},day).events.length,12);
  assert.equal(topLeagues(events,day,6).some(l=>l.name==='U12 Puiši'),false);
 });
+
+test('a youth league in the competition list is told apart by its name', ()=>{
+ const asEvent=name=>({event_type:'sports_match',competition_name:name});
+ assert.equal(matchesLevel(asEvent('U12 Puiši')),false);
+ assert.equal(matchesLevel(asEvent('U16, nacionālais līgas kauss')),false);
+ assert.equal(matchesLevel(asEvent('Latvijas Basketbola līga')),true);
+ assert.equal(matchesLevel(asEvent('U12 Puiši'),'youth'),true);
+});
