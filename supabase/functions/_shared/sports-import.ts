@@ -117,6 +117,29 @@ export async function writeMatches(f:Family,rid:string,today:string,matches:Matc
  return {created,updated};
 }
 
+// Only games that are new or changed since they were stored (teams, date, time, hall,
+// competition, age group) are written, at most `limit` per run, nearest first; the next
+// run takes the rest. A season of youth games (several hundred) would otherwise run the
+// function out of its time and compute limit every night.
+export async function pendingMatches(f:Family,matches:Match[],limit=200){
+ const stored=new Map<string,any>();
+ const keys=matches.map(m=>f.keyPrefix+":"+m.id);
+ for(let i=0;i<keys.length;i+=100){
+  const part=keys.slice(i,i+100);
+  const rows=await q("events?import_key=in.("+part.map(k=>'"'+k+'"').join(",")+")&select=import_key,title,date_from,time_from,event_locations(venue_name),event_sports_metadata(competition_id,age_group)");
+  for(const r of rows)stored.set(r.import_key,r);
+ }
+ const one=(x:any)=>Array.isArray(x)?x[0]:x;
+ const changed=matches.filter(m=>{
+  const s=stored.get(f.keyPrefix+":"+m.id);
+  if(!s)return true;
+  const loc=one(s.event_locations),meta=one(s.event_sports_metadata);
+  return s.title!==m.home+" – "+m.away||s.date_from!==m.date||String(s.time_from||"").slice(0,5)!==String(m.time||"")
+   ||(loc?.venue_name||"")!==m.venue||!meta?.competition_id||(meta?.age_group||null)!==(m.age_group||null);
+ }).sort((a,b)=>a.date.localeCompare(b.date)||String(a.time).localeCompare(String(b.time)));
+ return {todo:changed.slice(0,limit),unchanged:matches.length-changed.length,deferred:Math.max(0,changed.length-limit)};
+}
+
 export function wantsDry(req:Request){
  return new URL(req.url).searchParams.get("dry")==="1";
 }

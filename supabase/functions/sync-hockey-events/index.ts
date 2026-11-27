@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import {ABROAD,addMonthsIso,failRun,fetchText,type Family,type Match,q,rigaToday,startRun,text,wantsDry,writeMatches} from "../_shared/sports-import.ts";
+import {ABROAD,addMonthsIso,failRun,fetchText,type Family,type Match,pendingMatches,q,rigaToday,startRun,text,wantsDry,writeMatches} from "../_shared/sports-import.ts";
 import {TOURNAMENTS,staleGames} from "../_shared/hockey.js";
 
 // Hockey matches from the Latvian Ice Hockey Federation (lhf.lv). Each tournament has
@@ -88,7 +88,9 @@ Deno.serve(async(req)=>{
   }
   const matches=[...new Map(all.map(m=>[m.id,m])).values()];
   const youth=matches.filter(m=>m.competition_key.startsWith("lhf-ljc-")).length;
-  if(dry)return Response.json({ok:true,dry:true,found:matches.length,youth,adult:matches.length-youth,failed,stats,sample:matches.slice(0,12)});
+  const pending=await pendingMatches(FAMILY,matches);
+  if(dry)return Response.json({ok:true,dry:true,found:matches.length,youth,adult:matches.length-youth,failed,
+   to_write:pending.todo.length,unchanged:pending.unchanged,deferred:pending.deferred,stats,sample:matches.slice(0,12)});
   if(!matches.length)throw new Error("No hockey matches found on lhf.lv");
   // Games the federation no longer lists go off the map (only when every page was read);
   // a game that comes back is published again by writeMatches below.
@@ -101,8 +103,9 @@ Deno.serve(async(req)=>{
   if(stale.trusted&&stale.gone.length)await q("events?id=in.("+stale.gone.map((e:any)=>e.id).join(",")+")",{method:"PATCH",
    body:JSON.stringify({status:"archived",last_change_summary:NOTE_GONE,updated_at:now})});
   rid=await startRun(FAMILY,today);
-  const r=await writeMatches(FAMILY,rid,today,matches,TOURNAMENTS);
+  const r=await writeMatches(FAMILY,rid,today,pending.todo,TOURNAMENTS);
   return Response.json({ok:true,run_id:rid,found:matches.length,youth,adult:matches.length-youth,failed,
+   written:pending.todo.length,unchanged:pending.unchanged,deferred:pending.deferred,
    restored:back.length,archived:stale.trusted?stale.gone.length:0,stats,...r});
  }catch(e){
   await failRun(rid,e);
