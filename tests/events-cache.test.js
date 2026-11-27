@@ -75,3 +75,39 @@ test('when the build time cannot be read, the whole catalogue is loaded',async()
   assert.equal(t.calls.full,2);
  }finally{t.restore();}
 });
+
+test('an event page finds a current event in the catalogue and an ended one by its own read',async()=>{
+ const ended={id:'abcdef12-0000-4000-8000-000000000001',title:'Beidzies',date_from:'2026-01-10',status:'published',map_visible:true};
+ const original=globalThis.fetch;
+ const bodies=[];
+ globalThis.fetch=async(url,init)=>{
+  const u=String(url);
+  if(u.endsWith('/rpc/meets_public_ended_event')){bodies.push(JSON.parse(init.body));return Response.json(bodies.at(-1).p_key==='abcdef12'?ended:null);}
+  return Response.json({fetchedAt:BUILT[0],events:[{id:'12345678-0000-4000-8000-000000000001',title:'T',date_from:day,status:'published'}]});
+ };
+ try{
+  const mod=await import('../lib/events-server.js?case=ended');
+  const current=await mod.findPublicEvent({kind:'key',prefix:'12345678'});
+  assert.equal(current.ended,false);
+  assert.equal(bodies.length,0,'a current event needs no extra read');
+  const old=await mod.findPublicEvent({kind:'key',prefix:'abcdef12'});
+  assert.equal(old.ended,true);
+  assert.equal(old.event.title,'Beidzies');
+  assert.equal(old.event.cover_image_url,null);
+  assert.deepEqual(bodies.at(-1),{p_key:'abcdef12'});
+  assert.equal(await mod.findPublicEvent({kind:'uuid',id:'99999999-0000-4000-8000-000000000001'}),null);
+  assert.deepEqual(bodies.at(-1),{p_key:'99999999-0000-4000-8000-000000000001'});
+  assert.equal(await mod.findPublicEvent({kind:'other',value:'riga'}),null);
+ }finally{globalThis.fetch=original;}
+});
+
+test('an ended event read that fails gives no page instead of an error',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async url=>String(url).endsWith('/rpc/meets_public_ended_event')
+  ?new Response('{"message":"timeout"}',{status:500})
+  :Response.json({fetchedAt:BUILT[0],events:[]});
+ try{
+  const mod=await import('../lib/events-server.js?case=ended-error');
+  assert.equal(await mod.findPublicEvent({kind:'key',prefix:'abcdef12'}),null);
+ }finally{globalThis.fetch=original;}
+});
