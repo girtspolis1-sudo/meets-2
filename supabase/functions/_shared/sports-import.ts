@@ -62,7 +62,7 @@ export async function failRun(rid:string|null,e:unknown){
  try{await q("import_runs?id=eq."+rid,{method:"PATCH",body:JSON.stringify({status:"failed",completed_at:new Date().toISOString(),error_text:String(e).slice(0,500)})});}catch{}
 }
 
-export async function writeMatches(f:Family,rid:string,today:string,matches:Match[],competitions:{key:string,name:string,url:string,age_group?:string|null}[]){
+export async function writeMatches(f:Family,rid:string,today:string,matches:Match[],competitions:{key:string,name:string,url:string,age_group?:string|null,level?:"senior"|"youth"|null}[]){
  await q("import_runs?id=eq."+rid,{method:"PATCH",body:JSON.stringify({expected_count:matches.length})});
  const source=(await q("sources?domain=eq."+encodeURIComponent(f.domain)+"&select=id"))[0];
  const category=(await q("categories?name=eq."+encodeURIComponent(f.category)+"&select=id"))[0];
@@ -74,7 +74,7 @@ export async function writeMatches(f:Family,rid:string,today:string,matches:Matc
   await q("sports_competitions?on_conflict=competition_key",{method:"POST",headers:{"Prefer":"resolution=ignore-duplicates"},
    body:JSON.stringify(used.map(k=>{const c=competitions.find(x=>x.key===k)||{key:k,name:matches.find(m=>m.competition_key===k)!.competition,url:""};
     return {governing_body:f.governing_body,competition_key:k,name:c.name,season,competition_type:"league",sport_format:f.sport_format,
-     default_age_group:c.age_group||null,source_url:c.url||null,active:true};}))});
+     default_age_group:(c as any).age_group||null,level:(c as any).level||null,source_url:c.url||null,active:true};}))});
  }
  const comps=used.length?await q("sports_competitions?competition_key=in.("+used.map(k=>'"'+k+'"').join(",")+")&select=id,competition_key"):[];
  const compId=new Map(comps.map((c:any)=>[c.competition_key,c.id]));
