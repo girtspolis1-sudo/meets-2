@@ -4,6 +4,9 @@ import {ABROAD,addMonthsIso,failRun,fetchText,type Family,type Match,rigaToday,s
 // Floorball matches from the Latvian Floorball Union (floorball.lv). Each league's
 // calendar page loads its table from a DataTables endpoint; the page carries the
 // season id the endpoint needs. Rows: date, time, home, result, away, venue, referees.
+// PAUSED (migration 20261127121055_floorball_pause): floorball.lv's robots.txt disallows
+// /ajax/, and no public HTML page carries the games. Do not run this function until the
+// union gives permission or offers a public schedule source.
 const FAMILY:Family={
  keyPrefix:"floorball.lv",runPrefix:"floorball-",commit:"lfs-calendar-v1-3month",domain:"floorball.lv",
  category:"Florbols",sport_format:"floorball",governing_body:"LFS",
