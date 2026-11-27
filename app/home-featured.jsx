@@ -5,6 +5,7 @@ import {useEvents} from '../lib/use-events.js';
 import {eventPath} from '../lib/seo.js';
 import {cardDate,cardImage,cardLocation} from '../lib/discovery-card.js';
 import {eventGroup} from '../lib/home-category-filters.js';
+import {matchesLevel} from '../lib/sport-level.js';
 import {rigaTodayIso} from '../lib/event-date.js';
 import {isBackgroundLong} from '../lib/event-duration.js';
 import DiscoveryEventCard from './components/discovery-event-card.jsx';
@@ -28,7 +29,7 @@ export default function HomeFeatured({fallback=null}){
   const today=rigaTodayIso();
   // Exhibitions and season programmes that are simply running are not "nearest";
   // they come back on their opening day and in their last week.
-  return all.filter(e=>e.id&&e.title&&eventGroup(e)!=='civic'&&!isBackgroundLong(e,today)&&String(e.date_to||e.date_from||'')>=today)
+  return all.filter(e=>e.id&&e.title&&eventGroup(e)!=='civic'&&matchesLevel(e)&&!isBackgroundLong(e,today)&&String(e.date_to||e.date_from||'')>=today)
    .sort((a,b)=>{
     const date=String(a.date_from||'9999').localeCompare(String(b.date_from||'9999'));
     if(date)return date;

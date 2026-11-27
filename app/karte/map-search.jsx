@@ -4,6 +4,7 @@ import CategoryIcon from '../components/category-icon.jsx';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS} from '../../lib/home-category-filters.js';
 import {PERIODS,RADII,radiusLabel} from '../../lib/map-nearby.js';
 import {RADIUS_STOPS,radiusStopIndex} from '../../lib/map-search.js';
+import {LEVELS,LEVEL_KEYS,LEVEL_TITLE} from '../../lib/sport-level.js';
 import './map-search.css';
 
 const I={
@@ -97,6 +98,11 @@ export function WhatPanel({portal=false,panelRef,onClose,count,f,set,periodMode,
    <Pills label="Tēma">
     {HOME_GROUP_KEYS.map(key=><Pill key={key} on={f.category===key} onClick={()=>set.category(f.category===key?'':key)}><CategoryIcon name={key}/>{HOME_CATEGORY_FILTERS[key].title}</Pill>)}
    </Pills>
+   {(!f.category||f.category==='sport')&&<section className="msearch-section"><h3>{LEVEL_TITLE}<small className="msearch-hint">{f.category==='sport'?'':' · tikai sportam'}</small></h3>
+    <div className="mwhere-seg msearch-level" role="group" aria-label={LEVEL_TITLE}>
+     {LEVEL_KEYS.map(key=><button key={key} type="button" aria-pressed={f.level===key} className={f.level===key?'on':''} onClick={()=>set.level(key)}>{LEVELS[key]}</button>)}
+    </div>
+   </section>}
    <div className="msearch-two">
     <Pills label="Maksa">
      {[['','Visi'],['free','Bezmaksas'],['paid','Maksas']].map(([v,t])=><Pill key={t} on={f.price===v} onClick={()=>set.price(v)}>{t}</Pill>)}

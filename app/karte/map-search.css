@@ -52,6 +52,8 @@
 .msearch-show:hover{background:var(--karmins-dark,#7a2029)}
 .msearch-section{display:flex;flex-direction:column;gap:8px}
 .msearch-section h3{margin:0;font:800 11.5px/1.2 var(--font-body,Manrope,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:#4a5565}
+.msearch-hint{font-weight:600;letter-spacing:.02em;text-transform:none;color:#6b7686}
+.msearch-level{max-width:420px}
 .msearch-pills{display:flex;flex-wrap:wrap;gap:6px}
 .msearch-pill{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 13px;border:1px solid var(--migla,#d8dee6);border-radius:999px;background:#fff;color:var(--tinte,#1b2430);font:700 13px var(--font-body,Manrope,sans-serif);cursor:pointer}
 .msearch-pill:hover{border-color:var(--tinte,#1b2430)}
