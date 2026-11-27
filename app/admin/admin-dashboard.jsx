@@ -23,6 +23,8 @@ import {adminPriorities,upcomingWithoutPlace} from '../../lib/admin-priorities.j
 import {auditEvents,BUCKETS,BUCKET_ORDER,CHECKS,issueLabels,nextInQueue,toCsv} from '../../lib/admin-checks.js';
 
 // Views and filters live in the address, so a reload or a shared link opens the same list.
+// Background reload after admin actions: once the actions have stopped for this long.
+const QUIET_RELOAD_MS=2000;
 const VIEWS=['overview','userSubmissions','organizers','mapping','all','register','sources'];
 const STATUS_OPTIONS=[['pending_review','Gaida pārbaudi'],['published','Publicēts'],['draft','Melnraksts'],['cancelled','Atcelts'],['archived','Arhivēts']];
 function readUrlState(){
@@ -256,8 +258,9 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   try{setPastEvents(decodeRows(await rpcWithRetry('meets_admin_catalog_rows',{p_past:true})));}
   catch{pastLoadedRef.current=false;}
  }
- async function loadEvents({quiet=false}={}){
-  if(!quiet)setLoading(true);
+ // extras: also the e-mail, organizer and place search panels (not changed by event actions).
+ async function loadEvents({quiet=false,extras=true,places=false}={}){
+  if(!quiet){setLoading(true);clearTimeout(quietReloadRef.current.timer);quietReloadRef.current.timer=null;}
   try{
    const [data,mappingData,healthData,sourceData,submissionData]=await Promise.all([
     rpcWithRetry('meets_admin_catalog_rows',{p_past:false}),
@@ -276,15 +279,32 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    if(!quiet){setSelectedIds(new Set());setBulkResult(null);}
    setCatalogLoaded(true);setLoadedAt(Date.now());
    if(!quiet)setMessage('');
-   adminRpc(supabaseUrl,publishableKey,'meets_admin_email_status',{}).then(setEmailStatus).catch(()=>setEmailStatus(null));
-   loadPlaceSearch();
-   adminRpc(supabaseUrl,publishableKey,'meets_admin_organizations',{}).then(list=>setOrganizations(Array.isArray(list)?list:[])).catch(()=>{});
+   if(extras){
+    adminRpc(supabaseUrl,publishableKey,'meets_admin_email_status',{}).then(setEmailStatus).catch(()=>setEmailStatus(null));
+    adminRpc(supabaseUrl,publishableKey,'meets_admin_organizations',{}).then(list=>setOrganizations(Array.isArray(list)?list:[])).catch(()=>{});
+   }
+   if(extras||places)loadPlaceSearch();
   }catch{
    // Data already on screen stays usable; only a first load without data shows the error panel.
    if(catalogLoadedRef.current)setMessage('Datus neizdevās atjaunot — rāda pēdējos ielādētos. Nospied “Pārlasīt”, lai mēģinātu vēlreiz.');
    else{setCatalogLoaded(false);setMessage('Admin datus neizdevās ielādēt.');}
   }finally{setLoading(false);}
  }
+ // After an action the screen is already updated locally; the background reload that
+ // confirms it waits until the actions stop (walking a queue, bulk saves), so a series
+ // of actions reloads the lists once instead of after every step.
+ const quietReloadRef=useRef({timer:null,places:false});
+ function reloadQuietly({places=false}={}){
+  const pending=quietReloadRef.current;
+  pending.places=pending.places||places;
+  clearTimeout(pending.timer);
+  pending.timer=setTimeout(()=>{
+   const withPlaces=pending.places;
+   pending.places=false;pending.timer=null;
+   loadEvents({quiet:true,extras:false,places:withPlaces});
+  },QUIET_RELOAD_MS);
+ }
+ useEffect(()=>()=>clearTimeout(quietReloadRef.current.timer),[]);
  const catalogLoadedRef=useRef(false);
  useEffect(()=>{catalogLoadedRef.current=catalogLoaded;},[catalogLoaded]);
  // Loads the workspace once the signed-in account is confirmed as admin.
@@ -404,7 +424,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    const text=`“${event.title}” ${STATUS_TEXT[newStatus]||'atjaunots'}.`;
    if(undoing)setMessage('Atsaukts: '+text);
    else logAction(text,previous&&previous!==newStatus?()=>changeStatus({...event,status:newStatus},previous,{undoing:true}):null);
-   loadEvents({quiet:true});
+   reloadQuietly();
   }catch{setMessage('Statusu neizdevās mainīt.');}
   finally{setLoading(false);}
  }
@@ -434,7 +454,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    const previous=event.status;
    logAction(publish?`Vieta verificēta un “${event.title}” publicēts.`:`Vieta verificēta: “${event.title}”. Paliek pārbaudē līdz publicēšanai.`,
     publish&&previous!=='published'?()=>changeStatus({...event,status:'published'},previous,{undoing:true}):null);
-   loadEvents({quiet:true});
+   reloadQuietly();
   }catch{setMessage('Lokāciju neizdevās saglabāt.');}
   finally{setLoading(false);}
  }
@@ -465,7 +485,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    markPlaceVerified(group,values);
    doneIdsRef.current=new Set([...doneIdsRef.current,...group.events.map(e=>e.id)]);
    logAction(`Vieta apstiprināta: “${result?.alias_text||group.alias}”. ${publishedText(result?.published_events)} Nākamie importi šo vietu piemēros automātiski.`);
-   loadEvents({quiet:true});
+   reloadQuietly({places:true});
   }catch{
    setMessage('Vietas sasaisti neizdevās saglabāt. Pārbaudi vietu, adresi un koordinātas.');
   }finally{setLoading(false);}
@@ -505,7 +525,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   }
   setBulkProgress('');
   logAction(`${saved===1?'Apstiprināta 1 vieta':'Apstiprinātas '+saved+' vietas'}${failed?', '+failed+' neizdevās — tās paliek sarakstā':''}. ${publishedText(published)} Nākamie importi tās piemēros automātiski.`);
-  loadEvents({quiet:true});
+  reloadQuietly({places:true});
  }
  async function setOrganizationTrust(organization,trusted){
   try{
@@ -594,14 +614,14 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
    const publishedIds=new Set((Array.isArray(result?.published)?result.published:[]).map(item=>String(item?.id??item)));
    setEvents(list=>list.map(item=>publishedIds.has(String(item.id))?{...item,status:'published'}:item));
    setSelectedIds(new Set());
-   loadEvents({quiet:true});
+   reloadQuietly();
    const published=publishedIds.size;
    const skipped=Array.isArray(result?.skipped)?result.skipped.length:0;
    const errors=Array.isArray(result?.errors)?result.errors.length:0;
    const undoIds=[...publishedIds];
    logAction(`Masveida publicēšana: publicēti ${published}, izlaisti ${skipped}, kļūdas ${errors}.`,published?async()=>{
     let back=0;for(const id of undoIds){try{await setStatusOnly(id,'pending_review');back++;}catch{}}
-    setMessage(`Atsaukts: ${back} pasākumi atgriezti pārbaudei.`);loadEvents({quiet:true});
+    setMessage(`Atsaukts: ${back} pasākumi atgriezti pārbaudei.`);reloadQuietly();
    }:null);
   }catch{
    setMessage('Masveida publicēšanu neizdevās pabeigt.');
