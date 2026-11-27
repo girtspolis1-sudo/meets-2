@@ -105,7 +105,7 @@ export default function AdminMappingList({groups,mappings,onMap,onEditEvent,onEd
   {view==='issues'&&placeSearch&&<div className="mapping-suggestion-bar" role="status">
    <div><strong>Adrešu ieteikumi tiek meklēti automātiski</strong>
     <span>{placeSearch.waiting>0
-     ?`Vēl jāpārbauda ${placeCount(placeSearch.waiting)} (${eventCount(placeSearch.waitingEvents)}); vietas ar visvairāk pasākumiem pirmās, ~6 vietas minūtē.`
+     ?`Vēl jāpārbauda ${placeCount(placeSearch.waiting)} (${eventCount(placeSearch.waitingEvents)}); vietas ar visvairāk pasākumiem pirmās, ~2 vietas minūtē.`
      :'Visas vietas ir pārbaudītas.'}
      {' '}Ieteikums atrasts {placeCount(placeSearch.found||0)}{placeSearch.notFound?`, nav atrasts ${placeCount(placeSearch.notFound)}`:''}{placeSearch.failed?`, kļūda ${placeCount(placeSearch.failed)}`:''}.
      {placeSearch.register&&<> {registerText(placeSearch.register)}</>}</span></div>
