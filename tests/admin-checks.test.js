@@ -13,7 +13,8 @@ test('location checks: missing place, point, area and unverified point',()=>{
  // Automatic points from an official source are not admin work.
  assert.deepEqual(locationIssues({...good,location_quality:'source_exact',location_auto:'address_register'}),[]);
  assert.deepEqual(locationIssues({...good,location_quality:'source_exact',location_auto:'culture_institution'}),[]);
- assert.deepEqual(locationIssues({...good,location_quality:'fallback_center',location_auto:'settlement_center'}),[]);
+ assert.deepEqual(locationIssues({...good,location_quality:'fallback_center',location_auto:'settlement_center'}),['area_only']);
+ assert.deepEqual(locationIssues({...good,location_quality:'venue_area',location_auto:'address_register'}),['location_unverified']);
  assert.deepEqual(locationIssues({...good,location_quality:'source_exact',location_auto:'source_page_address'}),['location_unverified']);
  assert.deepEqual(locationIssues({...good,location_quality:'source_exact'}),['location_unverified']);
  assert.deepEqual(locationIssues({...good,location_quality:'venue_unverified'}),['location_unverified']);
