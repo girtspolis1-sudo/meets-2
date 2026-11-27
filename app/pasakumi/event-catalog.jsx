@@ -11,6 +11,7 @@ import {cardCategory,cardDate,cardDescription,cardGroup,cardImage,cardLocation,c
 import {placeFromEvent,placesFromEvents} from '../../lib/location-follow.js';
 import {rigaTodayIso,rigaClockMinutes,addIsoDays} from '../../lib/event-date.js';
 import {eventGroup,matchesAudience,sourceType} from '../../lib/home-category-filters.js';
+import {DEFAULT_LEVEL,LEVELS,LEVEL_CHIPS,LEVEL_KEYS,LEVEL_TITLE,levelKey,matchesLevel} from '../../lib/sport-level.js';
 import {countLabel,dayHeading,periodRange} from '../../lib/map-nearby.js';
 import {isOver,listDay,splitForList} from '../../lib/catalog-list.js';
 import {NEAR_PLACES,RADIUS_CHOICES,distanceKm,nearPlace,withinRadius} from '../../lib/event-calendar.js';
@@ -65,6 +66,8 @@ export default function EventCatalog({fallback=null}){
  const [shown,setShown]=useState(CARD_PAGE);
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [showLong,setShowLong]=useState(false);
+ // Sports competition level (?level=all|youth); adults by default, as on the map.
+ const [level,setLevel]=useState(DEFAULT_LEVEL);
  const [nearMessage,setNearMessage]=useState('');
  // Minutes in Riga, so today's events drop off the list once they are over.
  const [clock,setClock]=useState(()=>rigaClockMinutes());
@@ -72,6 +75,7 @@ export default function EventCatalog({fallback=null}){
  useEffect(()=>{
   const p=new URLSearchParams(window.location.search);
   setPlaceFilter(p.get('place')||'');
+  setLevel(levelKey(p.get('level')));
   if(['calendar','table'].includes(p.get('view')))setViewMode(p.get('view'));
   const filters={};
   for(const [from,to] of [['q','title'],['price','price_status'],['municipality','municipality'],['country','country_code'],['subcategory','primary_category'],['type','event_type']]){
@@ -110,15 +114,18 @@ export default function EventCatalog({fallback=null}){
   set('q',columnFilters.title);set('municipality',columnFilters.municipality);set('type',columnFilters.event_type);
   set('price',columnFilters.price_status);set('period',period==='all'?'':period);set('place',placeFilter);
   set('view',viewMode==='cards'?'':viewMode);
+  set('level',level===DEFAULT_LEVEL?'':level);
   // A town and radius go in the address; the browser's own position does not.
   const near=shared.radius>0&&sharedOrigin;
   set('radius',near?String(shared.radius):'');
   set('lat',near&&sharedOrigin.source!=='browser'?String(Number(sharedOrigin.lat.toFixed(4))):'');
   set('lon',near&&sharedOrigin.source!=='browser'?String(Number(sharedOrigin.lon.toFixed(4))):'');
   window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
- },[columnFilters,period,placeFilter,viewMode,shared.radius,sharedOrigin]);
+ },[columnFilters,period,placeFilter,viewMode,shared.radius,sharedOrigin,level]);
 
- const rows=data?.events||[];
+ const allRows=data?.events||[];
+ // Youth competitions are out of the list, the calendar, the table and every count unless chosen.
+ const rows=useMemo(()=>allRows.filter(event=>matchesLevel(event,level)),[allRows,level]);
  const availablePlaces=useMemo(()=>placesFromEvents(rows),[rows]);
  const options=useMemo(()=>({
   municipalities:[...new Set(rows.map(event=>event.municipality).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'lv')),
@@ -246,6 +253,7 @@ export default function EventCatalog({fallback=null}){
   const p=new URLSearchParams();
   if(shared.group)p.set('category',shared.group);
   if(shared.audience)p.set('audience',shared.audience);
+  if(level!==DEFAULT_LEVEL)p.set('level',level);
   if(shared.types?.length)p.set('types',shared.types.join(','));
   if(shared.competition)p.set('competition',shared.competition);
   if(columnFilters.primary_category)p.set('subcategory',columnFilters.primary_category);
@@ -263,8 +271,9 @@ export default function EventCatalog({fallback=null}){
    p.set('lon',String(Number(sharedOrigin.lon.toFixed(4))));
   }
   return '/karte'+(p.size?'?'+p.toString():'');
- },[shared,sharedOrigin,columnFilters,period,data?.window?.to,placeFilter]);
- const selectedEvent=rows.find(event=>event.id===selected);
+ },[shared,sharedOrigin,columnFilters,period,data?.window?.to,placeFilter,level]);
+ // An event opened by link is found whatever the level choice.
+ const selectedEvent=allRows.find(event=>event.id===selected);
  // Measurement: a search once typing stops, and each opened event.
  useEffect(()=>{
   const term=String(columnFilters.title||'').trim();
@@ -275,8 +284,8 @@ export default function EventCatalog({fallback=null}){
  useEffect(()=>{if(selectedEvent)track('event_view',{item_id:selectedEvent.id,item_category:selectedEvent.primary_category,municipality:selectedEvent.municipality});},[selectedEvent?.id]);
  useEffect(()=>{
   const id=new URLSearchParams(window.location.search).get('event');
-  if(id&&rows.some(event=>event.id===id))setSelected(id);
- },[rows]);
+  if(id&&allRows.some(event=>event.id===id))setSelected(id);
+ },[allRows]);
  function closeDetails(){
   setSelected(null);
   const url=new URL(window.location.href);
@@ -310,14 +319,15 @@ export default function EventCatalog({fallback=null}){
   const place=nearPlace(value);
   if(place)chooseNear({lat:place.lat,lon:place.lon,label:place.label,source:'place'});
  }
- const filterCount=activeFilterCount-(columnFilters.title?1:0)+(placeFilter?1:0);
- const resetAll=()=>{setColumnFilters({});setPeriod('all');setPlaceFilter('');setShared({});setSharedOrigin(null);setPage(0);setShown(CARD_PAGE);};
+ const filterCount=activeFilterCount-(columnFilters.title?1:0)+(placeFilter?1:0)+(level!==DEFAULT_LEVEL?1:0);
+ const resetAll=()=>{setColumnFilters({});setPeriod('all');setPlaceFilter('');setShared({});setSharedOrigin(null);setLevel(DEFAULT_LEVEL);setPage(0);setShown(CARD_PAGE);};
  // Chips for each active choice, so one can be removed without opening the filters.
  const activeChips=[
   columnFilters.municipality&&{label:columnFilters.municipality,clear:()=>changeColumn('municipality','')},
   columnFilters.event_type&&{label:display({event_type:columnFilters.event_type},'event_type'),clear:()=>changeColumn('event_type','')},
   columnFilters.price_status&&{label:prices[columnFilters.price_status]||columnFilters.price_status,clear:()=>changeColumn('price_status','')},
   columnFilters.primary_category&&{label:columnFilters.primary_category,clear:()=>changeColumn('primary_category','')},
+  level!==DEFAULT_LEVEL&&{label:LEVEL_CHIPS[level],clear:()=>{setLevel(DEFAULT_LEVEL);setPage(0);setShown(CARD_PAGE);}},
   placeFilter&&{label:availablePlaces.find(place=>place.key===placeFilter)?.name||'Norises vieta',clear:()=>{setPlaceFilter('');setShown(CARD_PAGE);}},
   shared.radius>0&&{label:(nearKey==='me'?'Mana vieta':nearLabel)+' · līdz '+shared.radius+' km',clear:()=>chooseNear(null)},
   sharedFilterCount-(placeFilter?1:0)-(shared.radius>0?1:0)>0&&{label:'Atlase no kartes',clear:()=>{setShared(current=>({radius:current.radius}));setShown(CARD_PAGE);}}
@@ -365,6 +375,11 @@ export default function EventCatalog({fallback=null}){
    <label>Veids{filterControl('event_type','Tips')}</label>
    <label>Maksa{filterControl('price_status','Maksa')}</label>
    <label>Norises vieta<select value={placeFilter} onChange={e=>{setPlaceFilter(e.target.value);setPage(0);setShown(CARD_PAGE);}} aria-label="Filtrēt pēc norises vietas"><option value="">Visas vietas</option>{availablePlaces.map(place=><option key={place.key} value={place.key}>{place.name} · {place.municipality} ({place.count})</option>)}</select></label>
+   {(!shared.group||shared.group==='sport')&&<div className="catalog-level" role="group" aria-label={LEVEL_TITLE}>
+    <span>{LEVEL_TITLE}{shared.group==='sport'?'':' (sportam)'}</span>
+    <div className="catalog-level-seg">{LEVEL_KEYS.map(key=><button key={key} type="button" aria-pressed={level===key} className={level===key?'on':''}
+     onClick={()=>{setLevel(key);setPage(0);setShown(CARD_PAGE);}}>{LEVELS[key]}</button>)}</div>
+   </div>}
    <label>Kārtot<select value={sort} onChange={event=>{setSort(event.target.value);setDirection(1);setPage(0);}}><option value="date_from">Pēc datuma un laika</option><option value="title">Pēc nosaukuma</option><option value="municipality">Pēc pašvaldības</option></select></label>
   </div>}
 
