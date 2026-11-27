@@ -729,7 +729,11 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   if(view==='all'){openBucket(filter?.bucket||'',filter?.issue||'');return;}
   setWorkspaceView(view);
  }
- function publishMany(list){bulkPublish(list.filter(canPublishEvent).map(e=>e.id));}
+ function publishMany(list){
+  const ids=list.filter(canPublishEvent).map(e=>e.id);
+  if(!ids.length){setMessage('Nav neviena publicējama pasākuma: vispirms jānorāda precīza norises vieta.');return;}
+  bulkPublish(ids);
+ }
  function archiveDuplicate(event){changeStatus(event,'archived');}
  function exportCsv(){
   const header=['Datums','Beigas','Laiks','Nosaukums','Statuss','Bloks','Iemesli','Vieta','Adrese','Pašvaldība','Platums','Garums','Avots'];
