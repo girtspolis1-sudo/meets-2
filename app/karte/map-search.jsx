@@ -62,7 +62,7 @@ export function SearchBar({radiusControl=null,whereLabel,whereActive,onClearWher
     <span className="msearch-label">Ko</span>
     <input type="search" value={whatQuery} onChange={e=>{setWhatQuery(e.target.value);setSuggestOpen(true);}} onFocus={()=>setSuggestOpen(true)}
      onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();submit();}if(e.key==='Escape')setSuggestOpen(false);}}
-     placeholder="Pasākums, rīkotājs vai vieta" aria-label="Meklēt pasākumu pēc nosaukuma, rīkotāja vai vietas" autoComplete="off"/>
+     placeholder="Ko meklē?" aria-label="Meklēt pasākumu pēc nosaukuma, rīkotāja vai vietas" autoComplete="off"/>
    </label>
    <button type="button" ref={whatRef} className="msearch-filters" aria-expanded={panel==='what'} aria-controls="msearch-what-panel"
     aria-label={'Filtri'+(filterCount?', ieslēgti '+filterCount:'')} onClick={()=>setPanel(panel==='what'?'':'what')}>
@@ -85,14 +85,20 @@ function Pill({on,onClick,children,title}){
  return <button type="button" className={'msearch-pill'+(on?' on':'')} aria-pressed={!!on} onClick={onClick} title={title}>{children}</button>;
 }
 
-export function WhatPanel({portal=false,panelRef,onClose,count,f,set,periodMode,changePeriod,from,to,today,publicTo,setFrom,setTo,setPeriodMode,audienceOptions,quickTypes,sourceCounts,singleEventType,competitionOptions,categories,countries,countryLabel,onReset,onlineCount}){
- return <div id="msearch-what-panel" ref={panelRef} className={'msearch-panel msearch-panel-what'+(portal?' msearch-portal':'')} role="dialog" aria-label="Ko meklēt">
+// The filter panel of the map and the catalogue: Kad · Tēma · Sacensību līmenis ·
+// Maksa · Citi · Sporta veids, then "Vēl" (the map's selects, the catalogue's own
+// choices in `more`). Sections whose options are not passed are left out.
+export function WhatPanel({portal=false,panelRef,onClose,count,f,set,periods=PERIODS,periodMode,changePeriod,from,to,today,publicTo,setFrom,setTo,setPeriodMode,
+ audienceOptions=[],sportTypes=[],sourceCounts={},singleEventType='',competitionOptions=[],categories=[],countries=[],countryLabel=code=>code,onReset,onlineCount=null,more=null}){
+ const sports=sportTypes.filter(t=>(sourceCounts[t.value]||0)>0||f.eventTypes?.includes(t.value));
+ const selects=(singleEventType&&competitionOptions.length>0)||categories.length>0||countries.length>1;
+ return <div id="msearch-what-panel" ref={panelRef} className={'msearch-panel msearch-panel-what'+(portal?' msearch-portal':'')} role="dialog" aria-label="Filtri">
   <div className="msearch-panel-head"><strong>Filtri</strong><button type="button" className="msearch-close" onClick={onClose} aria-label="Aizvērt filtrus">{I.close}</button></div>
   <div className="msearch-panel-body">
    <Pills label="Kad">
-    {PERIODS.map(p=><Pill key={p.key} on={periodMode===p.key} onClick={()=>changePeriod(p.key)}>{p.label}</Pill>)}
+    {periods.map(p=><Pill key={p.key} on={periodMode===p.key} onClick={()=>changePeriod(p.key)}>{p.label}</Pill>)}
    </Pills>
-   {periodMode==='manual'&&<div className="msearch-dates">
+   {periodMode==='manual'&&setFrom&&<div className="msearch-dates">
     <input aria-label="Datums no" type="date" min={today} max={to||publicTo||undefined} value={from} onChange={e=>{const v=e.target.value;setPeriodMode('manual');setFrom(v);if(!to||v>to)setTo(v);}}/>
     <span aria-hidden="true">–</span>
     <input aria-label="Datums līdz" type="date" min={from||today} max={publicTo||undefined} value={to} onChange={e=>{setPeriodMode('manual');setTo(e.target.value);}}/>
@@ -101,9 +107,7 @@ export function WhatPanel({portal=false,panelRef,onClose,count,f,set,periodMode,
     {HOME_GROUP_KEYS.map(key=><Pill key={key} on={f.category===key} onClick={()=>set.category(f.category===key?'':key)}><CategoryIcon name={key}/>{HOME_CATEGORY_FILTERS[key].title}</Pill>)}
    </Pills>
    {(!f.category||f.category==='sport')&&<section className="msearch-section"><h3>{LEVEL_TITLE}<small className="msearch-hint">{f.category==='sport'?'':' · tikai sportam'}</small></h3>
-    <div className="mwhere-seg msearch-level" role="group" aria-label={LEVEL_TITLE}>
-     {LEVEL_KEYS.map(key=><button key={key} type="button" aria-pressed={f.level===key} className={f.level===key?'on':''} onClick={()=>set.level(key)}>{LEVELS[key]}</button>)}
-    </div>
+    <LevelSwitch level={f.level} onLevel={set.level}/>
    </section>}
    <div className="msearch-two">
     <Pills label="Maksa">
@@ -114,23 +118,26 @@ export function WhatPanel({portal=false,panelRef,onClose,count,f,set,periodMode,
     </Pills>}
    </div>
    <Pills label="Citi">
-    <Pill on={f.onlineOnly} onClick={()=>set.onlineOnly(!f.onlineOnly)} title="Pasākumi, kuros var piedalīties tiešsaistē">Tiešsaistē <small>{onlineCount}</small></Pill>
+    <Pill on={f.onlineOnly} onClick={()=>set.onlineOnly(!f.onlineOnly)} title="Pasākumi, kuros var piedalīties tiešsaistē">Tiešsaistē{onlineCount!==null&&<> <small>{onlineCount}</small></>}</Pill>
     <Pill on={f.showLong} onClick={()=>set.showLong(!f.showLong)} title="Izstādes un citi pasākumi, kas ilgst vairāk nekā 2 nedēļas">Izstādes un ilgstošie</Pill>
    </Pills>
-   <Pills label="Sporta līgas un avoti">
-    {quickTypes.map(t=><Pill key={t.value} on={f.eventTypes.includes(t.value)} onClick={()=>set.toggleType(t.value)}>{t.label} <small>{sourceCounts[t.value]||0}</small></Pill>)}
-   </Pills>
-   <div className="msearch-selects">
-    {singleEventType&&competitionOptions.length>0&&<label><span>Turnīrs</span><select value={f.competition} onChange={e=>set.competition(e.target.value)}>
-     <option value="">Visi turnīri</option>{competitionOptions.map(v=><option key={v.key} value={v.key}>{v.name} ({v.count})</option>)}
-    </select></label>}
-    <label><span>Sīkāka kategorija</span><select value={f.subcategory} onChange={e=>set.subcategory(e.target.value)}>
-     <option value="">Visas kategorijas</option>{categories.map(v=><option key={v}>{v}</option>)}
-    </select></label>
-    {countries.length>1&&<label><span>Valsts</span><select value={f.country} onChange={e=>set.country(e.target.value)}>
-     <option value="">Visas valstis</option>{countries.map(code=><option key={code} value={code}>{countryLabel(code)}</option>)}
-    </select></label>}
-   </div>
+   {sports.length>0&&(!f.category||f.category==='sport')&&<Pills label="Sporta veids">
+    {sports.map(t=><Pill key={t.value} on={f.eventTypes.includes(t.value)} onClick={()=>set.toggleType(t.value)}><Icon name={t.icon} size={16}/>{t.label} <small>{sourceCounts[t.value]||0}</small></Pill>)}
+   </Pills>}
+   {(selects||more)&&<section className="msearch-section msearch-more"><h3>Vēl</h3>
+    <div className="msearch-selects">
+     {singleEventType&&competitionOptions.length>0&&<label><span>Turnīrs</span><select value={f.competition} onChange={e=>set.competition(e.target.value)}>
+      <option value="">Visi turnīri</option>{competitionOptions.map(v=><option key={v.key} value={v.key}>{v.name} ({v.count})</option>)}
+     </select></label>}
+     {categories.length>0&&<label><span>Sīkāka kategorija</span><select value={f.subcategory} onChange={e=>set.subcategory(e.target.value)}>
+      <option value="">Visas kategorijas</option>{categories.map(v=><option key={v}>{v}</option>)}
+     </select></label>}
+     {countries.length>1&&<label><span>Valsts</span><select value={f.country} onChange={e=>set.country(e.target.value)}>
+      <option value="">Visas valstis</option>{countries.map(code=><option key={code} value={code}>{countryLabel(code)}</option>)}
+     </select></label>}
+     {more}
+    </div>
+   </section>}
   </div>
   <div className="msearch-panel-foot">
    <button type="button" className="msearch-reset" onClick={onReset}>Notīrīt filtrus</button>
@@ -139,8 +146,19 @@ export function WhatPanel({portal=false,panelRef,onClose,count,f,set,periodMode,
  </div>;
 }
 
-export function WherePanel({portal=false,wide=false,histogram=null,card=null,panelRef,onClose,query,setQuery,onSearch,searching,places,results,onPick,message,onLocate,onWholeCountry,origin,radiusKm,setRadius,count,children}){
+// "Visi · Pieaugušie · Jaunieši": in the filter panel, and above the list when the theme is sport.
+export function LevelSwitch({level,onLevel,className=''}){
+ return <div className={'mwhere-seg msearch-level'+(className?' '+className:'')} role="group" aria-label={LEVEL_TITLE}>
+  {LEVEL_KEYS.map(key=><button key={key} type="button" aria-pressed={level===key} className={level===key?'on':''} onClick={()=>onLevel(key)}>{LEVELS[key]}</button>)}
+ </div>;
+}
+
+export function WherePanel({portal=false,wide=false,histogram=null,card=null,panelRef,onClose,query,setQuery,onSearch,searching,places,results,onPick,message,onLocate,onWholeCountry,origin,radiusKm,setRadius,count,quickPlaces=[],children}){
  const list=results.length?results:places;
+ // The towns offered first (the same as the catalogue's "Kur" and the home page), while nothing is typed.
+ const towns=!query.trim()&&!results.length&&quickPlaces.length>0&&<div className="msearch-pills mwhere-towns" role="group" aria-label="Pilsētas">
+  {quickPlaces.map(place=><Pill key={place.label} on={origin?.label===place.label} onClick={()=>onPick({...place,displayName:place.label})}>{place.label}</Pill>)}
+ </div>;
  const placeList=list.length>0&&<ul className="msearch-places" aria-label="Atrastās vietas">
   {list.map(place=><li key={place.id||place.displayName||place.label}><button type="button" onClick={()=>onPick(place)}>
    {I.pin}<span><strong>{place.label||place.displayName}</strong>{place.displayName&&place.displayName!==place.label&&<small>{place.displayName}</small>}</span>
@@ -159,6 +177,7 @@ export function WherePanel({portal=false,wide=false,histogram=null,card=null,pan
     <button type="button" className="mwhere-locate" onClick={onLocate} aria-label="Tuvumā man" title="Tuvumā man">{I.locate}</button>
    </div>
    {message&&<p className="msearch-message" role="status">{message}</p>}
+   {towns}
    <section className="mwhere-block"><h3>{origin?'Cik tālu no: '+origin.label:'Kur'}</h3>
     {origin?<div className="mwhere-seg" role="group" aria-label="Cik tālu">
      {RADII.map(km=><button key={km} type="button" aria-pressed={radiusKm===km} className={radiusKm===km?'on':''} onClick={()=>setRadius(km)} title={radiusLabel(km)}>{km?(km===50?'50 km':km):'LV'}</button>)}
@@ -185,6 +204,7 @@ export function WherePanel({portal=false,wide=false,histogram=null,card=null,pan
     <button type="button" className="msearch-all" onClick={onWholeCountry}>Visa Latvija</button>
    </div>
    {placeList}
+   {towns}
    {message&&<p className="msearch-message" role="status">{message}</p>}
    {origin&&<section className="msearch-section"><h3>Cik tālu no: {origin.label}</h3><div className="msearch-pills" role="group" aria-label="Cik tālu">
     {RADII.map(km=><Pill key={km} on={radiusKm===km} onClick={()=>setRadius(km)} title={radiusLabel(km)}>{km?km+' km':'Visa Latvija'}</Pill>)}

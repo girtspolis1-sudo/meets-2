@@ -17,15 +17,14 @@ function hostOf(url){try{return new URL(url).hostname.replace(/^www\./,'');}catc
 // row under it holds following the place and the same actions as on the map.
 // Wide cards show the action names; narrow cards and small screens show icons
 // only (event-card.css), so more events fit on one screen.
-export default function DiscoveryEventCard({event,onOpen,actions=false,footer=null}){
+export default function DiscoveryEventCard({event,actions=false,footer=null}){
  const group=cardGroup(event),today=rigaTodayIso();
  const original=officialEventUrl(event),host=original?hostOf(original):'';
  const orgId=event.organization_id,orgName=event.organizer_name;
  const place=[event.venue_name,event.settlement||event.municipality].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ')||'Vieta nav norādīta';
  const online={online:'Tiešsaistē',hybrid:'Klātienē un tiešsaistē'}[event.attendance_mode]||'';
- const title=onOpen
-  ?<button type="button" className="ec-open" onClick={()=>onOpen(event.id)}>{event.title}</button>
-  :<Link className="ec-open" href={eventPath(event)}>{event.title}</Link>;
+ // The title always leads to the event's page.
+ const title=<Link className="ec-open" href={eventPath(event)}>{event.title}</Link>;
  return <article className={'ec-card theme-'+group+(cardImage(event)?' has-image':' no-image')}>
   <EventCardMedia event={event} today={today} title={title}/>
   <div className="ec-body">

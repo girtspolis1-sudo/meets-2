@@ -19,14 +19,14 @@ import {CLUSTER_MAX_ZOOM,radiusForView} from '../../lib/map-cluster.js';
 import {useAdminSession} from '../use-admin-session.js';
 import {placeFromEvent} from '../../lib/location-follow.js';
 import {useSearchParams,useRouter,usePathname} from 'next/navigation';
-import {eventGroup,HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType,SOURCE_TYPES,SOURCE_TYPE_BODY} from '../../lib/home-category-filters.js';
+import {eventGroup,HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS,AUDIENCE_FILTERS,audienceKey,matchesAudience,homeCategoryKey,matchesHomeCategory,sourceType,SOURCE_TYPES,SOURCE_TYPE_BODY,SOURCE_TYPE_LABELS,SPORT_TYPES} from '../../lib/home-category-filters.js';
 import {useEvents} from '../../lib/use-events.js';
 import {eventDateState,hasEventEnded,rigaClockMinutes,rigaTodayIso} from '../../lib/event-date.js';
 import {addRasterLayer,enableMapLibre,hasWebGL,loadLeaflet,removeLayerSafe,requestedMapMode} from '../../lib/leaflet-runtime.js';
 import {eventPath} from '../../lib/seo.js';
 import {scheduleDots,scheduleText} from '../../lib/pin-schedule.js';
 import {suggestionAction,matchesText,eventSuggestions,placeSuggestions,whatFilterCount,shortWhen} from '../../lib/map-search.js';
-import {SearchBar,WhatPanel,WherePanel,NovadsCard,AreaChips,CompactBar,RadiusChip,RadiusPopover,usePanelDismiss} from './map-search.jsx';
+import {SearchBar,WhatPanel,WherePanel,NovadsCard,AreaChips,CompactBar,RadiusChip,RadiusPopover,LevelSwitch,usePanelDismiss} from './map-search.jsx';
 import {DEFAULT_LEVEL,LEVEL_CHIPS,levelKey,matchesLevel} from '../../lib/sport-level.js';
 import {QUICK_PLACES} from '../../lib/event-calendar.js';
 import MunicipalityHeatmap,{MunicipalityCard} from './municipality-heatmap.jsx';
@@ -760,16 +760,6 @@ export default function OsmEventMap(){
  const filterCount=whatFilterCount({category:homeCategory,audience,level,eventTypes,competition,subcategory:category,price,onlineOnly,showLong,country});
  const audienceOptions=Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key)));
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
- const quickTypes=[
-  {value:'municipality',label:'Pašvaldības',icon:'calendar'},
-  {value:'lff',label:'Futbols',icon:'football'},
-  {value:'basketball',label:'Basketbols',icon:'basketball'},
-  {value:'hockey',label:'Hokejs',icon:'hockey'},
-  {value:'volleyball',label:'Volejbols',icon:'volleyball'},
-  {value:'floorball',label:'Florbols',icon:'floorball'},
-  {value:'handball',label:'Handbols',icon:'handball'},
-  {value:'athletics',label:'Vieglatlētika',icon:'running'}
- ];
 
  function toggleEventType(value){
   setEventTypes(current=>{
@@ -863,7 +853,7 @@ export default function OsmEventMap(){
   homeCategory&&{key:'category',label:HOME_CATEGORY_FILTERS[homeCategory].title,clear:clearHomeCategory},
   audience&&{key:'audience',label:AUDIENCE_FILTERS[audience],clear:()=>setDiscoveryFilter('audience','')},
   level!==DEFAULT_LEVEL&&{key:'level',label:LEVEL_CHIPS[level],clear:()=>setLevel(DEFAULT_LEVEL)},
-  ...eventTypes.map(type=>({key:'type-'+type,label:quickTypes.find(t=>t.value===type)?.label||type,clear:()=>toggleEventType(type)})),
+  ...eventTypes.map(type=>({key:'type-'+type,label:SOURCE_TYPE_LABELS[type]||type,clear:()=>toggleEventType(type)})),
   competition&&{key:'competition',label:competitionOptions.find(c=>c.key===competition)?.name||'Turnīrs',clear:()=>setCompetition('')},
   category&&{key:'subcategory',label:category,clear:()=>setCategory('')},
   eventSearch&&{key:'q',label:'„'+eventSearch+'”',clear:()=>setEventSearch('')},
@@ -905,7 +895,8 @@ export default function OsmEventMap(){
  // "Kur": a chosen local government wins over a centre point; nothing chosen means all of Latvia.
  const whereActive=Boolean(municipality||origin);
  // Desktop shows the radius in its own chip next to the place; phones keep it in the label.
- const radiusChip=!isPhone&&Boolean(origin)&&!placeList.length;
+ // The radius is its own small chip next to the place name, on phones too.
+ const radiusChip=Boolean(origin)&&!placeList.length;
  const whereLabel=placeList.length?placeList[0]+(placeList.length>1?' +'+(placeList.length-1):''):origin?(userLocation.label+(radiusKm>0&&!radiusChip?' · '+radiusKm+' km':'')):'Visa Latvija';
  function clearWhere(){if(municipality)setMunicipality('');else chooseRiga();}
  function submitWhat(){setEventSearch(whatQuery.trim());setPanel('');setBarOpen(false);}
@@ -944,6 +935,12 @@ export default function OsmEventMap(){
  usePanelDismiss(panel==='where',closePanel,wherePanelRef,whereButtonRef);
  usePanelDismiss(panel==='radius',closePanel,radiusPanelRef,radiusChipRef);
 
+ // Sharing the selection and the same choice as a list: under the map on wide screens,
+ // in the list panel's head on phones (the map fills the screen there).
+ const shareLinks=<>
+  <button className="text-button" type="button" onClick={()=>{navigator.clipboard?.writeText(window.location.href).then(()=>setLocationMessage('Atlases saite nokopēta.'),()=>setLocationMessage('Nokopē saiti no pārlūka adreses joslas.'));}}>Kopīgot atlasi</button>
+  <a className="text-button" href={catalogHref}>Atvērt sarakstā</a>
+ </>;
  const emptyState=<div className="nearby-empty" role="status">
   <strong>{radiusKm>0&&origin?'Šajā laikā līdz '+radiusKm+' km pasākumu nav.':'Šajos filtros pasākumu nav.'}</strong>
   {wider.length>0?<div className="nearby-empty-actions">{wider.map(option=><button key={option.label} type="button" className="button compact"
@@ -959,7 +956,9 @@ export default function OsmEventMap(){
    favorites={favorites} highlightedId={highlightedId} onSelect={showOnMap} onHover={hoverEvent} onFavorite={toggleFavorite}
    onCalendar={calendarDownload} empty={emptyState} listRef={listRef} activeIds={activeIds} distance={distanceFrom} isAdmin={isAdminSession}
    place={!isPhone?openPlace:null} onClosePlace={()=>setPlaceKey('')} collapsed={locationPrompt}
-   headExtra={isPhone&&placeList.length===1?<AreaChips areas={novadsAreas.filter(g=>g.name!=='Citur').slice(0,8)} area={areaFilter} onArea={chooseArea}/>:null}/>
+   headLinks={isPhone?shareLinks:null}
+   headExtra={<>{isPhone&&placeList.length===1&&<AreaChips areas={novadsAreas.filter(g=>g.name!=='Citur').slice(0,8)} area={areaFilter} onArea={chooseArea}/>}
+    {homeCategory==='sport'&&<LevelSwitch level={level} onLevel={setLevel} className="nearby-level"/>}</>}/>
   <div className="map-shell">
    <div className="map-controls map-controls-overlay msearch" aria-label="Meklēšana un filtri">
     {compactNovads?<CompactBar label={whereLabel} meta={compactMeta} filterCount={filterCount}
@@ -983,13 +982,13 @@ export default function OsmEventMap(){
      set={{category:v=>setDiscoveryFilter('category',v),audience:v=>setDiscoveryFilter('audience',v),level:setLevel,price:setPrice,onlineOnly:setOnlineOnly,showLong:setShowLong,
       toggleType:toggleEventType,competition:v=>{setCompetition(v);setCategory('');},subcategory:setCategory,country:v=>{setCountry(v);setMunicipality('');}}}
      periodMode={periodMode} changePeriod={changePeriod} from={from} to={to} today={today} publicTo={publicTo} setFrom={setFrom} setTo={setTo} setPeriodMode={setPeriodMode}
-     audienceOptions={audienceOptions} quickTypes={quickTypes} sourceCounts={sourceCounts} singleEventType={singleEventType} competitionOptions={competitionOptions}
+     audienceOptions={audienceOptions} sportTypes={SPORT_TYPES} sourceCounts={sourceCounts} singleEventType={singleEventType} competitionOptions={competitionOptions}
      categories={categories} countries={countries} countryLabel={countryLabel} onReset={resetFilters} onlineCount={onlineCount}/>)}
 
     {panel==='where'&&onTop(<WherePanel portal={isPhone} panelRef={wherePanelRef} onClose={()=>setPanel('')} query={locationQuery} setQuery={v=>{setLocationQuery(v);setLocationResults([]);}}
      onSearch={searchLocation} searching={locationSearching} places={placeSuggestions(locationChoices,locationQuery)} results={locationResults}
      onPick={place=>{selectLocation(place);setPanel('');}} message={locationMessage} onLocate={()=>{useCurrentLocation();setPanel('');}}
-     onWholeCountry={()=>{chooseRiga();setMunicipality('');setPanel('');}} origin={placeList.length?null:origin} radiusKm={radiusKm} setRadius={setRadiusKm} count={countLabel(activeEvents.length)}
+     onWholeCountry={()=>{chooseRiga();setMunicipality('');setPanel('');}} origin={placeList.length?null:origin} radiusKm={radiusKm} setRadius={setRadiusKm} count={countLabel(activeEvents.length)} quickPlaces={CITIES}
      wide={!isPhone} histogram={!isPhone?dayChart(true):null}
      card={!isPhone?<MunicipalityCard name={heatFocus} counts={heatCounts} topics={heatTopics} selected={placeList} onOpen={openMunicipality} onToggle={toggleMunicipality}/>:null}>
      {isPhone&&!locationQuery.trim()&&!locationResults.length&&dayChart(false)}
@@ -1077,8 +1076,7 @@ export default function OsmEventMap(){
   <div className="map-summary">
    <span>{countLabel(activeEvents.length)} · {activeGroupCount} {activeGroupCount%10===1&&activeGroupCount%100!==11?'vietā':'vietās'}</span>
    {isAdminSession&&<button className="text-button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Atjaunot datus'}</button>}
-   <button className="text-button" type="button" onClick={()=>{navigator.clipboard?.writeText(window.location.href).then(()=>setLocationMessage('Atlases saite nokopēta.'),()=>setLocationMessage('Nokopē saiti no pārlūka adreses joslas.'));}}>↗ Kopīgot atlasi</button>
-   <a className="text-button" href={catalogHref}>Tabulas skats ↗</a>
+   {!isPhone&&shareLinks}
   </div>
   {error&&<div className="error-message">{error}</div>}
  </>;
