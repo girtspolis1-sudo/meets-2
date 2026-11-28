@@ -474,3 +474,6 @@ body:not(.admin-environment) .header .meets-nav-desktop>a.active{border-bottom-c
 .meets-follow-control button{display:inline-flex;align-items:center;justify-content:center;gap:7px}
 .meets-follow-control button svg{flex:none}
 .ec-follow-org svg{width:13px;height:13px}
+
+/* «Jaunieši» next to the league line of a youth game (cards, rows, event page). */
+.sport-youth{flex:none;display:inline-flex;align-items:center;padding:0 7px;border-radius:999px;font-size:12px;line-height:18px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--priede);background:var(--priede-soft)}

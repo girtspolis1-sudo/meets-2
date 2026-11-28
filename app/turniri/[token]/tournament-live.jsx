@@ -2,8 +2,15 @@
 import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
 import ShareButton from '../../components/share-button.jsx';
+import EventCardMedia from '../../components/event-card-media.jsx';
+import Icon from '../../components/line-icon.jsx';
+import {saveIcs} from '../../components/event-quick-actions.jsx';
+import {navigationLinks} from '../../../lib/meets-personal.js';
+import {rigaTodayIso} from '../../../lib/event-date.js';
+import {fullDateLine} from '../../../lib/event-seo.js';
+import {tournamentEvent} from '../../../lib/tournament-event.js';
 import {groupsOf,playsIn,sportOf} from '../../../lib/tournament.js';
-import {GameRow,GroupTables,Places,Schedule,contextOf,formatName,gameMoments,nowBlock,playDateLabel,rigaNow} from '../tournament-views.jsx';
+import {GameRow,GroupTables,Places,Schedule,contextOf,formatName,gameMoments,nowBlock,rigaNow} from '../tournament-views.jsx';
 import {organizerPath} from '../../../lib/organizer-path.js';
 
 const REFRESH_MS=30000;
@@ -63,17 +70,28 @@ export default function TournamentLive({token,initial,link,qr}){
  const current=useMemo(()=>nowBlock(data,moments,team),[data,moments,team]);
  // The chosen team's games, also the later ones once their references (A1, W:5) are settled.
  const games=useMemo(()=>(data.games||[]).filter(g=>(!court||g.court===court)&&playsIn(g,team,ctx)),[data,court,team]);
- const when=playDateLabel(data.play_date);
  const org=data.organization||{};
  const orgHref=org.id?organizerPath(org):'';
+ // The head reads the tournament as an event: the same picture top, calendar and directions.
+ const asEvent=useMemo(()=>tournamentEvent(data,token,link),[data,token,link]);
+ const today=rigaTodayIso();
+ const directions=navigationLinks(asEvent).google;
+ const [calendarNote,setCalendarNote]=useState('');
+ function calendar(){setCalendarNote(saveIcs(asEvent)?'':'Kalendāra ieraksts būs pieejams, kad būs zināms datums.');}
 
  return <main className="tn-page">
-  <header className="tn-hero">
-   <div className="tn-hero-inner">
-    <p className="tn-sport">{sport.name} · {formatName(data.format)}</p>
-    <h1>{data.title}</h1>
-    <p className="tn-hero-meta">{[when,data.venue].filter(Boolean).join(' · ')}</p>
-    {org.name&&<p className="tn-hero-org">Rīko {orgHref?<Link href={orgHref}>{org.name}</Link>:org.name}{data.event_token&&<> · <Link href={'/ielugums/'+data.event_token}>Pasākuma lapa</Link></>}</p>}
+  <header className="tn-head">
+   <EventCardMedia event={asEvent} today={today} title={data.title} heading="h1" className="ec-page-media tn-media" noFavorite
+    category={sport.name+' · '+formatName(data.format)} fullDate={fullDateLine(asEvent,today)}/>
+   <div className="tn-head-body">
+    {data.venue&&<p className="tn-head-place"><Icon name="pin" size={16}/><span>{data.venue}</span></p>}
+    {org.name&&<p className="tn-head-org">Rīko {orgHref?<Link href={orgHref}>{org.name}</Link>:org.name}{data.event_token&&<> · <Link href={'/ielugums/'+data.event_token}>Pasākuma lapa</Link></>}</p>}
+    <div className="tn-head-actions" role="group" aria-label="Turnīra darbības">
+     <button type="button" className="button compact" onClick={calendar}><Icon name="calendar-add" size={17}/> Kalendārs</button>
+     {directions&&<a className="button compact" href={directions} target="_blank" rel="noopener noreferrer" aria-label="Norādes uz norises vietu"><Icon name="route" size={17}/> Norādes</a>}
+     <ShareButton path={'/turniri/'+token} title={data.title} label="Dalīties" className="button compact"/>
+    </div>
+    {calendarNote&&<small className="tn-head-note" role="status">{calendarNote}</small>}
    </div>
   </header>
 
