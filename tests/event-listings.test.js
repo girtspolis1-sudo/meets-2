@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {byDay,eventMoreLinks,indexableListings,leagues,listing,listingHeading,listingPath,listingTail,municipalities,teamGames,timeWindow,topLeagues} from '../lib/event-listings.js';
+import {byDay,eventMoreLinks,indexableListings,leagues,listing,listingHeading,listingPath,listingTail,municipalities,teamGames,timeWindow,topLeagues,weekendTowns} from '../lib/event-listings.js';
 
 test('time windows in Riga dates',()=>{
  // 2026-11-18 is a Wednesday, 2026-11-21 Saturday, 2026-11-22 Sunday.
@@ -103,4 +103,15 @@ test('top leagues: indexable only, most games first',()=>{
  const top=topLeagues(all,'2026-11-18');
  assert.deepEqual(top.map(l=>l.path),['/pasakumi/sports/optibet-lbl']);
  assert.deepEqual(topLeagues(events,'2026-11-18'),[],'one game is not enough');
+});
+
+test('weekend towns: indexable weekend pages, most events first',()=>{
+ const many=(n,town,date)=>Array.from({length:n},(_,i)=>ev(town+i,date,{municipality:town}));
+ const all=[...many(7,'Ādažu novads','2026-11-21'),...many(5,'Rīgas valstspilsēta','2026-11-22'),
+  ...many(4,'Ogres novads','2026-11-21'),...many(9,'Siguldas novads','2026-11-25')];
+ const towns=weekendTowns(all,'2026-11-18');
+ assert.deepEqual(towns.map(t=>t.name),['Ādažu novads','Rīgas valstspilsēta'],'four is too few, weekday events do not count');
+ assert.equal(towns[0].count,7);
+ assert.match(towns[0].path,/^\/pasakumi\/[a-z-]+\/brivdienas$/);
+ assert.equal(weekendTowns(all,'2026-11-18',1).length,1);
 });

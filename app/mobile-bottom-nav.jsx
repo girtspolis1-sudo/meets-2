@@ -4,23 +4,13 @@ import {usePathname} from 'next/navigation';
 import {useLayoutEffect,useRef,useState} from 'react';
 import {DOCK,dockItemX,dockPath,easeOutCubic} from '../lib/mobile-dock.js';
 import Icon from './components/line-icon.jsx';
+import {DOCK_ITEMS,navSection} from '../lib/nav-sections.js';
 
-const links=[
- {href:'/',label:'Sākums',icon:'home'},
- {href:'/karte',label:'Karte',icon:'pin'},
- {href:'/pasakumi',label:'Pasākumi',icon:'calendar'},
- {href:'/mani-pasakumi',label:'Saglabātie',icon:'heart'},
- {href:'/profils',label:'Profils',icon:'user'}
-];
+const links=DOCK_ITEMS;
 const BOX=DOCK.top+DOCK.height;
 const SLIDE_MS=420;
 
 function NavIcon({name}){return <Icon name={name} size={24} strokeWidth={1.9}/>;}
-
-function isActive(pathname,href){
- if(href==='/')return pathname==='/';
- return pathname===href||pathname.startsWith(href+'/')||(href==='/profils'&&['/organizators','/sekosana','/mani-registri'].some(x=>pathname.startsWith(x)));
-}
 
 // Floating glass bar; the active item rises into a bubble that sits in a notch
 // of the bar. Before the bar is measured (server render) it is a plain rounded
@@ -32,7 +22,8 @@ export default function MobileBottomNav(){
  const shown=useRef({x:null,width:0});
  const [width,setWidth]=useState(0);
  const [x,setX]=useState(null);
- const index=links.findIndex(link=>isActive(pathname,link.href));
+ const section=navSection(pathname);
+ const index=links.findIndex(link=>link.key===section);
  const target=width>0&&index>=0?dockItemX(width,index,links.length):null;
 
  // The notch is drawn in pixels, so it follows the real width of the bar

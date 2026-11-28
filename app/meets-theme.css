@@ -104,13 +104,6 @@ footer .meets-wordmark{font-size:18px}
 .map-chip-row button:hover{border-color:var(--tinte)}
 .map-chip-row button.active,.meets-hero-chips>a.active{background:var(--tinte);border-color:var(--tinte);color:#fff}
 .meets-hero-chips>a{color:var(--tinte);border-color:var(--migla)}
-.meets-all-categories>a{border-color:var(--migla)}
-.meets-all-categories>a:hover{transform:none;border-color:var(--tinte)}
-.meets-all-categories>a>.meets-category-tile-icon{background:#eef1f4;color:var(--tinte)}
-.meets-all-categories>a[href$="=sport"]>.meets-category-tile-icon,.meets-all-categories>a[href$="=active"]>.meets-category-tile-icon{background:var(--priede-soft);color:var(--priede)}
-.meets-all-categories>a[href$="=music"]>.meets-category-tile-icon,.meets-all-categories>a[href$="=stage"]>.meets-category-tile-icon,.meets-all-categories>a[href$="=culture"]>.meets-category-tile-icon{background:var(--karmins-soft);color:var(--karmins)}
-.meets-all-categories strong{font-size:14px;color:var(--tinte)}
-.meets-all-categories small{font-size:12px;color:var(--teksts-2)}
 
 /* C3 term colours everywhere ------------------------------------------------ */
 .nearby-live.now{background:var(--sodien-badge);color:#fff}
@@ -423,8 +416,7 @@ body:not(.admin-environment) .meets-hero-message h1 em{color:inherit;font-style:
 
 body:not(.admin-environment) .meets-hero-chips>a.active{background:var(--tinte);border-color:var(--tinte);color:#fff}
 body:not(.admin-environment) .meets-home-section-header>a,body:not(.admin-environment) .meets-home-side-head a{color:var(--karmins-dark)}
-body:not(.admin-environment) .meets-home-side-icon,body:not(.admin-environment) .meets-minimal-benefit-icon{color:var(--karmins)}
-body:not(.admin-environment) .meets-minimal-benefits>a:hover strong{color:var(--karmins-dark)}
+body:not(.admin-environment) .meets-home-side-icon{color:var(--karmins)}
 body:not(.admin-environment) .header .meets-nav-desktop>a.active{border-bottom-color:var(--karmins)}
 
 .meets-profile-avatar{background:var(--tinte)}

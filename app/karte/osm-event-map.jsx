@@ -28,6 +28,7 @@ import {scheduleDots,scheduleText} from '../../lib/pin-schedule.js';
 import {suggestionAction,matchesText,eventSuggestions,placeSuggestions,whatFilterCount,shortWhen} from '../../lib/map-search.js';
 import {SearchBar,WhatPanel,WherePanel,NovadsCard,AreaChips,CompactBar,RadiusChip,RadiusPopover,usePanelDismiss} from './map-search.jsx';
 import {DEFAULT_LEVEL,LEVEL_CHIPS,levelKey,matchesLevel} from '../../lib/sport-level.js';
+import {QUICK_PLACES} from '../../lib/event-calendar.js';
 import MunicipalityHeatmap,{MunicipalityCard} from './municipality-heatmap.jsx';
 import DayHistogram from './day-histogram.jsx';
 import {dailyCounts} from '../../lib/day-histogram.js';
@@ -45,13 +46,8 @@ const DEFAULT_LOCATION={lat:56.9496,lon:24.1052,label:'Rīgas centrs',source:'fa
 const LOCATION_CHOICE_KEY='meets_location_choice_v1';
 const FAVORITES_KEY='meets_favorites_v1';
 // Quick picks on first visit; the search box finds any other place.
-const CITIES=[
- {label:'Rīga',latitude:56.9496,longitude:24.1052},{label:'Jūrmala',latitude:56.968,longitude:23.77},
- {label:'Liepāja',latitude:56.5047,longitude:21.0108},{label:'Daugavpils',latitude:55.8747,longitude:26.5362},
- {label:'Jelgava',latitude:56.6511,longitude:23.7214},{label:'Valmiera',latitude:57.5385,longitude:25.4264},
- {label:'Ventspils',latitude:57.3894,longitude:21.5606},{label:'Rēzekne',latitude:56.5099,longitude:27.3332},
- {label:'Ogre',latitude:56.8162,longitude:24.614},{label:'Cēsis',latitude:57.3119,longitude:25.2706}
-];
+// The first-visit towns: the same as the home page's "Kur un kad" bar.
+const CITIES=QUICK_PLACES.map(place=>({label:place.label,latitude:place.lat,longitude:place.lon}));
 
 const FAR_DAYS=15;
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}

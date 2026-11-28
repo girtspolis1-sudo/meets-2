@@ -63,8 +63,6 @@ body:not(.admin-environment) .button{border-radius:13px}
 .meets-home-side-card h3{margin:4px 0 9px;font-size:15px;color:#202746;letter-spacing:-.4px}
 .meets-home-side-card p{margin:0 0 9px;line-height:1.6;font-size:11px;color:#6f7894}
 .meets-home-side-icon{display:grid;place-items:center;width:51px;height:51px;border-radius:17px;background:#f1f4f7;color:#d36973;font-size:27px}
-.meets-home-tip{background:linear-gradient(145deg,#f5f7fa,#eaf6ff)}
-.meets-home-tip>a,.meets-side-inline-action{font-size:11px;font-weight:800;color:#cb626c}
 .meets-home-side-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .meets-home-side-head h3{margin:0 0 10px}
 .meets-home-side-head>a{font-size:10px}
@@ -76,13 +74,6 @@ body:not(.admin-environment) .button{border-radius:13px}
 .meets-home-saved-list strong{display:block;font-size:11px;line-height:1.4;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
 .meets-home-saved-list small{display:block;font-size:9px;color:#7d8298;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .meets-home-empty,.meets-home-loading{padding:26px;background:#fff;border:1px solid #eceffa;border-radius:18px;color:#656d8b;font-size:13px}
-.meets-discovery-categories{padding-top:32px}
-.meets-all-categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
-.meets-all-categories>a{display:grid;grid-template-columns:42px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;column-gap:9px;border:1px solid #edf0f8;background:#fff;border-radius:16px;padding:14px;min-width:0;transition:transform .15s}
-.meets-all-categories>a:hover{transform:translateY(-2px);border-color:#d4dde8}
-.meets-all-categories>a>span{grid-row:1/3;display:grid;place-items:center;background:#f6f8fa;width:42px;height:42px;border-radius:12px;font-size:23px}
-.meets-all-categories strong{font-size:12px;line-height:1.3;color:#232b47}
-.meets-all-categories small{display:block;color:#838a9e;font-size:9px;line-height:1.4}
 .meets-catalog-image-grid.catalog-card-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .section.catalog{padding-top:35px}
 .section.catalog>h1{letter-spacing:-2px}
@@ -102,7 +93,6 @@ body:not(.admin-environment) .button{border-radius:13px}
 @media(max-width:1100px){
  .meets-home-featured-layout{grid-template-columns:minmax(0,1fr) 235px}
  .meets-discovery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
- .meets-all-categories{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media(max-width:760px){
  .header{padding:11px 15px!important;min-height:64px}
@@ -125,7 +115,6 @@ body:not(.admin-environment) .button{border-radius:13px}
  .meets-home-side{grid-template-columns:1fr 1fr;margin-top:19px}
  .meets-home-discovery{padding-top:23px}
  .meets-discovery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
- .meets-all-categories{grid-template-columns:repeat(2,minmax(0,1fr))}
  .meets-catalog-image-grid.catalog-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 
  
@@ -141,12 +130,7 @@ body:not(.admin-environment) .button{border-radius:13px}
 
  
  .meets-hero-message h1{font-size:clamp(25px,7vw,34px)}
- .meets-all-categories>a{padding:10px;grid-template-columns:34px 1fr;gap:7px}
- .meets-all-categories>a>span{width:34px;height:34px;font-size:19px}
- .meets-all-categories strong{font-size:11px}
- .meets-all-categories small{font-size:9px}
 }
-@media(prefers-reduced-motion:reduce){.meets-all-categories>a{transition:none!important}}
 
 /* Event detail: concise first view, full accessible details on demand. */
 .meets-event-detail-dialog.event-dialog{width:min(670px,calc(100% - 24px));max-height:min(90dvh,900px);overflow:auto;padding:0!important;border-radius:24px;scrollbar-width:thin}
@@ -211,42 +195,22 @@ body:not(.admin-environment) .button{border-radius:13px}
 
 .meets-hero-chips>a.active{background:#f1f4f7;color:#c45560;border-color:#f1f4f7}
 
-.meets-minimal-benefits{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:22px 0 26px;padding:4px 0}
-.meets-minimal-benefits>a{display:flex;min-width:0;align-items:center;gap:11px;padding:12px 15px;text-decoration:none;color:#1d2444}
-.meets-minimal-benefits>a:not(:first-child){border-left:1px solid #e9ebf4}
-.meets-minimal-benefits>a:hover strong{color:#d36973}
-.meets-minimal-benefits>a>span:last-child{min-width:0;display:grid;gap:2px}
-.meets-minimal-benefits strong{font-size:12px;font-weight:750;line-height:1.35}
-.meets-minimal-benefits small{font-size:10px;color:#7a8399;line-height:1.45}
-.meets-minimal-benefit-icon{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:13px;background:#f5f7fa;color:#d36973;font-size:24px;line-height:1}
 .meets-home-discovery{padding-top:4px}
 
 .meets-home-side-card{box-shadow:none;border-color:#eaecf4;border-radius:18px}
-.meets-all-categories>a{border-radius:14px}
 .header .meets-nav-desktop>a.active{background:transparent;color:#23264c;border-bottom:2px solid #d36973;border-radius:0}
-@media(max-width:1000px) and (min-width:761px){
- .meets-minimal-benefits{grid-template-columns:repeat(2,minmax(0,1fr))}
- .meets-minimal-benefits>a:nth-child(3){border-left:0}
-}
 @media(max-width:760px){
 
  .header nav{display:flex;align-items:center;justify-content:flex-end}
  .meets-discovery-hero{min-height:0;padding:20px 16px;border-radius:17px}
  .meets-hero-message h1{font-size:clamp(27px,6.3vw,35px);letter-spacing:-1.3px}
  .meets-hero-ctas a{min-height:43px;padding:9px 13px}
- .meets-minimal-benefits{grid-template-columns:repeat(2,minmax(0,1fr));margin:13px 0 20px}
- .meets-minimal-benefits>a{padding:10px 7px;gap:8px}
- .meets-minimal-benefits>a:nth-child(3){border-left:0}
- .meets-minimal-benefit-icon{width:35px;height:35px;font-size:19px;border-radius:10px}
- .meets-minimal-benefits strong{font-size:11px}
- .meets-minimal-benefits small{font-size:9px}
 }
 @media(max-width:400px){
  .meets-discovery-hero{grid-template-columns:minmax(0,1fr) 82px}
 
  .meets-hero-chips{width:calc(100% + 82px)}
  .meets-hero-ctas{width:calc(100% + 82px)}
- .meets-minimal-benefits>a{align-items:start}
 }
 
 /* MEETS concert hero - high contrast over a real event photograph */
@@ -356,4 +320,45 @@ body:not(.admin-environment) .button{border-radius:13px}
  .meets-event-page-back{padding:12px 16px 0}
  .meets-event-page .meets-detail-body{padding:18px 16px 22px}
  .meets-event-page .meets-detail-hero img.catalog-detail-cover{height:210px}
+}
+
+/* Home page (app/page.jsx, app/home-featured.jsx): the "Kur un kad" bar under the
+   hero, the coming days, "Spēles šonedēļ" and "Brīvdienās Latvijā". */
+.meets-home-where{display:grid;gap:8px;margin:14px 0 4px;padding:12px 14px;background:#fff;border:1px solid var(--migla);border-radius:18px}
+.meets-home-chip-row{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.meets-home-chip-row::-webkit-scrollbar{display:none}
+.meets-home-chip-slot{display:contents}
+.meets-home-chip{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border:1px solid var(--migla);border-radius:999px;
+ background:#fff;color:var(--tinte);font:inherit;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
+.meets-home-chip small{font-size:12px;font-weight:700;color:var(--teksts-2)}
+.meets-home-chip:hover{border-color:var(--tinte)}
+.meets-home-chip.active{background:var(--tinte);border-color:var(--tinte);color:#fff}
+.meets-home-chip.active small{color:var(--migla)}
+.meets-home-chip:focus-visible{outline:2px solid var(--karmins);outline-offset:2px}
+.meets-home-chip:disabled{opacity:.7;cursor:progress}
+.meets-home-where-note{margin:0;font-size:13px;color:var(--teksts-2)}
+.meets-home-radius{margin:4px 0 0;font-size:13px;color:var(--teksts-2)}
+.meets-home-featured-layout.no-side{grid-template-columns:minmax(0,1fr)}
+.meets-home-games,.meets-home-weekend{padding-top:32px}
+.meets-home-games>.meets-home-chip-row{margin:-4px 0 14px}
+.meets-home-games-links{display:flex;flex-wrap:wrap;gap:8px 18px;margin:14px 0 0;font-size:14px;font-weight:700}
+.meets-home-games-links a{color:var(--karmins);text-decoration:none}
+.meets-home-towns{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.meets-home-towns a{display:grid;gap:2px;padding:14px 16px;background:#fff;border:1px solid var(--migla);border-radius:16px;color:var(--tinte);text-decoration:none}
+.meets-home-towns a:hover{border-color:var(--tinte)}
+.meets-home-towns strong{font-size:16px;font-weight:800}
+.meets-home-towns small{font-size:13px;color:var(--teksts-2)}
+.meets-home-section-header>a{font-size:14px}
+@media(max-width:1100px){.meets-home-towns{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){
+ .meets-home-where{margin:10px 0 0;padding:10px 0 10px 10px;border-radius:16px}
+ .meets-home-chip-row{padding-right:10px}
+ .meets-home-towns{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .meets-home-towns a{padding:12px 14px}
+ .meets-home-games,.meets-home-weekend{padding-top:26px}
+}
+/* Phone: both hero buttons on one line, so the bar and the first card fit the first screen. */
+@media(max-width:520px){
+ .meets-discovery-hero .meets-hero-ctas{flex-wrap:nowrap;gap:8px;margin:16px 0 14px}
+ .meets-discovery-hero .meets-hero-ctas a{flex:1 1 auto;gap:8px;padding:10px 12px;white-space:nowrap}
 }
