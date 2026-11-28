@@ -46,8 +46,8 @@ export default function MansMeetsLayout({children}){
    <section className="meets-guest-explain" aria-labelledby="follow-explain-title">
     <p className="eyebrow">MANS PROFILS</p>
     <h1 id="follow-explain-title">Sekošana</h1>
-    <p>Seko norises vietām un rīkotājiem, un viņu jaunie pasākumi būs vienuviet: tev nav jāpārbauda katra lapa atsevišķi.</p>
-    <ul><li>Seko vietai pasākuma lapā vai kartē ar zvaniņu «Sekot vietai».</li><li>Seko rīkotājam viņa lapā vai pasākuma kartītē.</li><li>Jaunos pasākumus redzēsi šeit un sava profila pārskatā.</li></ul>
+    <p>Seko norises vietām, rīkotājiem un komandām, un viņu jaunie pasākumi un spēles būs vienuviet: tev nav jāpārbauda katra lapa atsevišķi.</p>
+    <ul><li>Seko vietai pasākuma lapā vai kartē ar zvaniņu «Sekot vietai».</li><li>Seko rīkotājam viņa lapā vai pasākuma kartītē.</li><li>Seko komandai spēles lapā (blokā «Spēle») vai turnīra lapā.</li><li>Jaunos pasākumus un spēles redzēsi šeit un sava profila pārskatā.</li></ul>
    </section>
    {signIn('Sekošana tiek glabāta kontā, lai tā būtu visās ierīcēs.','Pieslēgties','h2')}
   </div>;

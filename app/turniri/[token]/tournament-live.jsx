@@ -9,6 +9,8 @@ import {navigationLinks} from '../../../lib/meets-personal.js';
 import {rigaTodayIso} from '../../../lib/event-date.js';
 import {fullDateLine} from '../../../lib/event-seo.js';
 import {tournamentEvent} from '../../../lib/tournament-event.js';
+import {teamSport} from '../../../lib/team-key.js';
+import TeamFollowButton from '../../components/team-follow-button.jsx';
 import {groupsOf,playsIn,sportOf} from '../../../lib/tournament.js';
 import {GameRow,GroupTables,Places,Schedule,contextOf,formatName,gameMoments,nowBlock,rigaNow} from '../tournament-views.jsx';
 import {organizerPath} from '../../../lib/organizer-path.js';
@@ -71,6 +73,7 @@ export default function TournamentLive({token,initial,link,qr}){
  // The chosen team's games, also the later ones once their references (A1, W:5) are settled.
  const games=useMemo(()=>(data.games||[]).filter(g=>(!court||g.court===court)&&playsIn(g,team,ctx)),[data,court,team]);
  const org=data.organization||{};
+ const myTeam=(data.teams||[]).find(t=>t.key===team)||null;
  const orgHref=org.id?organizerPath(org):'';
  // The head reads the tournament as an event: the same picture top, calendar and directions.
  const asEvent=useMemo(()=>tournamentEvent(data,token,link),[data,token,link]);
@@ -118,6 +121,8 @@ export default function TournamentLive({token,initial,link,qr}){
     <div className="tn-filters">
      {courts.length>1&&<label>Laukums<select value={court} onChange={e=>setCourt(e.target.value)}><option value="">Visi laukumi</option>{courts.map(c=><option key={c} value={c}>{c}</option>)}</select></label>}
      <label>Mana komanda<select value={team} onChange={e=>chooseTeam(e.target.value)}><option value="">Visas komandas</option>{(data.teams||[]).map(t=><option key={t.key} value={t.key}>{t.name}</option>)}</select></label>
+     {/* Following the chosen team also brings its league games to /sekosana. */}
+     {myTeam&&<TeamFollowButton name={myTeam.name} sport={teamSport(data.sport)} className="button compact tn-team-follow"/>}
     </div>
     <Schedule data={data} games={games} showScores={!youth} moments={moments} focusTeam={team} showCourt={courts.length>1}/>
    </section>}

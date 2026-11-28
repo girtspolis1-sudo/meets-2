@@ -15,6 +15,8 @@ import {addIsoDays,rigaClockMinutes,rigaTodayIso} from '../../../lib/event-date.
 import EventTournaments from '../../components/event-tournaments.jsx';
 import Icon from '../../components/line-icon.jsx';
 import {isYouthSport,sportLine} from '../../../lib/sport-line.js';
+import {teamKey} from '../../../lib/team-key.js';
+import TeamFollowButton from '../../components/team-follow-button.jsx';
 import {eventDescription,eventJsonLd,eventTitle,fullDateLine,jsonLdScript} from '../../../lib/event-seo.js';
 import {eventPath,municipalityLocative,municipalitySlug,pageRobots,parseEventParam,slugify} from '../../../lib/seo.js';
 import {eventGroup} from '../../../lib/home-category-filters.js';
@@ -116,9 +118,11 @@ export default async function EventPage({params}){
    {game&&<section className="meets-detail-game" aria-labelledby="game-title">
     <h2 id="game-title">Spēle</h2>
     <div className="game-teams">
-     <p className="game-team"><small>Mājinieki</small><strong>{event.home_team}</strong></p>
+     <div className="game-team"><small>Mājinieki</small><strong>{event.home_team}</strong>
+      {teamKey(event.home_team,event.sport_format)&&<TeamFollowButton name={event.home_team} sport={event.sport_format} className="game-follow" label="Sekot" followingLabel="Seko"/>}</div>
      <span className="game-vs" aria-hidden="true">pret</span>
-     <p className="game-team away"><small>Viesi</small><strong>{event.away_team}</strong></p>
+     <div className="game-team away"><small>Viesi</small><strong>{event.away_team}</strong>
+      {teamKey(event.away_team,event.sport_format)&&<TeamFollowButton name={event.away_team} sport={event.sport_format} className="game-follow" label="Sekot" followingLabel="Seko"/>}</div>
     </div>
     {league&&<p className="game-league"><Icon name="trophy" size={16}/><span>{league}</span>{isYouthSport(event)&&<span className="sport-youth">Jaunieši</span>}</p>}
     {leaguePath&&<Link className="game-league-link" href={leaguePath}>Visas sacensību spēles →</Link>}

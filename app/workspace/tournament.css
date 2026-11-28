@@ -40,6 +40,8 @@
 .tn-empty{margin:0;padding:18px;border:1px dashed var(--migla,#d8dee6);border-radius:12px;color:var(--teksts-2,#4a5565);text-align:center}
 .tn-rules{margin:0;font-size:13px;line-height:1.5;color:var(--teksts-2,#4a5565)}
 .tn-filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.tn-filters .team-follow{align-self:flex-end;display:grid;gap:4px}
+.tn-filters .team-follow small{font-size:12px;color:var(--teksts-2)}
 .tn-filters label,.tn-inline{display:grid;gap:4px;font-size:13px;font-weight:700;color:var(--teksts-2,#4a5565)}
 .tn-filters select{min-height:42px;min-width:160px}
 .tn-schedule{display:grid;gap:10px;margin:0;padding:0;list-style:none}
