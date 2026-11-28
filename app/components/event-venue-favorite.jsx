@@ -52,28 +52,25 @@ export default function EventVenueFavorite({event,compact=false,fullLabel=false,
    window.dispatchEvent(new Event('meets-location-follows-changed'));
   }catch(e){setStatus(e.message);}finally{setBusy(false);}
  }
- // A pin with a plus (follow) or a tick (following), unlike the plain route pin beside it.
+ // A bell, as for following on the home page: outlined to follow, filled while
+ // following. The route button beside it keeps the pin.
  const icon=<svg viewBox="0 0 24 24" width="18" height="18" fill={following?'currentColor':'none'}
-  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-  <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/>
-  {following?<path d="m9.2 10 2 2 3.6-3.8" stroke="#fff"/>:<path d="M12 7v6M9 10h6"/>}
+  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>
  </svg>;
- // In a card's action row: the same round button as Kalendārs, Norādes, Atvērt.
+ // In a card's action row: the same round button as Kalendārs, Norādes, Rīkotāja lapa.
  if(asAction)return <button type="button" className={'meets-circle-action meets-place-action'+(following?' active':'')} aria-pressed={following}
   aria-label={(following?'Pārtraukt sekošanu vietai: ':'Sekot norises vietai: ')+place.name}
   title={(following?'Seko vietai: ':'Sekot vietai: ')+place.name} disabled={!ready||busy} onClick={toggle}>
-  {icon}<small className="meets-quiet-label">{following?'Seko':'Sekot'}</small>
+  {icon}<small className="meets-quiet-label">{following?'Seko vietai':'Sekot vietai'}</small>
   {status&&<span className="sr-only" role="status">{status}</span>}
  </button>;
  return <span className={'meets-place-favorite'+(compact?' compact':'')}>
   <button type="button" className={following?'active':''} aria-pressed={following}
    aria-label={(following?'Pārtraukt sekošanu vietai: ':'Sekot norises vietai: ')+place.name}
    title={place.name} disabled={!ready||busy} onClick={toggle}>
-   <svg viewBox="0 0 24 24" width="18" height="18" fill={following?'currentColor':'none'}
-    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.6" fill={following?'#fff':'none'}/>
-   </svg>
-   <span>{following?(compact&&!fullLabel?'Sekoju':'Sekoju vietai'):(compact&&!fullLabel?'Sekot':'Sekot vietai')}</span>
+   {icon}
+   <span>{following?(compact&&!fullLabel?'Seko':'Seko vietai'):(compact&&!fullLabel?'Sekot':'Sekot vietai')}</span>
   </button>{status&&<small role="status">{status}</small>}
  </span>;
 }

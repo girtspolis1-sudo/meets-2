@@ -111,7 +111,7 @@ export async function POST(request){
    const details=new Map((contacts||[]).map(c=>[c.organization_id,c]));
    const orgs=(organizations||[]).map(org=>({...org,...(details.get(org.id)||{}),role:org.owner_id===user.id?'owner':memberRole.get(org.id)||'viewer'}));
    const orgIds=new Set(orgs.map(org=>org.id));
-   // Whether the organizer publishes without MEETS review (trusted by an admin).
+   // Whether the organizer publishes without meets.lv review (trusted by an admin).
    const trusted=await Promise.all(orgs.map(org=>api('rpc/meets_org_is_trusted',token,'POST',{p_organization_id:org.id}).catch(()=>false)));
    orgs.forEach((org,i)=>{org.trusted=trusted[i]===true;});
    // Events and tournaments given to the user one by one ("Labotājs" of one item).
@@ -193,7 +193,7 @@ export async function POST(request){
    await api('rpc/meets_can_edit_item',token,'POST',{p_kind:'event',p_item:data.id,p_org:data.organization_id}).catch(()=>false)===true;
   if(canEdit!==true&&!itemEditor)return NextResponse.json({error:'Nav tiesību veikt izmaiņas šajā organizācijā.'},{status:403});
 
-  // Asks MEETS to give an imported event to this organizer; an admin approves it.
+  // Asks meets.lv to give an imported event to this organizer; an admin approves it.
   if(action==='claimEvent'){
    if(!UUID.test(data.event_id||''))return NextResponse.json({error:'Nederīgs pasākums.'},{status:400});
    const message=typeof data.message==='string'?data.message.trim().slice(0,1000):'';
@@ -274,7 +274,7 @@ export async function POST(request){
   if(action==='saveEvent'){
    const isDraft=data.status==='draft';
    if(!['draft','pending_review','private'].includes(data.status))return NextResponse.json({error:'Nepareizs pasākuma statuss.'},{status:400});
-   // Public events go to MEETS review; private ones are live at once, only through their link.
+   // Public events go to meets.lv review; private ones are live at once, only through their link.
    const visibility=data.visibility==='private'?'private':'public';
    if(data.status==='private'&&visibility!=='private'||data.status==='pending_review'&&visibility!=='public')
     return NextResponse.json({error:'Privātu pasākumu neiesniedz pārbaudei; publisku nevar saglabāt kā privātu.'},{status:400});
@@ -384,7 +384,7 @@ export async function POST(request){
    if(data.id){
     if(!UUID.test(data.id))return NextResponse.json({error:'Nederīgs ieraksts.'},{status:400});
     const current=(await api(TABLES.submissions,token,'GET',null,'?select=id,status,event_id&id=eq.'+data.id+'&organization_id=eq.'+data.organization_id))[0];
-    // A published event is changed through review: the public version stays until MEETS approves.
+    // A published event is changed through review: the public version stays until meets.lv approves.
     if(current?.event_id){
      if(isDraft)return NextResponse.json({error:'Publicētam pasākumam izmaiņas iesniedz pārbaudei — melnraksts nav pieejams.'},{status:400});
      if(visibility==='private')return NextResponse.json({error:'Publicētu pasākumu nevar padarīt privātu. Atcel to un izveido privātu kopiju.'},{status:400});
@@ -392,7 +392,7 @@ export async function POST(request){
      const item=await rpcCall('meets_org_update_published_submission',token,{p_id:data.id,p_values:values});
      return NextResponse.json({item,changed_published:true});
     }
-    // An item editor's change keeps the original author (MEETS writes to them about review).
+    // An item editor's change keeps the original author (meets.lv writes to them about review).
     const {author_id,...changes}=payload;
     result=await api(TABLES.submissions,token,'PATCH',{...(itemEditor?changes:payload),updated_at:new Date().toISOString()},'?id=eq.'+data.id+'&organization_id=eq.'+data.organization_id);
    }else result=await api(TABLES.submissions,token,'POST',payload);

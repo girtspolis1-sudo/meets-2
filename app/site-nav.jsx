@@ -54,13 +54,13 @@ export default function SiteNav(){
   }
  }
  // A public organizer page works as the organizer's own mini-site: no app menu, one way to meets.lv.
- if(pathname.startsWith('/organizatori/'))return <nav aria-label="MEETS" className="meets-minisite-nav">
+ if(pathname.startsWith('/organizatori/'))return <nav aria-label="meets.lv" className="meets-minisite-nav">
   <Link className="meets-minisite-home" href="/karte"><span className="wide">Atklāj vairāk pasākumu meets.lv</span><span className="narrow">Vairāk pasākumu</span> <span aria-hidden="true">→</span></Link>
  </nav>;
  const navLink=item=><Link key={item.href} href={item.href}
    className={isActive(item)?'active':''} aria-current={isActive(item)?'page':undefined}>{item.label}</Link>;
  const exit=<button className="meets-header-logout" type="button" onClick={logout} disabled={loggingOut}
-  aria-label="Iziet no MEETS konta">{loggingOut?'Iziet…':'Iziet'}</button>;
+  aria-label="Iziet no meets.lv konta">{loggingOut?'Iziet…':'Iziet'}</button>;
  return <nav aria-label="Galvenā izvēlne">
   {/* Phones: one small account mark beside the logo. Signed in it shows the
       account's initial and opens a short menu; signed out it is "Ieiet". */}
@@ -68,10 +68,10 @@ export default function SiteNav(){
    <summary aria-label={'Mans konts'+(email?': '+email:'')} title={email||'Mans konts'}><span aria-hidden="true">{initial}</span></summary>
    <div className="meets-mobile-account-menu">
     {email&&<small>{email}</small>}
-    <Link href="/profils">Mans MEETS</Link>
+    <Link href="/profils">Mans profils</Link>
     <Link href="/organizators">Pasākumu rīkošana</Link>
     <Link href="/konta-iestatijumi">Konta iestatījumi</Link>
-    <button type="button" disabled={loggingOut} onClick={logout} aria-label="Iziet no MEETS konta">{loggingOut?'Iziet…':'Iziet no konta'}</button>
+    <button type="button" disabled={loggingOut} onClick={logout} aria-label="Iziet no meets.lv konta">{loggingOut?'Iziet…':'Iziet no konta'}</button>
    </div>
   </details>:<Link className="meets-mobile-signin" href="/profils"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c.6-4 3.6-6 8-6s7.4 2 8 6"/></svg>Ieiet</Link>}
   <div className="meets-nav-desktop">{visibleItems.map(navLink)}{signedIn&&!profileArea&&exit}</div>

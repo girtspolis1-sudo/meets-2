@@ -70,7 +70,7 @@ export default async function SharedEventPage({params}){
    <div className="meets-detail-primary-actions shared-event-actions">
     <ShareButton path={sharePath(token)} title={event.title} label="Kopīgot saiti" className="button primary"/>
     <Link className="button" href={flyerPath(token)}>Sludinājums drukai</Link>
-    {event.event_id&&<Link className="button" href={'/pasakumi/'+event.event_id}>Skatīt MEETS kartē →</Link>}
+    {event.event_id&&<Link className="button" href={'/karte?event='+encodeURIComponent(event.event_id)}>Atvērt kartē →</Link>}
    </div>
   </div>
  </article>;

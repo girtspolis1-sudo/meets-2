@@ -13,7 +13,8 @@ import './event-card.css';
 // and the band, with the theme or category, the heart, the date chips and the
 // title on a dark band. Shared by the grid cards and the map cards. `saved`/`onSave` make the
 // heart controlled (the map keeps its own favourites).
-export default function EventCardMedia({event,today,title,saved,onSave,className='',heading='h3',noFavorite=false}){
+// fullDate: the whole date under the title, on the event page.
+export default function EventCardMedia({event,today,title,saved,onSave,className='',heading='h3',noFavorite=false,fullDate=''}){
  const Heading=heading;
  const [broken,setBroken]=useState(false),imgRef=useRef(null);
  // An image that failed before hydration never fires onError: check it once mounted.
@@ -34,6 +35,7 @@ export default function EventCardMedia({event,today,title,saved,onSave,className
     {event.price_status==='free'&&<span className="ec-price free">Bezmaksas</span>}
    </div>
    <Heading className="ec-title">{title}</Heading>
+   {fullDate&&<p className="ec-fulldate">{fullDate}</p>}
   </div>
  </div>;
 }

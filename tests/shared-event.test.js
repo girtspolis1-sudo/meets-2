@@ -80,8 +80,8 @@ test('flyer description gets the lines left under the other blocks',()=>{
 
 test('status note explains private and waiting events',()=>{
  assert.match(sharedStatusNote({visibility:'private',status:'private'}),/Privāts/);
- assert.match(sharedStatusNote({visibility:'public',status:'pending_review'}),/gaida MEETS pārbaudi/);
- assert.match(sharedStatusNote({visibility:'public',status:'published',event_id:TOKEN}),/^Publisks pasākums — redzams MEETS kartē/);
+ assert.match(sharedStatusNote({visibility:'public',status:'pending_review'}),/gaida meets.lv pārbaudi/);
+ assert.match(sharedStatusNote({visibility:'public',status:'published',event_id:TOKEN}),/^Publisks pasākums — redzams meets.lv kartē/);
 });
 
 test('flyer date mark shows weekdays, chosen days or a run of days',async()=>{

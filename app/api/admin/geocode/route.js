@@ -2,7 +2,7 @@ export const dynamic='force-dynamic';
 
 let lastNominatimRequestAt=0;
 
-// The bearer token is the signed-in MEETS account; the database checks admin rights.
+// The bearer token is the signed-in meets.lv account; the database checks admin rights.
 async function validateSession(accessToken){
  const {SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY}=process.env;
  if(!SUPABASE_URL||!SUPABASE_PUBLISHABLE_KEY)return false;

@@ -22,18 +22,18 @@ export default function ProfilePage(){
  const byDate=(a,b)=>String(a.date_from||'9999').localeCompare(String(b.date_from||'9999'));
  const visibleIds=[...new Set([...favoriteIds,...planIds,...followedIds])];
  const allUpcoming=visibleIds.map(id=>byId.get(id)).filter(isUpcoming).sort(byDate).slice(0,12);
- const badgesFor=e=>[favoriteIds.has(e.id)?'Favorīts':null,planIds.has(e.id)?'Plānoju':null,followedIds.has(e.id)?'No sekošanas':null].filter(Boolean);
+ const badgesFor=e=>[favoriteIds.has(e.id)?'Saglabāts':null,planIds.has(e.id)?'Plānoju':null,followedIds.has(e.id)?'No sekošanas':null].filter(Boolean);
  const following=dash.data?(dashboard.locationFollows||[]).length+(dashboard.follows||[]).filter(x=>['organization','venue'].includes(x.target_kind)).length:null;
  const warning=list.error||dash.error?'Daļu informācijas šobrīd neizdevās ielādēt. Vari turpināt lietot kontu.':'';
 
  return <div className="meets-profile-overview">
   {warning&&<p className="meets-profile-hint" role="status">{warning} <button type="button" className="text-button" onClick={()=>{list.reload().catch(()=>{});dash.reload().catch(()=>{});}}>Mēģināt vēlreiz</button></p>}
   <section className="meets-profile-summary" aria-labelledby="profile-overview-heading">
-    <div className="meets-profile-summary-heading"><div><p className="eyebrow">MANS MEETS</p><h1 id="profile-overview-heading">Pārskats</h1></div><Link href="/karte" className="meets-profile-summary-action"><ProfileIcon name="map"/> Atrast pasākumu</Link></div>
-    <div className="meets-profile-summary-stats" aria-label="Tavs MEETS pārskats" aria-busy={list.loading||dash.loading}>
+    <div className="meets-profile-summary-heading"><div><p className="eyebrow">MANS PROFILS</p><h1 id="profile-overview-heading">Pārskats</h1></div><Link href="/karte" className="meets-profile-summary-action"><ProfileIcon name="map"/> Atrast pasākumu</Link></div>
+    <div className="meets-profile-summary-stats" aria-label="Profila pārskats" aria-busy={list.loading||dash.loading}>
       <Metric icon="heart" number={personal.favorites?.length} label="Saglabāti" href="/mani-pasakumi"/>
       <Metric icon="calendar" number={personal.plans?.length} label="Plānoti" href="/mani-pasakumi"/>
-      <Metric icon="pin" number={following} label="Sekoju" href="/sekosana"/>
+      <Metric icon="pin" number={following} label="Sekošana" href="/sekosana"/>
     </div>
   </section>
   <section className="meets-profile-panel">

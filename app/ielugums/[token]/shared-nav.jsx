@@ -4,14 +4,14 @@ import {useEffect,useState} from 'react';
 import {accountRequest,currentSession} from '../../../lib/account-store.js';
 
 const EDITOR='/registre-pasakumu/vienkarsi';
-const STATUS={private:'Privāts',pending_review:'Gaida MEETS pārbaudi',published:'Publicēts'};
+const STATUS={private:'Privāts',pending_review:'Gaida meets.lv pārbaudi',published:'Publicēts'};
 
 function Arrow(){return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>;}
 function Building(){return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 21V5l8-3 8 3v16M8 9h2M14 9h2M8 13h2M14 13h2M10 21v-4h4v4"/></svg>;}
 
 // Top of a shared event page. Links open it in a new tab, where the browser
 // has nothing to go back to, so "back" leads to the organizer's events (for the
-// organizer) or to the public MEETS pages. The organizer also sees that this is
+// organizer) or to the public meets.lv pages. The organizer also sees that this is
 // their own event and how others see it.
 export default function SharedEventNav({token,status}){
  const [owner,setOwner]=useState(null);
@@ -45,7 +45,7 @@ export default function SharedEventNav({token,status}){
     <small><Building/> Rīkotāja skats</small>
     <strong>{owner.orgName||'Tavs pasākums'}</strong>
    </div>:<div className="shared-nav-public">
-    <small>MEETS pasākums</small>
+    <small>meets.lv pasākums</small>
     <strong>Kopīgots ar saiti</strong>
    </div>}
    <div className="shared-nav-links">
@@ -60,7 +60,7 @@ export default function SharedEventNav({token,status}){
   </nav>
   {owner&&<p className="shared-owner-note" role="note">
    Tu redzi lapu tā, kā to redz {status==='private'?'tie, kam nosūtīsi saiti':'apmeklētāji'}. Statuss: <strong>{STATUS[owner.status]||STATUS[status]||owner.status}</strong>.
-   {owner.status==='published'&&owner.eventId?<> <Link href={'/pasakumi/'+owner.eventId}>Publiskā lapa MEETS sarakstā →</Link></>:null}
+   {owner.status==='published'&&owner.eventId?<> <Link href={'/pasakumi/'+owner.eventId}>Publiskā lapa meets.lv sarakstā →</Link></>:null}
   </p>}
  </>;
 }

@@ -26,7 +26,7 @@ const TOURNAMENT_EDITOR='/registre-turnira';
 
 function sessionRead(){try{return JSON.parse(localStorage.getItem(SESSION)||'null');}catch{return null;}}
 async function rpc(action,values={},session=sessionRead()){
- if(!session?.access_token)throw Error('Pieslēdzies MEETS kontā.');
+ if(!session?.access_token)throw Error('Pieslēdzies meets.lv kontā.');
  const response=await fetch('/api/organizer',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',
   body:JSON.stringify({action,token:session.access_token,...values})});
  const body=await response.json().catch(()=>({}));
@@ -40,7 +40,7 @@ async function refreshSession(session){
  window.dispatchEvent(new Event('meets-user-changed'));
  return value;
 }
-// MEETS feedback: the reason picked by the reviewer and the comment.
+// meets.lv feedback: the reason picked by the reviewer and the comment.
 function reviewFeedback(item){return [reasonLabel(item.review_reason),item.admin_note].filter(Boolean).join(' — ');}
 // Colour, icon and words for where an event stands (lib/organizer-workspace.js).
 const MARK_ICONS={
@@ -529,8 +529,8 @@ function OrganizerPageInner(){
  }),[orgSubmissions]);
  const STATUS_CARDS=[
   ['draft','Melnraksti',metrics.drafts,'Vēl nav iesniegti'],
-  ['pending_review','Pārbaudē',metrics.review,'Gaida MEETS'],
-  ['rejected','Jālabo',metrics.fixes,'MEETS lūdz precizēt'],
+  ['pending_review','Pārbaudē',metrics.review,'Gaida meets.lv'],
+  ['rejected','Jālabo',metrics.fixes,'meets.lv lūdz precizēt'],
   ['published','Publicēti',metrics.published,'Gaidāmi, redzami kartē'],
   // Shown only to organizers who use private events.
   ...(metrics.private?[['private','Privāti',metrics.private,'Redzami tikai ar saiti']]:[])
@@ -572,7 +572,7 @@ function OrganizerPageInner(){
   <span className="org-skeleton-block"/><span className="org-skeleton-block"/>
  </div>;
  if(!session)return <ProfileShell><section className="org-workspace"><div className="org-empty-state">
-  <h1>Pasākumu rīkošana</h1><p>Lai reģistrētu un pārvaldītu pasākumus, vispirms pieslēdzies savam MEETS kontam.</p>
+  <h1>Pasākumu rīkošana</h1><p>Lai reģistrētu un pārvaldītu pasākumus, vispirms pieslēdzies savam meets.lv kontam.</p>
   <Link className="button primary" href="/profils">Pieslēgties →</Link>
  </div></section></ProfileShell>;
 
@@ -604,7 +604,7 @@ function OrganizerPageInner(){
  }
 
  return <ProfileShell session={session} activeOrganization={activeOrg}><SavingOverlay steps={saving.steps} current={saving.current}/><section className="org-workspace">
-  <header className="org-page-head"><div><p className="eyebrow">Pasākumu rīkošana · {ROLE_LABELS[activeOrg?.role]||activeOrg?.role}{activeOrg?.trusted&&<span className="org-trusted-badge" title="MEETS uzticams rīkotājs: pasākumi tiek publicēti bez papildu pārbaudes">Publicē bez pārbaudes</span>}</p>
+  <header className="org-page-head"><div><p className="eyebrow">Pasākumu rīkošana · {ROLE_LABELS[activeOrg?.role]||activeOrg?.role}{activeOrg?.trusted&&<span className="org-trusted-badge" title="meets.lv uzticams rīkotājs: pasākumi tiek publicēti bez papildu pārbaudes">Publicē bez pārbaudes</span>}</p>
    {organizations.length>1?<details className="org-switcher">
     <summary><h1>{activeOrg?.name}<span aria-hidden="true">▾</span></h1><span className="sr-only">Mainīt rīkotāju</span></summary>
     <ul role="menu">
@@ -615,7 +615,7 @@ function OrganizerPageInner(){
     </ul>
    </details>:<h1>{activeOrg?.name}</h1>}
   </div>
-  {activeOrg?.is_public&&<div className="org-head-share"><Link className="button compact ghost" href={organizerPath(activeOrg)}>Publiskais profils ↗</Link><ShareButton path={organizerPath(activeOrg)} title={activeOrg.name+' — pasākumi MEETS'} label="Dalīties" className="button compact"/></div>}
+  {activeOrg?.is_public&&<div className="org-head-share"><Link className="button compact ghost" href={organizerPath(activeOrg)}>Publiskais profils ↗</Link><ShareButton path={organizerPath(activeOrg)} title={activeOrg.name+' — pasākumi meets.lv'} label="Dalīties" className="button compact"/></div>}
   </header>
 
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
@@ -649,7 +649,7 @@ function OrganizerPageInner(){
     <h2 id="org-onboarding-title">Pirmie soļi</h2>
     <ol className="org-steps">
      <li className="done"><span aria-hidden="true">✓</span><div><strong>Rīkotājs izveidots</strong><small>{activeOrg?.name}</small></div></li>
-     <li className={orgSubmissions.length?'done':'current'}><span aria-hidden="true">{orgSubmissions.length?'✓':'2'}</span><div><strong>Iesniedz pirmo pasākumu</strong><small>Norises vietu vari pievienot turpat redaktorā. Pēc MEETS pārbaudes pasākums parādīsies kartē.</small></div>{!orgSubmissions.length&&<Link className="button primary" href={EDITOR+'?org='+orgId}>Jauns pasākums →</Link>}</li>
+     <li className={orgSubmissions.length?'done':'current'}><span aria-hidden="true">{orgSubmissions.length?'✓':'2'}</span><div><strong>Iesniedz pirmo pasākumu</strong><small>Norises vietu vari pievienot turpat redaktorā. Pēc meets.lv pārbaudes pasākums parādīsies kartē.</small></div>{!orgSubmissions.length&&<Link className="button primary" href={EDITOR+'?org='+orgId}>Jauns pasākums →</Link>}</li>
      <li className={managedVenues.length?'done':''}><span aria-hidden="true">{managedVenues.length?'✓':'3'}</span><div><strong>Saglabā savas norises vietas <em>(neobligāti)</em></strong><small>Vietas izmantosi atkārtoti, un tām var būt publisks kalendārs.</small></div>{!managedVenues.length&&<Link className="button" href={'/registre-vietu?org='+orgId}>Pievienot vietu</Link>}</li>
     </ol>
    </section>}
@@ -664,7 +664,7 @@ function OrganizerPageInner(){
       actions={canEditItem(activeOrg,'event',item.id)&&<div className="erow-actions"><Link className="button compact" href={EDITOR+'?org='+orgId+'&edit='+item.id}>Turpināt</Link></div>}/>)}
     </div>
    </section>}
-   {todo.review.length>0&&<p className="org-review-note" role="status">{todo.review.length===1?'1 pasākums':todo.review.length+' pasākumi'} gaida MEETS pārbaudi. Statusa maiņu redzēsi šeit.</p>}
+   {todo.review.length>0&&<p className="org-review-note" role="status">{todo.review.length===1?'1 pasākums':todo.review.length+' pasākumi'} gaida meets.lv pārbaudi. Statusa maiņu redzēsi šeit.</p>}
    <section className="org-status-cards" aria-label="Pasākumi pēc statusa">
     {STATUS_CARDS.map(([status,label,count,hint])=><Link key={status} href={eventFilterLink(status)} className={'org-status-card org-status-card-'+status.replace('_','-')+(count?'':' empty')}>
      <strong>{count}</strong><span>{label}</span><small>{hint}</small></Link>)}
@@ -683,7 +683,7 @@ function OrganizerPageInner(){
   {panel==='events'&&<section className="org-panel org-events">
    <div className="org-panel-head"><div><h2>Pasākumi</h2><p>Kas ir melnrakstā, kas publicēts un kur to var redzēt.</p></div>{canEdit&&<Link className="button compact" href={EDITOR+'?org='+orgId}>+ Jauns pasākums</Link>}</div>
    <div className="org-reach-legend">
-    <p><strong>Publisks</strong> pasākums pēc MEETS pārbaudes ir kartē un sarakstā{activeOrg?.is_public?' un rīkotāja profilā':''}. <strong>Privāts</strong> ir pieejams tikai ar saiti. <strong>Melnrakstu</strong> redz tikai rīkotāja komanda.</p>
+    <p><strong>Publisks</strong> pasākums pēc meets.lv pārbaudes ir kartē un sarakstā{activeOrg?.is_public?' un rīkotāja profilā':''}. <strong>Privāts</strong> ir pieejams tikai ar saiti. <strong>Melnrakstu</strong> redz tikai rīkotāja komanda.</p>
     {!activeOrg?.is_public&&<p className="org-reach-warn">Rīkotāja profils nav publisks, tāpēc pasākumi rīkotāja lapā nav redzami.{canEdit&&<> <button type="button" className="text-button" onClick={()=>choosePanel('profile')}>Publiskot profilu</button></>}</p>}
    </div>
    <div className="org-status-tabs" role="group" aria-label="Statuss">
@@ -757,7 +757,7 @@ function OrganizerPageInner(){
     {manage&&member.role!=='owner'&&member.user_id!==session?.user?.id&&<button type="button" className="button compact ghost" disabled={busy} onClick={()=>removeAccess(member)}>Noņemt</button>}
    </div>)}</div>
    {manage&&<div className="org-invite"><label>Uzaicināt kā<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="editor">Rīkotājs</option><option value="contributor">Labotājs</option><option value="admin">Administrators</option><option value="viewer">Skatītājs</option></select><small>{ROLE_HINTS[inviteRole]}</small></label>
-    <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>Izveidot uzaicinājumu</button>{inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/><small>Nosūti šo saiti komandas dalībniekam. Atverot to un pieslēdzoties MEETS kontā, notiek pievienošanās komandai ar izvēlēto lomu.</small></label>}
+    <button className="button primary" type="button" disabled={busy} onClick={createInvitation}>Izveidot uzaicinājumu</button>{inviteLink&&<label>Uzaicinājuma saite<input readOnly value={inviteLink} onFocus={e=>e.target.select()}/><small>Nosūti šo saiti komandas dalībniekam. Atverot to un pieslēdzoties meets.lv kontā, notiek pievienošanās komandai ar izvēlēto lomu.</small></label>}
     <p className="org-invite-note">Labotāju tikai vienam pasākumam vai turnīram pievieno sadaļā Pasākumi vai Turnīri: ⋯ → Pievienot labotāju.</p></div>}
   </section>}
 
@@ -809,7 +809,7 @@ function OrganizerPageInner(){
      <li><div><strong>2. Dzēst rīkotāju</strong><small>{orgSubmissions.length?'Pieejams pēc pasākumu dzēšanas':'Tiks dzēstas arī '+managedVenues.length+' vietas'}</small></div>
       <button type="button" className="button compact danger" disabled={busy||orgSubmissions.length>0||activeOrg?.role!=='owner'} onClick={deleteOrganization}>Dzēst rīkotāju…</button></li>
     </ol>
-    <p className="meets-muted">Kad tev vairs nav rīkotāju, savu MEETS kontu vari izdzēst sadaļā <Link href="/konta-iestatijumi">Konta iestatījumi</Link>.</p>
+    <p className="meets-muted">Kad tev vairs nav rīkotāju, savu meets.lv kontu vari izdzēst sadaļā <Link href="/konta-iestatijumi">Konta iestatījumi</Link>.</p>
    </section>}
   </section>}
  </section></ProfileShell>;

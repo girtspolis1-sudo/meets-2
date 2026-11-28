@@ -74,7 +74,7 @@ test('event reach says where people can see an event',()=>{
  assert.equal(eventReach({status:'published',event_id:'e',date_from:'2026-12-01'},hidden,today).places[1].hint,'Rīkotāja profils nav publisks');
  assert.deepEqual(states({status:'published',event_id:'e',share_token:'t',date_from:'2026-11-01'}),{map:'off',profile:'off',link:'on'});
  assert.deepEqual(states({status:'cancelled',share_token:'t',date_from:'2026-12-01'}),{map:'off',profile:'off',link:'off'});
- assert.equal(eventReach({status:'rejected'},pub,today).who,'Nav redzams — MEETS lūdz precizēt');
+ assert.equal(eventReach({status:'rejected'},pub,today).who,'Nav redzams — meets.lv lūdz precizēt');
 });
 test('event format names visibility and schedule',()=>{
  assert.equal(eventFormat({visibility:'public'}),'Publisks');

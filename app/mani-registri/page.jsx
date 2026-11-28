@@ -76,10 +76,10 @@ function ListsInner(){
  }
 
  const page=<section className="meets-account-page meets-registry-page">
-  <div className="meets-account-heading"><div><p className="eyebrow">{orgId?'Pasākumu rīkošana':'Mans MEETS'}</p><h1>{orgId?'Publiskie saraksti':'Mani saraksti'}</h1>
+  <div className="meets-account-heading"><div><p className="eyebrow">{orgId?'Pasākumu rīkošana':'Mans profils'}</p><h1>{orgId?'Publiskie saraksti':'Mani saraksti'}</h1>
    <p className="meets-muted">{orgId?'Veido rīkotāja publiskas pasākumu izlases un iegulstamus kalendārus.':'Saglabā savas pasākumu izlases. Saraksts nemaina pasākuma īpašnieku.'}</p></div>
    <Link className="button" href={orgId?'/organizators?org='+orgId+'&panel=lists':'/profils'}>← Atpakaļ</Link></div>
-  {loading?<p role="status">Ielādē sarakstus…</p>:!session?<div className="registry-panel"><h2>Nepieciešams MEETS konts</h2><p>Pieslēdzies, lai veidotu savus sarakstus.</p><Link className="button primary" href="/profils">Pieslēgties →</Link></div>:<>
+  {loading?<p role="status">Ielādē sarakstus…</p>:!session?<div className="registry-panel"><h2>Nepieciešams meets.lv konts</h2><p>Pieslēdzies, lai veidotu savus sarakstus.</p><Link className="button primary" href="/profils">Pieslēgties →</Link></div>:<>
    {!orgId&&<div className="registry-panel"><h2>Mans profils</h2><div className="registry-grid"><label>Profila vārds<input value={profile} maxLength={100} onChange={e=>setProfile(e.target.value)}/></label><label>E-pasts<input readOnly value={session.user?.email||''}/></label></div><div className="registry-actions"><button className="button" disabled={busy} onClick={()=>perform('profile',{display_name:profile})}>Saglabāt profilu</button></div></div>}
    {orgId&&activeOrg&&<div className="registry-context"><strong>{activeOrg.name}</strong><span>{activeOrg.role==='viewer'?'Skatīšanas režīms':'Organizācijas saraksti'}</span></div>}
    {!editing?<div className="registry-panel"><div className="meets-account-heading"><div><h2>{orgId?'Rīkotāja saraksti':'Mani saraksti'} ({visible.length})</h2><p className="registry-note">Katram sarakstam var kombinēt automātiskos filtrus un manuāli izvēlētus pasākumus.</p></div>
@@ -107,7 +107,7 @@ function ListsInner(){
     {editing.excluded_event_ids?.length>0&&<details><summary>Izņemtie ({editing.excluded_event_ids.length})</summary>{<ul className="event-link-list elist">{editing.excluded_event_ids.map(id=>{const item=events.find(e=>e.id===id);
      const restore=<div className="erow-actions"><button className="button" type="button" onClick={()=>changeManual(id,'restore')}>Atjaunot</button></div>;
      return item?<EventRow key={id} event={item} variant="organizer" muted actions={restore}/>:<li key={id} className="erow erow-organizer is-muted"><span className="erow-info"><span className="erow-title">Pasākums vairs nav katalogā</span></span><div className="erow-end">{restore}</div></li>;})}</ul>}</details>}
-    <h3>Manuāli pievienot</h3><input type="search" value={pickQuery} onChange={e=>setPickQuery(e.target.value)} placeholder="Meklēt MEETS pasākumu…"/><ul className="event-link-list elist">{found.map(item=><EventRow key={item.id} event={item} variant="organizer" actions={<div className="erow-actions"><button className="button" type="button" onClick={()=>changeManual(item.id,'include')} disabled={(editing.included_event_ids||[]).includes(item.id)}>+ Pievienot</button></div>}/>)}</ul>
+    <h3>Manuāli pievienot</h3><input type="search" value={pickQuery} onChange={e=>setPickQuery(e.target.value)} placeholder="Meklēt meets.lv pasākumu…"/><ul className="event-link-list elist">{found.map(item=><EventRow key={item.id} event={item} variant="organizer" actions={<div className="erow-actions"><button className="button" type="button" onClick={()=>changeManual(item.id,'include')} disabled={(editing.included_event_ids||[]).includes(item.id)}>+ Pievienot</button></div>}/>)}</ul>
     <div className="registry-actions"><button className="button primary" disabled={busy||!canEdit}>{busy?'Saglabā…':'Saglabāt sarakstu'}</button><button className="button" type="button" onClick={()=>setEditing(null)}>Atcelt</button></div>
    </form>}
   </>}

@@ -78,7 +78,7 @@ function SubmissionCard({item,today,focused,matches,onSearchPlace,onReview,busy,
       :<>{organization.published>0?(organization.published===1?'Publicēts 1 pasākums':'Publicēti '+organization.published+' pasākumi'):'Pirmais pasākums'}{organization.suggested?' · ieteicams atzīmēt kā uzticamu':''}
        {' '}<button type="button" className="text-button" onClick={()=>onSetTrust(organization,true)}>Uzticēties — turpmāk publicēt automātiski</button></>}
     </p>}
-    {item.author_email&&<p className="admin-submission-contact">Iesniedza <a href={'mailto:'+item.author_email+'?subject='+encodeURIComponent('MEETS: '+item.title)}>{item.author_email}</a></p>}
+    {item.author_email&&<p className="admin-submission-contact">Iesniedza <a href={'mailto:'+item.author_email+'?subject='+encodeURIComponent('meets.lv: '+item.title)}>{item.author_email}</a></p>}
    </div>
    <span className={'admin-submission-age'+(days>=2?' late':'')}>{days===0?'Iesniegts šodien':'Gaida '+days+' '+(days===1?'dienu':'dienas')}</span>
   </header>
@@ -116,7 +116,7 @@ function SubmissionCard({item,today,focused,matches,onSearchPlace,onReview,busy,
     <p><strong>{item.venue_name||'Nav nosaukuma'}</strong><br/><span>{item.address||'Nav adreses'}</span></p>
     {point?<p className="admin-submission-point">✓ {point.label}: {Number(point.latitude).toFixed(5)}, {Number(point.longitude).toFixed(5)} · <a href={osmLink(point.latitude,point.longitude)} target="_blank" rel="noreferrer">pārbaudīt kartē ↗</a></p>
      :<p className="admin-submission-point missing">Vieta kartē vēl nav izvēlēta.</p>}
-    {known.length>0&&<><h5>MEETS jau zina</h5><ul className="admin-submission-places">{known.map((place,i)=><PlaceOption key={'k'+i} place={place} active={samePoint(place)} onUse={usePlace}/>)}</ul></>}
+    {known.length>0&&<><h5>meets.lv jau zina</h5><ul className="admin-submission-places">{known.map((place,i)=><PlaceOption key={'k'+i} place={place} active={samePoint(place)} onUse={usePlace}/>)}</ul></>}
     {search.results&&<><h5>Adrešu meklēšanas rezultāti</h5>
      {search.results.length?<ul className="admin-submission-places">{search.results.map((place,i)=><PlaceOption key={'s'+i} place={place} active={samePoint(place)} onUse={usePlace}/>)}</ul>:<p className="meets-muted">Nekas netika atrasts.</p>}</>}
     {search.error&&<p className="meets-inline-error">{search.error}</p>}

@@ -57,7 +57,7 @@ test('labels read naturally in Latvian',()=>{
  assert.equal(distanceLabel(42.4),'42 km');
  assert.equal(priceLabel({price_status:'free'}),'Bezmaksas');
  assert.equal(priceLabel({price_status:'paid',price_min:5,price_max:15}),'no 5 €');
- assert.equal(periodPhrase('weekend'),'šajā nedēļas nogalē');
+ assert.equal(periodPhrase('weekend'),'šajās brīvdienās');
  assert.deepEqual(widerOptions(30,'7days').map(o=>o.label),['Paplašināt līdz 50 km','Visa Latvija','Rādīt 30 dienas']);
 });
 

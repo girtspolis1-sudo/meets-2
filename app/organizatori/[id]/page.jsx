@@ -14,14 +14,14 @@ export const dynamic='force-dynamic';
 // Link previews on Facebook, WhatsApp and others: name, description and logo.
 export async function generateMetadata({params}){
  const {id}=await params;const value=await publicOrganizer(id);const org=value?.organization;
- if(!org)return {title:'MEETS rīkotājs'};
+ if(!org)return {title:'meets.lv rīkotājs'};
  const count=Array.isArray(value.events)?value.events.length:0;
- const description=(String(org.description||'').trim().slice(0,180)||'Rīkotāja pasākumi MEETS kartē.')+(count?' · '+count+' gaidāmi pasākumi':'');
- const title=org.name+' — pasākumi MEETS';
+ const description=(String(org.description||'').trim().slice(0,180)||'Rīkotāja pasākumi meets.lv kartē.')+(count?' · '+count+' gaidāmi pasākumi':'');
+ const title=org.name+' — pasākumi meets.lv';
  const path=organizerPath(org);
  const images=org.image_url?[{url:org.image_url,alt:org.name}]:undefined;
  return {title,description,alternates:{canonical:path},
-  openGraph:{title,description,type:'profile',url:path,siteName:'MEETS',locale:'lv_LV',images},
+  openGraph:{title,description,type:'profile',url:path,siteName:'meets.lv',locale:'lv_LV',images},
   twitter:{card:'summary',title,description,images:images?.map(i=>i.url)}};
 }
 
@@ -51,7 +51,7 @@ export default async function OrganizerPublicPage({params}){
   <header className="org-site-hero">
    <div className="org-site-logo">{org.image_url?<img src={org.image_url} alt=""/>:<span>{org.name.slice(0,1).toLocaleUpperCase('lv')}</span>}</div>
    <div className="org-site-intro">
-    <p className="eyebrow">Rīkotājs · MEETS</p>
+    <p className="eyebrow">Rīkotājs</p>
     <h1>{org.name}</h1>
     {org.description&&<p className="org-site-description">{org.description}</p>}
     <ul className="org-site-stats" aria-label="Īsumā">
@@ -65,8 +65,8 @@ export default async function OrganizerPublicPage({params}){
     </div>}
    </div>
    <div className="org-site-actions">
-    <FollowButton targetKind="organization" targetId={org.id} className="button primary" label="Sekot" followingLabel="Sekoju"/>
-    <ShareButton path={path} title={org.name+' — pasākumi MEETS'} label="Dalīties ar lapu"/>
+    <FollowButton targetKind="organization" targetId={org.id} className="button primary" label="Sekot rīkotājam" followingLabel="Seko rīkotājam"/>
+    <ShareButton path={path} title={org.name+' — pasākumi meets.lv'} label="Dalīties ar lapu"/>
     {events.length>0&&<Link className="button" href={mapHref}>Pasākumi kartē →</Link>}
    </div>
   </header>
@@ -74,7 +74,6 @@ export default async function OrganizerPublicPage({params}){
   <section className="org-site-section" aria-labelledby="org-events">
    <div className="org-site-section-head">
     <div><h2 id="org-events">Gaidāmie pasākumi</h2><p>Visi rīkotāja publicētie pasākumi vienuviet.</p></div>
-    {events.length>0&&<Link className="button" href={mapHref}>Rādīt kartē →</Link>}
    </div>
    {/* The shared event row (prompt_vienoti_pasakumi.md): the same tile, date chip and actions as the listing pages. */}
    {events.length?<ul className="event-link-list elist">{events.map(e=>{
@@ -118,7 +117,6 @@ export default async function OrganizerPublicPage({params}){
 
   <footer className="org-site-foot">
    <p>Šī lapa ir daļa no <Link href="/karte">meets.lv</Link> — pasākumu karte visā Latvijā.</p>
-   <ShareButton path={path} title={org.name+' — pasākumi MEETS'} label="Dalīties ar šo lapu" className="button compact"/>
   </footer>
  </section>;
 }

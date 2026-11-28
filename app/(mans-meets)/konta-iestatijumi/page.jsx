@@ -50,7 +50,7 @@ export default function AccountSettings(){
   await act(async()=>{const value=await resizeImage(file);const saved=await accountRequest('/api/account','updateAvatar',{avatarDataUrl:value});setAccountData('avatar',d=>({...d,avatar_url:saved.avatar_url,avatar_data_url:null}));},'avatar');e.target.value='';
  }
  async function deleteAccount(){
-  const typed=window.prompt('Dzēst MEETS kontu? Tiks izdzēsti arī saglabātie pasākumi un sekošana. To nevar atsaukt.\nLai turpinātu, ieraksti DZĒST:','');
+  const typed=window.prompt('Dzēst meets.lv kontu? Tiks izdzēsti arī saglabātie pasākumi un sekošana. To nevar atsaukt.\nLai turpinātu, ieraksti DZĒST:','');
   if(String(typed||'').trim().toUpperCase()!=='DZĒST')return;
   setBusy('delete');setError('');setMessage('');
   try{
@@ -98,7 +98,7 @@ export default function AccountSettings(){
    <label>Atkārtot jauno paroli<input type="password" autoComplete="new-password" minLength={8} required value={repeat} onChange={e=>setRepeat(e.target.value)}/></label>
    <button className="button primary" disabled={!!busy}>Mainīt paroli</button>
   </form></section>:<section className="meets-settings-panel"><h2>Parole</h2><p className="meets-muted">Tu pieslēdzies ar Google, tāpēc parole nav vajadzīga.</p></section>}
-  <section className="meets-settings-panel meets-settings-danger"><h2>Dzēst MEETS kontu</h2>
+  <section className="meets-settings-panel meets-settings-danger"><h2>Dzēst meets.lv kontu</h2>
    <p>Tiks izdzēsts tavs konts, saglabātie pasākumi, sekošana un atgādinājumi. To nevar atsaukt.</p>
    <p className="meets-muted">Ja tev ir rīkotāji, vispirms izdzēs tos: Pasākumu rīkošana → Profils → Dzēst rīkotāju.</p>
    <button type="button" className="button danger" disabled={!!busy} onClick={deleteAccount}>{busy==='delete'?'Dzēš…':'Dzēst kontu…'}</button>

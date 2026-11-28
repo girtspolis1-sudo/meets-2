@@ -21,7 +21,7 @@ export default function Error({error,reset}){
  return <section className="section empty" role="alert">
   <span className="symbol" aria-hidden="true">!</span>
   <h1>Kaut kas nogāja greizi</h1>
-  <p>Neizdevās ielādēt šo MEETS sadaļu. Vari mēģināt vēlreiz.</p>
+  <p>Neizdevās ielādēt šo meets.lv sadaļu. Vari mēģināt vēlreiz.</p>
   <button className="button primary" type="button" onClick={()=>reset()}>Mēģināt vēlreiz</button>
  </section>;
 }

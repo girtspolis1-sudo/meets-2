@@ -17,7 +17,7 @@ export default function ResetPassword(){
  },[]);
  async function sendLink(event){
   event.preventDefault();setBusy(true);setError('');setNotice('');
-  try{await requestPasswordReset(email);setNotice('Ja šim e-pastam ir MEETS konts, nosūtījām jaunu saiti. Pārbaudi arī mēstuļu mapi.');}
+  try{await requestPasswordReset(email);setNotice('Ja šim e-pastam ir meets.lv konts, nosūtījām jaunu saiti. Pārbaudi arī mēstuļu mapi.');}
   catch(e){setError(e.message);}finally{setBusy(false);}
  }
  async function savePassword(event){
@@ -28,7 +28,7 @@ export default function ResetPassword(){
   catch(e){setError(e.message);}finally{setBusy(false);}
  }
  return <section className="meets-profile-auth" aria-labelledby="reset-title">
-  <p className="eyebrow">MANS MEETS</p>
+  <p className="eyebrow">MANS PROFILS</p>
   <h1 id="reset-title">{stage==='done'?'Parole nomainīta':'Paroles atjaunošana'}</h1>
   {stage==='checking'&&<p role="status">Pārbauda saiti…</p>}
   {stage==='password'&&<form className="quick-flow-stack quick-flow-auth" onSubmit={savePassword}>
@@ -49,7 +49,7 @@ export default function ResetPassword(){
   </form>}
   {stage==='done'&&<div className="quick-flow-stack">
    <p className="meets-auth-notice" role="status">Jaunā parole saglabāta, un pieslēgšanās ir aktīva.</p>
-   <Link className="button primary" href="/profils">Atvērt Mans MEETS →</Link>
+   <Link className="button primary" href="/profils">Atvērt manu profilu →</Link>
   </div>}
  </section>;
 }

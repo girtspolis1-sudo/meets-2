@@ -26,7 +26,7 @@ function VenueRegistrationInner(){
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[saved,setSaved]=useState(null),[loaded,setLoaded]=useState(false);
 
  async function request(action,data={},session=account){
-  if(!session?.access_token)throw Error('Pieslēdzies MEETS kontā.');
+  if(!session?.access_token)throw Error('Pieslēdzies meets.lv kontā.');
   const response=await fetch('/api/organizer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token:session.access_token,...data}),cache:'no-store'});
   const result=await response.json().catch(()=>({}));if(!response.ok){const e=new Error(result.error||'Neizdevās saglabāt.');e.status=response.status;throw e;}return result;
  }
@@ -86,14 +86,14 @@ function VenueRegistrationInner(){
  if(!loaded)return <p className="meets-profile-skeleton" role="status">Ielādē norises vietu redaktoru…</p>;
 
  const page=<section className="meets-organizer-page quick-flow venue-editor">
-  <div className="meets-account-heading"><div><p className="eyebrow">MEETS · Norises vieta</p><h1>{existingId?'Labot norises vietu':'Pievienot norises vietu'}</h1><p className="meets-muted">{activeOrg?<><strong>{activeOrg.name}</strong> · </>:null}izvēlies esošu vietu kartē vai reģistrē jaunu.</p></div>
+  <div className="meets-account-heading"><div><p className="eyebrow">meets.lv · Norises vieta</p><h1>{existingId?'Labot norises vietu':'Pievienot norises vietu'}</h1><p className="meets-muted">{activeOrg?<><strong>{activeOrg.name}</strong> · </>:null}izvēlies esošu vietu kartē vai reģistrē jaunu.</p></div>
    <Link href={orgId?'/organizators?org='+orgId+'&panel=venues':'/organizators'} className="button">← Vietu pārvaldība</Link></div>
   {organizations.length>1&&stage!=='done'&&<div className="event-editor-context"><label>Rīkotājs<select value={orgId} onChange={e=>switchOrg(e.target.value)}><option value="">Izvēlies rīkotāju</option>{organizations.map(o=><option value={o.id} key={o.id}>{o.name}</option>)}</select></label></div>}
   {account&&organizations.length===0&&<div className="event-editor-org-needed"><strong>Vispirms izveido rīkotāju.</strong><p>Vieta tiks piesaistīta rīkotājam, kas to pārvalda vai izmanto.</p><button className="button primary" type="button" onClick={organizerSetup}>Sākt organizēt →</button></div>}
   {error&&<p className="meets-inline-error" role="alert">{error}</p>}{notice&&<p className="meets-organizer-success" role="status">{notice}</p>}
   {stage==='edit'&&<form className="quick-flow-card" onSubmit={preview}>
    <VenueLocationPicker value={form} existingVenues={myVenues.filter(v=>v.organization_id===orgId&&v.id!==existingId)} publicVenues={publicVenues} onSelect={choose}/>
-   {publicId&&<div className="org-info-box"><strong>Šī vieta jau ir MEETS.</strong><p>To varēsi izmantot savos pasākumos, bet vietas publisko profilu turpinās pārvaldīt tās īpašnieks. Dublikāts netiks veidots.</p></div>}
+   {publicId&&<div className="org-info-box"><strong>Šī vieta jau ir meets.lv.</strong><p>To varēsi izmantot savos pasākumos, bet vietas publisko profilu turpinās pārvaldīt tās īpašnieks. Dublikāts netiks veidots.</p></div>}
    {!publicId&&(existingId||form.address||isCoordinatePair(form))&&<>
     <label>Vietas nosaukums *<input required minLength={2} maxLength={160} value={form.name||''} onChange={e=>update('name',e.target.value)} placeholder="Piemēram, Mārupes sporta zāle"/></label>
     <label>Adrese<input maxLength={300} value={form.address||''} onChange={e=>update('address',e.target.value)}/></label>

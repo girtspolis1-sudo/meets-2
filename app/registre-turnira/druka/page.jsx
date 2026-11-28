@@ -16,7 +16,7 @@ function OrganizerPrint(){
  const [choice,setChoice]=useState(params.get('lapa')||'visas');
  useEffect(()=>{
   if(!ready)return;
-  if(!session){setError('Pieslēdzies MEETS kontam.');return;}
+  if(!session){setError('Pieslēdzies meets.lv kontam.');return;}
   accountRequest('/api/tournaments','get',{id:params.get('id')||''})
    .then(got=>setData({...got.tournament,settings:got.tournament.settings||{},teams:got.teams,games:got.games,scorers:got.scorers||[]}))
    .catch(e=>setError(e.message));

@@ -29,6 +29,6 @@ export async function GET(request){
   return Response.json({locations},{headers:{'Cache-Control':'private, no-store'}});
  }catch(error){
   console.error('venue_catalog_search_failed',{name:error?.name||'Error'});
-  return Response.json({locations:[],error:'MEETS vietu saraksts pašlaik nav pieejams.'},{status:503});
+  return Response.json({locations:[],error:'meets.lv vietu saraksts pašlaik nav pieejams.'},{status:503});
  }
 }

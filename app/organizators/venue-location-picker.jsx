@@ -218,7 +218,7 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
     const data=await response.json();
     if(!response.ok)throw Error(data.error||'Saraksts nav pieejams');
     setCatalog(data.locations||[]);
-   }catch(error){if(error.name!=='AbortError'){setCatalog([]);setCatalogError('MEETS katalogs īslaicīgi nav pieejams.');}}
+   }catch(error){if(error.name!=='AbortError'){setCatalog([]);setCatalogError('meets.lv katalogs īslaicīgi nav pieejams.');}}
    finally{if(!controller.signal.aborted)setFetching(false);}
   },450);
   return ()=>{clearTimeout(timer);controller.abort();};
@@ -286,19 +286,19 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
      {localResults.length>0&&<>
       <small>Manas saglabātās vietas</small>
       {localResults.map(place=><button key={place.id} type="button" onClick={()=>preview({...place,venueId:place.id})}>
-       <strong>⌖ {place.name} <em>MEETS · Mana vieta</em></strong><span>{place.address||'Bez adreses'}</span>
+       <strong>⌖ {place.name} <em>Mana vieta</em></strong><span>{place.address||'Bez adreses'}</span>
       </button>)}
      </>}
      {publicResults.length>0&&<>
-      <small>Publiskās MEETS norises vietas</small>
+      <small>Publiskās meets.lv norises vietas</small>
       {publicResults.map(place=><button key={'public-'+place.id} type="button" onClick={()=>preview({...place,venueId:place.id})}>
-       <strong>⌖ {place.name} <em>MEETS · Publiska vieta</em></strong><span>{place.address||'Bez adreses'}</span>
+       <strong>⌖ {place.name} <em>Publiska vieta</em></strong><span>{place.address||'Bez adreses'}</span>
       </button>)}
      </>}
      {catalog.length>0&&<>
-      <small>MEETS vietu katalogs</small>
+      <small>meets.lv vietu katalogs</small>
       {catalog.filter(place=>!localResults.some(own=>normalize(own.name)===normalize(place.name)&&Math.abs(Number(own.latitude)-place.latitude)<0.001)).slice(0,7).map(place=><button key={place.id} type="button" onClick={()=>preview(place)}>
-       <strong>⌖ {place.name} <em>MEETS</em></strong><span>{place.address}</span>
+       <strong>⌖ {place.name} <em>meets.lv</em></strong><span>{place.address}</span>
       </button>)}
      </>}
      {addressResults.length>0&&<>
@@ -307,7 +307,7 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
        <strong>⌖ {place.label}</strong><span>{place.displayName}</span>
       </button>)}
      </>}
-     {fetching&&<small>Notiek MEETS vietu meklēšana…</small>}
+     {fetching&&<small>Notiek meets.lv vietu meklēšana…</small>}
      {catalogError&&<small>{catalogError}</small>}
      {!localResults.length&&!publicResults.length&&!catalog.length&&!addressResults.length&&!fetching&&<small>Sāc rakstīt vai izmanto karti zemāk.</small>}
     </div>}

@@ -61,7 +61,7 @@ export default async function FlyerPage({params}){
      <span className="flyer-link">{link.replace(/^https?:\/\//,'')}</span>
     </div>
    </div>
-   {/* The one MEETS mark, along the bottom edge of the sheet. */}
+   {/* The one meets.lv mark, along the bottom edge of the sheet. */}
    <div className="flyer-bottom"><span className="flyer-foot-brand">meets<span>.</span>lv</span></div>
   </article>
  </div>;

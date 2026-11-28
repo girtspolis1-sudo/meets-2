@@ -41,7 +41,7 @@ function QuickEvent({organizations=[],orgId='',heading='Izveido pasākumu'}){
    </div>
    <fieldset className="org-quick-visibility"><legend>Kas redzēs?</legend>
     <label className={visibility==='public'?'active':''}><input type="radio" name="org-quick-visibility" value="public" checked={visibility==='public'} onChange={()=>setVisibility('public')}/>
-     <strong>Publisks</strong><small>Kartē pēc MEETS pārbaudes</small></label>
+     <strong>Publisks</strong><small>Kartē pēc meets.lv pārbaudes</small></label>
     <label className={visibility==='private'?'active':''}><input type="radio" name="org-quick-visibility" value="private" checked={visibility==='private'} onChange={()=>setVisibility('private')}/>
      <strong>Privāts</strong><small>Tikai ar saiti</small></label>
    </fieldset>

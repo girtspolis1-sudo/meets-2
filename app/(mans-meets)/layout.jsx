@@ -17,16 +17,16 @@ export default function MansMeetsLayout({children}){
   readAuthRedirect().then(result=>{
    if(result?.session){
     saveSession(result.session);
-    setLinkMessage(result.type!=='google'?'E-pasts apstiprināts. Laipni lūdzam MEETS!':result.linked?'Google konts pievienots. Turpmāk vari pieslēgties arī ar Google.':'Tu esi pieslēdzies ar Google.');
+    setLinkMessage(result.type!=='google'?'E-pasts apstiprināts. Laipni lūdzam meets.lv.':result.linked?'Google konts pievienots. Turpmāk vari pieslēgties arī ar Google.':'Tu esi pieslēdzies ar Google.');
    }
    else if(result?.error)setLinkMessage(result.error);
   }).catch(e=>setLinkMessage(e.message));
  },[]);
  const banner=linkMessage&&<p className="meets-profile-hint" role="status">{linkMessage}</p>;
- if(!ready)return <div className="meets-profile-skeleton" role="status">Ielādē tavu MEETS profilu…</div>;
+ if(!ready)return <div className="meets-profile-skeleton" role="status">Ielādē tavu meets.lv profilu…</div>;
  if(!session)return <section className="meets-profile-auth" aria-labelledby="meets-auth-title">
-  <p className="eyebrow">MANS MEETS</p>
-  <h1 id="meets-auth-title">Tavs MEETS vienuviet</h1>
+  <p className="eyebrow">MANS PROFILS</p>
+  <h1 id="meets-auth-title">Mans profils</h1>
   <p className="meets-auth-intro">Pieslēdzies, lai redzētu saglabātos pasākumus, sekošanu un konta iestatījumus.</p>
   {banner}
   <Authentication variant="profile" onSuccess={()=>{}}/>

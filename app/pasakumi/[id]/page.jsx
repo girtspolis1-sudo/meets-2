@@ -4,7 +4,6 @@ import {notFound,permanentRedirect} from 'next/navigation';
 import {cache} from 'react';
 import {findPublicEvent,readEventsCached} from '../../../lib/events-server.js';
 import {cardDate,cardDescription,cardImage,cardLocation} from '../../../lib/discovery-card.js';
-import {timeLabel} from '../../../lib/catalog.js';
 import {officialEventUrl} from '../../../lib/event-sharing.js';
 import EventQuickActions from '../../components/event-quick-actions.jsx';
 import EventVenueFavorite from '../../components/event-venue-favorite.jsx';
@@ -14,7 +13,7 @@ import OnlineJoin from '../../components/online-join.jsx';
 import EventLinkList from '../../components/event-link-list.jsx';
 import {addIsoDays,rigaClockMinutes,rigaTodayIso} from '../../../lib/event-date.js';
 import EventTournaments from '../../components/event-tournaments.jsx';
-import {eventDescription,eventJsonLd,eventTitle,jsonLdScript} from '../../../lib/event-seo.js';
+import {eventDescription,eventJsonLd,eventTitle,fullDateLine,jsonLdScript} from '../../../lib/event-seo.js';
 import {eventPath,municipalityLocative,municipalitySlug,pageRobots,parseEventParam} from '../../../lib/seo.js';
 import {eventGroup} from '../../../lib/home-category-filters.js';
 import {eventMoreLinks,municipalityBySlug,overlaps,teamGames} from '../../../lib/event-listings.js';
@@ -84,7 +83,6 @@ export default async function EventPage({params}){
  if(found.redirect)permanentRedirect(found.canonical);
  const {event,ended}=found;
  const image=cardImage(event),description=cardDescription(event),official=officialEventUrl(event);
- const time=timeLabel(event);
  const related=await relatedEvents(event,ended);
  const {events:all}=await readEventsCached();
  const today=rigaTodayIso();
@@ -100,32 +98,33 @@ export default async function EventPage({params}){
   {ended&&<p className="meets-event-ended" role="status"><strong>Pasākums ir beidzies.</strong> Zemāk ir citi pasākumi {townSlug?municipalityLocative(event.municipality):'tuvumā'}.</p>}
   {/* The same picture top as the cards: the event's image or its theme picture,
       with the theme, the heart, the date chip and the title. */}
-  <EventCardMedia event={event} today={today} title={event.title} heading="h1" className="ec-page-media"/>
+  <EventCardMedia event={event} today={today} title={event.title} heading="h1" className="ec-page-media" fullDate={fullDateLine(event,today)}/>
   <div className="meets-detail-body">
-   {/* The same facts as on the map card, plus the full date. */}
+   {/* The same facts as on the map card; the date chip and the full date are in the picture band. */}
    <div className="meets-detail-key-facts event-facts-page">
     <EventFacts event={event} today={today} clock={rigaClockMinutes()} hideWhen/>
-    <span className="event-facts-date">{cardDate({...event,time_from:null})}{time!=='Nav norādīts'?' · '+time:''}</span>
-    <EventVenueFavorite event={event} compact/>
+    <EventVenueFavorite event={event} compact fullLabel/>
    </div>
    <OnlineJoin event={event}/>
    {description&&<section className="meets-detail-description"><h2>Par pasākumu</h2><p>{description}</p></section>}
    {!ended&&<EventTournaments eventId={event.id}/>}
    {event.organizer_name&&event.organization_id&&<p className="meets-detail-organizer">Organizē <Link href={'/organizatori/'+encodeURIComponent(event.organization_id)}>{event.organizer_name}</Link></p>}
-   {!ended&&<div className="meets-detail-follow"><EventQuickActions event={event} listOnly/></div>}
+   {/* One row of actions: the map and the organizer's page, then calendar, directions
+       and sharing. Saving is the heart in the picture band. */}
    <div className="meets-detail-primary-actions">
     {!ended&&event.latitude!=null&&event.longitude!=null&&<Link className="button primary" href={'/karte?event='+encodeURIComponent(event.id)}>Atvērt kartē →</Link>}
-    {official&&<a className="button" href={official} target="_blank" rel="noopener noreferrer">Rīkotāja saite ↗</a>}
+    {official&&<a className="button" href={official} target="_blank" rel="noopener noreferrer">Rīkotāja lapa ↗</a>}
    </div>
-   {!ended&&<div className="meets-detail-quick"><h2>Ātrās darbības</h2><EventQuickActions event={event}/></div>}
+   {!ended&&<div className="meets-detail-quick"><EventQuickActions event={event} noFavorite noOfficial/></div>}
+   {/* A match: the teams' other games come before the rest of the day. */}
+   {games.length>0&&<section className="meets-detail-related" aria-labelledby="team-games-title">
+    <h2 id="team-games-title">Citas {[event.home_team,event.away_team].filter(Boolean).join(' un ')} spēles</h2>
+    <EventLinkList events={games}/>
+   </section>}
    {related.length>0&&<section className="meets-detail-related" aria-labelledby="related-title">
     <h2 id="related-title">{ended?'Gaidāmie pasākumi':'Citi pasākumi tajā pašā dienā'}{townSlug?' '+municipalityLocative(event.municipality):''}</h2>
     <EventLinkList events={related}/>
     {townSlug&&<p><Link href={'/pasakumi/'+townSlug}>Visi pasākumi {municipalityLocative(event.municipality)} →</Link></p>}
-   </section>}
-   {games.length>0&&<section className="meets-detail-related" aria-labelledby="team-games-title">
-    <h2 id="team-games-title">Citas {[event.home_team,event.away_team].filter(Boolean).join(' un ')} spēles</h2>
-    <EventLinkList events={games}/>
    </section>}
    {more.length>0&&<nav className="meets-event-more-links" aria-label="Vairāk pasākumu">
     <ul>{more.map(l=><li key={l.path}><Link href={l.path}>{l.label} →</Link></li>)}</ul>
