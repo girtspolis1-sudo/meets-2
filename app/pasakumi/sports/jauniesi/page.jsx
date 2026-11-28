@@ -22,7 +22,13 @@ const SHOWN=150;
 const TITLE='Jauniešu sports';
 const DESCRIPTION='Jaunatnes līgas un čempionāti Latvijā: LJBL, hokeja, futbola, volejbola un handbola spēles nākamajās divās nedēļās, laiki un vietas.';
 
+// The catalogue may be out of reach while the site is built (preview builds): the page
+// is then built empty, as the home page is, and filled at the next revalidation.
 async function data(){
+ try{return await read();}
+ catch{return {today:rigaTodayIso(),games:[],leagues:[],sports:[],ages:[]};}
+}
+async function read(){
  const {events}=await readEventsCached();
  const today=rigaTodayIso();
  const games=sportGames(events,today,{level:'youth',days:YOUTH_DAYS});

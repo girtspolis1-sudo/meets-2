@@ -22,7 +22,13 @@ const SHOWN=40;
 const TITLE='Sports Latvijā';
 const DESCRIPTION='Basketbola, hokeja, futbola, volejbola, handbola un florbola spēles Latvijā: līgas, tuvākās spēles, laiki un vietas.';
 
+// The catalogue may be out of reach while the site is built (preview builds): the page
+// is then built empty, as the home page is, and filled at the next revalidation.
 async function data(){
+ try{return await read();}
+ catch{return {today:rigaTodayIso(),games:[],leagues:[],sports:[]};}
+}
+async function read(){
  const {events}=await readEventsCached();
  const today=rigaTodayIso();
  const games=sportGames(events,today);
