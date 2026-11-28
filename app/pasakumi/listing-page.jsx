@@ -7,6 +7,8 @@ import {jsonLdScript,sentenceDate} from '../../lib/event-seo.js';
 import {SITE_URL,TIME_SLUGS,eventPath,municipalityLocative,pageRobots} from '../../lib/seo.js';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS} from '../../lib/home-category-filters.js';
 import {rigaTodayIso} from '../../lib/event-date.js';
+import {sportLevel} from '../../lib/sport-level.js';
+import SportLevelLinks from './sports/level-links.jsx';
 
 const MAX_SHOWN=200;
 const weekdayName=iso=>['svētdiena','pirmdiena','otrdiena','trešdiena','ceturtdiena','piektdiena','sestdiena'][new Date(iso+'T12:00:00Z').getUTCDay()];
@@ -60,6 +62,8 @@ export default function ListingPage({data,allEvents,municipality=null,category='
   <nav className="listing-crumbs" aria-label="Ceļš">{crumbs.slice(1,-1).map((c,i)=><span key={c.path}>{i>0&&' / '}<Link href={c.path}>{c.name}</Link></span>)}</nav>
   <h1>{data.heading}</h1>
   <p className="lead">{data.lead}</p>
+  {/* Sports lists: adults and youth are separate pages, linked here. */}
+  {category==='sport'&&!municipality&&<SportLevelLinks current={league&&data.events.some(e=>sportLevel(e)==='youth')?'youth':'senior'}/>}
   {municipality&&<nav className="listing-chips" aria-label="Laiks">
    <Link href={listingPath({municipalitySlug:municipality.slug})} aria-current={!time&&!category?'page':undefined}>Visi</Link>
    {Object.entries(TIME_SLUGS).map(([slug,word])=><Link key={slug} href={listingPath({municipalitySlug:municipality.slug,time:slug})} aria-current={time===slug?'page':undefined}>{word[0].toUpperCase()+word.slice(1)}</Link>)}

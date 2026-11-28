@@ -8,12 +8,13 @@ import {nearbyMapPath,NEARBY_MAP_RADIUS} from '../../lib/event-sharing.js';
 // 20 km around it) and small calendar, save and share buttons. Title, facts and
 // the map link are plain server-rendered links, readable without JavaScript and
 // by search engines.
-export default function EventLinkList({events,className=''}){
+// rowProps(event): extra attributes for each row (the youth page filters rows by them).
+export default function EventLinkList({events,className='',rowProps=null}){
  if(!events?.length)return null;
  return <ul className={'event-link-list elist'+(className?' '+className:'')}>
   {events.map(event=>{
    const map=nearbyMapPath(event);
-   return <EventRow key={event.id} event={event} actions={<>
+   return <EventRow key={event.id} event={event} {...(rowProps?rowProps(event):{})} actions={<>
     {map&&<Link className="elist-map" href={map} title={'Atvērt kartē: '+NEARBY_MAP_RADIUS+' km ap '+(event.venue_name||'pasākuma vietu')}>
      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg>
      <span>Kartē</span>
