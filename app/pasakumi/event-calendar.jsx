@@ -27,7 +27,7 @@ function useSpan(){
 
 // Topics down, days across. A day, a topic or one cell is the filter for the
 // list under the table; choosing it again clears it.
-export default function EventCalendar({events,longCount=0,today,onOpen,onShowLong}){
+export default function EventCalendar({events,longCount=0,today,onShowLong}){
  const span=useSpan();
  const [start,setStart]=useState(today);
  const [choice,setChoice]=useState({day:today,row:''});
@@ -109,7 +109,7 @@ export default function EventCalendar({events,longCount=0,today,onOpen,onShowLon
   </div>
   {longCount>0&&<button type="button" className="event-calendar-long" onClick={onShowLong}>+ {longCount} {longCount%10===1&&longCount%100!==11?'izstāde vai ilgstošs pasākums':'izstādes un ilgstoši pasākumi'} notiek visu laiku — skatīt sarakstā</button>}
 
-  {chosen.length?<div className="catalog-card-grid meets-catalog-image-grid">{chosen.slice(0,shown).map(event=><DiscoveryEventCard key={event.id} event={event} onOpen={onOpen} actions/>)}</div>
+  {chosen.length?<div className="catalog-card-grid meets-catalog-image-grid">{chosen.slice(0,shown).map(event=><DiscoveryEventCard key={event.id} event={event} actions/>)}</div>
    :<p className="event-calendar-empty">Šajā izvēlē pasākumu nav. Izvēlies citu dienu vai tēmu.</p>}
   {chosen.length>shown&&<div className="catalog-more">
    <button type="button" className="button" onClick={()=>setShown(n=>n+PAGE)}>Rādīt vēl {Math.min(PAGE,chosen.length-shown)}</button>

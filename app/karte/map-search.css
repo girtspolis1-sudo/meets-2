@@ -384,3 +384,23 @@
  .map-shell .map-controls-overlay.msearch>.msearch-panel.mwhere{height:calc(100vh - 220px)}
 }
 .map-shell:has(.mwhere) .leaflet-control-zoom,.map-shell:has(.mwhere) .leaflet-control-attribution{visibility:hidden}
+
+/* Phones: the map and its list sheet fill the screen between the header and the
+   dock; no footer and no links under the map (they are in the list's head). */
+.nearby-head-links{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px}
+.nearby-head-links .text-button{display:inline-flex;align-items:center;padding:0;min-height:32px;font-size:13px;font-weight:700;line-height:1;color:var(--karmins-dark)}
+.nearby-head .nearby-level{margin-top:8px}
+@media(max-width:760px){
+ body:has(.map-layout) footer{display:none}
+ body:has(.map-layout) .map-summary{display:none}
+ body:not(.admin-environment):has(.map-layout) main#saturs{padding-bottom:0}
+ .map-layout .map-shell .osm-map{height:calc(100dvh - 64px - var(--meets-dock-height) - 16px);min-height:420px}
+ /* Kur: the place's name stays readable; the radius is a small chip beside it
+    (its popover also has "Visa Latvija", so the clear button steps aside). */
+ .msearch-where:has(.msearch-radius) .msearch-clear{display:none}
+ .msearch-radius{height:26px;margin-right:6px;padding:0 8px;font-size:12px}
+ .msearch-radius svg{display:none}
+ /* The list sheet at rest is just its head (count, summary, links, level switch). */
+ .nearby-panel.sheet-peek{height:auto}
+ .nearby-panel.sheet-peek .nearby-scroll{display:none}
+}

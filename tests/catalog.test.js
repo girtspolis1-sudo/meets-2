@@ -352,3 +352,10 @@ test('nearby personalized recommendations require opted-in location and verified
  assert.deepEqual(recommendEvents(list,['music'],[],[],9,{origin,radiusKm:30}).map(e=>e.id),['near']);
  assert.deepEqual(recommendEvents(list,['music'],[],[],9).map(e=>e.id),['near','far','fallback']);
 });
+
+import {SOURCE_TYPES,SOURCE_TYPE_LABELS,SPORT_TYPES} from '../lib/home-category-filters.js';
+test('"Sporta veids" offers sports only; every ?types= value keeps a chip name',()=>{
+ assert.ok(SPORT_TYPES.every(t=>SOURCE_TYPES.includes(t.value)&&t.label&&t.icon));
+ assert.ok(!SPORT_TYPES.some(t=>t.value==='municipality'));
+ assert.deepEqual(Object.keys(SOURCE_TYPE_LABELS).sort(),[...SOURCE_TYPES].sort());
+});

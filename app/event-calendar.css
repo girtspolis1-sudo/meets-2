@@ -69,3 +69,16 @@
  .catalog-view-switch{order:-1;width:100%}
  .catalog-view-switch button{flex:1}
 }
+
+/* Catalogue: the map's filter panel under the search on wide screens (a full
+   sheet on phones), the theme chips, the level switch for sport and the Excel link. */
+/* Wide screens: a drop-down under the Filtri button, over the list. */
+.catalog-filter-panel{position:relative;z-index:30;height:0}
+.catalog-filter-panel .msearch-panel{position:absolute;right:0;top:-4px;width:min(680px,100%);margin-top:0;box-shadow:0 14px 34px rgba(27,36,48,.18)}
+.catalog-filter-toggle svg{flex:none}
+.catalog-theme-chips{margin:0 0 6px}
+.catalog-theme-chips button{display:inline-flex;align-items:center;gap:6px}
+.catalog-level-switch{max-width:360px;margin:4px 0 8px}
+.catalog-result-links{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px}
+.catalog-excel{padding:0;min-height:44px;font-size:14px;font-weight:700;color:var(--karmins-dark);text-decoration:underline;text-underline-offset:3px}
+.catalog-excel:disabled{color:var(--teksts-2);text-decoration:none}
