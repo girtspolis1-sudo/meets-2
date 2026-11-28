@@ -12,6 +12,7 @@ import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './globals.css';
 import './ux-enhancements.css';
+// Shared parts only; the account and organizer pages add app/workspace/styles.js.
 import './quick-flow.css';
 import './profile-dashboard.css';
 import './organizer-workspace.css';

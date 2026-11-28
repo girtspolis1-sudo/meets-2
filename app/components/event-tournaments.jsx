@@ -1,3 +1,4 @@
+import '../workspace/tournament.css';
 import Link from 'next/link';
 import {eventTournaments} from '../../lib/tournament-server.js';
 import {SPORTS} from '../../lib/tournament.js';

@@ -43,7 +43,7 @@ export default async function EmbeddedRegistryPage({params}){
    .meets-embed-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px}
    .meets-embed-head h1{font-size:clamp(19px,3vw,27px);margin:0 0 5px;line-height:1.2}
    .meets-embed-head p{margin:0;color:#64748b}
-   .meets-embed-brand{font-size:11px;font-weight:800;color:#9e3039;text-decoration:none;letter-spacing:1px}
+   .meets-embed-brand{font-size:12px;font-weight:800;color:#9e3039;text-decoration:none;letter-spacing:1px}
    .meets-embed-count{font-size:13px;color:#526179;margin:5px 0 12px}
    .meets-embed-footer{margin-top:18px;font-size:12px}
    .meets-embed-footer a{color:#9e3039}
