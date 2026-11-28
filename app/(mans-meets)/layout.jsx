@@ -1,4 +1,5 @@
 'use client';
+import '../workspace/styles.js';
 // One layout for the personal pages, so the profile shell stays mounted while
 // switching between them and the session is known before anything renders.
 import {useEffect,useState} from 'react';

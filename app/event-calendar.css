@@ -6,7 +6,7 @@
 .catalog-view-switch button[aria-pressed="true"]{background:#fff;color:var(--karmins-dark,#7a2029);box-shadow:0 1px 4px rgba(27,36,48,.14)}
 
 .catalog-near{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;margin:2px 0 8px}
-.catalog-near label{display:grid;gap:3px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--teksts-2,#4a5565)}
+.catalog-near label{display:grid;gap:3px;font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--teksts-2,#4a5565)}
 .catalog-near select{min-height:42px;padding:0 34px 0 12px;border:1px solid var(--migla,#d8dee6);border-radius:12px;background-color:#fff;font:inherit;font-size:15px;font-weight:700;text-transform:none;letter-spacing:0;color:var(--tinte,#1b2430)}
 .catalog-near-place select{min-width:190px}
 .catalog-near small{flex-basis:100%;font-size:13px;color:var(--teksts-2,#4a5565)}
@@ -21,7 +21,7 @@
 .event-calendar-grid{display:grid;grid-template-columns:minmax(84px,150px) repeat(var(--calendar-days,7),minmax(34px,1fr));gap:4px;align-items:center;min-width:0}
 .event-calendar-grid:has(.event-calendar-sum-head){grid-template-columns:minmax(110px,170px) repeat(var(--calendar-days,14),minmax(34px,1fr)) 48px}
 .event-calendar-day{display:grid;justify-items:center;gap:1px;padding:4px 0;border:0;border-radius:10px;background:transparent;color:var(--tinte,#1b2430);font:inherit;cursor:pointer}
-.event-calendar-day small{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--teksts-2,#4a5565)}
+.event-calendar-day small{font-size:12px;font-weight:800;text-transform:uppercase;color:var(--teksts-2,#4a5565)}
 .event-calendar-day b{font-size:16px}
 .event-calendar-day.is-weekend b{color:var(--karmins,#9e3039)}
 .event-calendar-day.is-today{box-shadow:inset 0 -3px 0 var(--karmins,#9e3039)}

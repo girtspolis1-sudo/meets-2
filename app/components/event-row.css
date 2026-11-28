@@ -2,47 +2,47 @@
    actions. The actions slot uses display:contents so a share tray can open on
    its own line under the row. On phones the actions move under the text. */
 
-.erow{display:grid;grid-template-columns:56px minmax(0,1fr) auto auto;align-items:center;column-gap:14px;row-gap:10px;padding:12px 14px;border:1px solid var(--migla,#d8dee6);border-radius:16px;background:#fff;list-style:none;min-width:0}
-.erow.is-highlighted{border-color:#9e3039;box-shadow:0 0 0 2px #f6e8ea}
+.erow{display:grid;grid-template-columns:56px minmax(0,1fr) auto auto;align-items:center;column-gap:14px;row-gap:10px;padding:12px 14px;border:1px solid var(--migla,var(--migla));border-radius:16px;background:white;list-style:none;min-width:0}
+.erow.is-highlighted{border-color:var(--karmins);box-shadow:0 0 0 2px var(--karmins-soft)}
 .erow.is-muted{opacity:.72}
 .erow-end{display:contents}
 
-.erow-tile{grid-column:1;grid-row:1;width:56px;height:56px;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;background-color:#1b2430;background-image:radial-gradient(rgba(255,255,255,.14) 1.4px,transparent 1.6px);background-size:12px 12px}
-.erow .erow-tile strong{font-family:var(--font-display,Unbounded,system-ui,sans-serif);font-weight:700;font-size:20px;line-height:1;color:#fff}
-.erow .erow-tile small{margin-top:3px;font-size:10px;font-weight:800;letter-spacing:.08em}
-.erow-priede{background-color:#1d3a32}.erow-karmins{background-color:#3b1a21}.erow-bruns{background-color:#2b2416}.erow-tinte{background-color:#1b2430}.erow-slate{background-color:#262e3a}
+.erow-tile{grid-column:1;grid-row:1;width:56px;height:56px;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;background-color:var(--tinte);background-image:radial-gradient(rgba(255,255,255,.14) 1.4px,transparent 1.6px);background-size:12px 12px}
+.erow .erow-tile strong{font-family:var(--font-display,Unbounded,system-ui,sans-serif);font-weight:700;font-size:20px;line-height:1;color:white}
+.erow .erow-tile small{margin-top:3px;font-size:12px;font-weight:800;letter-spacing:.08em}
+.erow-priede{background-color:var(--art-priede)}.erow-karmins{background-color:var(--art-karmins)}.erow-bruns{background-color:var(--art-bruns)}.erow-tinte{background-color:var(--tinte)}.erow-slate{background-color:var(--art-slate)}
 
 .erow-info{grid-column:2;grid-row:1;display:grid;gap:4px;min-width:0}
-.erow .erow-title{font-size:15px;line-height:1.35;font-weight:800;color:#1b2430;text-decoration:none;overflow-wrap:anywhere;background:none;border:0;padding:0;text-align:left;font-family:inherit;cursor:pointer}
-.erow a.erow-title:hover,.erow button.erow-title:hover{color:#9e3039;text-decoration:underline;text-underline-offset:3px}
-.erow-facts{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:#4a5565}
+.erow .erow-title{font-size:15px;line-height:1.35;font-weight:800;color:var(--tinte);text-decoration:none;overflow-wrap:anywhere;background:none;border:0;padding:0;text-align:left;font-family:inherit;cursor:pointer}
+.erow a.erow-title:hover,.erow button.erow-title:hover{color:var(--karmins);text-decoration:underline;text-underline-offset:3px}
+.erow-facts{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--teksts-2)}
 .erow-facts .event-facts-when{flex:none;margin:0;padding:2px 9px;border-radius:999px;font-size:12px;line-height:16px;font-weight:800;white-space:nowrap}
-.erow-facts .event-facts-when.term-long{background:#eef1f4;color:#4a5565}
-.erow-facts .event-facts-when.term-lastdays{background:#fdf6e6;color:#7a5a10}
+.erow-facts .event-facts-when.term-long{background:var(--priede-soft);color:var(--teksts-2)}
+.erow-facts .event-facts-when.term-lastdays{background:var(--dzintars-soft);color:var(--rit-text)}
 .erow-place{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.erow-theme{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#7a2029}
-.erow-sport{letter-spacing:0;text-transform:none;font-weight:600;color:var(--muted)}
-.erow-badge{letter-spacing:0;text-transform:none;font-weight:700;color:#4a5565;background:#eef1f4;border-radius:999px;padding:1px 8px}
+.erow-theme{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--karmins-dark)}
+.erow-sport{letter-spacing:0;text-transform:none;font-weight:600;color:var(--teksts-2)}
+.erow-badge{letter-spacing:0;text-transform:none;font-weight:700;color:var(--teksts-2);background:var(--priede-soft);border-radius:999px;padding:1px 8px}
 
 .status-chip{flex:none;display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:12px;line-height:16px;font-weight:800;white-space:nowrap}
-.status-ok{background:#eaf1ee;color:#2f5d50}.status-wait{background:#fdf6e6;color:#7a5a10}.status-muted{background:#eef1f4;color:#4a5565}.status-bad{background:#f6e8ea;color:#7a2029}
+.status-ok{background:var(--priede-soft);color:var(--priede)}.status-wait{background:var(--dzintars-soft);color:var(--rit-text)}.status-muted{background:var(--priede-soft);color:var(--teksts-2)}.status-bad{background:var(--karmins-soft);color:var(--karmins-dark)}
 
 /* Public actions: "Kartē" and small calendar, save, share (event-list-actions.jsx). */
-.erow .elist-map{grid-column:3;grid-row:1;display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:12px;background:#f6e8ea;color:#7a2029;font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap}
-.erow .elist-map:hover{background:#ecd3d6;color:#7a2029}
+.erow .elist-map{grid-column:3;grid-row:1;display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:12px;background:var(--karmins-soft);color:var(--karmins-dark);font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap}
+.erow .elist-map:hover{background:var(--velak-badge);color:var(--karmins-dark)}
 .erow .elist-buttons{grid-column:4;grid-row:1;display:flex;align-items:center;gap:6px}
-.erow .elist-icon,.erow .elist-buttons .meets-card-favorite-button,.erow .erow-btn{width:40px;height:40px;border-radius:12px;border:1px solid #d8dee6;background:#fff;color:#1b2430;display:grid;place-items:center;padding:0;cursor:pointer;box-shadow:none;text-decoration:none}
-.erow .elist-icon:hover,.erow .elist-icon.on,.erow .elist-buttons .meets-card-favorite-button:hover,.erow .erow-btn:hover,.erow .erow-btn[aria-pressed="true"]{background:#f6e8ea;color:#7a2029;border-color:#ecd3d6}
+.erow .elist-icon,.erow .elist-buttons .meets-card-favorite-button,.erow .erow-btn{width:40px;height:40px;border-radius:12px;border:1px solid var(--migla);background:white;color:var(--tinte);display:grid;place-items:center;padding:0;cursor:pointer;box-shadow:none;text-decoration:none}
+.erow .elist-icon:hover,.erow .elist-icon.on,.erow .elist-buttons .meets-card-favorite-button:hover,.erow .erow-btn:hover,.erow .erow-btn[aria-pressed="true"]{background:var(--karmins-soft);color:var(--karmins-dark);border-color:var(--velak-badge)}
 .erow .elist-buttons .meets-card-favorite{position:relative;right:auto;top:auto}
 .erow .elist-buttons .meets-card-favorite-button svg{width:17px;height:17px}
-.erow .elist-buttons .meets-card-favorite-button.is-saved,.erow .erow-btn[aria-pressed="true"]{color:#9e3039}
-.erow .elist-buttons .meets-card-favorite-button.is-saved svg,.erow .erow-btn[aria-pressed="true"] svg{fill:#f6e8ea}
-.erow .elist-buttons .meets-card-favorite-status{position:absolute;right:0;top:46px;z-index:2;width:max-content;max-width:240px;background:#fff;border:1px solid #d8dee6;border-radius:10px;padding:6px 8px;font-size:12px}
-.erow .elist-share{grid-column:2/-1;grid-row:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding-top:10px;border-top:1px solid #eef1f4}
-.erow .elist-share>span{font-size:12px;font-weight:700;color:#4a5565;margin-right:4px}
-.erow .elist-chip{height:30px;padding:0 11px;border-radius:999px;border:1px solid #d8dee6;background:#fff;color:#1b2430;font:700 12px var(--font-body,Manrope),system-ui,sans-serif;display:inline-flex;align-items:center;gap:6px;cursor:pointer;text-decoration:none}
-.erow .elist-chip:hover{border-color:#9e3039;color:#7a2029}
-.erow .elist-status{grid-column:2/-1;font-size:12px;color:#2f5d50}
+.erow .elist-buttons .meets-card-favorite-button.is-saved,.erow .erow-btn[aria-pressed="true"]{color:var(--karmins)}
+.erow .elist-buttons .meets-card-favorite-button.is-saved svg,.erow .erow-btn[aria-pressed="true"] svg{fill:var(--karmins-soft)}
+.erow .elist-buttons .meets-card-favorite-status{position:absolute;right:0;top:46px;z-index:2;width:max-content;max-width:240px;background:white;border:1px solid var(--migla);border-radius:10px;padding:6px 8px;font-size:12px}
+.erow .elist-share{grid-column:2/-1;grid-row:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding-top:10px;border-top:1px solid var(--priede-soft)}
+.erow .elist-share>span{font-size:12px;font-weight:700;color:var(--teksts-2);margin-right:4px}
+.erow .elist-chip{height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--migla);background:white;color:var(--tinte);font:700 12px var(--font-body,Manrope),system-ui,sans-serif;display:inline-flex;align-items:center;gap:6px;cursor:pointer;text-decoration:none}
+.erow .elist-chip:hover{border-color:var(--karmins);color:var(--karmins-dark)}
+.erow .elist-status{grid-column:2/-1;font-size:12px;color:var(--priede)}
 
 /* Other variants put their own buttons in one group. */
 .erow .erow-actions{grid-column:3/-1;grid-row:1;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px}
@@ -50,13 +50,13 @@
 
 /* Footer line under the row, from the date tile's edge to the end. */
 .erow-footer:empty{display:none}
-.erow-footer{grid-column:2/-1;padding-top:10px;border-top:1px solid #eef1f4;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;min-width:0}
+.erow-footer{grid-column:2/-1;padding-top:10px;border-top:1px solid var(--priede-soft);display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;min-width:0}
 
 /* The card's quiet action row inside a footer: small icons in one line. */
 .erow-footer .meets-quiet-actions.meets-event-actions-wrapper{margin:0}
 .erow-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions{margin:0;display:flex;gap:4px}
-.erow-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions>.meets-circle-action{width:40px;height:40px;min-height:40px;max-width:none;border:1px solid #d8dee6;border-radius:12px;background:#fff;color:#1b2430;padding:0}
-.erow-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions>.meets-circle-action:is(:hover,:focus-visible,[aria-pressed="true"],[aria-expanded="true"]){background:#f6e8ea;color:#7a2029;border-color:#ecd3d6}
+.erow-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions>.meets-circle-action{width:40px;height:40px;min-height:40px;max-width:none;border:1px solid var(--migla);border-radius:12px;background:white;color:var(--tinte);padding:0}
+.erow-footer .meets-quiet-actions .meets-event-action-grid.meets-circle-actions>.meets-circle-action:is(:hover,:focus-visible,[aria-pressed="true"],[aria-expanded="true"]){background:var(--karmins-soft);color:var(--karmins-dark);border-color:var(--velak-badge)}
 .erow-footer .meets-event-action-grid.meets-circle-actions .meets-quiet-label{display:none}
 
 /* Map list: a lower row with only the heart. */
@@ -91,8 +91,8 @@
    register table and the map popup; the public picture in a submission card. */
 .admin-register-when{display:flex;align-items:center;gap:8px}
 .admin-register-when .erow-tile{flex:none;width:36px;height:36px;border-radius:9px}
-.admin-register-when .erow-tile strong{font-family:var(--font-display,Unbounded,system-ui,sans-serif);font-weight:700;font-size:13px;line-height:1;color:#fff}
-.admin-register-when .erow-tile small{margin-top:1px;font-size:8px;font-weight:800;letter-spacing:.06em}
-.admin-popup-tile{float:left;display:flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:34px;margin:2px 8px 4px 0;border-radius:9px;color:#fff;font-size:8px;font-weight:800;letter-spacing:.06em}
+.admin-register-when .erow-tile strong{font-family:var(--font-display,Unbounded,system-ui,sans-serif);font-weight:700;font-size:13px;line-height:1;color:white}
+.admin-register-when .erow-tile small{margin-top:1px;font-size:11px;font-weight:800;letter-spacing:.06em}
+.admin-popup-tile{float:left;display:flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:34px;margin:2px 8px 4px 0;border-radius:9px;color:white;font-size:11px;font-weight:800;letter-spacing:.06em}
 .admin-popup-tile b{font-size:13px;line-height:1;letter-spacing:0}
-.admin-submission-preview{max-width:420px;margin:0 0 12px;border-radius:18px;overflow:hidden;border:1px solid #d8dee6}
+.admin-submission-preview{max-width:420px;margin:0 0 12px;border-radius:18px;overflow:hidden;border:1px solid var(--migla)}

@@ -17,25 +17,14 @@
  --dzintars-soft:#fdf6e6;
  --migla:#d8dee6;
  --teksts-2:#4a5565;
+ /* Dark tones behind the theme pictures (lib/topic-art.js TOPIC_PALETTES). */
+ --art-priede:#1d3a32;--art-karmins:#3b1a21;--art-bruns:#2b2416;--art-slate:#262e3a;
 
  /* C3 term colours: how soon an event starts (site-wide). */
  --sodien:#1e9a62;--sodien-badge:#17804f;--sodien-soft:#e3f4ea;--sodien-text:#14653e;
  --rit:#e3ae1c;--rit-badge:#f2c335;--rit-soft:#fcf2d6;--rit-text:#6e4c00;
  --velak:#e08a86;--velak-badge:#f8dcda;--velak-soft:#fbe9e8;--velak-text:#8e2a33;
  --beidzies:#8a94a3;
-
- --bg:var(--sniegs);
- --text:var(--tinte);
- --muted:var(--teksts-2);
- --border:var(--migla);
- --accent:var(--karmins);
- --accent-dark:var(--karmins-dark);
- --accent-soft:var(--karmins-soft);
- --accent-soft-2:#ecd3d6;
- --meets-ink:var(--tinte);
- --meets-primary:var(--karmins);
- --meets-primary-hover:var(--karmins-dark);
- --meets-blue:var(--karmins);
 
  /* The fallback inside var() keeps a sans stack if next/font has not set the variable. */
  --font-display:var(--font-unbounded,'Unbounded'),system-ui,sans-serif;
@@ -138,10 +127,10 @@ footer .meets-wordmark{font-size:18px}
 .c3-pin-icon svg{display:block}
 .c3-pin-sport{display:block;width:22px;height:22px;line-height:0}
 .c3-pin-sport svg{display:block}
-.c3-pin-days{position:absolute;left:27px;top:-5px;min-width:25px;height:19px;box-sizing:border-box;padding:0 5px;border:2px solid #fff;border-radius:10px;background:var(--velak-badge);color:var(--velak-text);font:800 11px/15px var(--font-body);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.c3-pin-days{position:absolute;left:27px;top:-5px;min-width:25px;height:19px;box-sizing:border-box;padding:0 5px;border:2px solid #fff;border-radius:10px;background:var(--velak-badge);color:var(--velak-text);font:800 12px/15px var(--font-body);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
 .c3-pin-saved{position:absolute;left:-4px;top:-4px;width:20px;height:20px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 3px rgba(27,36,48,.25)}
 .c3-pin-saved svg{fill:var(--karmins)}
-.c3-pin-count{position:absolute;right:-6px;bottom:14px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border:2px solid #fff;border-radius:9px;background:var(--tinte);color:#fff;font:800 10px/14px var(--font-body);text-align:center}
+.c3-pin-count{position:absolute;right:-6px;bottom:14px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border:2px solid #fff;border-radius:9px;background:var(--tinte);color:#fff;font:800 12px/14px var(--font-body);text-align:center}
 .c3-pin.tone-today .c3-pin-shape path{stroke:var(--sodien)}
 .c3-pin.tone-today .c3-pin-days{background:var(--sodien-badge);color:#fff}
 .c3-pin.tone-tomorrow .c3-pin-shape path{stroke:var(--rit)}
@@ -221,7 +210,7 @@ footer .meets-wordmark{font-size:18px}
 /* ---- Event cards (Pasākumi, home): symmetric layout, topic icon, marks{height:100%}
 /* Same rhythm in every card: title up to 3 lines, place 1 line{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 .meets-card-links{display:flex;flex-direction:column;gap:3px;font-size:12.5px;line-height:1.4;min-width:0}
-.meets-card-links a{color:var(--accent,#9e3039);font-weight:700;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meets-card-links a{color:var(--karmins,#9e3039);font-weight:700;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meets-card-links a:hover,.meets-card-links a:focus-visible{text-decoration:underline}
 .meets-card-organizer{color:#5b6475;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meets-card-original.is-missing{color:#9aa3b2}
@@ -241,7 +230,7 @@ footer .meets-wordmark{font-size:18px}
 .c3-pin.long:not(.dimmed){opacity:.92}
 .c3-pin.long .c3-pin-icon{top:13px}
 /* Festival weeks and an exhibition's last days: "līdz 7.01." instead of a day count. */
-.c3-pin-days.c3-pin-until{min-width:0;padding:0 5px;font-size:10px;letter-spacing:-.1px}
+.c3-pin-days.c3-pin-until{min-width:0;padding:0 5px;font-size:12px;letter-spacing:-.1px}
 /* Map list: running exhibitions in their own collapsed block under the day's events. */
 .nearby-long-count{font:700 14px/1.2 var(--font-body);color:#5b6475;letter-spacing:0}
 .nearby-long{margin:8px 0 4px;border:1px dashed #c9d1db;border-radius:14px;background:#fafbfc}
@@ -316,7 +305,7 @@ footer .meets-wordmark{font-size:18px}
 
 /* Pins outside the filters are black and white throughout — the days badge, the
    today dot, the sport emoji and the count too — so colour belongs to the filtered events. */
-.c3-pin.dimmed .c3-pin-days,.c3-pin.dimmed .c3-pin-days.c3-pin-until{background:#e4e7eb!important;color:#5b6675!important}
+.c3-pin.dimmed .c3-pin-days,.c3-pin.dimmed .c3-pin-days.c3-pin-until{background:#e4e7eb;color:#5b6675}
 .c3-pin.dimmed .c3-pin-days.c3-pin-now{background:#a3abb5!important}
 .c3-pin.dimmed .c3-pin-days.c3-pin-now::after{display:none}
 .c3-pin.dimmed .c3-pin-sport,.c3-pin.dimmed .c3-pin-saved{filter:grayscale(1);opacity:.75}
@@ -338,8 +327,8 @@ footer .meets-wordmark{font-size:18px}
 /* Phone header: logo and one account mark on a single, low row. */
 .meets-mobile-account,.meets-mobile-signin,.header nav .meets-mobile-account,.header nav a.meets-mobile-signin{display:none}
 @media(max-width:760px){
- body:not(.admin-environment) .header{flex-wrap:nowrap!important;min-height:0;padding:8px max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px))!important;gap:10px}
- body:not(.admin-environment) .header nav{width:auto!important;order:0!important;margin-left:auto!important;overflow:visible!important}
+ body:not(.admin-environment) .header{flex-wrap:nowrap;min-height:0;padding:8px max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px))!important;gap:10px}
+ body:not(.admin-environment) .header nav{width:auto;order:0;margin-left:auto;overflow:visible}
 
  
  .meets-mobile-account,.header nav .meets-mobile-account{display:block;position:relative}
@@ -357,7 +346,7 @@ footer .meets-wordmark{font-size:18px}
 }
 
 /* Privacy policy (/privatums): one readable column, facts as cards and tables. */
-.legal-page{max-width:820px;margin:0 auto;display:grid;gap:18px}
+.legal-page{max-width:820px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
 .legal-page h1{margin:4px 0 0}
 .legal-page h2{margin:12px 0 8px;font-size:clamp(21px,3.4vw,26px);scroll-margin-top:16px}
 .legal-page h3{margin:0 0 8px;font-size:17px}
@@ -375,7 +364,7 @@ footer .meets-wordmark{font-size:18px}
 .legal-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
 .legal-card{padding:16px;border:1px solid var(--migla);border-radius:16px;background:#fff}
 .legal-card dl{display:grid;gap:8px;margin:0}
-.legal-card dt{font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--teksts-2,#4a5565)}
+.legal-card dt{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--teksts-2,#4a5565)}
 .legal-card dd{margin:2px 0 0;font-size:14.5px;line-height:1.5}
 .legal-table-scroll{overflow-x:auto;border:1px solid var(--migla);border-radius:14px;background:#fff}
 .legal-table{width:100%;border-collapse:collapse;font-size:14.5px}

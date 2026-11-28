@@ -1,3 +1,4 @@
+import '../workspace/styles.js';
 import {pageMeta} from '../../lib/page-meta.js';
 
 const TITLE='Pasākumu rīkošana: pievieno savu pasākumu';

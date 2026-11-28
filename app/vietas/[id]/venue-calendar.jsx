@@ -34,9 +34,9 @@ export default function VenueCalendar({events=[],embedded=false}){
    .venue-day-name{text-align:center;font-size:12px;color:#697185;font-weight:700}
    .venue-month-day{min-width:0;min-height:55px;padding:5px;border:1px solid #e2e7ee;border-radius:9px;background:white;position:relative;font-size:13px}
    .venue-month-day.has-events{background:#f3f6f9;border-color:#e0babe}
-   .venue-month-day small{display:block;margin-top:4px;color:#96454d;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+   .venue-month-day small{display:block;margin-top:4px;color:#96454d;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
    .venue-view-switch{justify-self:start;margin:0}
-   @media(max-width:420px){.venue-month-day{min-height:43px;font-size:11px}.venue-month-day small{font-size:9px}}
+   @media(max-width:420px){.venue-month-day{min-height:43px;font-size:12px}.venue-month-day small{font-size:12px}}
   `}</style>
   <div className="catalog-view-switch venue-view-switch" role="group" aria-label="Skats">
    <button type="button" aria-pressed={view==='list'} onClick={()=>setView('list')}>Saraksts</button>
