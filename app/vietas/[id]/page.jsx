@@ -1,3 +1,4 @@
+import Icon from '../../components/line-icon.jsx';
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {publicVenue} from '../../../lib/public-venues.js';
@@ -19,7 +20,7 @@ export default async function VenuePage({params}){
  const venue=await publicVenue(id);if(!venue)notFound();
  return <section className="quick-flow" style={{maxWidth:980,margin:'0 auto',padding:'20px 16px 60px'}}>
   <div className="meets-account-heading"><div><p className="eyebrow">Norises vieta</p><h1>{venue.name}</h1>
-   <p className="meets-muted">⌖ {venue.address}</p>{venue.description&&<p>{venue.description}</p>}
+   <p className="meets-muted"><Icon name="pin" size={16}/> {venue.address}</p>{venue.description&&<p>{venue.description}</p>}
    {venue.directions&&<p className="meets-muted">Kā nokļūt: {venue.directions}</p>}</div>
    <div className="org-head-actions"><FollowButton targetKind="venue" targetId={venue.id} className="button primary" label="Sekot vietai" followingLabel="Seko vietai"/><Link className="button" href="/karte">meets.lv karte ↗</Link></div></div>
   <PublicVenueMap latitude={venue.latitude} longitude={venue.longitude} name={venue.name}/>

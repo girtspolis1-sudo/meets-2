@@ -11,6 +11,7 @@ import ChipScroller from './chip-scroller.jsx';
 // Narrow screens: the period buttons get shorter names.
 const SHORT_PERIOD={weekend:'Brīvdienās','7days':'7 d.','30days':'30 d.',manual:'Datumi'};
 import {categoryIconSvg} from '../../lib/category-icons.js';
+import {iconSvg} from '../../lib/icon-paths.js';
 import {groupedSportIcon} from '../../lib/event-map-icons.js';
 import {calendarDescription} from '../../lib/catalog-wire.js';
 import {PERIODS,RADII,DEFAULT_PERIOD,DEFAULT_RADIUS,periodKey,periodRange,periodPhrase,radiusLabel,nearbyGroups,widerOptions,countLabel,markerLabel} from '../../lib/map-nearby.js';
@@ -612,7 +613,7 @@ export default function OsmEventMap(){
    const group0=eventGroup(nearest);
    // A pin whose events are all one sport shows that sport (⚽ 🏀 🏒 …).
    const sport=groupedSportIcon(chosenEvents);
-   const pinIcon=sport?'<span class="c3-pin-sport" title="'+esc(sport.label)+'">'+esc(sport.glyph)+'</span>':categoryIconSvg(group0,22);
+   const pinIcon=sport?'<span class="c3-pin-sport" title="'+esc(sport.label)+'">'+iconSvg(sport.icon,22)+'</span>':categoryIconSvg(group0,22);
    // C3 "minimal duo icon": the category icon leads, the days badge is a small
    // accent. Only events at the very same place share a pin (with a count).
    // Exhibitions and other long events: a framed pin with no countdown, kept below the rest.
@@ -764,14 +765,14 @@ export default function OsmEventMap(){
  const audienceOptions=Object.entries(AUDIENCE_FILTERS).filter(([key])=>key===audience||events.some(e=>matchesAudience(e,key)));
  const singleEventType=eventTypes.length===1?eventTypes[0]:'';
  const quickTypes=[
-  {value:'municipality',label:'Pašvaldības',glyph:'📅'},
-  {value:'lff',label:'Futbols',glyph:'⚽'},
-  {value:'basketball',label:'Basketbols',glyph:'🏀'},
-  {value:'hockey',label:'Hokejs',glyph:'🏒'},
-  {value:'volleyball',label:'Volejbols',glyph:'🏐'},
-  {value:'floorball',label:'Florbols',glyph:'🏑'},
-  {value:'handball',label:'Handbols',glyph:'🤾'},
-  {value:'athletics',label:'Vieglatlētika',glyph:'🏃'}
+  {value:'municipality',label:'Pašvaldības',icon:'calendar'},
+  {value:'lff',label:'Futbols',icon:'football'},
+  {value:'basketball',label:'Basketbols',icon:'basketball'},
+  {value:'hockey',label:'Hokejs',icon:'hockey'},
+  {value:'volleyball',label:'Volejbols',icon:'volleyball'},
+  {value:'floorball',label:'Florbols',icon:'floorball'},
+  {value:'handball',label:'Handbols',icon:'handball'},
+  {value:'athletics',label:'Vieglatlētika',icon:'running'}
  ];
 
  function toggleEventType(value){

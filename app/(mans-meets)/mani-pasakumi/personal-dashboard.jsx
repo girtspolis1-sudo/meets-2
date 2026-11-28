@@ -2,6 +2,8 @@
 import {useMemo,useState} from 'react';
 import Link from 'next/link';
 import PersonalMap from './personal-map.jsx';
+import Icon from '../../components/line-icon.jsx';
+import CategoryIcon from '../../components/category-icon.jsx';
 import EventRow from '../../components/event-row.jsx';
 import EventQuickActions from '../../components/event-quick-actions.jsx';
 import {PlanIcon,HeartIcon,CheckIcon,CalendarIcon,RouteIcon,ExternalIcon,BellIcon} from './event-icons.jsx';
@@ -111,23 +113,23 @@ export default function PersonalDashboard({favorites,plans,visits,onToggle,busy,
   onReminder={(id,minutes)=>mutate({action:'reminder',eventId:id,enabled:minutes>0,leadMinutes:minutes||1440},()=>{
    setExtra(p=>({...p,reminders:minutes?[...p.reminders.filter(x=>x.event_id!==id),{event_id:id,lead_minutes:minutes}]:p.reminders.filter(x=>x.event_id!==id)}));
   })}/>)}</div>;
- const list=items=>items.length?cardEvents(items):<div className="meets-account-empty"><span>♡</span><h3>Šeit vēl nav saglabātu pasākumu</h3><p>Atver karti un atzīmē interesējošos pasākumus ar sirsniņu.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>;
+ const list=items=>items.length?cardEvents(items):<div className="meets-account-empty"><span><Icon name="heart" size={26}/></span><h3>Šeit vēl nav saglabātu pasākumu</h3><p>Atver karti un atzīmē interesējošos pasākumus ar sirsniņu.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>;
  async function copy(){if(!shareUrl)return;try{await navigator.clipboard.writeText(shareUrl);setMessage('Saite nokopēta.');}catch{setMessage('Saite ir laukā — iezīmē un kopē to.');}}
  return <div className="meets-personal-dashboard">
-  <div className="meets-unified-counts" aria-label="Pasākumu kopsavilkums"><span><strong>{favorites.length}</strong> favorīti</span><span><strong>{plans.length}</strong> plānoti</span><span><strong>{visits.length}</strong> apmeklēti</span></div>
-  {!!unread.length&&<div className="meets-personal-notices" role="status"><strong>🔔 {unread.length} atgādinājumi</strong>
+  <div className="meets-unified-counts" aria-label="Pasākumu kopsavilkums"><span><strong>{favorites.length}</strong> saglabāti</span><span><strong>{plans.length}</strong> plānoti</span><span><strong>{visits.length}</strong> apmeklēti</span></div>
+  {!!unread.length&&<div className="meets-personal-notices" role="status"><strong><Icon name="bell" size={16}/> {unread.length} atgādinājumi</strong>
    {unread.slice(0,5).map(n=><div key={n.id}><span>{n.message}: {eventIndex.get(n.event_id)?.title||'Saglabātais pasākums'}</span>
     <button disabled={saving} onClick={()=>mutate({action:'readNotice',notificationId:n.id},()=>setExtra(p=>({...p,notices:p.notices.map(x=>x.id===n.id?{...x,read_at:new Date().toISOString()}:x)})))}>Izlasīts</button></div>)}
   </div>}
   <div className="meets-account-tabs meets-personal-tabs" role="group" aria-label="Personīgo pasākumu skati">
    {[
-    ['overview','⌂ Pārskats'],['favorites','♡ Saglabātie'],['planned',<><PlanIcon/> Plānoju</>],['calendar','▦ Kalendārs']
+    ['overview',<><Icon name="home" size={16}/> Pārskats</>],['favorites',<><Icon name="heart" size={16}/> Saglabātie</>],['planned',<><PlanIcon/> Plānoju</>],['calendar',<><Icon name="calendar" size={16}/> Kalendārs</>]
    ].map(([key,label])=><button key={key} type="button" aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
-   <button type="button" aria-expanded={moreOpen} aria-controls="meets-extra-views" className={['map','recommend','visited'].includes(view)?'active':''} onClick={()=>setMoreOpen(v=>!v)}>Vēl ▾</button>
+   <button type="button" aria-expanded={moreOpen} aria-controls="meets-extra-views" className={['map','recommend','visited'].includes(view)?'active':''} onClick={()=>setMoreOpen(v=>!v)}>Vēl <Icon name="chevron-down" size={14}/></button>
   </div>
   {moreOpen&&<div className="meets-account-tabs meets-personal-tabs meets-personal-more" id="meets-extra-views" role="group" aria-label="Papildu skati">
    {[
-    ['map','⌖ Karte'],['recommend','✦ Ieteikumi'],['visited','✓ Apmeklēti']
+    ['map',<><Icon name="pin" size={16}/> Karte</>],['recommend',<><Icon name="spark" size={16}/> Ieteikumi</>],['visited',<><Icon name="check" size={16}/> Apmeklēti</>]
    ].map(([key,label])=><button type="button" key={key} aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
   </div>}
   {(tabError||loadError)&&<p className="meets-inline-error" role="alert">{tabError||loadError}</p>}
@@ -135,7 +137,7 @@ export default function PersonalDashboard({favorites,plans,visits,onToggle,busy,
   {loading?<p className="meets-muted">Ielādē pasākumus…</p>:<>
    {view==='overview'&&<section className="meets-personal-overview">
     <div className="meets-personal-overview-header"><h2>Tavi tuvākie pasākumi</h2><button type="button" className="button compact" onClick={()=>setView('calendar')}><CalendarIcon/> Kalendārs ↗</button></div>
-    {upcoming.length?cardEvents(upcoming):<div className="meets-account-empty"><span>♡</span><h3>Sāc savu pasākumu plānu</h3><p>Saglabā interesējošos pasākumus kartē. Tos atradīsi šeit.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>}
+    {upcoming.length?cardEvents(upcoming):<div className="meets-account-empty"><span><Icon name="heart" size={26}/></span><h3>Sāc savu pasākumu plānu</h3><p>Saglabā interesējošos pasākumus kartē. Tos atradīsi šeit.</p><Link className="button primary" href="/karte">Atrast pasākumus ↗</Link></div>}
     <div className="meets-unified-discovery-extra"><div className="meets-personal-overview-header"><h2>Atklāj ko jaunu</h2><button type="button" className="button compact" onClick={()=>setView('recommend')}>Mani ieteikumi ↗</button></div>
     <p className="meets-muted">Iestatot intereses, saņemsi pasākumu ieteikumus. Atgādinājumi pagaidām ir redzami tikai šajā kontā.</p>
     
@@ -145,7 +147,7 @@ export default function PersonalDashboard({favorites,plans,visits,onToggle,busy,
    {view==='calendar'&&<CalendarView events={saved} selectedDate={selectedDate} setSelectedDate={setSelectedDate} month={month} setMonth={setMonth} renderCards={cardEvents}/>}
    {view==='map'&&<><div className="meets-personal-heading-row"><h2>Manu pasākumu karte</h2>
     <select aria-label="Kartes pasākumu veids" value={mapScope} onChange={e=>setMapScope(e.target.value)}>
-     <option value="all">Visi saglabātie</option><option value="favorites">Tikai favorīti</option><option value="planned">Tikai plānotie</option></select>
+     <option value="all">Visi mani pasākumi</option><option value="favorites">Saglabātie</option><option value="planned">Plānotie</option></select>
     </div><PersonalMap events={mapEvents}/>{!!mapEvents.length&&cardEvents(mapEvents)}</>}
    {view==='recommend'&&<section className="meets-personal-preferences">
     <h2>Manas intereses</h2><p className="meets-muted">Atzīmē tēmas, kas tevi interesē. Ieteikumi tiek atlasīti no publiskiem pasākumiem, nevis automātiski uzminēti.</p>
@@ -153,7 +155,7 @@ export default function PersonalDashboard({favorites,plans,visits,onToggle,busy,
      const choice=HOME_CATEGORY_FILTERS[key],selected=extra.interests.some(x=>x.category===key);
      return <button type="button" key={key} className={selected?'selected':''} disabled={saving}
       aria-pressed={selected} onClick={()=>mutate({action:'interest',category:key,enabled:!selected},()=>setExtra(p=>({...p,interests:selected?p.interests.filter(x=>x.category!==key):[...p.interests,{category:key}]})))}>
-      <span>{choice.icon}</span><strong>{choice.title}</strong>{selected&&<em>✓</em>}
+      <span><CategoryIcon name={key} size={20}/></span><strong>{choice.title}</strong>{selected&&<em><Icon name="check" size={14}/></em>}
      </button>;
     })}</div>
     <div className="meets-personal-heading-row"><h2>Tev varētu patikt</h2><span>{recommended.length} ieteikumi</span></div>
@@ -166,7 +168,7 @@ export default function PersonalDashboard({favorites,plans,visits,onToggle,busy,
        ()=>setLocationError('Atrašanās vietu neizdevās noteikt. Vari turpināt pārlūkot visu Latviju.'),
        {enableHighAccuracy:false,timeout:10000,maximumAge:300000}
       );
-     }}>⌖ {origin?'Atrašanās vieta noteikta':'Ieteikumi man tuvumā'}</button>
+     }}><Icon name="locate" size={16}/> {origin?'Atrašanās vieta noteikta':'Ieteikumi man tuvumā'}</button>
      {origin&&<><label>Attālums
       <select aria-label="Ieteikumu attālums" value={radius} onChange={e=>setRadius(Number(e.target.value))}>
        <option value={10}>10 km</option><option value={30}>30 km</option><option value={50}>50 km</option><option value={100}>100 km</option>
@@ -180,8 +182,8 @@ export default function PersonalDashboard({favorites,plans,visits,onToggle,busy,
 
   </>}
   <section className="meets-personal-sharing">
-   <div><h2>↗ Dalīties ar manu favorītu sarakstu</h2>
-    <p className="meets-muted">Tavs saraksts ir privāts, līdz ieslēdz kopīgošanu. Saite rāda tikai publiskus, aktuālus favorītus — ne tavu e-pastu.</p></div>
+   <div><h2>Dalīties ar manu saglabāto sarakstu</h2>
+    <p className="meets-muted">Tavs saraksts ir privāts, līdz ieslēdz kopīgošanu. Saite rāda tikai publiskus, aktuālus saglabātos pasākumus — ne tavu e-pastu.</p></div>
    {shared?<div className="meets-personal-share-link"><input readOnly aria-label="Kopīgojamā saite" value={shareUrl} onClick={e=>e.target.select()}/><button disabled={saving} onClick={copy}>Kopēt</button>
     <button disabled={saving} onClick={()=>mutate({action:'unshare'},()=>setExtra(p=>({...p,shared:{...p.shared,is_enabled:false}})))}>Izslēgt</button></div>:
     <button className="button" disabled={saving} onClick={()=>mutate({action:'share'},r=>setExtra(p=>({...p,shared:{share_token:r.token,is_enabled:true}})))}>Izveidot privātu kopīgošanas saiti</button>}

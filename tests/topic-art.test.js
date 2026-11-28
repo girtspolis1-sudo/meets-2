@@ -24,3 +24,9 @@ test('variant is stable per event and both appear',()=>{
  const seen=new Set(Array.from({length:20},(_,i)=>artVariant('event-'+i)));
  assert.deepEqual([...seen].sort(),['A','B']);
 });
+test('handball and floorball have their own pictures',()=>{
+ const handball=topicArt({id:'h',title:'Ogre – Celtnieks',event_type:'sports_match',sources:[{source:'handball.lv'}]});
+ assert.equal(handball.scene,'handbols');assert.equal(handball.label,'Handbols');
+ const floorball=topicArt({id:'f',title:'Rubene – Valmiera',event_type:'sports_match',governing_body:'LFS'});
+ assert.equal(floorball.scene,'florbols');assert.equal(floorball.label,'Florbols');
+});

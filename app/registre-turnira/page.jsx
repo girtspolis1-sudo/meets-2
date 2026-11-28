@@ -1,4 +1,5 @@
 'use client';
+import Icon from '../components/line-icon.jsx';
 import Link from 'next/link';
 import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
 import {useSearchParams} from 'next/navigation';
@@ -509,7 +510,7 @@ function Wizard(){
    </div>
    {stale&&<p className="tn-warn">Komandas vai formāts mainīti — sastādi grafiku no jauna.</p>}
    {games.length>0&&(problems.length?<ul className="tn-problems" role="alert">{problems.map(p=><li key={p}>{p}</li>)}</ul>
-    :<p className="tn-ok">✓ Grafikā nav pārklāšanos: laukumi, atpūta un treneri pārbaudīti.</p>)}
+    :<p className="tn-ok"><Icon name="check" size={16}/> Grafikā nav pārklāšanos: laukumi, atpūta un treneri pārbaudīti.</p>)}
    {pickedGame&&<div className="tn-pick-bar" role="status">
     <span><strong>Spēle {pickedGame.no}</strong> · {pickedGame.starts_at} · {pickedGame.court}: {sideText(pickedGame.home,ctx)} – {sideText(pickedGame.away,ctx)}</span>
     <span className="tn-pick-actions">

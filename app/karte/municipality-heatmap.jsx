@@ -1,4 +1,5 @@
 'use client';
+import Icon from '../components/line-icon.jsx';
 import {useState} from 'react';
 import {MUNICIPALITIES,REGIONS,TILE_COLUMNS,TILE_ROWS,heatLevels} from '../../lib/lv-municipalities.js';
 import {countLabel} from '../../lib/map-nearby.js';
@@ -129,7 +130,7 @@ export function MunicipalityCard({name,counts,topics,selected,onOpen,onToggle}){
   <span>{countLabel(n)}{topics.get(m.name)?.length?' · '+topics.get(m.name).join(', '):''}</span>
   <div className="mheat-card-actions">
    <button type="button" className="mheat-open" onClick={()=>onOpen(m.name)} disabled={!n}>Atvērt novadu</button>
-   <button type="button" className="mheat-add" onClick={()=>onToggle(m.name)} aria-pressed={on} aria-label={(on?'Noņemt ':'Pievienot ')+m.name}>{on?'✓':'+'}</button>
+   <button type="button" className="mheat-add" onClick={()=>onToggle(m.name)} aria-pressed={on} aria-label={(on?'Noņemt ':'Pievienot ')+m.name}>{on?<Icon name="check" size={15}/>:<Icon name="plus" size={15}/>}</button>
   </div>
  </div>;
 }

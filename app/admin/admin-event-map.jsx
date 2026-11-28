@@ -1,5 +1,6 @@
 'use client';
 
+import {iconSvg} from '../../lib/icon-paths.js';
 import {rowTile} from '../../lib/event-row.js';
 import {TOPIC_PALETTES} from '../../lib/topic-art.js';
 import {useEffect,useMemo,useRef,useState} from 'react';
@@ -23,7 +24,7 @@ function sourceType(event){
  if(sources.includes('athletics.lv'))return 'athletics';
  return 'municipality';
 }
-function glyph(type){return type==='lff'?'⚽':type==='basketball'?'🏀':type==='athletics'?'🏃':'📅';}
+function glyph(type){return iconSvg(type==='lff'?'football':type==='basketball'?'basketball':type==='athletics'?'running':'calendar',18);}
 function groupType(events){
  const types=[...new Set(events.map(sourceType))];
  return types.length===1?types[0]:'municipality';

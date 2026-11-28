@@ -1,5 +1,6 @@
 'use client';
 
+import Icon from '../components/line-icon.jsx';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {loadLeaflet} from '../../lib/leaflet-runtime.js';
 
@@ -156,13 +157,13 @@ function PinMapDialog({initial,onClose,onConfirm}){
      </button>)}
     </div>}
     {searchError&&<p className="meets-location-picker-message" role="status">{searchError}</p>}
-    <button type="button" className="meets-pin-my-position" disabled={locating} onClick={locate}>⌖ {locating?'Nosaka atrašanās vietu…':'Mana atrašanās vieta'}</button>
+    <button type="button" className="meets-pin-my-position" disabled={locating} onClick={locate}><Icon name="locate" size={16}/> {locating?'Nosaka atrašanās vietu…':'Mana atrašanās vieta'}</button>
    </div>
    <LocationMap point={candidate} onPick={choose}/>
    <div className="meets-pin-dialog-footer">
     {locationMessage&&<p className="meets-location-picker-message" role="status">{locationMessage}</p>}
     {canConfirm?<div className="meets-pin-confirm-details">
-     <span>✓ Punkts atzīmēts</span>
+     <span><Icon name="check" size={14}/> Punkts atzīmēts</span>
      <strong>{Number(candidate.latitude).toFixed(6)}, {Number(candidate.longitude).toFixed(6)}</strong>
      {address&&<small>{address}</small>}
     </div>:<p className="meets-location-picker-hint">Atzīmē punktu kartē, lai turpinātu.</p>}
@@ -268,10 +269,10 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
   {selected?<div className="meets-location-confirmed">
    {hasPoint&&<LocationMap point={value} preview/>}
    <div className="meets-location-confirmed-body">
-    <span className="meets-location-confirmed-state">✓ Vieta izvēlēta</span>
+    <span className="meets-location-confirmed-state"><Icon name="check" size={14}/> Vieta izvēlēta</span>
     <strong>{value.name||'Izvēlēta atrašanās vieta'}</strong>
     <small>{summaryAddress(value)}</small>
-    <button type="button" className="meets-location-change" onClick={openMap}>⌖ Mainīt atrašanās vietu</button>
+    <button type="button" className="meets-location-change" onClick={openMap}><Icon name="locate" size={16}/> Mainīt atrašanās vietu</button>
    </div>
   </div>:<>
    <div className="meets-location-picker-search">
@@ -286,25 +287,25 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
      {localResults.length>0&&<>
       <small>Manas saglabātās vietas</small>
       {localResults.map(place=><button key={place.id} type="button" onClick={()=>preview({...place,venueId:place.id})}>
-       <strong>⌖ {place.name} <em>Mana vieta</em></strong><span>{place.address||'Bez adreses'}</span>
+       <strong><Icon name="pin" size={14}/> {place.name} <em>Mana vieta</em></strong><span>{place.address||'Bez adreses'}</span>
       </button>)}
      </>}
      {publicResults.length>0&&<>
       <small>Publiskās meets.lv norises vietas</small>
       {publicResults.map(place=><button key={'public-'+place.id} type="button" onClick={()=>preview({...place,venueId:place.id})}>
-       <strong>⌖ {place.name} <em>Publiska vieta</em></strong><span>{place.address||'Bez adreses'}</span>
+       <strong><Icon name="pin" size={14}/> {place.name} <em>Publiska vieta</em></strong><span>{place.address||'Bez adreses'}</span>
       </button>)}
      </>}
      {catalog.length>0&&<>
       <small>meets.lv vietu katalogs</small>
       {catalog.filter(place=>!localResults.some(own=>normalize(own.name)===normalize(place.name)&&Math.abs(Number(own.latitude)-place.latitude)<0.001)).slice(0,7).map(place=><button key={place.id} type="button" onClick={()=>preview(place)}>
-       <strong>⌖ {place.name} <em>meets.lv</em></strong><span>{place.address}</span>
+       <strong><Icon name="pin" size={14}/> {place.name} <em>meets.lv</em></strong><span>{place.address}</span>
       </button>)}
      </>}
      {addressResults.length>0&&<>
       <small>OpenStreetMap adreses un objekti</small>
       {addressResults.map(place=><button type="button" key={place.id} onClick={()=>preview({...place,name:place.label,address:place.displayName})}>
-       <strong>⌖ {place.label}</strong><span>{place.displayName}</span>
+       <strong><Icon name="pin" size={14}/> {place.label}</strong><span>{place.displayName}</span>
       </button>)}
      </>}
      {fetching&&<small>Notiek meets.lv vietu meklēšana…</small>}
@@ -314,7 +315,7 @@ export default function VenueLocationPicker({value={},onSelect,existingVenues=[]
    </div>
    {searchError&&<p role="status" className="meets-location-picker-message">{searchError}</p>}
    <button type="button" className="meets-location-open-map" onClick={openMap}>
-    <span>⌖ Izvēlēties punktu kartē</span><span aria-hidden="true">›</span>
+    <span><Icon name="locate" size={14}/> Izvēlēties punktu kartē</span><span aria-hidden="true">›</span>
    </button>
    <button type="button" className="meets-location-manual-link" onClick={()=>setManualAddress(current=>!current)}>
     {manualAddress?'Atcelt adreses ievadīšanu':'Nevari atrast vietu? Ievadi adresi manuāli'}

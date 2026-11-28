@@ -1,7 +1,9 @@
 'use client';
+import Icon from '../../components/line-icon.jsx';
 import {useEffect,useRef,useState} from 'react';
 import {loadLeaflet,addRasterLayer} from '../../../lib/leaflet-runtime.js';
 import {eventMapIcon} from '../../../lib/event-map-icons.js';
+import {iconSvg} from '../../../lib/icon-paths.js';
 import {coordinates,navigationLinks} from '../../../lib/meets-personal.js';
 
 export default function PersonalMap({events=[]}){
@@ -23,7 +25,7 @@ export default function PersonalMap({events=[]}){
     for(const {event,coords} of points){
      const icon=eventMapIcon(event);
      const marker=L.marker([coords.latitude,coords.longitude],{icon:L.divIcon({
-      className:'meets-personal-pin',html:'<span aria-hidden="true">'+icon.glyph+'</span>',
+      className:'meets-personal-pin',html:'<span aria-hidden="true">'+iconSvg(icon.icon,22)+'</span>',
       iconSize:[40,44],iconAnchor:[20,44],popupAnchor:[0,-42]
      })}).addTo(map);
      const div=document.createElement('div');div.className='meets-personal-popup';
@@ -48,7 +50,7 @@ export default function PersonalMap({events=[]}){
  },[events]);
  const withCoords=events.filter(e=>coordinates(e));
  return <div className="meets-personal-map-wrap">
-  {!withCoords.length?<div className="meets-account-empty"><span>⌖</span><h3>Vēl nav precīzu kartes punktu</h3><p>Saglabā pasākumus ar norises vietas koordinātām, lai tos redzētu savā kartē.</p></div>:
+  {!withCoords.length?<div className="meets-account-empty"><span><Icon name="pin" size={26}/></span><h3>Vēl nav precīzu kartes punktu</h3><p>Saglabā pasākumus ar norises vietas koordinātām, lai tos redzētu savā kartē.</p></div>:
    <><div className="meets-personal-map" ref={el} aria-label="Saglabāto pasākumu interaktīvā karte" role="region"/>{error&&<p className="meets-muted" role="status">{error}</p>}</>}
   {!!events.length&&<p className="meets-muted">Kartē: {withCoords.length} no {events.length} pasākumiem ar precīzām koordinātām. Pārvietošanai uz norises vietu izvēlies Google Maps vai Waze.</p>}
  </div>;

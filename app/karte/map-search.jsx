@@ -1,19 +1,21 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import CategoryIcon from '../components/category-icon.jsx';
+import Icon from '../components/line-icon.jsx';
 import {HOME_CATEGORY_FILTERS,HOME_GROUP_KEYS} from '../../lib/home-category-filters.js';
 import {PERIODS,RADII,radiusLabel} from '../../lib/map-nearby.js';
 import {RADIUS_STOPS,radiusStopIndex} from '../../lib/map-search.js';
 import {LEVELS,LEVEL_KEYS,LEVEL_TITLE} from '../../lib/sport-level.js';
 import './map-search.css';
 
+// The shared line icons (lib/icon-paths.js); map-search.css sets their size.
 const I={
- search:<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>,
- map:<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2z"/><path d="M9 4v14M15 6v14"/></svg>,
- sliders:<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h6M14 18h6"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg>,
- locate:<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>,
- close:<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>,
- pin:<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+ search:<Icon name="search" size={24}/>,
+ map:<Icon name="map" size={24}/>,
+ sliders:<Icon name="sliders" size={24}/>,
+ locate:<Icon name="locate" size={24}/>,
+ close:<Icon name="close" size={24}/>,
+ pin:<Icon name="pin" size={24}/>
 };
 export const SEARCH_ICONS=I;
 

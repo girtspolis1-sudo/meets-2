@@ -260,43 +260,43 @@ test('council and committee meetings are civic whatever label the municipality g
  assert.equal(eventGroup({title:'Papildu ekskursijas atjaunotajās pašvaldības ēkās',primary_category:'Pašvaldība'}),'');
 });
 
-test('map markers use approved MEETS category icons and generic fallback',()=>{
+test('map markers use approved meets.lv category icons and generic fallback',()=>{
  const cases=[
-  [{event_type:'concert'},'🎵'],
-  [{event_type:'performance'},'🎭'],
-  [{event_type:'exhibition'},'🖼️'],
-  [{event_type:'sports_match'},'⚽'],
-  [{event_type:'health'},'🌿'],
-  [{event_type:'market'},'🎉'],
-  [{event_type:'workshop'},'💡'],
-  [{event_type:'community'},'🤝'],
+  [{event_type:'concert'},'music'],
+  [{event_type:'performance'},'stage'],
+  [{event_type:'exhibition'},'culture'],
+  [{event_type:'sports_match'},'sport'],
+  [{event_type:'health'},'active'],
+  [{event_type:'market'},'markets'],
+  [{event_type:'workshop'},'learning'],
+  [{event_type:'community'},'community'],
   [{title:'Nezināms notikums'},GENERAL_EVENT_ICON]
  ];
- for(const [event,icon] of cases)assert.equal(eventMapIcon(event).glyph,icon,JSON.stringify(event));
+ for(const [event,icon] of cases)assert.equal(eventMapIcon(event).icon,icon,JSON.stringify(event));
 });
 
 test('map marker sports use named icons and do not label a sports film as football',()=>{
  const cases=[
-  [{governing_body:'LFF',event_type:'sports_match',title:'Spēle'},'⚽'],
-  [{sport_format:'basketball',title:'LJBL'},'🏀'],
-  [{title:'Rudens velobrauciens',primary_category:'Velobrauciens'},'🚴'],
-  [{title:'Riteņbraukšanas sacensības',event_type:'sports_competition'},'🚴'],
-  [{title:'Volejbola sacensības',event_type:'sports_competition'},'🏐'],
-  [{title:'Handbola spēle',event_type:'sports_match'},'🤾'],
-  [{title:'Hokeja spēle',event_type:'sports_match'},'🏒'],
-  [{title:'Tenisa turnīrs',event_type:'sports_competition'},'🎾'],
-  [{title:'Peldēšanas sacensības',event_type:'sports_competition'},'🏊'],
-  [{title:'Rudens skrējiens',event_type:'sports_competition'},'🏃'],
-  [{title:'Mākslas izstāde par futbolu',event_type:'exhibition'},'🖼️']
+  [{governing_body:'LFF',event_type:'sports_match',title:'Spēle'},'football'],
+  [{sport_format:'basketball',title:'LJBL'},'basketball'],
+  [{title:'Rudens velobrauciens',primary_category:'Velobrauciens'},'cycling'],
+  [{title:'Riteņbraukšanas sacensības',event_type:'sports_competition'},'cycling'],
+  [{title:'Volejbola sacensības',event_type:'sports_competition'},'volleyball'],
+  [{title:'Handbola spēle',event_type:'sports_match'},'handball'],
+  [{title:'Hokeja spēle',event_type:'sports_match'},'hockey'],
+  [{title:'Tenisa turnīrs',event_type:'sports_competition'},'tennis'],
+  [{title:'Peldēšanas sacensības',event_type:'sports_competition'},'swimming'],
+  [{title:'Rudens skrējiens',event_type:'sports_competition'},'running'],
+  [{title:'Mākslas izstāde par futbolu',event_type:'exhibition'},'culture']
  ];
- for(const [event,icon] of cases)assert.equal(eventMapIcon(event).glyph,icon,JSON.stringify(event));
+ for(const [event,icon] of cases)assert.equal(eventMapIcon(event).icon,icon,JSON.stringify(event));
 });
 
 test('shared map pins show neutral icon for mixed event types',()=>{
  const concert={event_type:'concert'},sports={sport_format:'basketball'};
- assert.equal(groupedMapIcon([concert,concert]).glyph,'🎵');
- assert.equal(groupedMapIcon([concert,sports]).glyph,GENERAL_EVENT_ICON);
- assert.equal(groupedMapIcon([]).glyph,GENERAL_EVENT_ICON);
+ assert.equal(groupedMapIcon([concert,concert]).icon,'music');
+ assert.equal(groupedMapIcon([concert,sports]).icon,GENERAL_EVENT_ICON);
+ assert.equal(groupedMapIcon([]).icon,GENERAL_EVENT_ICON);
 });
 
 test('saved events navigate to Google Maps and Waze safely',()=>{

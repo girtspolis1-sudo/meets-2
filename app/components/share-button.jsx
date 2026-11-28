@@ -1,4 +1,5 @@
 'use client';
+import Icon from './line-icon.jsx';
 import {maskPath,track} from '../../lib/analytics.js';
 import {useState} from 'react';
 
@@ -29,10 +30,10 @@ export default function ShareButton({path,title,label='Dalīties',className='but
   try{await navigator.clipboard.writeText(url());track('share',{method:'copy_link',content_type:'link',item_id:maskPath(path)});setCopied(true);setTimeout(()=>setCopied(false),2500);}catch{window.prompt('Nokopē saiti:',url());}
  }
  return <span className="share-button-wrap">
-  <button type="button" className={className} aria-expanded={open} onClick={share}>⤴ {label}</button>
+  <button type="button" className={className} aria-expanded={open} onClick={share}><Icon name="share" size={16}/> {label}</button>
   {open&&<span className="share-menu" role="group" aria-label={'Dalīties: '+title}>
    {targets(typeof window==='undefined'?path:url(),title).map(([name,href])=><a key={name} href={href} target="_blank" rel="noopener noreferrer">{name}</a>)}
-   <button type="button" onClick={copy}>{copied?'✓ Saite nokopēta':'Kopēt saiti'}</button>
+   <button type="button" onClick={copy}>{copied?<><Icon name="check" size={16}/> Saite nokopēta</>:'Kopēt saiti'}</button>
   </span>}
  </span>;
 }

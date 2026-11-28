@@ -1,4 +1,5 @@
 'use client';
+import Icon from '../components/line-icon.jsx';
 import Link from 'next/link';
 import EventRow from '../components/event-row.jsx';
 import {Suspense,useEffect,useMemo,useState} from 'react';
@@ -88,7 +89,7 @@ function Reach({item,org}){
   <span className="org-reach-who">{reach.who}</span>
   <ul className="org-reach-places" aria-label="Kur redzams">{reach.places.map(p=><li key={p.key} className={'is-'+p.state} title={p.hint}>
    <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{REACH_ICONS[p.key]}</svg>
-   <span>{p.label}</span><b aria-hidden="true">{p.state==='on'?'✓':p.state==='wait'?'…':'–'}</b>
+   <span>{p.label}</span><b aria-hidden="true">{p.state==='on'?<Icon name="check" size={14}/>:p.state==='wait'?'…':'–'}</b>
    <span className="sr-only">: {REACH_STATE[p.state]} — {p.hint}</span>
   </li>)}</ul>
  </div>;
@@ -172,8 +173,8 @@ function OrgAddressField({value,onChange,disabled=false}){
   <label>Galvenā adrese<input disabled={disabled} maxLength={300} value={value.address||''} placeholder="Pilsēta, iela, mājas numurs"
    onChange={e=>onChange({address:e.target.value,address_latitude:null,address_longitude:null})}/></label>
   <div className="org-address-tools">
-   {point?<span className="org-address-point">⌖ Atzīmēts kartē ({Number(value.address_latitude).toFixed(5)}, {Number(value.address_longitude).toFixed(5)})</span>:<span className="org-address-point muted">Kartes punkts nav atzīmēts</span>}
-   {!disabled&&<button type="button" className="button compact" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>{open?'Aizvērt karti':'⌖ Atrast kartē'}</button>}
+   {point?<span className="org-address-point"><Icon name="pin" size={14}/> Atzīmēts kartē ({Number(value.address_latitude).toFixed(5)}, {Number(value.address_longitude).toFixed(5)})</span>:<span className="org-address-point muted">Kartes punkts nav atzīmēts</span>}
+   {!disabled&&<button type="button" className="button compact" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>{open?'Aizvērt karti':<><Icon name="locate" size={16}/> Atrast kartē</>}</button>}
   </div>
   {open&&!disabled&&<VenueLocationPicker value={{name:'',address:value.address||'',latitude:value.address_latitude??'',longitude:value.address_longitude??''}}
    existingVenues={[]} publicVenues={[]} onSelect={place=>{onChange({address:place.address||place.name||value.address||'',address_latitude:place.latitude??null,address_longitude:place.longitude??null});setOpen(false);}}/>}
@@ -186,7 +187,7 @@ function SavingOverlay({steps,current}){
   <div className="org-saving-card">
    <span className="org-saving-spinner" aria-hidden="true"/>
    <strong id="org-saving-title">Saglabā…</strong>
-   <ol>{steps.map((step,i)=><li key={step} className={i<current?'done':i===current?'current':''}>{i<current?'✓ ':''}{step}</li>)}</ol>
+   <ol>{steps.map((step,i)=><li key={step} className={i<current?'done':i===current?'current':''}>{i<current?<><Icon name="check" size={14}/> </>:''}{step}</li>)}</ol>
   </div>
  </div>;
 }
@@ -606,7 +607,7 @@ function OrganizerPageInner(){
  return <ProfileShell session={session} activeOrganization={activeOrg}><SavingOverlay steps={saving.steps} current={saving.current}/><section className="org-workspace">
   <header className="org-page-head"><div><p className="eyebrow">Pasākumu rīkošana · {ROLE_LABELS[activeOrg?.role]||activeOrg?.role}{activeOrg?.trusted&&<span className="org-trusted-badge" title="meets.lv uzticams rīkotājs: pasākumi tiek publicēti bez papildu pārbaudes">Publicē bez pārbaudes</span>}</p>
    {organizations.length>1?<details className="org-switcher">
-    <summary><h1>{activeOrg?.name}<span aria-hidden="true">▾</span></h1><span className="sr-only">Mainīt rīkotāju</span></summary>
+    <summary><h1>{activeOrg?.name}<span aria-hidden="true"><Icon name="chevron-down" size={20}/></span></h1><span className="sr-only">Mainīt rīkotāju</span></summary>
     <ul role="menu">
      {organizations.map(org=><li key={org.id}><button role="menuitem" type="button" aria-current={org.id===orgId?'true':undefined}
       onClick={e=>{e.currentTarget.closest('details').open=false;chooseOrganization(org.id);}}>{org.name}<small>{ROLE_LABELS[org.role]||org.role}</small></button></li>)}
@@ -648,9 +649,9 @@ function OrganizerPageInner(){
    {onboarding&&<section className="org-panel org-onboarding" aria-labelledby="org-onboarding-title">
     <h2 id="org-onboarding-title">Pirmie soļi</h2>
     <ol className="org-steps">
-     <li className="done"><span aria-hidden="true">✓</span><div><strong>Rīkotājs izveidots</strong><small>{activeOrg?.name}</small></div></li>
-     <li className={orgSubmissions.length?'done':'current'}><span aria-hidden="true">{orgSubmissions.length?'✓':'2'}</span><div><strong>Iesniedz pirmo pasākumu</strong><small>Norises vietu vari pievienot turpat redaktorā. Pēc meets.lv pārbaudes pasākums parādīsies kartē.</small></div>{!orgSubmissions.length&&<Link className="button primary" href={EDITOR+'?org='+orgId}>Jauns pasākums →</Link>}</li>
-     <li className={managedVenues.length?'done':''}><span aria-hidden="true">{managedVenues.length?'✓':'3'}</span><div><strong>Saglabā savas norises vietas <em>(neobligāti)</em></strong><small>Vietas izmantosi atkārtoti, un tām var būt publisks kalendārs.</small></div>{!managedVenues.length&&<Link className="button" href={'/registre-vietu?org='+orgId}>Pievienot vietu</Link>}</li>
+     <li className="done"><span aria-hidden="true"><Icon name="check" size={14}/></span><div><strong>Rīkotājs izveidots</strong><small>{activeOrg?.name}</small></div></li>
+     <li className={orgSubmissions.length?'done':'current'}><span aria-hidden="true">{orgSubmissions.length?<Icon name="check" size={14}/>:'2'}</span><div><strong>Iesniedz pirmo pasākumu</strong><small>Norises vietu vari pievienot turpat redaktorā. Pēc meets.lv pārbaudes pasākums parādīsies kartē.</small></div>{!orgSubmissions.length&&<Link className="button primary" href={EDITOR+'?org='+orgId}>Jauns pasākums →</Link>}</li>
+     <li className={managedVenues.length?'done':''}><span aria-hidden="true">{managedVenues.length?<Icon name="check" size={14}/>:'3'}</span><div><strong>Saglabā savas norises vietas <em>(neobligāti)</em></strong><small>Vietas izmantosi atkārtoti, un tām var būt publisks kalendārs.</small></div>{!managedVenues.length&&<Link className="button" href={'/registre-vietu?org='+orgId}>Pievienot vietu</Link>}</li>
     </ol>
    </section>}
    {(todo.rejected.length>0||todo.drafts.length>0)&&<section className="org-panel org-todo" aria-labelledby="org-todo-title">
@@ -765,7 +766,7 @@ function OrganizerPageInner(){
    <div className="org-panel-head"><div><h2>Rīkotāja profils</h2><p>Personas profila vārds un rīkotāja nosaukums tiek pārvaldīti atsevišķi.</p></div>{(profile.is_public||metrics.published>0)&&<Link className="button" href={organizerPath(activeOrg)}>Publiskais priekšskatījums ↗</Link>}</div>
    <form className="org-profile-form org-split-editor" onSubmit={saveProfile}>
     <div className="org-editor-columns">
-      <section className="org-editor-column org-editor-private"><h3>🔒 Pārvaldības informācija</h3><p>Informāciju vari saglabāt privāti. Publiskos laukus atzīmē atsevišķi.</p>
+      <section className="org-editor-column org-editor-private"><h3><Icon name="lock" size={16}/> Pārvaldības informācija</h3><p>Informāciju vari saglabāt privāti. Publiskos laukus atzīmē atsevišķi.</p>
     <label>Rīkotāja nosaukums<input disabled={!canEdit} required minLength={2} maxLength={160} value={profile.name||''} onChange={e=>{setProfile(v=>({...v,name:e.target.value}));setProfileDirty(true);}}/></label>
     <OrgAddressField disabled={!canEdit} value={profile} onChange={v=>{setProfile(o=>({...o,...v}));setProfileDirty(true);}}/><label className="org-contact-visibility"><input type="checkbox" disabled={!canEdit} checked={profile.address_public===true} onChange={e=>{setProfile(v=>({...v,address_public:e.target.checked}));setProfileDirty(true);}}/> Rādīt adresi publiski</label>
     <ContactFields disabled={!canEdit} value={profile.contacts||[]} onChange={contacts=>{setProfile(v=>({...v,contacts}));setProfileDirty(true);}}/>
@@ -776,7 +777,7 @@ function OrganizerPageInner(){
     </fieldset>
 
       </section>
-      <section className="org-editor-column org-editor-public"><h3>◉ Publiskais profils</h3><p>Apstiprini, ko par organizāciju redzēs apmeklētāji.</p>
+      <section className="org-editor-column org-editor-public"><h3><Icon name="eye" size={16}/> Publiskais profils</h3><p>Apstiprini, ko par organizāciju redzēs apmeklētāji.</p>
     <div className="org-profile-logo">{profile.image_url&&<img src={profile.image_url} alt="Rīkotāja logo" width="80" height="80"/>}<label>Logo attēls<input disabled={!canEdit} type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{setProfileLogo(e.target.files?.[0]||null);setProfileDirty(true);}}/></label></div>
     <label>Apraksts<textarea disabled={!canEdit} rows={5} maxLength={2000} value={profile.description||''} onChange={e=>{setProfile(v=>({...v,description:e.target.value}));setProfileDirty(true);}}/></label>
     <label>Mājaslapa<input disabled={!canEdit} type="url" maxLength={1000} value={profile.public_url||''} onChange={e=>{setProfile(v=>({...v,public_url:e.target.value}));setProfileDirty(true);}}/></label>

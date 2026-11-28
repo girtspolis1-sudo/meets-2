@@ -1,5 +1,6 @@
 'use client';
 
+import Icon from '../components/line-icon.jsx';
 import {useMemo,useState} from 'react';
 
 function sourceGroup(source){
@@ -126,7 +127,7 @@ export default function AdminSourceChannels({sources,events,onToggle,onEdit,onPu
    {group.items.some(source=>source.id===openSource)&&selectedSource&&<div className="source-event-panel">
     <div className="source-event-heading">
      <div><h4>{selectedSource.label||selectedSource.domain} — pasākumi</h4><p>Rādīti tikai šī avota aktuālie ieraksti. Pasākumus var labot arī tad, ja avots kartē ir atslēgts.</p></div>
-     <button className="button compact" type="button" onClick={()=>setOpenSource(null)}>Aizvērt ✕</button>
+     <button className="button compact" type="button" onClick={()=>setOpenSource(null)}>Aizvērt <Icon name="close" size={14}/></button>
     </div>
     <div className="source-event-toolbar">
      <label>Meklēt <input type="search" value={sourceSearch} onChange={e=>{setSourceSearch(e.target.value);setVisibleCount(25);}} placeholder="Pasākums, vieta, pašvaldība…"/></label>
