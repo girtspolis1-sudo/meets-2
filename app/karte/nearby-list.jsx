@@ -51,7 +51,7 @@ function PlaceView({place,today,clock,distance,activeIds,favorites,onFavorite,on
  </div>;
 }
 
-// Upcoming events near the chosen place, grouped Šodien → Rīt → Nedēļas nogalē → Vēlāk.
+// Upcoming events near the chosen place, grouped Šodien → Rīt → Brīvdienās → Vēlāk.
 // On phones the panel is a sheet over the map that can be dragged between three heights.
 export default function NearbyList({groups,total,today,clock,summary,loading,favorites,highlightedId,onSelect,onHover,onFavorite,
  onCalendar,empty,listRef,place=null,onClosePlace,activeIds,distance,isAdmin=false,collapsed=false,headExtra=null}){

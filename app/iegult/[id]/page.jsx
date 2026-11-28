@@ -5,7 +5,7 @@ import {notFound} from 'next/navigation';
 import {readEventsCached as readEvents} from '../../../lib/events-server.js';
 import {filterRegistryEvents,validUuid} from '../../../lib/registry-filters.js';
 export const dynamic='force-dynamic';
-export const metadata={title:'MEETS pasākumu reģistrs',robots:{index:false,follow:false}};
+export const metadata={title:'meets.lv pasākumu reģistrs',robots:{index:false,follow:false}};
 async function registryById(id){
  const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_PUBLISHABLE_KEY;
  if(!base||!key)throw Error('Configuration unavailable');
@@ -49,7 +49,7 @@ export default async function EmbeddedRegistryPage({params}){
    .meets-embed-footer a{color:#9e3039}
   `}</style>
   <div className="meets-embed-head"><div><h1>{registry.title}</h1>{registry.description&&<p>{registry.description}</p>}</div>
-   <Link className="meets-embed-brand" href="/karte" target="_blank" rel="noopener noreferrer">MEETS ↗</Link></div>
+   <Link className="meets-embed-brand" href="/karte" target="_blank" rel="noopener noreferrer">meets.lv ↗</Link></div>
   <p className="meets-embed-count">{events.length} aktuāli pasākumi · Saraksts atjaunojas automātiski</p>
   {/* The shared event row, opening meets.lv in a new tab. */}
   <ul className="event-link-list elist meets-embed-list">
@@ -57,7 +57,7 @@ export default async function EmbeddedRegistryPage({params}){
     actions={<div className="erow-actions"><Link className="button" href={'/karte?'+new URLSearchParams({event:event.id}).toString()} target="_blank" rel="noopener noreferrer">Kartē ↗</Link></div>}/>)}
   </ul>
   {!events.length&&<p className="meets-embed-count">Šobrīd nav pasākumu, kas atbilst šim reģistram.</p>}
-  <div className="meets-embed-footer"><Link href={'/pasakumi'+(search.size?'?'+search.toString():'')} target="_blank" rel="noopener noreferrer">Visi pasākumi MEETS ↗</Link>
+  <div className="meets-embed-footer"><Link href={'/pasakumi'+(search.size?'?'+search.toString():'')} target="_blank" rel="noopener noreferrer">Visi pasākumi meets.lv ↗</Link>
    {events.length>100&&<span> · Parādīti pirmie 100 no {events.length}</span>}</div>
  </section>;
 }

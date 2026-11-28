@@ -3,7 +3,7 @@ import EventLinkList from '../../components/event-link-list.jsx';
 import {readEventsCached as readEvents} from '../../../lib/events-server.js';
 
 export const dynamic='force-dynamic';
-export const metadata={title:'Kopīgotie pasākumi · MEETS'};
+export const metadata={title:'Kopīgotie pasākumi · meets.lv'};
 
 export default async function SharedEventsPage({params}){
  const {token}=await params;
@@ -26,10 +26,10 @@ export default async function SharedEventsPage({params}){
   }catch{}
  }
  return <section className="meets-account-page meets-shared-page">
-  <div className="meets-account-heading"><div><p className="eyebrow">MEETS · Kopīgotais saraksts</p><h1>Pasākumi, kurus iesaka apmeklēt</h1>
+  <div className="meets-account-heading"><div><p className="eyebrow">Kopīgotais saraksts</p><h1>Pasākumi, kurus iesaka apmeklēt</h1>
    <p className="meets-muted">Tikai publiski pieejami pasākumi. Personīgā konta dati nav redzami.</p></div>
    <Link href="/karte" className="button primary">Izpētīt karti ↗</Link></div>
   {events.length?<EventLinkList events={events}/>
-  :<div className="meets-account-empty"><span>♡</span><h3>Saraksts nav pieejams vai pašlaik ir tukšs</h3><p>Iespējams, kopīgošana ir izslēgta vai saglabātie pasākumi jau beigušies.</p><Link className="button primary" href="/karte">Atvērt MEETS karti</Link></div>}
+  :<div className="meets-account-empty"><span>♡</span><h3>Saraksts nav pieejams vai pašlaik ir tukšs</h3><p>Iespējams, kopīgošana ir izslēgta vai saglabātie pasākumi jau beigušies.</p><Link className="button primary" href="/karte">Atvērt meets.lv karti</Link></div>}
  </section>;
 }

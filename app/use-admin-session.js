@@ -3,7 +3,7 @@
 import {useEffect,useState} from 'react';
 import {freshSession,useAccountSession} from '../lib/account-store.js';
 
-// Admin rights belong to the signed-in MEETS account. A confirmed admin is
+// Admin rights belong to the signed-in meets.lv account. A confirmed admin is
 // remembered per account; a "no" is never cached, because it is often just an
 // expired session: after signing in again the same account is checked afresh.
 const checks=new Map();

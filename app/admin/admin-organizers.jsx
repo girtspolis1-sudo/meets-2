@@ -22,7 +22,7 @@ export default function AdminOrganizers({organizations=[],onSetTrust,busy=false}
  function toggle(org){
   const next=!org.trusted;
   const text=next
-   ?`Atļaut “${org.name}” publicēt pasākumus bez MEETS pārbaudes?\nPasākumi parādīsies kartē uzreiz, ja automātiskās pārbaudes (vieta, datums, cena, dublikāti) būs kārtībā. Rīkotājs to redzēs pirms iesniegšanas.`
+   ?`Atļaut “${org.name}” publicēt pasākumus bez meets.lv pārbaudes?\nPasākumi parādīsies kartē uzreiz, ja automātiskās pārbaudes (vieta, datums, cena, dublikāti) būs kārtībā. Rīkotājs to redzēs pirms iesniegšanas.`
    :`Atcelt “${org.name}” atļauju? Turpmāk visi pasākumi atkal tiks pārbaudīti.`;
   if(window.confirm(text))onSetTrust(org,next);
  }

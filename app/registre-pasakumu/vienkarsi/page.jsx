@@ -97,7 +97,7 @@ function SimpleEventFlow(){
  const viewer=activeOrg?.role==='viewer';
  const readOnlyMessage=viewer||!activeOrg?'Šim rīkotājam tev ir tikai skatīšanas tiesības.':'Kā labotājs vari mainīt esošos pasākumus. Jaunus izveido rīkotāja komanda.';
  const privateEvent=form.visibility==='private';
- // Trusted organizers are published without MEETS review.
+ // Trusted organizers are published without meets.lv review.
  const trusted=activeOrg?.trusted===true;
  const recurring=mode==='weekly';
  const chosenDays=mode==='dates';
@@ -169,7 +169,7 @@ function SimpleEventFlow(){
     if(original){
      next=cleanDraft(original);setSavedId(original.id);setExistingCover(Boolean(original.cover_image_path));
      const live=Boolean(original.event_id);setPublishedEdit(live);
-     setNotice(live?'Tu labo jau publicētu pasākumu. Izmaiņas parādīsies pēc MEETS apstiprināšanas; līdz tam apmeklētāji redz pašreizējo versiju.'
+     setNotice(live?'Tu labo jau publicētu pasākumu. Izmaiņas parādīsies pēc meets.lv apstiprināšanas; līdz tam apmeklētāji redz pašreizējo versiju.'
       :original.schedule_kind==='recurring'?'Tu labo visu atkārtotā pasākuma sēriju. Viena norise netiks mainīta atsevišķi.':'Atvērts esošais pasākums labošanai.');
     }
     else setError('Norādītais pasākums nav pieejams labošanai šajā organizācijā.');
@@ -508,29 +508,29 @@ function SimpleEventFlow(){
   :privateEvent?'Izveidot privātu pasākumu':trusted?'Publicēt':'Iesniegt izvērtēšanai';
  const submitNote=publishedEdit?'Līdz apstiprināšanai apmeklētāji redz pašreizējo publicēto versiju.'
   :privateEvent?'Pasākums nebūs kartē un sarakstā. Pēc izveides saņemsi saiti un sludinājumu drukai.'
-  :trusted?'Tavs rīkotājs ir MEETS uzticamo sarakstā — pasākums kartē parādīsies uzreiz. Pārbaudi datumu, laiku un vietu.'
-  :'MEETS pārbaudīs pasākumu (parasti 1–2 darba dienās). Saiti un sludinājumu saņemsi uzreiz.';
+  :trusted?'Tavs rīkotājs ir meets.lv uzticamo sarakstā — pasākums kartē parādīsies uzreiz. Pārbaudi datumu, laiku un vietu.'
+  :'meets.lv pārbaudīs pasākumu (parasti 1–2 darba dienās). Saiti un sludinājumu saņemsi uzreiz.';
  const doneTitle=privateEvent&&!publishedEdit?'Privāts pasākums izveidots'
   :publishedEdit?(trusted?'Izmaiņas publicētas':'Izmaiņas iesniegtas izvērtēšanai')
   :trusted?'Pasākums publicēts':'Pasākums iesniegts izvērtēšanai';
  const doneText=privateEvent&&!publishedEdit?'Pasākums nav kartē un sarakstā — to redz tikai tie, kam nosūtīsi saiti.'
-  :trusted?'Pasākums kartē parādīsies pēc dažām sekundēm. Ja automātiskā pārbaude atradīs neskaidrību, MEETS to izvērtēs un tu saņemsi e-pastu.'
+  :trusted?'Pasākums kartē parādīsies pēc dažām sekundēm. Ja automātiskā pārbaude atradīs neskaidrību, meets.lv to izvērtēs un tu saņemsi e-pastu.'
   :'Kad pasākums būs publicēts vai būs jāprecizē, saņemsi e-pastu. Saite uz pasākumu darbojas jau tagad.';
 
  const asPrivate=privateEvent&&!publishedEdit;
  const confirmText=publishedEdit?{
   title:trusted?'Publicēt izmaiņas?':'Iesniegt izmaiņas pārbaudei?',
-  points:trusted?['Izmaiņas apmeklētāji redzēs uzreiz.','Pasākums paliek publisks MEETS kartē un sarakstā.']
-   :['MEETS pārbaudīs izmaiņas, parasti 1–2 darba dienās.','Līdz tam apmeklētāji redz pašreizējo publicēto versiju.'],
+  points:trusted?['Izmaiņas apmeklētāji redzēs uzreiz.','Pasākums paliek publisks meets.lv kartē un sarakstā.']
+   :['meets.lv pārbaudīs izmaiņas, parasti 1–2 darba dienās.','Līdz tam apmeklētāji redz pašreizējo publicēto versiju.'],
   yes:trusted?'Jā, publicēt izmaiņas':'Jā, iesniegt izmaiņas'}
   :asPrivate?{title:'Izveidot privātu pasākumu?',
-  points:['Redzēs tikai tie, kam nosūtīsi saiti.','Pasākums nebūs MEETS kartē un sarakstā, un MEETS to nepārbauda.','Vēlāk to vari padarīt publisku.'],
+  points:['Redzēs tikai tie, kam nosūtīsi saiti.','Pasākums nebūs meets.lv kartē un sarakstā, un meets.lv to nepārbauda.','Vēlāk to vari padarīt publisku.'],
   yes:'Jā, izveidot privātu'}
   :trusted?{title:'Publicēt pasākumu visiem?',
-  points:['Pasākums uzreiz būs redzams visiem MEETS kartē un sarakstā.','Saiti un sludinājumu drukai saņemsi uzreiz.'],
+  points:['Pasākums uzreiz būs redzams visiem meets.lv kartē un sarakstā.','Saiti un sludinājumu drukai saņemsi uzreiz.'],
   yes:'Jā, publicēt'}
   :{title:'Iesniegt publisku pasākumu?',
-  points:['MEETS pārbaudīs pasākumu, parasti 1–2 darba dienās.','Pēc apstiprināšanas to redzēs visi MEETS kartē un sarakstā.','Saiti un sludinājumu drukai saņemsi uzreiz.'],
+  points:['meets.lv pārbaudīs pasākumu, parasti 1–2 darba dienās.','Pēc apstiprināšanas to redzēs visi meets.lv kartē un sarakstā.','Saiti un sludinājumu drukai saņemsi uzreiz.'],
   yes:'Jā, iesniegt pārbaudei'};
  const confirmPlace=[selectedVenue?.name,form.attendance_mode!=='in_person'?'Tiešsaistē':''].filter(Boolean).join(' · ');
  const bad=name=>issue?.field===name;
@@ -588,7 +588,7 @@ function SimpleEventFlow(){
    </div>
    {errorFor('organization')}
    {orgPending&&<p className="ev-hint ev-org-hint">Ieraksti, kas rīko pasākumu (piem., “Balvu sporta zāle”). Rīkotāja profils izveidosies kopā ar pasākumu — pārējo papildināsi vēlāk.</p>}
-   <p className="ev-hint">{publishedEdit?'Publicēts pasākums paliek publisks.':VISIBILITY_HINTS[form.visibility]+(privateEvent?', bez MEETS pārbaudes.':'.')}</p>
+   <p className="ev-hint">{publishedEdit?'Publicēts pasākums paliek publisks.':VISIBILITY_HINTS[form.visibility]+(privateEvent?', bez meets.lv pārbaudes.':'.')}</p>
 
 
    <section className={'ev-card ev-when'+(['date_from','date_to','time_from','time_to','schedule'].some(bad)?' has-error':'')} aria-label="Kad notiks" data-field="date_from date_to time_from time_to schedule">
@@ -711,7 +711,7 @@ function SimpleEventFlow(){
      <button type="button" className="ev-secondary" onClick={()=>setConfirming(false)}>Atpakaļ labot</button>
     </div>
     {!publishedEdit&&<button type="button" className="text-button ev-confirm-switch" onClick={()=>update('visibility',asPrivate?'public':'private')}>
-     {asPrivate?'Padarīt publisku (MEETS pārbaude, karte un saraksts)':'Padarīt privātu (tikai ar saiti)'}</button>}
+     {asPrivate?'Padarīt publisku (meets.lv pārbaude, karte un saraksts)':'Padarīt privātu (tikai ar saiti)'}</button>}
    </div>
   </div>}
 

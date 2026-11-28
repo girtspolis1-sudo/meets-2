@@ -19,8 +19,8 @@ export default function GlobalError({error,reset}){
 
  return <html lang="lv"><body style={{fontFamily:'Arial, sans-serif',margin:0,background:'#fafbfc',color:'#241d28'}}>
   <main style={{maxWidth:680,margin:'12vh auto',padding:24,textAlign:'center'}}>
-   <div style={{fontSize:44,fontWeight:900,color:'#9e3039'}}>MEETS</div>
-   <h1>MEETS šobrīd nevar ielādēt lapu</h1>
+   <div style={{fontSize:44,fontWeight:900,color:'#9e3039'}}>meets.lv</div>
+   <h1>meets.lv šobrīd nevar ielādēt lapu</h1>
    <p>Reģistrējām kļūdu. Pamēģini ielādēt lapu vēlreiz.</p>
    <button type="button" onClick={()=>reset()} style={{border:0,borderRadius:12,padding:'12px 18px',background:'#9e3039',color:'#fff',fontWeight:800,cursor:'pointer'}}>Mēģināt vēlreiz</button>
   </main>

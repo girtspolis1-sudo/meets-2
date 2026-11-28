@@ -54,7 +54,7 @@
  box-shadow:0 12px 40px rgba(27,36,48,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .flyer-top{position:relative;min-height:0;background:#eef1f5}
 .flyer-top img{display:block;width:100%;height:100%;object-fit:cover}
-.flyer-mark{position:absolute;right:-4cqw;top:2cqw;width:50cqw;height:50cqw;color:var(--tinte,#1b2430);opacity:.1}
+
 .flyer-date{position:absolute;left:7cqw;bottom:-7cqw;z-index:1;display:grid;justify-items:center;width:16cqw;padding:2cqw 0 1.6cqw;
  border-radius:3cqw;background:#fff;box-shadow:0 1cqw 3cqw rgba(27,36,48,.18)}
 .flyer-date strong{font-family:var(--font-display);font-size:7cqw;line-height:1;color:var(--tinte,#1b2430)}

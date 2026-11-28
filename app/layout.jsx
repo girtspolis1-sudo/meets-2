@@ -37,9 +37,9 @@ function Wordmark(){
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: 'MEETS — Pasākumi tuvumā', template: '%s | MEETS' },
-  description: 'Atrodi, kas notiek tev blakus šodien un nedēļas nogalē: koncerti, izrādes, izstādes un sporta spēles visā Latvijā.',
-  openGraph: { siteName: 'MEETS', locale: 'lv_LV', type: 'website', images: [{ url: '/og', width: 1200, height: 630 }] },
+  title: { default: 'meets.lv — Pasākumi tuvumā', template: '%s | meets.lv' },
+  description: 'Atrodi, kas notiek tev blakus šodien un brīvdienās: koncerti, izrādes, izstādes un sporta spēles visā Latvijā.',
+  openGraph: { siteName: 'meets.lv', locale: 'lv_LV', type: 'website', images: [{ url: '/og', width: 1200, height: 630 }] },
   // The "m." mark. Search engines want a square favicon in a multiple of 48 px,
   // so the .ico (16/32/48) and the 192 px PNG come before the SVG. Bump ?v= when
   // the files change: browsers keep a favicon cached long after a deploy.

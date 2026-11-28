@@ -344,7 +344,7 @@ function Wizard(){
  }
 
  if(!loaded)return <ProfileShell mode="organizer"><div className="org-skeleton" role="status" aria-label="Ielādē turnīru"><span className="org-skeleton-line wide"/><span className="org-skeleton-block"/></div></ProfileShell>;
- if(!session)return <ProfileShell mode="organizer"><section className="org-workspace"><div className="org-empty-state"><h1>Turnīrs</h1><p>Lai veidotu turnīru, pieslēdzies MEETS kontam.</p><Link className="button primary" href="/profils">Pieslēgties →</Link></div></section></ProfileShell>;
+ if(!session)return <ProfileShell mode="organizer"><section className="org-workspace"><div className="org-empty-state"><h1>Turnīrs</h1><p>Lai veidotu turnīru, pieslēdzies meets.lv kontam.</p><Link className="button primary" href="/profils">Pieslēgties →</Link></div></section></ProfileShell>;
  if(!t.id&&!writable.length)return <ProfileShell mode="organizer"><section className="org-workspace"><div className="org-empty-state"><h1>Jauns turnīrs</h1>
   <p>{orgs.length?'Turnīrus veido rīkotāja komanda ar lomu “Rīkotājs” vai augstāku. Tev uzticētos turnīrus atradīsi rīkotāja pārskatā.':'Turnīru veido rīkotājs. Vispirms izveido rīkotāja profilu.'}</p>
   <Link className="button primary" href={orgs.length?'/organizators':'/organizators?new=1'}>{orgs.length?'Uz rīkotāja pārskatu':'Izveidot rīkotāju'}</Link></div></section></ProfileShell>;
@@ -543,7 +543,7 @@ function Wizard(){
        <div className="org-row-actions"><a className="button compact" href={'/turniri/'+t.share_token} target="_blank" rel="noopener noreferrer">Atvērt ↗</a><a className="button compact" href={'/turniri/'+t.share_token+'/druka'} target="_blank" rel="noopener noreferrer">Lapas drukai ↗</a></div></div></div>
      {canSave&&<button type="button" className="text-button" disabled={busy||dirty} onClick={()=>save('draft')}>Noņemt no publiskās piekļuves</button>}
     </>:<>
-     <p>Kamēr turnīrs ir melnraksts, to redz tikai rīkotāja komanda. Publicējot rodas saite un QR kods; turnīrs MEETS kartē neparādās.</p>
+     <p>Kamēr turnīrs ir melnraksts, to redz tikai rīkotāja komanda. Publicējot rodas saite un QR kods; turnīrs meets.lv kartē neparādās.</p>
      {canSave&&<button type="button" className="button primary" disabled={busy||!games.length} onClick={()=>save('published')}>{dirty?'Saglabāt un publicēt':'Publicēt rezultātu lapu'}</button>}
      {!games.length&&<small className="tn-hint">Vispirms sastādi grafiku.</small>}
     </>}
@@ -552,7 +552,7 @@ function Wizard(){
 
    <section className="org-panel">
     <h2>Laukumu sekretāri</h2>
-    <p>Katram laukumam sava saite rezultātu ievadei — bez MEETS konta. Sekretārs var ievadīt tikai sava laukuma spēles.</p>
+    <p>Katram laukumam sava saite rezultātu ievadei — bez meets.lv konta. Sekretārs var ievadīt tikai sava laukuma spēles.</p>
     <div className="org-row-actions">
      <button type="button" className="button compact primary" disabled={busy||!rights.edit} onClick={allScorerLinks}>Izveidot visas saites</button>
      <a className="button compact" href={'/registre-turnira/druka?id='+t.id+'&lapa=laukumi'} target="_blank" rel="noopener noreferrer">Drukāt laukumu lapas ar QR ↗</a>

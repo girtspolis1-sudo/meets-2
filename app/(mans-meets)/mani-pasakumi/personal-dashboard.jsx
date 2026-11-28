@@ -121,7 +121,7 @@ export default function PersonalDashboard({favorites,plans,visits,onToggle,busy,
   </div>}
   <div className="meets-account-tabs meets-personal-tabs" role="group" aria-label="Personīgo pasākumu skati">
    {[
-    ['overview','⌂ Pārskats'],['favorites','♡ Favorīti'],['planned',<><PlanIcon/> Plānoju</>],['calendar','▦ Kalendārs']
+    ['overview','⌂ Pārskats'],['favorites','♡ Saglabātie'],['planned',<><PlanIcon/> Plānoju</>],['calendar','▦ Kalendārs']
    ].map(([key,label])=><button key={key} type="button" aria-pressed={view===key} className={view===key?'active':''} onClick={()=>{setView(key);setMoreOpen(false);setTabError('');}}>{label}</button>)}
    <button type="button" aria-expanded={moreOpen} aria-controls="meets-extra-views" className={['map','recommend','visited'].includes(view)?'active':''} onClick={()=>setMoreOpen(v=>!v)}>Vēl ▾</button>
   </div>
@@ -186,6 +186,6 @@ export default function PersonalDashboard({favorites,plans,visits,onToggle,busy,
     <button disabled={saving} onClick={()=>mutate({action:'unshare'},()=>setExtra(p=>({...p,shared:{...p.shared,is_enabled:false}})))}>Izslēgt</button></div>:
     <button className="button" disabled={saving} onClick={()=>mutate({action:'share'},r=>setExtra(p=>({...p,shared:{share_token:r.token,is_enabled:true}})))}>Izveidot privātu kopīgošanas saiti</button>}
   </section>
-  <p className="meets-personal-disclaimer">Atgādinājumi tiek saglabāti MEETS kontā un ir redzami, arī atverot lapu vēlāk. E-pasta un tālruņa push paziņojumi pagaidām nav ieslēgti.</p>
+  <p className="meets-personal-disclaimer">Atgādinājumi tiek saglabāti meets.lv kontā un ir redzami, arī atverot lapu vēlāk. E-pasta un tālruņa push paziņojumi pagaidām nav ieslēgti.</p>
  </div>;
 }

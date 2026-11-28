@@ -11,7 +11,7 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Roles that may add events for an organizer (meets_org_can_edit).
 const EDITORS=new Set(['owner','admin','editor']);
 
-// "Tas ir mans pasākums": an organizer asks MEETS to give an imported event to
+// "Tas ir mans pasākums": an organizer asks meets.lv to give an imported event to
 // their organizer profile. After an admin approves it, the event shows the
 // organizer and can be completed in the organizer workspace.
 export default function ClaimEvent(){
@@ -46,9 +46,9 @@ export default function ClaimEvent(){
  }
 
  return <section className="meets-claim-page" aria-labelledby="claim-title">
-  <p className="eyebrow">MEETS · RĪKOTĀJIEM</p>
+  <p className="eyebrow">RĪKOTĀJIEM</p>
   <h1 id="claim-title">Tas ir mans pasākums</h1>
-  <p className="meets-muted">Šis pasākums MEETS ir nonācis no publiska kalendāra. Kad apstiprināsim, ka to rīko tava organizācija, tas būs redzams ar tavu rīkotāja vārdu, un savā rīkotāja vidē varēsi pievienot attēlu, aprakstu un cenu.</p>
+  <p className="meets-muted">Šis pasākums meets.lv sarakstā ir nonācis no publiska kalendāra. Kad apstiprināsim, ka to rīko tava organizācija, tas būs redzams ar tavu rīkotāja vārdu, un savā rīkotāja vidē varēsi pievienot attēlu, aprakstu un cenu.</p>
 
   {eventError?<p className="meets-inline-error" role="alert">{eventError} <Link href="/pasakumi">Uz pasākumiem →</Link></p>
    :!event?<p role="status">Ielādē pasākumu…</p>

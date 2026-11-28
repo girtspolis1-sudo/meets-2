@@ -18,7 +18,7 @@ import {NEAR_PLACES,RADIUS_CHOICES,distanceKm,nearPlace,withinRadius} from '../.
 import EventCalendar from './event-calendar.jsx';
 
 // The same time windows as the map.
-const PERIOD_CHIPS=[['all','Visi'],['today','Šodien'],['tomorrow','Rīt'],['weekend','Nedēļas nogalē'],['7days','7 dienas'],['30days','30 dienas']];
+const PERIOD_CHIPS=[['all','Visi'],['today','Šodien'],['tomorrow','Rīt'],['weekend','Brīvdienās'],['7days','7 dienas'],['30days','30 dienas']];
 const PERIODS=new Set(PERIOD_CHIPS.map(([key])=>key));
 // Older shared links used other names.
 const LEGACY_PERIODS={'3days':'7days',week:'7days',month:'30days'};
@@ -523,7 +523,7 @@ function EventDetails({event:listed,close}){
    <div className="meets-detail-primary-actions">
     <a className="button primary" href={'/karte?event='+encodeURIComponent(event.id)}>Atvērt kartē →</a>
     {event.sources?.filter(source=>source.url).slice(0,1).map((source,index)=>
-     <a key={index} className="button" href={source.url} target="_blank" rel="noopener noreferrer">Rīkotāja saite ↗</a>)}
+     <a key={index} className="button" href={source.url} target="_blank" rel="noopener noreferrer">Rīkotāja lapa ↗</a>)}
    </div>
    <details className="meets-detail-more">
     <summary>Visa pasākuma informācija</summary>

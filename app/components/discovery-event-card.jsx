@@ -37,7 +37,7 @@ export default function DiscoveryEventCard({event,onOpen,actions=false,footer=nu
    {(online||(orgId&&orgName)||original)&&<div className="ec-links">
     {online&&<span className="ec-online">{online}</span>}
     {orgId&&orgName&&<span className="ec-organizer">Organizē <Link href={'/organizatori/'+encodeURIComponent(orgId)}>{orgName}</Link>
-     <FollowButton targetKind="organization" targetId={orgId} className="ec-follow-org" label="Sekot" followingLabel="Seko"/></span>}
+     <FollowButton targetKind="organization" targetId={orgId} className="ec-follow-org" label="Sekot" followingLabel="Seko" ariaLabel={'Sekot rīkotājam '+orgName}/></span>}
     {original&&<a className="ec-source" href={original} target="_blank" rel="noopener noreferrer">Avots{host?' · '+host:''} <span aria-hidden="true">↗</span></a>}
    </div>}
   </div>

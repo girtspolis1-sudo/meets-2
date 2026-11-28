@@ -28,7 +28,7 @@ export default function Authentication({onSuccess,variant='default'}){
   try{
    if(mode==='reset'){
     await requestPasswordReset(email);
-    setNotice('Ja šim e-pastam ir MEETS konts, nosūtījām saiti paroles atjaunošanai. Pārbaudi arī mēstuļu mapi.');
+    setNotice('Ja šim e-pastam ir meets.lv konts, nosūtījām saiti paroles atjaunošanai. Pārbaudi arī mēstuļu mapi.');
     return;
    }
    const result=mode==='register'?await signUp(email,password):await signIn(email,password);
@@ -43,7 +43,7 @@ export default function Authentication({onSuccess,variant='default'}){
   }catch(e){setError(e.message);}
   finally{setBusy(false);}
  }
- // Google returns to the profile, which reads the session (see the Mans MEETS layout).
+ // Google returns to the profile, which reads the session (see the Mans profils layout).
  async function google(){
   setError('');setNotice('');setBusy('google');
   try{track('login',{method:'google'});await startGoogle({returnTo:'/profils'});}
@@ -51,7 +51,7 @@ export default function Authentication({onSuccess,variant='default'}){
  }
  const submitLabel=busy?'Lūdzu, uzgaidi…':mode==='reset'?'Nosūtīt saiti':compact&&step==='email'?'Turpināt →':mode==='register'?'Izveidot kontu':'Pieslēgties →';
  return <div className={'quick-flow-auth'+(compact?' meets-auth-compact meets-auth-step-'+(mode==='reset'?'email':step):'')}>
-  {!compact&&<><h2>{mode==='register'?'Izveidot MEETS kontu':mode==='reset'?'Atjaunot paroli':'Pieslēgties un turpināt'}</h2><p className="meets-muted">Tava aizpildītā informācija paliks saglabāta. Pieslēgšanās nepieciešama tikai iesniegšanai.</p></>}
+  {!compact&&<><h2>{mode==='register'?'Izveidot meets.lv kontu':mode==='reset'?'Atjaunot paroli':'Pieslēgties un turpināt'}</h2><p className="meets-muted">Tava aizpildītā informācija paliks saglabāta. Pieslēgšanās nepieciešama tikai iesniegšanai.</p></>}
   {compact&&mode==='reset'&&<p className="meets-muted">Ievadi sava konta e-pastu, un nosūtīsim saiti jaunas paroles iestatīšanai.</p>}
   {compact&&step==='email'&&mode!=='reset'&&<div className="meets-auth-google-area"><button type="button" className="meets-auth-google" disabled={Boolean(busy)} onClick={google}><GoogleMark/> {busy==='google'?'Atver Google…':'Turpināt ar Google'}</button><div className="meets-auth-divider"><span>vai ar e-pastu</span></div></div>}
   <form onSubmit={submit} className="quick-flow-stack">

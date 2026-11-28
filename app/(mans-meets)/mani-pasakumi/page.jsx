@@ -49,7 +49,7 @@ export default function MyEvents(){
  }
 
  return <section className="meets-account-page">
-  <div className="meets-account-heading"><div><p className="eyebrow">Tavs MEETS</p><h1>Saglabātie pasākumi</h1><p className="meets-muted">Saglabā, plāno un atrodi pasākumus vienuviet.</p></div><Link href="/karte" className="button">Karte ↗</Link></div>
+  <div className="meets-account-heading"><div><p className="eyebrow">Mans profils</p><h1>Saglabātie pasākumi</h1><p className="meets-muted">Saglabā, plāno un atrodi pasākumus vienuviet.</p></div><Link href="/karte" className="button">Karte ↗</Link></div>
   {loadError&&<p className="meets-inline-error" role="alert">{loadError.message} <button type="button" className="text-button" onClick={()=>reload().catch(()=>{})}>Mēģināt vēlreiz</button></p>}
   {listLoading?<p className="meets-muted" role="status">Ielādē saglabātos pasākumus…</p>:
    <PersonalDashboard favorites={favorites} plans={plans} visits={visits} onToggle={change}

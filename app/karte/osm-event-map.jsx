@@ -9,7 +9,7 @@ import {eventTerm} from '../../lib/event-term.js';
 import {durationKind,isBackgroundLong,untilBadge} from '../../lib/event-duration.js';
 import ChipScroller from './chip-scroller.jsx';
 // Narrow screens: the period buttons get shorter names.
-const SHORT_PERIOD={weekend:'Brīvdienas','7days':'7 d.','30days':'30 d.',manual:'Datumi'};
+const SHORT_PERIOD={weekend:'Brīvdienās','7days':'7 d.','30days':'30 d.',manual:'Datumi'};
 import {categoryIconSvg} from '../../lib/category-icons.js';
 import {groupedSportIcon} from '../../lib/event-map-icons.js';
 import {calendarDescription} from '../../lib/catalog-wire.js';
@@ -279,7 +279,7 @@ export default function OsmEventMap(){
   const location=[event.venue_name,event.address_raw,event.settlement||event.municipality].filter(Boolean).join(', ');
   const url=event.sources?.find(s=>s.url)?.url||'';
   const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
-  const content=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MEETS//LV','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:'+encodeURIComponent(String(event.id))+'@meets.lv','DTSTAMP:'+now,dates,'SUMMARY:'+escapeIcs(event.title),'LOCATION:'+escapeIcs(location),'DESCRIPTION:'+escapeIcs(calendarDescription(event,window.location.origin)),'URL:'+escapeIcs(url),'END:VEVENT','END:VCALENDAR'].join('\r\n')+'\r\n';
+  const content=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//meets.lv//LV','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:'+encodeURIComponent(String(event.id))+'@meets.lv','DTSTAMP:'+now,dates,'SUMMARY:'+escapeIcs(event.title),'LOCATION:'+escapeIcs(location),'DESCRIPTION:'+escapeIcs(calendarDescription(event,window.location.origin)),'URL:'+escapeIcs(url),'END:VEVENT','END:VCALENDAR'].join('\r\n')+'\r\n';
   const blob=new Blob([content],{type:'text/calendar;charset=utf-8'});const objectUrl=URL.createObjectURL(blob);const link=document.createElement('a');link.href=objectUrl;link.download='meets-'+String(event.id).replace(/[^a-zA-Z0-9-]/g,'')+'.ics';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
  }
  const publicFrom=data?.window?.from||'';
@@ -1079,7 +1079,7 @@ export default function OsmEventMap(){
   </p>}
   <div className="map-summary">
    <span>{countLabel(activeEvents.length)} · {activeGroupCount} {activeGroupCount%10===1&&activeGroupCount%100!==11?'vietā':'vietās'}</span>
-   <button className="text-button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Atjaunot datus'}</button>
+   {isAdminSession&&<button className="text-button" onClick={refresh} disabled={loading}>{loading?'Ielādē…':'Atjaunot datus'}</button>}
    <button className="text-button" type="button" onClick={()=>{navigator.clipboard?.writeText(window.location.href).then(()=>setLocationMessage('Atlases saite nokopēta.'),()=>setLocationMessage('Nokopē saiti no pārlūka adreses joslas.'));}}>↗ Kopīgot atlasi</button>
    <a className="text-button" href={catalogHref}>Tabulas skats ↗</a>
   </div>

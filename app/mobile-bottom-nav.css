@@ -76,7 +76,7 @@
  /* Content, the footer and sticky form actions keep clear of the bar. */
  body:not(.admin-environment):has(.meets-mobile-bottom-nav) main#saturs{padding-bottom:calc(var(--meets-dock-height) + 12px)}
  body:has(.meets-mobile-bottom-nav) footer{padding-bottom:calc(var(--meets-dock-height) + 30px)}
- body:has(.meets-mobile-bottom-nav) .unified-event-editor .event-editor-actions{bottom:calc(var(--meets-dock-height) + 10px)}
+
 }
 @media(max-width:760px) and (hover:hover){
  .meets-dock-link:not(.active):hover .meets-dock-icon{background:var(--dock-hover)}

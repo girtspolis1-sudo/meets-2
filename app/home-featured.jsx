@@ -4,10 +4,8 @@ import {useEffect,useMemo,useState} from 'react';
 import {useEvents} from '../lib/use-events.js';
 import {eventPath} from '../lib/seo.js';
 import {cardDate,cardImage,cardLocation} from '../lib/discovery-card.js';
-import {eventGroup} from '../lib/home-category-filters.js';
-import {matchesLevel} from '../lib/sport-level.js';
 import {rigaTodayIso} from '../lib/event-date.js';
-import {isBackgroundLong} from '../lib/event-duration.js';
+import {homePicks} from '../lib/home-picks.js';
 import DiscoveryEventCard from './components/discovery-event-card.jsx';
 
 const FAVORITES='meets_favorites_v1';
@@ -15,7 +13,7 @@ function readFavorites(){
  try{const ids=JSON.parse(localStorage.getItem(FAVORITES)||'[]');return Array.isArray(ids)?ids.map(String):[];}
  catch{return [];}
 }
-// fallback = the server-rendered nearest events, shown until the catalogue loads here.
+// fallback = the same picks rendered on the server, shown until the catalogue loads here.
 export default function HomeFeatured({fallback=null}){
  const {data,loading,error,refresh}=useEvents();
  const [favorites,setFavorites]=useState([]);
@@ -25,17 +23,7 @@ export default function HomeFeatured({fallback=null}){
   return()=>{window.removeEventListener('meets-favorites-changed',update);window.removeEventListener('storage',update);};
  },[]);
  const all=data?.events||[];
- const picks=useMemo(()=>{
-  const today=rigaTodayIso();
-  // Exhibitions and season programmes that are simply running are not "nearest";
-  // they come back on their opening day and in their last week.
-  return all.filter(e=>e.id&&e.title&&eventGroup(e)!=='civic'&&matchesLevel(e)&&!isBackgroundLong(e,today)&&String(e.date_to||e.date_from||'')>=today)
-   .sort((a,b)=>{
-    const date=String(a.date_from||'9999').localeCompare(String(b.date_from||'9999'));
-    if(date)return date;
-    return Number(Boolean(cardImage(b)))-Number(Boolean(cardImage(a)));
-   }).slice(0,6);
- },[all]);
+ const picks=useMemo(()=>homePicks(all,rigaTodayIso()),[all]);
  const saved=useMemo(()=>{
   const ids=new Set(favorites);
   return all.filter(e=>ids.has(String(e.id))).sort((a,b)=>String(a.date_from||'').localeCompare(String(b.date_from||''))).slice(0,4);
@@ -52,12 +40,12 @@ export default function HomeFeatured({fallback=null}){
    <aside className="meets-home-side" aria-label="Personiskie pasākumu ieteikumi">
     <div className="meets-home-side-card meets-home-tip">
      <span className="meets-home-side-icon" aria-hidden="true">✦</span>
-     <h3>Ceļo? MEETS ceļo līdzi.</h3>
+     <h3>Ceļo? meets.lv ceļo līdzi.</h3>
      <p>Jauna pilsēta, jauns saraksts. Atver karti un redzi, kas notiek turpat blakus.</p>
      <Link href="/karte">Izpētīt kartē <span aria-hidden="true">→</span></Link>
     </div>
     <div className="meets-home-side-card">
-     <div className="meets-home-side-head"><h3>Mani saglabātie</h3><Link href="/mani-pasakumi">Skatīt visus →</Link></div>
+     <div className="meets-home-side-head"><h3>Saglabātie</h3><Link href="/mani-pasakumi">Skatīt visus →</Link></div>
      {saved.length?<div className="meets-home-saved-list">{saved.map(e=><Link href={eventPath(e)} key={e.id}>
       {cardImage(e)?<img src={cardImage(e)} alt="" loading="lazy"/>:<span className="meets-saved-fallback" aria-hidden="true">✦</span>}
       <span><strong>{e.title}</strong><small>{cardDate(e)} · {cardLocation(e)}</small></span>
