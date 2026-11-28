@@ -1,7 +1,7 @@
 -- A minimal copy of the production objects that following a team builds on, so
 -- the rules can be tested in an empty Postgres:
 --   psql -d scratch -f tests/sql/follow-team-stub.sql
---   psql -d scratch -f supabase/migrations/20261128210000_follow_team.sql
+--   psql -d scratch -f supabase/migrations/20261128191206_follow_team.sql
 --   psql -d scratch -f tests/sql/follow-team.test.sql
 do $$ begin
  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;

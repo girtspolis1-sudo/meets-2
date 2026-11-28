@@ -1,4 +1,4 @@
--- Tests of following a team (migration 20261128210000_follow_team.sql).
+-- Tests of following a team (migration 20261128191206_follow_team.sql).
 -- Runs in a scratch database prepared with tests/sql/follow-team-stub.sql; everything
 -- is rolled back at the end. A failed check stops the script with an exception.
 \set ON_ERROR_STOP 1
