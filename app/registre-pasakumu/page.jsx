@@ -1,3 +1,4 @@
+import Icon from '../components/line-icon.jsx';
 import Link from 'next/link';
 export const metadata={title:'Pievienot pasākumu vai norises vietu'};
 export default function RegisterEntry(){
@@ -7,12 +8,12 @@ export default function RegisterEntry(){
    <Link className="button" href="/organizators">Rīkotāja kabinets →</Link></div>
   <div className="quick-flow-choices">
    <Link href="/registre-pasakumu/vienkarsi" className="quick-flow-choice">
-    <span aria-hidden="true">▣</span><h2>Pasākums</h2>
+    <span aria-hidden="true"><Icon name="calendar-add" size={22}/></span><h2>Pasākums</h2>
     <p>Koncerts, sacensības, tirdziņš, nodarbība vai cits notikums.</p>
     <strong>Pievienot pasākumu →</strong>
    </Link>
    <Link href="/registre-vietu" className="quick-flow-choice">
-    <span aria-hidden="true">⌖</span><h2>Norises vieta</h2>
+    <span aria-hidden="true"><Icon name="pin" size={22}/></span><h2>Norises vieta</h2>
     <p>Skola, sporta centrs, parks vai cita vieta, kur vēlāk varēsi reģistrēt pasākumus.</p>
     <strong>Pievienot vietu →</strong>
    </Link>

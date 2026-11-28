@@ -1,4 +1,5 @@
 'use client';
+import Icon from '../components/line-icon.jsx';
 import EventCardMedia from '../components/event-card-media.jsx';
 import {useState} from 'react';
 import {countOccurrences} from '../../lib/event-schedule.js';
@@ -114,7 +115,7 @@ function SubmissionCard({item,today,focused,matches,onSearchPlace,onReview,busy,
    <section className="admin-submission-location" aria-label="Norises vieta">
     <h4>Norises vieta</h4>
     <p><strong>{item.venue_name||'Nav nosaukuma'}</strong><br/><span>{item.address||'Nav adreses'}</span></p>
-    {point?<p className="admin-submission-point">✓ {point.label}: {Number(point.latitude).toFixed(5)}, {Number(point.longitude).toFixed(5)} · <a href={osmLink(point.latitude,point.longitude)} target="_blank" rel="noreferrer">pārbaudīt kartē ↗</a></p>
+    {point?<p className="admin-submission-point"><Icon name="check" size={14}/> {point.label}: {Number(point.latitude).toFixed(5)}, {Number(point.longitude).toFixed(5)} · <a href={osmLink(point.latitude,point.longitude)} target="_blank" rel="noreferrer">pārbaudīt kartē ↗</a></p>
      :<p className="admin-submission-point missing">Vieta kartē vēl nav izvēlēta.</p>}
     {known.length>0&&<><h5>meets.lv jau zina</h5><ul className="admin-submission-places">{known.map((place,i)=><PlaceOption key={'k'+i} place={place} active={samePoint(place)} onUse={usePlace}/>)}</ul></>}
     {search.results&&<><h5>Adrešu meklēšanas rezultāti</h5>
@@ -136,7 +137,7 @@ function SubmissionCard({item,today,focused,matches,onSearchPlace,onReview,busy,
    {action&&<p className="admin-submission-email">Rīkotājs saņems e-pastu{action!=='publish'&&reason?': “'+reasonLabel(reason)+'”':''}.</p>}
    {error&&<p className="meets-inline-error" role="alert">{error}</p>}
    {action&&<button type="button" className={'button '+(action==='decline'?'danger':'primary')} disabled={busy} onClick={submit}>
-    {busy?'Saglabā…':action==='publish'?'✓ Publicēt kartē':action==='decline'?'Noraidīt pasākumu':'Nosūtīt precizēšanai'}</button>}
+    {busy?'Saglabā…':action==='publish'?'Publicēt kartē':action==='decline'?'Noraidīt pasākumu':'Nosūtīt precizēšanai'}</button>}
   </section>
  </article>;
 }

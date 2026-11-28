@@ -1,4 +1,5 @@
 'use client';
+import Icon from '../components/line-icon.jsx';
 import {useEffect,useRef,useState} from 'react';
 import EventDetailCard from '../components/event-detail-card.jsx';
 import EventVenueFavorite from '../components/event-venue-favorite.jsx';
@@ -91,7 +92,7 @@ export default function MobileEventSheet({group,activeIds,favorites,onFavorite,o
      </div>
      <small>{selectedCount} atlasīti · {events.length} kopā</small>
     </div>
-    <button type="button" ref={closeRef} onClick={onClose} aria-label="Aizvērt pasākumu informāciju">✕</button>
+    <button type="button" ref={closeRef} onClick={onClose} aria-label="Aizvērt pasākumu informāciju"><Icon name="close" size={18}/></button>
    </header>
    {active.length>1&&<div className="meets-sheet-schedule"><WeekStrip events={active} today={today} day={day} onDay={setDay} start={start} onStart={setStart}/></div>}
    <div className="meets-mobile-sheet-events" ref={listRef}>

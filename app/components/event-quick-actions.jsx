@@ -6,20 +6,13 @@ import {eventShareUrl,eventShareTargets,officialEventUrl} from '../../lib/event-
 import {filterRegistryEvents} from '../../lib/registry-filters.js';
 import {isManualCollection,eventInCollection} from '../../lib/personal-collections.js';
 import {refreshSession} from '../../lib/auth-client.js';
+import SharedIcon from './line-icon.jsx';
 
 const FAVORITES_KEY='meets_favorites_v1';
 const SESSION_KEY='meets_user_session_v1';
-function Icon({name}){
- const props={viewBox:'0 0 24 24',width:18,height:18,fill:'none',stroke:'currentColor',strokeWidth:1.5,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true};
- switch(name){
-  case 'heart':return <svg {...props}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>;
-  case 'calendar':return <svg {...props}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M12 13v5M9.5 15.5h5"/></svg>;
-  case 'pin':return <svg {...props}><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.8"/></svg>;
-  case 'external':return <svg {...props}><path d="M13 5h6v6M19 5l-9 9"/><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>;
-  case 'list':return <svg {...props}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h10M8 14h10M5 9h.01M5 14h.01"/></svg>;
-  default:return <svg {...props}><circle cx="18" cy="5" r="2.2"/><circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="m8 11 8-5m-8 8 8 4"/></svg>;
- }
-}
+// The action icons come from the shared set (lib/icon-paths.js); the calendar
+// button shows the calendar with a plus.
+function Icon({name}){return <SharedIcon name={name==='calendar'?'calendar-add':name} size={18} strokeWidth={1.5}/>;}
 export function saveIcs(event){
  const str=icsContent(event);if(!str)return false;
  const blob=new Blob([str],{type:'text/calendar;charset=utf-8'}),url=URL.createObjectURL(blob);
@@ -132,7 +125,7 @@ export default function EventQuickActions({event,saved,onSave,onCalendar,compact
    <button type="button" className="meets-circle-action" aria-label="Dalīties ar pasākumu" aria-expanded={menu==='share'} title="Dalīties" onClick={share}><Icon name="share"/><small className="meets-quiet-label">Dalīties</small></button>
   </div>
   {menu==='route'&&<div className="meets-circle-options" role="group" aria-label="Norāžu izvēle"><a href={links.google} target="_blank" rel="noopener noreferrer">Google Maps ↗</a>{links.waze&&<a href={links.waze} target="_blank" rel="noopener noreferrer">Waze ↗</a>}</div>}
-  {menu==='share'&&<div className="meets-circle-options" role="group" aria-label="Kopīgot pasākumu">{opts.map(option=><a href={option.href} key={option.label} target="_blank" rel="noopener noreferrer">{option.label}</a>)}<button type="button" onClick={copy}>Kopēt saiti <span aria-hidden="true">⧉</span></button></div>}
+  {menu==='share'&&<div className="meets-circle-options" role="group" aria-label="Kopīgot pasākumu">{opts.map(option=><a href={option.href} key={option.label} target="_blank" rel="noopener noreferrer">{option.label}</a>)}<button type="button" onClick={copy}>Kopēt saiti <SharedIcon name="copy" size={15}/></button></div>}
   {status&&<p className="meets-circle-feedback" role="status">{status}</p>}
  </div>;
 }

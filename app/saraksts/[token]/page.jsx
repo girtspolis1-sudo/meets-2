@@ -1,3 +1,4 @@
+import Icon from '../../components/line-icon.jsx';
 import Link from 'next/link';
 import EventLinkList from '../../components/event-link-list.jsx';
 import {readEventsCached as readEvents} from '../../../lib/events-server.js';
@@ -30,6 +31,6 @@ export default async function SharedEventsPage({params}){
    <p className="meets-muted">Tikai publiski pieejami pasākumi. Personīgā konta dati nav redzami.</p></div>
    <Link href="/karte" className="button primary">Izpētīt karti ↗</Link></div>
   {events.length?<EventLinkList events={events}/>
-  :<div className="meets-account-empty"><span>♡</span><h3>Saraksts nav pieejams vai pašlaik ir tukšs</h3><p>Iespējams, kopīgošana ir izslēgta vai saglabātie pasākumi jau beigušies.</p><Link className="button primary" href="/karte">Atvērt meets.lv karti</Link></div>}
+  :<div className="meets-account-empty"><span><Icon name="heart" size={26}/></span><h3>Saraksts nav pieejams vai pašlaik ir tukšs</h3><p>Iespējams, kopīgošana ir izslēgta vai saglabātie pasākumi jau beigušies.</p><Link className="button primary" href="/karte">Atvērt meets.lv karti</Link></div>}
  </section>;
 }

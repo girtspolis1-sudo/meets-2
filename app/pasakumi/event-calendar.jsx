@@ -1,4 +1,5 @@
 'use client';
+import Icon from '../components/line-icon.jsx';
 import {useEffect,useMemo,useState} from 'react';
 import DiscoveryEventCard from '../components/discovery-event-card.jsx';
 import {CALENDAR_ROWS,addDays,calendarCounts,dayRange,heatStep,matchesCalendarChoice} from '../../lib/event-calendar.js';
@@ -102,8 +103,8 @@ export default function EventCalendar({events,longCount=0,today,onOpen,onShowLon
     <p>{chosen.length} {countWord(chosen.length)}{choice.day||choice.row?'':' šajā periodā'}</p>
    </div>
    {(choice.day||choice.row)&&<div className="event-calendar-chips">
-    {choice.day&&<button type="button" onClick={()=>setChoice(c=>({...c,day:''}))} aria-label={'Noņemt dienu: '+longLabel(choice.day)}>{longLabel(choice.day)} <span aria-hidden="true">✕</span></button>}
-    {choice.row&&<button type="button" onClick={()=>setChoice(c=>({...c,row:''}))} aria-label={'Noņemt tēmu: '+ROW[choice.row].label}>{ROW[choice.row].short} <span aria-hidden="true">✕</span></button>}
+    {choice.day&&<button type="button" onClick={()=>setChoice(c=>({...c,day:''}))} aria-label={'Noņemt dienu: '+longLabel(choice.day)}>{longLabel(choice.day)} <Icon name="close" size={14}/></button>}
+    {choice.row&&<button type="button" onClick={()=>setChoice(c=>({...c,row:''}))} aria-label={'Noņemt tēmu: '+ROW[choice.row].label}>{ROW[choice.row].short} <Icon name="close" size={14}/></button>}
    </div>}
   </div>
   {longCount>0&&<button type="button" className="event-calendar-long" onClick={onShowLong}>+ {longCount} {longCount%10===1&&longCount%100!==11?'izstāde vai ilgstošs pasākums':'izstādes un ilgstoši pasākumi'} notiek visu laiku — skatīt sarakstā</button>}

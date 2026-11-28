@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {useLayoutEffect,useRef,useState} from 'react';
 import {DOCK,dockItemX,dockPath,easeOutCubic} from '../lib/mobile-dock.js';
+import Icon from './components/line-icon.jsx';
 
 const links=[
  {href:'/',label:'Sākums',icon:'home'},
@@ -14,14 +15,7 @@ const links=[
 const BOX=DOCK.top+DOCK.height;
 const SLIDE_MS=420;
 
-function Icon({name}){
- const base={viewBox:'0 0 24 24',width:24,height:24,fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,focusable:'false'};
- if(name==='home')return <svg {...base}><path d="M4 10.2 12 4l8 6.2V19a1.5 1.5 0 0 1-1.5 1.5H15v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5H5.5A1.5 1.5 0 0 1 4 19Z"/></svg>;
- if(name==='pin')return <svg {...base}><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.4"/></svg>;
- if(name==='calendar')return <svg {...base}><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4m8-4v4M3.5 10h17"/></svg>;
- if(name==='heart')return <svg {...base}><path d="M20.8 4.8a5.3 5.3 0 0 0-7.5 0L12 6.1l-1.3-1.3a5.3 5.3 0 0 0-7.5 7.5L12 21l8.8-8.7a5.3 5.3 0 0 0 0-7.5Z"/></svg>;
- return <svg {...base}><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.6-3.8 3.4-5.8 7.5-5.8s6.9 2 7.5 5.8"/></svg>;
-}
+function NavIcon({name}){return <Icon name={name} size={24} strokeWidth={1.9}/>;}
 
 function isActive(pathname,href){
  if(href==='/')return pathname==='/';
@@ -107,7 +101,7 @@ export default function MobileBottomNav(){
   {index>=0&&<span className="meets-dock-bubble" aria-hidden="true" style={x===null?undefined:{left:0,transform:`translateX(${x-DOCK.bubble/2}px)`}}/>}
   <div className="meets-dock-items">
    {links.map((link,i)=><Link key={link.href} href={link.href} className={'meets-dock-link'+(i===index?' active':'')} aria-current={i===index?'page':undefined}>
-    <span className="meets-dock-icon"><Icon name={link.icon}/></span>
+    <span className="meets-dock-icon"><NavIcon name={link.icon}/></span>
     <span className="meets-dock-label">{link.label}</span>
    </Link>)}
   </div>

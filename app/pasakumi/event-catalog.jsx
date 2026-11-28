@@ -1,4 +1,5 @@
 'use client';
+import Icon from '../components/line-icon.jsx';
 import {track} from '../../lib/analytics.js';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {columns,detailColumns,display,filterEventsByColumns,prices,statuses} from '../../lib/catalog.js';
@@ -384,7 +385,7 @@ export default function EventCatalog({fallback=null}){
   </div>}
 
   {activeChips.length>0&&<div className="catalog-active-chips" aria-label="Aktīvie filtri">
-   {activeChips.map((chip,i)=><button key={i} type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>{chip.label} <span aria-hidden="true">✕</span></button>)}
+   {activeChips.map((chip,i)=><button key={i} type="button" onClick={chip.clear} aria-label={'Noņemt filtru: '+chip.label}>{chip.label} <Icon name="close" size={14}/></button>)}
    <button type="button" className="text-button" onClick={resetAll}>Notīrīt visu</button>
   </div>}
 
@@ -509,13 +510,13 @@ function EventDetails({event:listed,close}){
  return <dialog ref={dialog} className="event-dialog meets-event-detail-dialog" onCancel={close} onClose={close} aria-label={'Pasākums: '+event.title}>
   <div className={'meets-detail-hero'+(image?'':' is-empty')}>
    {image&&<img src={image} alt="" className="catalog-detail-cover" loading="eager"/>}
-   <button className="meets-detail-close" type="button" aria-label="Aizvērt ✕" onClick={close} autoFocus>✕</button>
+   <button className="meets-detail-close" type="button" aria-label="Aizvērt" onClick={close} autoFocus><Icon name="close" size={18}/></button>
   </div>
   <div className="meets-detail-body">
    <div className="meets-detail-headline"><span className="meets-detail-tag">{cardCategory(event)}</span><h2>{event.title}</h2></div>
    <div className="meets-detail-key-facts">
-    <p>▦ <strong>{cardDate(event)}</strong></p>
-    <div className="meets-detail-location-line"><span>⌖ <strong>{cardLocation(event)}</strong></span><EventVenueFavorite event={event} compact/></div>
+    <p><Icon name="calendar" size={16}/> <strong>{cardDate(event)}</strong></p>
+    <div className="meets-detail-location-line"><span><Icon name="pin" size={16}/> <strong>{cardLocation(event)}</strong></span><EventVenueFavorite event={event} compact/></div>
     {price&&<span className="meets-detail-price">{price}</span>}
    </div>
    {description&&<section className="meets-detail-description"><h3>Par pasākumu</h3><p>{description}</p></section>}

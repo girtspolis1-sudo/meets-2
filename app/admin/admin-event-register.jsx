@@ -1,4 +1,5 @@
 'use client';
+import Icon from '../components/line-icon.jsx';
 import StatusChip from '../components/status-chip.jsx';
 import {rowTile} from '../../lib/event-row.js';
 import '../components/event-row.css';
@@ -196,7 +197,7 @@ export default function AdminEventRegister({events=[],submissions=[],sources=[],
       </select></th>
       <th><input type="search" value={locationQuery} onChange={e=>setLocationQuery(e.target.value)} placeholder="Meklēt vietu…" aria-label="Filtrēt pēc norises vietas vai adreses"/></th>
       <th><select value={sourceFilter} onChange={e=>setSourceFilter(e.target.value)} aria-label="Filtrēt pēc datu avota"><option value="">Visi avoti</option>{sourceOptions.map(o=><option key={o} value={o}>{o}</option>)}</select></th>
-      <th className="admin-register-action-heading"><span>✎</span></th>
+      <th className="admin-register-action-heading"><span><Icon name="edit" size={15}/></span></th>
      </tr>
     </thead>
     <tbody>
@@ -213,7 +214,7 @@ export default function AdminEventRegister({events=[],submissions=[],sources=[],
       <td><span className="admin-register-ellipsis" title={row.source}>{row.source}</span></td>
       <td className="admin-register-actions">
        {row.kind==='catalog'?<div className="admin-register-row-buttons">
-        <button type="button" className="button compact" onClick={()=>onEditEvent(row.raw)} title="Labot adresi un kartes punktu">✎ Labot</button>
+        <button type="button" className="button compact" onClick={()=>onEditEvent(row.raw)} title="Labot adresi un kartes punktu"><Icon name="edit" size={15}/> Labot</button>
         {row.status==='pending_review'&&!row.expired&&row.reasonCode==='waiting'&&<button type="button" className="button primary compact" onClick={()=>onPublish(row.raw)} disabled={busy}>Publicēt</button>}
        </div>:<div className="admin-register-row-buttons">
         <button type="button" className="button compact" onClick={()=>{setEditingSubmission({...row.raw,time_from:String(row.raw.time_from||'').slice(0,5),time_to:String(row.raw.time_to||'').slice(0,5),latitude:row.raw.latitude??'',longitude:row.raw.longitude??''});setEditError('');}} title="Labot lietotāja iesnieguma datus">✎ Labot</button>

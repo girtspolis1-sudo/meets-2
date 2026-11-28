@@ -1,4 +1,5 @@
 'use client';
+import Icon from '../components/line-icon.jsx';
 import {Suspense,useEffect,useState} from 'react';
 import Link from 'next/link';
 import {useSearchParams} from 'next/navigation';
@@ -102,11 +103,11 @@ function VenueRegistrationInner(){
    </>}
    <div className="quick-flow-actions"><button className="button primary" type="submit" disabled={activeOrg?.role==='viewer'}>Pārbaudīt →</button><button className="button" type="button" onClick={()=>{try{localStorage.setItem(key(account?.user?.id,orgId),JSON.stringify(form));setNotice('Vietas melnraksts saglabāts šajā ierīcē.');}catch{}}}>Saglabāt melnrakstu</button></div>
   </form>}
-  {stage==='preview'&&<div className="quick-flow-card"><p className="eyebrow">Pārbaudi vietu</p><h2>{form.name}</h2><p>⌖ {form.address||'Precīzs punkts kartē'}</p>{form.description&&<p>{form.description}</p>}
+  {stage==='preview'&&<div className="quick-flow-card"><p className="eyebrow">Pārbaudi vietu</p><h2>{form.name}</h2><p><Icon name="pin" size={16}/> {form.address||'Precīzs punkts kartē'}</p>{form.description&&<p>{form.description}</p>}
    <p className="quick-flow-note">{publicId?'Esoša publiska vieta tiks tikai piesaistīta rīkotājam kā izmantota vieta.':form.is_public?'Vieta būs publiska un tai būs publiskais kalendārs.':'Vieta paliks organizācijas iekšējā sarakstā.'}</p>
    <div className="quick-flow-actions"><button className="button" type="button" onClick={()=>setStage('edit')}>← Labot</button><button className="button primary" disabled={busy||activeOrg?.role==='viewer'} onClick={persist}>{busy?'Saglabā…':publicId?'Pievienot izmantotajām vietām →':'Saglabāt vietu →'}</button></div></div>}
   {stage==='auth'&&<div className="quick-flow-card"><Authentication onSuccess={async value=>{try{const x=await load(value);const chosen=x.result.organizations?.length===1?x.result.organizations[0].id:orgId;setOrgId(chosen);setStage('preview');setError('');}catch(e){setError(e.message);}}}/><button className="button" onClick={()=>setStage('preview')}>← Atpakaļ</button></div>}
-  {stage==='done'&&<div className="quick-flow-card"><div className="quick-flow-success">✓</div><h2>{saved?.name||form.name}</h2><p>{publicId?'Vieta piesaistīta rīkotājam kā izmantota publiska vieta.':'Norises vieta saglabāta. Tagad to vari izvēlēties pasākumos.'}</p>
+  {stage==='done'&&<div className="quick-flow-card"><div className="quick-flow-success"><Icon name="check" size={28}/></div><h2>{saved?.name||form.name}</h2><p>{publicId?'Vieta piesaistīta rīkotājam kā izmantota publiska vieta.':'Norises vieta saglabāta. Tagad to vari izvēlēties pasākumos.'}</p>
    <div className="quick-flow-actions"><Link className="button primary" href={'/registre-pasakumu/vienkarsi?venue='+saved?.id+'&org='+orgId}>+ Pievienot pasākumu →</Link><Link className="button" href={'/organizators?org='+orgId+'&panel=venues'}>Visas vietas →</Link></div></div>}
  </section>;
  return account?<ProfileShell session={account} activeOrganization={activeOrg}>{page}</ProfileShell>:page;

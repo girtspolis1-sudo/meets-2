@@ -143,7 +143,8 @@ footer .meets-wordmark{font-size:18px}
 .c3-pin-shape path{fill:#fff;stroke:var(--velak);stroke-width:2.4}
 .c3-pin-icon{position:absolute;left:11px;top:10px;width:22px;height:22px;display:block}
 .c3-pin-icon svg{display:block}
-.c3-pin-sport{display:block;width:22px;height:22px;font-size:19px;line-height:22px;text-align:center}
+.c3-pin-sport{display:block;width:22px;height:22px;line-height:0}
+.c3-pin-sport svg{display:block}
 .c3-pin-days{position:absolute;left:27px;top:-5px;min-width:25px;height:19px;box-sizing:border-box;padding:0 5px;border:2px solid #fff;border-radius:10px;background:var(--velak-badge);color:var(--velak-text);font:800 11px/15px var(--font-body);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
 .c3-pin-saved{position:absolute;left:-4px;top:-4px;width:20px;height:20px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 3px rgba(27,36,48,.25)}
 .c3-pin-saved svg{fill:var(--karmins)}

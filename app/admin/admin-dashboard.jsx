@@ -1,5 +1,6 @@
 'use client';
 
+import Icon from '../components/line-icon.jsx';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import AdminEventMap from './admin-event-map.jsx';
 import AdminReviewOverview from './admin-review-overview.jsx';
@@ -887,7 +888,7 @@ export default function AdminDashboard({supabaseUrl,publishableKey}){
   {message&&<div className="admin-toast" role="status">
    <p>{message}</p>
    {toastUndo&&<button type="button" className="button compact" onClick={()=>undoAction(toastUndo)}>Atsaukt</button>}
-   <button type="button" className="text-button" onClick={()=>setMessage('')} aria-label="Aizvērt paziņojumu">✕</button>
+   <button type="button" className="text-button" onClick={()=>setMessage('')} aria-label="Aizvērt paziņojumu"><Icon name="close" size={14}/></button>
   </div>}
 
   {workspaceView==='register'&&<AdminEventRegister
@@ -1196,7 +1197,7 @@ function LocationEditor({event,close,save,mode='event',mappingAlias='',mappingCo
  const isSavedMapping=mode==='saved-mapping';
 
  return <dialog ref={dialog} className="event-dialog location-dialog" onCancel={close} onClose={close}>
-  <div className="detail-header"><div><p className="eyebrow">{isMapping?'Vietu sasaiste — derēs arī nākamajiem importiem':'Vietas pārbaude'}{position?' · '+position:''}</p><h2>{isMapping?(mappingAlias||event.venue_name||event.address_raw):event.title}</h2></div><button className="button" onClick={close}>Aizvērt ✕</button></div>
+  <div className="detail-header"><div><p className="eyebrow">{isMapping?'Vietu sasaiste — derēs arī nākamajiem importiem':'Vietas pārbaude'}{position?' · '+position:''}</p><h2>{isMapping?(mappingAlias||event.venue_name||event.address_raw):event.title}</h2></div><button className="button" onClick={close}>Aizvērt <Icon name="close" size={14}/></button></div>
 
   <div className={'location-issue-panel '+meta.tone}>
    <strong>{isMapping?`${mappingCount} esoši pasākumi ar šo aliasu`:meta.label}</strong>

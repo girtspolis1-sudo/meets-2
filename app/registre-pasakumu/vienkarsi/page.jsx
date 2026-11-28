@@ -1,4 +1,5 @@
 'use client';
+import SharedIcon from '../../components/line-icon.jsx';
 import {track} from '../../../lib/analytics.js';
 import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
@@ -28,20 +29,8 @@ async function refreshAccount(session){
  return next;
 }
 
-// Line icons in the stroke style of the site navigation.
-function Icon({name}){
- const base={viewBox:'0 0 24 24',width:20,height:20,fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':true,focusable:'false'};
- if(name==='globe')return <svg {...base}><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>;
- if(name==='lock')return <svg {...base}><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>;
- if(name==='pin')return <svg {...base}><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.4"/></svg>;
- if(name==='text')return <svg {...base}><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>;
- if(name==='tag')return <svg {...base}><path d="M3 12V4h8l9 9-8 8-9-9Z"/><circle cx="7.5" cy="8.5" r="1.3"/></svg>;
- if(name==='ticket')return <svg {...base}><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4V7Z"/><path d="M14 7v10" strokeDasharray="2 2"/></svg>;
- if(name==='repeat')return <svg {...base}><path d="M4 11V9a3 3 0 0 1 3-3h12l-3-3M20 13v2a3 3 0 0 1-3 3H5l3 3"/></svg>;
- if(name==='image')return <svg {...base}><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m21 16-5-5-8 8"/></svg>;
- if(name==='flyer')return <svg {...base}><path d="M6 3h9l4 4v14H6Z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>;
- return <svg {...base}><path d="m6 9 6 6 6-6"/></svg>;
-}
+// The shared line icons (lib/icon-paths.js), 20 px in this form.
+function Icon({name,size=20}){return <SharedIcon name={name==='chevron'?'chevron-down':name} size={size}/>;}
 
 function SimpleEventFlow(){
  const params=useSearchParams();
@@ -625,7 +614,7 @@ function SimpleEventFlow(){
       <input className="ev-pill" type="date" aria-label={'Norises diena '+(index+1)} min={savedId?undefined:rigaDate()} value={slot.date||''} onChange={e=>setChosenDay(index,'date',e.target.value)}/>
       <input className="ev-pill ev-pill-time" type="time" aria-label={'Sākuma laiks, '+(index+1)+'. diena'} value={slot.start||''} onChange={e=>setChosenDay(index,'start',e.target.value)}/>
       <input className="ev-pill ev-pill-time" type="time" aria-label={'Beigu laiks, '+(index+1)+'. diena'} value={slot.end||''} onChange={e=>setChosenDay(index,'end',e.target.value)}/>
-      <button type="button" className="ev-date-remove" aria-label={'Noņemt '+(index+1)+'. dienu'} disabled={(form.recurrence_slots||[]).length<2} onClick={()=>removeChosenDay(index)}>✕</button>
+      <button type="button" className="ev-date-remove" aria-label={'Noņemt '+(index+1)+'. dienu'} disabled={(form.recurrence_slots||[]).length<2} onClick={()=>removeChosenDay(index)}><Icon name="close" size={14}/></button>
      </div>)}
      <button type="button" className="ev-date-add" disabled={(form.recurrence_slots||[]).length>=62} onClick={addChosenDay}>+ Pievienot dienu</button>
      <p className="ev-hint">Piemēram, treniņi vai nodarbības dažādās dienās. Katrai dienai var būt savs laiks.</p>
@@ -730,13 +719,13 @@ function SimpleEventFlow(){
    }}/><button className="button" type="button" onClick={()=>setStage('edit')}>← Atpakaļ</button></section>}
 
   {stage==='done'&&<section className="ev-done" aria-live="polite">
-   <div className="ev-done-icon" aria-hidden="true">✓</div>
+   <div className="ev-done-icon" aria-hidden="true"><Icon name="check" size={28}/></div>
    <h2>{doneTitle}</h2>
    <p className="ev-done-event"><strong>{form.title}</strong><span>{scheduleLines(form)[0]}</span></p>
    <p className="meets-muted">{doneText}</p>
    {shareToken&&<div className="ev-share">
     <label className="ev-field">Saite uz pasākumu
-     <span className="ev-share-row"><input readOnly value={shareUrl} onFocus={e=>e.target.select()}/><button type="button" className="button" onClick={copyLink}>{copied?'✓ Nokopēta':'Kopēt'}</button></span>
+     <span className="ev-share-row"><input readOnly value={shareUrl} onFocus={e=>e.target.select()}/><button type="button" className="button" onClick={copyLink}>{copied?<><Icon name="check" size={16}/> Nokopēta</>:'Kopēt'}</button></span>
     </label>
     <a className="button" href={sharePath(shareToken)} target="_blank" rel="noopener noreferrer">Atvērt pasākuma lapu ↗</a>
    </div>}

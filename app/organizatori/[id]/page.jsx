@@ -1,3 +1,4 @@
+import Icon from '../../components/line-icon.jsx';
 import Link from 'next/link';
 import EventRow from '../../components/event-row.jsx';
 import EventListActions from '../../components/event-list-actions.jsx';
@@ -57,10 +58,10 @@ export default async function OrganizerPublicPage({params}){
     <ul className="org-site-stats" aria-label="Īsumā">
      <li><strong>{events.length}</strong> {events.length===1?'gaidāms pasākums':'gaidāmi pasākumi'}</li>
      {venues.length>0&&<li><strong>{venues.length}</strong> {venues.length===1?'norises vieta':'norises vietas'}</li>}
-     {details.address&&<li>📍 {details.address}</li>}
+     {details.address&&<li><Icon name="pin" size={16}/> {details.address}</li>}
     </ul>
     {(org.public_url||socials.length>0)&&<div className="org-site-links">
-     {org.public_url&&<a href={org.public_url} target="_blank" rel="noopener noreferrer" className="org-site-link web">🌐 Mājaslapa</a>}
+     {org.public_url&&<a href={org.public_url} target="_blank" rel="noopener noreferrer" className="org-site-link web"><Icon name="globe" size={16}/> Mājaslapa</a>}
      {socials.map(l=><a key={l.network} href={l.url} target="_blank" rel="noopener noreferrer" className={'org-site-link social-'+l.network}>{socialLabel(l.network)}</a>)}
     </div>}
    </div>
