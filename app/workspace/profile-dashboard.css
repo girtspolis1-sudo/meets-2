@@ -314,3 +314,7 @@ body:has(.meets-profile-auth:not(.meets-guest-auth)) .meets-auth-inline-alert{ma
     .meets-profile-shell {margin-top:12px
     }
 }
+
+/* /sekosana "Komandas": each team with its next games under it. */
+.following-team{flex-wrap:wrap}
+.following-team>.following-team-games{flex:1 1 100%;margin:8px 0 0}

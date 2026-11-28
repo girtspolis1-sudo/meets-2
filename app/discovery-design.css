@@ -311,7 +311,12 @@ body:not(.admin-environment) .button{border-radius:13px}
 .meets-detail-game .game-team.away{text-align:right}
 .meets-detail-game .game-team small{font-size:12px;font-weight:700;color:var(--teksts-2)}
 .meets-detail-game .game-team strong{font-size:17px;line-height:1.25;font-weight:800;color:var(--tinte);overflow-wrap:anywhere}
-.meets-detail-game .game-vs{align-self:end;padding-bottom:2px;font-size:13px;font-weight:700;color:var(--teksts-2)}
+.meets-detail-game .game-team .team-follow{justify-self:start;margin-top:4px}
+.meets-detail-game .game-team.away .team-follow{justify-self:end}
+.meets-detail-game .game-follow{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;white-space:nowrap;text-decoration:none;cursor:pointer;border:1px solid var(--migla);border-radius:999px;background:white;color:var(--tinte);font-size:13px;font-weight:700}
+.meets-detail-game .game-follow[aria-pressed="true"]{border-color:var(--karmins);color:var(--karmins)}
+.meets-detail-game .team-follow small{display:block;margin-top:4px;font-size:12px;color:var(--teksts-2)}
+.meets-detail-game .game-vs{align-self:start;margin-top:20px;font-size:13px;font-weight:700;color:var(--teksts-2)}
 .meets-detail-game .game-league{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0 0;font-size:14px;font-weight:600;color:var(--tinte)}
 .meets-detail-game .game-league svg{color:var(--karmins)}
 .meets-detail-game .game-league-link{display:inline-block;margin-top:8px;font-size:14px;font-weight:700}

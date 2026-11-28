@@ -1,5 +1,6 @@
 import {NextResponse} from 'next/server';
 import {placeFromEvent} from '../../../lib/location-follow.js';
+import {TEAM_FOLLOW_LIMIT,teamKey,validTeamFollow} from '../../../lib/team-key.js';
 export const dynamic='force-dynamic';
 const BASE=()=>process.env.SUPABASE_URL;
 const KEY=()=>process.env.SUPABASE_PUBLISHABLE_KEY;
@@ -30,7 +31,7 @@ async function setAvatarMetadata(bearer,avatarUrl){
 
 export async function POST(request){
  try{
-  const {action,email,token,password,eventId,category,enabled,leadMinutes,targetKind,targetId,notificationId,locationKey,locationName,municipality,avatarDataUrl,currentPassword,newPassword}=await request.json();
+  const {action,email,token,password,eventId,category,enabled,leadMinutes,targetKind,targetId,notificationId,locationKey,locationName,municipality,teamName,sport,avatarDataUrl,currentPassword,newPassword}=await request.json();
   if(!BASE()||!KEY())return NextResponse.json({error:'Kontu serviss nav konfigurēts.'},{status:503});
   const authUrl=BASE()+'/auth/v1/';
   const head={apikey:KEY(),'Content-Type':'application/json'};
@@ -120,7 +121,7 @@ export async function POST(request){
    if(!res.ok)return NextResponse.json({error:'Paroli neizdevās nomainīt. Pārbaudi paroles prasības.'},{status:400});
    return NextResponse.json({ok:true});
   }
-  if(!['list','add','remove','plan','unplan','visit','unvisit','dashboard','interest','reminder','follow','followLocation','locationFollows','share','unshare','readNotice'].includes(action)||typeof token!=='string')return NextResponse.json({error:'Nederīgs pieprasījums.'},{status:400});
+  if(!['list','add','remove','plan','unplan','visit','unvisit','dashboard','interest','reminder','follow','followLocation','locationFollows','followTeam','share','unshare','readNotice'].includes(action)||typeof token!=='string')return NextResponse.json({error:'Nederīgs pieprasījums.'},{status:400});
   const me=await fetch(authUrl+'user',{headers:{...head,Authorization:'Bearer '+token},cache:'no-store'});
   if(!me.ok)return NextResponse.json({error:'Jāpiesakās atkārtoti.'},{status:401});
   const user=await me.json();if(!user.id)return NextResponse.json({error:'Nav lietotāja.'},{status:401});
@@ -153,9 +154,16 @@ export async function POST(request){
      rest('rpc/meets_saved_event_details','POST','',{}),
      rest('meets_user_location_follows','GET',own+'&select=location_key,location_name,municipality,created_at&order=created_at.desc')
     ]);
+    // Followed teams (meets_user_team_follows): optional, so the rest still loads where
+    // the follow_team migration has not been applied yet.
+    const [teamFollows,teamGames]=await Promise.all([
+     rest('meets_user_team_follows','GET',own+'&select=team_key,team_name,sport,created_at&order=created_at.desc').catch(()=>[]),
+     rest('rpc/meets_team_follow_games','POST','',{}).catch(()=>[])
+    ]);
     return NextResponse.json({interests:interests||[],reminders:reminders||[],notices:notices||[],
      follows:follows||[],shared:shared?.[0]||null,directory:directory||{organizations:[],venues:[]},
-     followedEvents:Array.isArray(followedEvents)?followedEvents:[],savedDetails:Array.isArray(savedDetails)?savedDetails:[],locationFollows:locationFollows||[]});
+     followedEvents:Array.isArray(followedEvents)?followedEvents:[],savedDetails:Array.isArray(savedDetails)?savedDetails:[],locationFollows:locationFollows||[],
+     teamFollows:Array.isArray(teamFollows)?teamFollows:[],teamGames:Array.isArray(teamGames)?teamGames:[]});
    }catch{return NextResponse.json({error:'Personīgos iestatījumus neizdevās ielādēt.'},{status:502});}
   }
   if(action==='locationFollows'){
@@ -176,6 +184,20 @@ export async function POST(request){
     }else await rest('meets_user_location_follows','DELETE',own+'&location_key=eq.'+encodeURIComponent(locationKey));
     return NextResponse.json({ok:true});
    }catch{return NextResponse.json({error:'Sekošanu norises vietai neizdevās saglabāt.'},{status:400});}
+  }
+  // A team: its name within a sport (lib/team-key.js); the database checks that it plays
+  // in a published event or tournament. Nothing is sent: no notifications, no e-mails.
+  if(action==='followTeam'){
+   if(typeof enabled!=='boolean'||!validTeamFollow(teamName,sport))return NextResponse.json({error:'Nederīga komanda.'},{status:400});
+   const name=String(teamName).trim(),kind=String(sport).trim().toLowerCase(),key=teamKey(name,kind);
+   try{
+    if(enabled){
+     const current=await rest('meets_user_team_follows','GET',own+'&select=team_key&limit='+(TEAM_FOLLOW_LIMIT+1));
+     if(current?.length>=TEAM_FOLLOW_LIMIT&&!current.some(item=>item.team_key===key))return NextResponse.json({error:'Var sekot ne vairāk kā '+TEAM_FOLLOW_LIMIT+' komandām.'},{status:400});
+     await rest('meets_user_team_follows','POST','',{user_id:user.id,team_key:key,team_name:name,sport:kind});
+    }else await rest('meets_user_team_follows','DELETE',own+'&team_key=eq.'+encodeURIComponent(key));
+    return NextResponse.json({ok:true,team_key:key});
+   }catch{return NextResponse.json({error:'Sekošanu komandai neizdevās saglabāt.'},{status:400});}
   }
   if(action==='interest'){
    const kinds=['music','stage','culture','sport','active','markets','learning','community'];
