@@ -28,6 +28,8 @@ export default function ProfilePage(){
 
  return <div className="meets-profile-overview">
   {warning&&<p className="meets-profile-hint" role="status">{warning} <button type="button" className="text-button" onClick={()=>{list.reload().catch(()=>{});dash.reload().catch(()=>{});}}>Mēģināt vēlreiz</button></p>}
+  {/* Saved events moved here from the phone dock: the first link of the profile. */}
+  <Link href="/mani-pasakumi" className="meets-profile-saved-link"><ProfileIcon name="heart" size={18}/> Saglabātie{personal.favorites?' ('+personal.favorites.length+')':''} <span aria-hidden="true">→</span></Link>
   <section className="meets-profile-summary" aria-labelledby="profile-overview-heading">
     <div className="meets-profile-summary-heading"><div><p className="eyebrow">MANS PROFILS</p><h1 id="profile-overview-heading">Pārskats</h1></div><Link href="/karte" className="meets-profile-summary-action"><ProfileIcon name="map"/> Atrast pasākumu</Link></div>
     <div className="meets-profile-summary-stats" aria-label="Profila pārskats" aria-busy={list.loading||dash.loading}>
