@@ -12,6 +12,21 @@
 .tn-hero-org{margin:0;font-size:14px;color:#b9c2ce}
 .tn-hero-org a{color:#fff;text-decoration:underline;text-underline-offset:3px}
 .tn-hero-compact .tn-hero-inner{padding:20px 20px 18px}
+/* The public page's head: the same picture top as an event (EventCardMedia), then
+   the place, the organizer and the actions Kalendārs · Norādes · Dalīties. */
+.tn-head{margin-top:12px}
+.tn-head .ec-media.tn-media{margin:0 0 4px}
+.tn-head-body{display:grid;gap:8px;padding:6px 16px 4px}
+.tn-head-place{display:flex;align-items:center;gap:6px;margin:0;font-size:15px;font-weight:700}
+.tn-head-place svg{flex:none;color:var(--karmins)}
+.tn-head-org{margin:0;font-size:14px;color:var(--teksts-2)}
+.tn-head-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:480px;margin-top:4px}
+.tn-head-actions .share-button-wrap{display:flex}
+.tn-head-actions .button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:0;min-height:44px;padding:0 10px;
+ background:#fff;border:1px solid var(--migla);border-radius:12px;color:var(--tinte);font-weight:700;text-decoration:none;white-space:nowrap}
+.tn-head-actions .button:hover{border-color:var(--tinte)}
+.tn-head-actions .button svg{flex:none}
+.tn-head-note{font-size:13px;color:var(--teksts-2)}
 .tn-progress{display:grid;gap:6px;margin:8px 0 0}
 .tn-progress span{display:block;height:6px;border-radius:99px;background:rgba(255,255,255,.18);overflow:hidden}
 .tn-progress span::after{content:"";display:block;height:100%;width:calc(var(--done,0)*100%);background:var(--tn-live);border-radius:inherit}
@@ -211,6 +226,8 @@
 @media (max-width:640px){
  .tn-hero{margin-top:8px;border-radius:14px}
  .tn-hero-inner{padding:22px 16px 20px}
+ .tn-head{margin-top:8px}
+ .tn-head-body{padding:4px 12px 2px}
  .tn-body{padding:14px 12px}
  .tn-game{grid-template-columns:44px minmax(0,1fr) auto minmax(0,1fr);gap:2px 6px;padding:9px 8px}
  .tn-side{font-size:14px}
@@ -513,3 +530,9 @@ button.tn-day-cell:focus-visible{outline:3px solid var(--tinte,#1b2430);outline-
 .event-tournaments-text small{font-size:13px;color:rgba(255,255,255,.8)}
 .event-tournaments .button{background:#fff;color:var(--tinte,#1b2430);border-color:#fff}
 @media(max-width:560px){.event-tournaments li{grid-template-columns:auto minmax(0,1fr)}.event-tournaments .button{grid-column:1/-1;justify-content:center}}
+
+/* A results page: the picture stays low on wide screens, so the games come into view. */
+@media (min-width:761px){
+ .tn-head .ec-media.tn-media{min-height:0}
+ .tn-head .tn-media .ec-scene{flex:none;height:150px}
+}

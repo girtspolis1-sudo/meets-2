@@ -13,10 +13,12 @@ import OnlineJoin from '../../components/online-join.jsx';
 import EventLinkList from '../../components/event-link-list.jsx';
 import {addIsoDays,rigaClockMinutes,rigaTodayIso} from '../../../lib/event-date.js';
 import EventTournaments from '../../components/event-tournaments.jsx';
+import Icon from '../../components/line-icon.jsx';
+import {isYouthSport,sportLine} from '../../../lib/sport-line.js';
 import {eventDescription,eventJsonLd,eventTitle,fullDateLine,jsonLdScript} from '../../../lib/event-seo.js';
-import {eventPath,municipalityLocative,municipalitySlug,pageRobots,parseEventParam} from '../../../lib/seo.js';
+import {eventPath,municipalityLocative,municipalitySlug,pageRobots,parseEventParam,slugify} from '../../../lib/seo.js';
 import {eventGroup} from '../../../lib/home-category-filters.js';
-import {eventMoreLinks,municipalityBySlug,overlaps,teamGames} from '../../../lib/event-listings.js';
+import {eventMoreLinks,listingPath,municipalityBySlug,overlaps,teamGames} from '../../../lib/event-listings.js';
 import {breadcrumbJsonLd,eventCrumbs} from '../../../lib/breadcrumbs.js';
 import {pageMeta} from '../../../lib/page-meta.js';
 import ListingPage,{buildListing,listingMetadata} from '../listing-page.jsx';
@@ -89,6 +91,12 @@ export default async function EventPage({params}){
  const more=eventMoreLinks(event,all,today);
  const games=ended?[]:teamGames(event,all,today);
  const townSlug=municipalitySlug(event.municipality);
+ // A match: the teams face to face, the league line and its games page. The league
+ // page is linked even when it is too thin to be indexed (it stays noindex then).
+ const game=event.event_type==='sports_match'&&event.home_team&&event.away_team;
+ const league=sportLine(event);
+ const leaguePath=event.competition_name&&all.some(e=>e.competition_name===event.competition_name)?listingPath({league:slugify(event.competition_name,70)}):'';
+ const moreLinks=game&&leaguePath?more.filter(l=>l.path!==leaguePath):more;
  return <article className="meets-event-page">
   <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLdScript(eventJsonLd(event,{image,officialUrl:official}))}}/>
   <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLdScript(breadcrumbJsonLd(eventCrumbs(event)))}}/>
@@ -98,13 +106,23 @@ export default async function EventPage({params}){
   {ended&&<p className="meets-event-ended" role="status"><strong>Pasākums ir beidzies.</strong> Zemāk ir citi pasākumi {townSlug?municipalityLocative(event.municipality):'tuvumā'}.</p>}
   {/* The same picture top as the cards: the event's image or its theme picture,
       with the theme, the heart, the date chip and the title. */}
-  <EventCardMedia event={event} today={today} title={event.title} heading="h1" className="ec-page-media" fullDate={fullDateLine(event,today)}/>
+  <EventCardMedia event={event} today={today} title={event.title} heading="h1" className="ec-page-media" fullDate={fullDateLine(event,today)} sport={!game}/>
   <div className="meets-detail-body">
    {/* The same facts as on the map card; the date chip and the full date are in the picture band. */}
    <div className="meets-detail-key-facts event-facts-page">
     <EventFacts event={event} today={today} clock={rigaClockMinutes()} hideWhen/>
     <EventVenueFavorite event={event} compact fullLabel/>
    </div>
+   {game&&<section className="meets-detail-game" aria-labelledby="game-title">
+    <h2 id="game-title">Spēle</h2>
+    <div className="game-teams">
+     <p className="game-team"><small>Mājinieki</small><strong>{event.home_team}</strong></p>
+     <span className="game-vs" aria-hidden="true">pret</span>
+     <p className="game-team away"><small>Viesi</small><strong>{event.away_team}</strong></p>
+    </div>
+    {league&&<p className="game-league"><Icon name="trophy" size={16}/><span>{league}</span>{isYouthSport(event)&&<span className="sport-youth">Jaunieši</span>}</p>}
+    {leaguePath&&<Link className="game-league-link" href={leaguePath}>Visas sacensību spēles →</Link>}
+   </section>}
    <OnlineJoin event={event}/>
    {description&&<section className="meets-detail-description"><h2>Par pasākumu</h2><p>{description}</p></section>}
    {!ended&&<EventTournaments eventId={event.id}/>}
@@ -126,8 +144,8 @@ export default async function EventPage({params}){
     <EventLinkList events={related}/>
     {townSlug&&<p><Link href={'/pasakumi/'+townSlug}>Visi pasākumi {municipalityLocative(event.municipality)} →</Link></p>}
    </section>}
-   {more.length>0&&<nav className="meets-event-more-links" aria-label="Vairāk pasākumu">
-    <ul>{more.map(l=><li key={l.path}><Link href={l.path}>{l.label} →</Link></li>)}</ul>
+   {moreLinks.length>0&&<nav className="meets-event-more-links" aria-label="Vairāk pasākumu">
+    <ul>{moreLinks.map(l=><li key={l.path}><Link href={l.path}>{l.label} →</Link></li>)}</ul>
    </nav>}
    {/* Imported events without an organizer: the organizer can take them over. */}
    {!ended&&!event.organization_id&&<aside className="meets-claim-callout" aria-labelledby="claim-callout-title">

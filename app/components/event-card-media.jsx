@@ -6,6 +6,8 @@ import {cardImage,isPaidEvent} from '../../lib/discovery-card.js';
 import {topicArt} from '../../lib/topic-art.js';
 import WhenChip from './when-chip.jsx';
 import {priceLabel} from '../../lib/map-nearby.js';
+import {isYouthSport,sportLine} from '../../lib/sport-line.js';
+import Icon from './line-icon.jsx';
 import './event-card.css';
 
 // The top of an event card: the event's picture, or its theme picture
@@ -14,18 +16,22 @@ import './event-card.css';
 // title on a dark band. Shared by the grid cards and the map cards. `saved`/`onSave` make the
 // heart controlled (the map keeps its own favourites).
 // fullDate: the whole date under the title, on the event page.
-export default function EventCardMedia({event,today,title,saved,onSave,className='',heading='h3',noFavorite=false,fullDate=''}){
+// sport: the league line under the title for sports events (sport-line.js);
+// the event page turns it off when its «Spēle» block shows it.
+// category: the chip text when the theme name is not enough ("Futbols · Grupu turnīrs").
+export default function EventCardMedia({event,today,title,saved,onSave,className='',heading='h3',noFavorite=false,fullDate='',sport=true,category=''}){
  const Heading=heading;
  const [broken,setBroken]=useState(false),imgRef=useRef(null);
  // An image that failed before hydration never fires onError: check it once mounted.
  useEffect(()=>{const img=imgRef.current;if(img&&img.complete&&!img.naturalWidth)setBroken(true);},[]);
  const image=broken?'':cardImage(event),art=topicArt(event);
  const paid=isPaidEvent(event),price=priceLabel(event);
+ const league=sport?sportLine(event):'';
  return <div className={'ec-media'+(image?' has-photo':' ec-art ec-art-'+art.palette)+(className?' '+className:'')}>
   {image?<img ref={imgRef} src={image} alt="" loading="lazy" decoding="async" onError={()=>setBroken(true)}/>
    :<div className="ec-scene"><TopicScene scene={art.scene} variant={art.variant}/></div>}
   <div className="ec-top">
-   <span className="ec-category">{art.label}</span>
+   <span className="ec-category">{category||art.label}</span>
    {!noFavorite&&<EventQuickActions event={event} favoriteOnly saved={saved} onSave={onSave}/>}
   </div>
   <div className="ec-band">
@@ -35,6 +41,7 @@ export default function EventCardMedia({event,today,title,saved,onSave,className
     {event.price_status==='free'&&<span className="ec-price free">Bezmaksas</span>}
    </div>
    <Heading className="ec-title">{title}</Heading>
+   {league&&<p className="ec-sportline"><Icon name="trophy" size={14}/><span>{league}</span>{isYouthSport(event)&&<span className="sport-youth">Jaunieši</span>}</p>}
    {fullDate&&<p className="ec-fulldate">{fullDate}</p>}
   </div>
  </div>;
