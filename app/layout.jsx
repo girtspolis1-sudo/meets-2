@@ -7,6 +7,7 @@ import AuthReturn from './components/auth-return.jsx';
 import {CONTROLLER} from '../lib/legal.js';
 import AdminFooterControl from './admin-footer-control.jsx';
 import {SITE_URL,siteRobots} from '../lib/seo.js';
+import {SPORTS_PATH} from '../lib/nav-sections.js';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './globals.css';
@@ -38,7 +39,7 @@ function Wordmark(){
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: 'meets.lv — Pasākumi tuvumā', template: '%s | meets.lv' },
-  description: 'Atrodi, kas notiek tev blakus šodien un brīvdienās: koncerti, izrādes, izstādes un sporta spēles visā Latvijā.',
+  description: 'Kas notiek tev blakus: šodien un brīvdienās. Koncerti, izrādes, izstādes un sporta spēles visā Latvijā.',
   openGraph: { siteName: 'meets.lv', locale: 'lv_LV', type: 'website', images: [{ url: '/og', width: 1200, height: 630 }] },
   // The "m." mark. Search engines want a square favicon in a multiple of 48 px,
   // so the .ico (16/32/48) and the 192 px PNG come before the SVG. Bump ?v= when
@@ -75,10 +76,12 @@ export default function RootLayout({ children }) {
     <AnalyticsConsent/>
     <footer>
       <Wordmark/>
-      <p>Pasākumi, kas saved cilvēkus kopā.</p>
+      <p>Pasākumi tev blakus. Visā Latvijā.</p>
       <nav className="footer-links" aria-label="Kājenes saites">
         <Link href="/karte">Karte</Link>
         <Link href="/pasakumi">Pasākumi</Link>
+        <Link href={SPORTS_PATH}>Sports</Link>
+        <Link href="/pasakumi?period=weekend">Brīvdienās</Link>
         <Link href="/registre-pasakumu">Pievienot pasākumu</Link>
         <Link href="/organizators">Rīkotājiem</Link>
         <Link href="/privatums">Privātums</Link>

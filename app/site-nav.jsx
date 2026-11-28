@@ -3,13 +3,10 @@ import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {useEffect,useState} from 'react';
 import {useAdminSession} from './use-admin-session.js';
+import {HEADER_ITEMS,navSection} from '../lib/nav-sections.js';
 
 const SESSION_KEY='meets_user_session_v1';
-const items=[
- {href:'/karte',label:'Karte'},
- {href:'/pasakumi',label:'Pasākumi'},
- {href:'/profils',label:'Mans profils'}
-];
+const items=HEADER_ITEMS;
 function readSession(){
  try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch{return null;}
 }
@@ -29,11 +26,10 @@ export default function SiteNav(){
  const initial=(email||'M').trim().charAt(0).toLocaleUpperCase('lv');
  // Close the account menu after moving to another page.
  useEffect(()=>{document.querySelectorAll('.meets-mobile-account[open]').forEach(menu=>menu.removeAttribute('open'));},[pathname]);
- const profileArea=['/profils','/mani-pasakumi','/mani-registri','/organizators','/sekosana','/konta-iestatijumi','/registre-vietu','/registre-pasakumu','/registre-turnira'].some(path=>pathname===path||pathname.startsWith(path+'/'));
- const visibleItems=isAdmin?[...items,{href:'/admin',label:'Admin'}]:items;
- const isActive=item=>item.href==='/profils'
-  ?['/profils','/mani-pasakumi','/mani-registri','/organizators','/sekosana','/konta-iestatijumi','/registre-vietu','/registre-pasakumu','/registre-turnira'].some(path=>pathname===path||pathname.startsWith(path+'/'))
-  :pathname===item.href||pathname.startsWith(item.href+'/');
+ const section=navSection(pathname);
+ const profileArea=section==='profile';
+ const visibleItems=isAdmin?[...items,{key:'admin',href:'/admin',label:'Admin'}]:items;
+ const isActive=item=>item.key===section;
  async function logout(){
   if(loggingOut)return;
   setLoggingOut(true);

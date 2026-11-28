@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DOCK,dockItemX,dockOutline,dockPath} from '../lib/mobile-dock.js';
+import {DOCK_ITEMS,HEADER_ITEMS,SPORTS_PATH,navSection} from '../lib/nav-sections.js';
 
 // Phone widths of the bar (viewport minus 12 px margins), up to its 480 px cap.
 const WIDTHS=[296,320,351,366,406,480];
@@ -79,4 +80,32 @@ test('the notch can slide anywhere between the first and last item',()=>{
 test('a notch that does not fit leaves the bar plain',()=>{
  assert.equal(dockOutline({width:366,notch:{x:-200}}).filter(c=>c.op==='A').length,4);
  assert.equal(dockOutline({width:366,notch:{x:Number.NaN}}).filter(c=>c.op==='A').length,4);
+});
+
+test('the dock has Sākums, Karte, Pasākumi, Sports and Profils; saved events are in the profile',()=>{
+ assert.deepEqual(DOCK_ITEMS.map(i=>i.label),['Sākums','Karte','Pasākumi','Sports','Profils']);
+ assert.equal(DOCK_ITEMS.length,COUNT);
+ assert.ok(!DOCK_ITEMS.some(i=>i.href==='/mani-pasakumi'));
+ assert.deepEqual(HEADER_ITEMS.map(i=>i.label),['Karte','Pasākumi','Sports','Mans profils']);
+ // Header and dock send "Sports" to the same address.
+ assert.equal(DOCK_ITEMS.find(i=>i.key==='sport').href,SPORTS_PATH);
+ assert.equal(HEADER_ITEMS.find(i=>i.key==='sport').href,SPORTS_PATH);
+});
+
+test('one section is marked for each page',()=>{
+ assert.equal(navSection('/'),'home');
+ assert.equal(navSection('/karte'),'map');
+ assert.equal(navSection('/karte?category=sport'),'map');
+ assert.equal(navSection('/pasakumi'),'events');
+ assert.equal(navSection('/pasakumi/riga/brivdienas'),'events');
+ assert.equal(navSection('/pasakumi/k/muzika'),'events');
+ assert.equal(navSection('/pasakumi/k/sports'),'sport');
+ assert.equal(navSection('/pasakumi/k/sports/riga'),'sport');
+ assert.equal(navSection('/pasakumi/sports/optibet-hokeja-liga'),'sport');
+ assert.equal(navSection('/turniri/abc'),'sport');
+ assert.equal(navSection('/mani-pasakumi'),'profile');
+ assert.equal(navSection('/sekosana'),'profile');
+ assert.equal(navSection('/organizators/pieteikt'),'profile');
+ assert.equal(navSection('/privatums'),null);
+ assert.equal(navSection('/pasakumiX'),null);
 });

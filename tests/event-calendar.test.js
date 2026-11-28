@@ -42,3 +42,10 @@ test('shade steps and the radius filter',()=>{
  assert.equal(withinRadius({latitude:null},riga,25),false);
  assert.equal(withinRadius({latitude:null},null,0),true);
 });
+
+import {QUICK_PLACES,QUICK_PLACE_KEYS} from '../lib/event-calendar.js';
+test('quick towns are known places with coordinates',()=>{
+ assert.equal(QUICK_PLACES.length,QUICK_PLACE_KEYS.length);
+ for(const place of QUICK_PLACES){assert.ok(place&&place.label&&Number.isFinite(place.lat)&&Number.isFinite(place.lon));}
+ assert.equal(QUICK_PLACES[0].label,'Rīga');
+});
